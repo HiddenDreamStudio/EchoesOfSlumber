@@ -1,0 +1,107 @@
+name: "CodeQL Advanced"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: windows-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: c-cpp
+          build-mode: manual
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+
+    # -------------------------------------------------------------------------
+    # CUSTOM BUILD STEPS
+    # -------------------------------------------------------------------------
+
+    - name: Install Visual Studio Build Tools
+      if: matrix.build-mode == 'manual' && matrix.language == 'c-cpp'
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Generate project files with Premake
+      if: matrix.build-mode == 'manual' && matrix.language == 'c-cpp'
+      shell: cmd
+      run: |
+        cd build
+        premake5.exe vs2022
+
+    - name: Build project
+      if: matrix.build-mode == 'manual' && matrix.language == 'c-cpp'
+      shell: cmd
+      run: msbuild EchoesOfSlumber.sln /p:Configuration=Release /p:Platform=x64 /t:Rebuild
+
+    # -------------------------------------------------------------------------
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:${{matrix.language}}"
+
+    # -------------------------------------------------------------------------
+    # GAME ARTIFACT (downloadable from the Actions tab / PR checks)
+    # -------------------------------------------------------------------------
+
+    - name: Package game artifact
+      if: matrix.language == 'c-cpp'
+      shell: pwsh
+      run: |
+        $gameFolder = "EchoesOfSlumber"
+        New-Item -ItemType Directory -Path $gameFolder -Force
+
+        # Executable
+        $exeFiles = Get-ChildItem "bin/Release/*.exe" -ErrorAction SilentlyContinue
+        if ($exeFiles.Count -gt 0) {
+            Copy-Item $exeFiles[0].FullName -Destination "$gameFolder/"
+            Write-Host "Copied executable: $($exeFiles[0].Name)"
+        } else {
+            Write-Error "No executable found in bin/Release/"
+            exit 1
+        }
+
+        # DLLs
+        Get-ChildItem "bin/Release/*.dll" -ErrorAction SilentlyContinue | ForEach-Object {
+            Copy-Item $_.FullName -Destination "$gameFolder/"
+            Write-Host "Copied DLL: $($_.Name)"
+        }
+
+        # Assets, config, docs
+        if (Test-Path "assets")     { Copy-Item "assets" -Destination "$gameFolder/assets" -Recurse; Write-Host "Copied assets" }
+        if (Test-Path "config.xml") { Copy-Item "config.xml" -Destination "$gameFolder/"; Write-Host "Copied config.xml" }
+        if (Test-Path "LICENSE")    { Copy-Item "LICENSE"    -Destination "$gameFolder/"; Write-Host "Copied LICENSE" }
+        if (Test-Path "README.md")  { Copy-Item "README.md"  -Destination "$gameFolder/"; Write-Host "Copied README.md" }
+
+        # Clean stray build artifacts
+        "*.pdb","*.obj","*.tmp","*.log","*.ilk","*.idb","*.exp","*.lib" | ForEach-Object {
+            Get-ChildItem $gameFolder -Recurse -Include $_ -ErrorAction SilentlyContinue | Remove-Item -Force
+        }
+
+    - name: Upload game artifact
+      if: matrix.language == 'c-cpp'
+      uses: actions/upload-artifact@v4
+      with:
+        name: EchoesOfSlumber-${{ github.event.pull_request.number || github.sha }}
+        path: EchoesOfSlumber/
+        retention-days: 14
+        if-no-files-found: error
