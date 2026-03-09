@@ -1,0 +1,57 @@
+# CODEOWNERS — Echoes of Slumber (Hidden Dream Studio)
+# Defines automatic PR reviewers based on file type/location.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# ──────────────────────────────────────────────
+# DEFAULT: Lead Dev reviews everything by default
+# ──────────────────────────────────────────────
+*                           @TheUnrealZaka
+
+# ──────────────────────────────────────────────
+# ENGINE / CODE (.cpp, .h) → Dev Engineers lead + Lead Dev
+# ──────────────────────────────────────────────
+/src/                       @TheUnrealZaka
+/include/                   @TheUnrealZaka
+*.cpp                       @TheUnrealZaka
+*.h                         @TheUnrealZaka
+
+# ──────────────────────────────────────────────
+# ART ASSETS → Lead Art (Dóttir) reviews
+# ──────────────────────────────────────────────
+/assets/textures/           @dottircheong
+/assets/sprites/            @dottircheong
+*.png                       @dottircheong
+*.jpg                       @dottircheong
+*.bmp                       @dottircheong
+
+# ──────────────────────────────────────────────
+# AUDIO → Lead Art reviews (no dedicated audio lead)
+# ──────────────────────────────────────────────
+/assets/audio/              @dottircheong
+
+# ──────────────────────────────────────────────
+# LEVEL DESIGN (Tiled maps) → Lead Game Design (Montse)
+# ──────────────────────────────────────────────
+/assets/maps/               @montse4
+*.tmx                       @montse4
+*.tsx                       @montse4
+
+# ──────────────────────────────────────────────
+# BUILD SYSTEM & CI → Lead Dev
+# ──────────────────────────────────────────────
+/build/                     @TheUnrealZaka
+/.github/                   @TheUnrealZaka
+*.bat                       @TheUnrealZaka
+*.lua                       @TheUnrealZaka
+
+# ──────────────────────────────────────────────
+# DOCUMENTATION → Producers review
+# ──────────────────────────────────────────────
+*.md                        @bruno0135 @juliaaunion
+/docs/                      @bruno0135 @juliaaunion
+
+# ──────────────────────────────────────────────
+# CONFIG → Lead Dev
+# ──────────────────────────────────────────────
+*.xml                       @TheUnrealZaka
+.gitignore                  @TheUnrealZaka
