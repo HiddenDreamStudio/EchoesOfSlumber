@@ -5,6 +5,7 @@
 #include "Render.h"
 #include "Window.h"
 #include "Scene.h"
+#include "Cinematics.h"
 #include "Log.h"
 #include "Entity.h"
 #include "EntityManager.h"
@@ -19,33 +20,26 @@ Scene::Scene() : Module()
 	name = "scene";
 }
 
-// Destructor
 Scene::~Scene()
 {}
 
-// Called before render is available
 bool Scene::Awake()
 {
 	LOG("Loading Scene");
-	LoadScene(currentScene); // empieza en MAIN_MENU
-	bool ret = true;
-
-	return ret;
+	LoadScene(currentScene);
+	return true;
 }
 
-// Called before the first frame
 bool Scene::Start()
 {
 	return true;
 }
 
-// Called each loop iteration
 bool Scene::PreUpdate()
 {
 	return true;
 }
 
-// Called each loop iteration
 bool Scene::Update(float dt)
 {
 	// Apply deferred scene change (safe here, outside UI callbacks)
@@ -56,16 +50,14 @@ bool Scene::Update(float dt)
 
 	switch (currentScene)
 	{
-	case SceneID::INTRO_SCREEN:
-		break;
 	case SceneID::MAIN_MENU:
 		UpdateMainMenu(dt);
 		break;
-	case SceneID::LEVEL1:
-		UpdateLevel1(dt);
+	case SceneID::INTRO_CINEMATIC:
+		UpdateIntroCinematic(dt);
 		break;
-	case SceneID::LEVEL2:
-		UpdateLevel2(dt);
+	case SceneID::GAMEPLAY:
+		UpdateGameplay(dt);
 		break;
 	}
 
@@ -78,16 +70,12 @@ bool Scene::PostUpdate()
 
 	switch (currentScene)
 	{
-	case SceneID::INTRO_SCREEN:
-		break;
 	case SceneID::MAIN_MENU:
 		break;
-	case SceneID::LEVEL1:
-		PostUpdateLevel1();
+	case SceneID::INTRO_CINEMATIC:
 		break;
-	case SceneID::LEVEL2:
-		break;
-	default:
+	case SceneID::GAMEPLAY:
+		PostUpdateGameplay();
 		break;
 	}
 
@@ -101,16 +89,10 @@ bool Scene::OnUIMouseClickEvent(UIElement* uiElement)
 {
 	switch (currentScene)
 	{
-	case SceneID::INTRO_SCREEN:
-		break;
 	case SceneID::MAIN_MENU:
 		HandleMainMenuUIEvents(uiElement);
 		break;
-	case SceneID::LEVEL1:
-		break;
-	case SceneID::LEVEL2:
-		break;
-	default:
+	case SceneID::GAMEPLAY:
 		break;
 	}
 
@@ -136,20 +118,16 @@ Vector2D Scene::GetPlayerPosition()
 
 void Scene::LoadScene(SceneID newScene)
 {
-	auto& engine = Engine::GetInstance();
-
 	switch (newScene)
 	{
 	case SceneID::MAIN_MENU:
 		LoadMainMenu();
 		break;
-
-	case SceneID::LEVEL1:
-		LoadLevel1();
+	case SceneID::INTRO_CINEMATIC:
+		LoadIntroCinematic();
 		break;
-
-	case SceneID::LEVEL2:
-		LoadLevel2();
+	case SceneID::GAMEPLAY:
+		LoadGameplay();
 		break;
 	}
 }
@@ -168,33 +146,27 @@ void Scene::UnloadCurrentScene() {
 	case SceneID::MAIN_MENU:
 		UnloadMainMenu();
 		break;
-
-	case SceneID::LEVEL1:
-		UnloadLevel1();
+	case SceneID::INTRO_CINEMATIC:
+		UnloadIntroCinematic();
 		break;
-
-	case SceneID::LEVEL2:
-		UnloadLevel2();
+	case SceneID::GAMEPLAY:
+		UnloadGameplay();
 		break;
 	}
-
 }
 
 // *********************************************
-// MAIN MENU functions
+// MAIN MENU
 // *********************************************
 
 void Scene::LoadMainMenu() {
 
-	Engine::GetInstance().audio->PlayMusic("Assets/Audio/Music/level-iv-339695.wav");
-
-	// Instantiate a UIButton in the Scene
-	SDL_Rect btPos = { 520, 350, 120,20 };
-	std::dynamic_pointer_cast<UIButton>(Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, 1, "MyButton", btPos, this));
+	// Create a "Play" button centered on screen
+	SDL_Rect btPos = { 580, 350, 120, 30 };
+	std::dynamic_pointer_cast<UIButton>(Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, 1, "Play", btPos, this));
 }
 
 void Scene::UnloadMainMenu() {
-	// Clean up UI elements related to the main menu
 	Engine::GetInstance().uiManager->CleanUp();	
 }
 
@@ -204,11 +176,10 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 {
 	switch (uiElement->id)
 	{
-	case 1: // Button MyButton
-		LOG("Main Menu: MyButton clicked!");
-		// Defer scene change to avoid use-after-free (we're inside UIButton::Update)
+	case 1: // Play button
+		LOG("Main Menu: Play clicked!");
 		hasPendingSceneChange = true;
-		pendingScene = SceneID::LEVEL1;
+		pendingScene = SceneID::INTRO_CINEMATIC;
 		break;
 	default:
 		break;
@@ -216,17 +187,35 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 }
 
 // *********************************************
-// Level 1 functions
+// INTRO CINEMATIC
 // *********************************************
 
-void Scene::LoadLevel1() {
+void Scene::LoadIntroCinematic() {
+	LOG("Playing intro cinematic...");
+	Engine::GetInstance().cinematics->PlayVideo("assets/video/test.mp4");
+}
 
-	Engine::GetInstance().audio->PlayMusic("Assets/Audio/Music/level-iv-339695.wav");
+void Scene::UnloadIntroCinematic() {
+	Engine::GetInstance().cinematics->StopVideo();
+}
 
-	//Call the function to load the map. 
-	Engine::GetInstance().map->Load("Assets/Maps/", "MapTemplate.tmx");
+void Scene::UpdateIntroCinematic(float dt) {
+	// When the video finishes (or is skipped), transition to gameplay
+	if (!Engine::GetInstance().cinematics->IsPlaying()) {
+		ChangeScene(SceneID::GAMEPLAY);
+	}
+}
 
-	//Call the function to load entities from the map
+// *********************************************
+// GAMEPLAY (blank template — add your game here)
+// *********************************************
+
+void Scene::LoadGameplay() {
+
+	// Load the map
+	Engine::GetInstance().map->Load("assets/maps/", "MapTemplate.tmx");
+
+	// Load entities from map (Player spawn point, etc.)
 	Engine::GetInstance().map->LoadEntities(player);
 
 	// If the map didn't contain an Entities object group, create the player manually
@@ -236,91 +225,36 @@ void Scene::LoadLevel1() {
 		player->Start();
 	}
 
-	//Create a new item using the entity manager and set the position to (200, 672) to test
-	std::shared_ptr<Item> item = std::dynamic_pointer_cast<Item>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ITEM));
-	item->position = Vector2D(200, 672);
-	item->Start(); //L17 Important call Start
-
-	//Create a new enemy 
-	std::shared_ptr<Enemy> enemy1 = std::dynamic_pointer_cast<Enemy>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
-	enemy1->position = Vector2D(384, 672);
-	enemy1->Start(); //L17 Important call Start
-
-	//Create a new enemy 
-	std::shared_ptr<Enemy> enemy2 = std::dynamic_pointer_cast<Enemy>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
-	enemy2->position = Vector2D(1380, 672);
-	enemy2->Start(); //L17 Important call Start
+	// ---- Add your game entities here ----
+	// Example:
+	// auto item = std::dynamic_pointer_cast<Item>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ITEM));
+	// item->position = Vector2D(200, 672);
+	// item->Start();
 }
 
-void Scene::UpdateLevel1(float dt) {
-
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_2) == KEY_DOWN) {
-		ChangeScene(SceneID::LEVEL2);
-	}
-
+void Scene::UpdateGameplay(float dt) {
+	// ---- Add gameplay logic here ----
 }
 
-void Scene::UnloadLevel1() {
+void Scene::UnloadGameplay() {
 
-	// Clean up UI elements related to the Level1
 	auto& uiManager = Engine::GetInstance().uiManager;
 	uiManager->CleanUp();
 
-	// Reset player reference (sets the shared_ptr to nullptr)
 	player.reset();
 
-	// Clean up map and entities
 	Engine::GetInstance().map->CleanUp();
 	Engine::GetInstance().entityManager->CleanUp();
-
 }
 
-void  Scene::PostUpdateLevel1() {
+void Scene::PostUpdateGameplay() {
 
-	//L15 TODO 3: Call the function to load entities from the map
+	// Save/Load entity positions
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F5) == KEY_DOWN) {
 		Engine::GetInstance().map->LoadEntities(player);
 	}
 
-	//L15 TODO 4: Call the function to save entities from the map
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F6) == KEY_DOWN) {
 		Engine::GetInstance().map->SaveEntities(player);
 	}
 }
-
-// *********************************************
-// Level 2 functions
-// *********************************************
-
-void Scene::LoadLevel2() {
-
-	Engine::GetInstance().audio->PlayMusic("Assets/Audio/Music/that-8-bit-music-322062.wav");
-
-	//Call the function to load the map. 
-	Engine::GetInstance().map->Load("Assets/Maps/", "MapTemplateLevel2.tmx");
-
-	//Call the function to load entities from the map
-	Engine::GetInstance().map->LoadEntities(player);
-}
-
-void Scene::UpdateLevel2(float dt) {
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_1) == KEY_DOWN) {
-		ChangeScene(SceneID::LEVEL1);
-	}
-}
-
-void Scene::UnloadLevel2() {
-
-	// Clean up UI elements related to the Level2
-	auto& uiManager = Engine::GetInstance().uiManager;
-	uiManager->CleanUp();
-
-	// Reset player reference (sets the shared_ptr to nullptr)
-	player.reset();
-
-	// Clean up map and entities
-	Engine::GetInstance().map->CleanUp();
-	Engine::GetInstance().entityManager->CleanUp();
-
-}
-

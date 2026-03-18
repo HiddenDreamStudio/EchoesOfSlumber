@@ -332,7 +332,7 @@ void Pathfinding::PropagateAStar(ASTAR_HEURISTICS heuristic) {
             switch (heuristic)
             {
             case ASTAR_HEURISTICS::MANHATTAN:
-                h = neighbor.distanceMahattan(playerPosTile);
+                h = neighbor.distanceManhattan(playerPosTile);
                 break;
             case ASTAR_HEURISTICS::EUCLIDEAN:
                 h = neighbor.distanceEuclidean(playerPosTile);

@@ -1,7 +1,7 @@
 <!-- Config file for the engine -->
 <config>
   <engine>
-    <title>My platformer game</title>
+    <title>Echoes of Slumber</title>
     <targetFrameRate value="60"/>
   </engine>
 

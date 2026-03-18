@@ -30,8 +30,6 @@ bool Render::Awake()
 	int scale = Engine::GetInstance().window->GetScale();
 	SDL_Window* window = Engine::GetInstance().window->window;
 
-	//L05 TODO 5 - Load the configuration of the Render module
-	
 	// SDL3: no flags; create default renderer and set vsync separately
 	renderer = SDL_CreateRenderer(window, nullptr);
 
@@ -286,7 +284,7 @@ bool Render::DrawCircle(int x, int y, int radius, Uint8 r, Uint8 g, Uint8 b, Uin
 	return ret;
 }
 
-// L16: method DrawText to render text on screen. Uses SDL3_ttf
+// Draw text on screen using SDL3_ttf
 bool Render::DrawText(const char* text, int x, int y, int w, int h, SDL_Color color) const
 {
 	if (!font || !renderer || !text) {

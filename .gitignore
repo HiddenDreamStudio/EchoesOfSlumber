@@ -407,10 +407,13 @@ FodyWeavers.xsd
 *.sln.iml
 build_files
 SDL3
+SDL3_ttf
 SDL3_image
 box2d
 libpng
 libjpeg-turbo
 pugixml
+ffmpeg
+tracy
 Makefile
 /*.sln

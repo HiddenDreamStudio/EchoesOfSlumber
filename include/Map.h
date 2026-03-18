@@ -5,13 +5,12 @@
 #include <vector>
 #include "Player.h"
 
-// L09: TODO 5: Add attributes to the property structure
 struct Properties
 {
     struct Property
     {
         std::string name;
-        bool value; //We assume that we are going to work only with bool for the moment
+        bool value;
     };
 
     std::list<Property*> propertyList;
@@ -26,7 +25,6 @@ struct Properties
         propertyList.clear();
     }
 
-    // L09: DONE 7: Method to ask for the value of a custom property
     Property* GetProperty(const char* name)
     {
         for (const auto& property : propertyList) {
@@ -42,7 +40,6 @@ struct Properties
 
 struct MapLayer
 {
-    // L07: TODO 1: Add the info to the MapLayer Struct
     int id;
     std::string name;
     int width;
@@ -50,15 +47,11 @@ struct MapLayer
     std::vector<int> tiles;
     Properties properties;
 
-    // L07: TODO 6: Short function to get the gid value of i,j
     unsigned int Get(int i, int j) const
     {
         return tiles[(j * width) + i];
     }
 };
-
-// L06: TODO 2: Create a struct to hold information for a TileSet
-// Ignore Terrain Types and Tile Types for now, but we want the image!
 
 struct TileSet
 {
@@ -72,7 +65,7 @@ struct TileSet
     int columns;
     SDL_Texture* texture;
 
-    // L07: TODO 7: Implement the method that receives the gid and returns a Rect
+    // Get the source rect for a tile gid
     SDL_Rect GetRect(unsigned int gid) {
         SDL_Rect rect = { 0 };
 
@@ -87,7 +80,6 @@ struct TileSet
 
 };
 
-// L06: TODO 1: Create a struct needed to hold the information to Map node
 struct MapData
 {
 	int width;
@@ -95,7 +87,6 @@ struct MapData
 	int tileWidth;
 	int tileHeight;
     std::list<TileSet*> tilesets;
-
     // L07: TODO 2: Add the info to the MapLayer Struct
     std::list<MapLayer*> layers;
 };
@@ -124,18 +115,15 @@ public:
     // Load new map
     bool Load(std::string path, std::string mapFileName);
 
-    // L07: TODO 8: Create a method that translates x,y coordinates from map positions to world positions
+    // Translate between map and world coordinates
     Vector2D MapToWorld(int x, int y) const;
     Vector2D WorldToMap(int x, int y);
 
-    // L09: TODO 2: Implement function to the Tileset based on a tile id
     TileSet* GetTilesetFromTileId(int gid) const;
 
-    // L09: TODO 6: Load a group of properties 
     bool LoadProperties(pugi::xml_node& node, Properties& properties);
 
-	// L10: TODO 7: Create a method to get the map size in pixels
-	Vector2D GetMapSizeInPixels();
+    Vector2D GetMapSizeInPixels();
     Vector2D GetMapSizeInTiles();
 
     MapLayer* GetNavigationLayer();
@@ -148,15 +136,10 @@ public:
         return mapData.tileHeight;
     }
 
-    //L15 TODO 2: Define a method to load entities from the map XML
     void LoadEntities(std::shared_ptr<Player>& player);
-	//L15 TODO 4: Define a method to save entities to the map XML
     void SaveEntities(std::shared_ptr<Player> player);
 
-	// L19 TODO 1: Calculate Camera position in Tiles
 	Vector2D GetCameraPositionInTiles();
-
-	// L19 TODO 2: Calculate Camera limits in Tiles
 	Vector2D GetCameraLimitsInTiles(Vector2D camPosTile);
 
 public: 
@@ -165,9 +148,7 @@ public:
 
 private:
     bool mapLoaded;
-    // L06: DONE 1: Declare a variable data of the struct MapData
     MapData mapData;
-	//L15 TODO 2: make the mapFileXML an attribute of the Map class
     pugi::xml_document mapFileXML;
     //
 	std::list<PhysBody*> colliderList;

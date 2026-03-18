@@ -19,6 +19,7 @@ class Map;
 //L08 TODO 2: Add Physics module
 class Physics;
 class UIManager;
+class Cinematics;
 
 class Engine
 {
@@ -96,13 +97,13 @@ public:
 	std::shared_ptr<Textures> textures;
 	std::shared_ptr<Audio> audio;
 	std::shared_ptr<Scene> scene;
-	// L04: TODO 1: Add the EntityManager Module to the Engine
 	std::shared_ptr<EntityManager> entityManager;
 	std::shared_ptr<Map> map;
-	// L08: TODO 2: Add Physics module
 	std::shared_ptr<Physics> physics;
 	std::shared_ptr<UIManager> uiManager;
+	std::shared_ptr<Cinematics> cinematics;
 
+	std::string gameTitle = "Echoes of Slumber";
 
 private: 
 
@@ -124,12 +125,9 @@ private:
 	float averageFps = 0.0f;
 	int secondsSinceStartup = 0;
 
-	//Maximun frame duration in miliseconds.
+	// Maximum frame duration in milliseconds
 	int targetFrameRate = 60;
 
-	std::string gameTitle = "Platformer Game";
-
-	//L05 TODO 2: Declare a xml_document to load the config file
 	pugi::xml_document configFile;
 
 };

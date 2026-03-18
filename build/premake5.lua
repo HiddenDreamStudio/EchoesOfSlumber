@@ -492,6 +492,66 @@ function check_discord_sdk()
     os.chdir("../")
 end
 
+function check_ffmpeg()
+    os.chdir("external")
+    
+    -- FFmpeg shared builds from BtbN (GitHub)
+    -- Downloads the latest GPL shared build for win64
+    local ffmpeg_zip = "ffmpeg-master-latest-win64-gpl-shared.zip"
+    local ffmpeg_extracted = "ffmpeg-master-latest-win64-gpl-shared"
+    
+    if(os.isdir("ffmpeg") == false) then
+        if(not os.isfile(ffmpeg_zip)) then
+            print("FFmpeg not found, downloading shared build from BtbN...")
+            local download_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/" .. ffmpeg_zip
+            local result_str, response_code = http.download(download_url, ffmpeg_zip, {
+                progress = download_progress,
+                headers = { "From: Premake", "Referer: Premake" }
+            })
+            
+            if not os.isfile(ffmpeg_zip) then
+                print("")
+                print("============================================================")
+                print("  FFmpeg DOWNLOAD FAILED")
+                print("")
+                print("  Could not download from BtbN releases.")
+                print("  You can manually download and extract to:")
+                print("    build/external/ffmpeg/")
+                print("  Expected structure:")
+                print("    ffmpeg/include/  (libavcodec, libavformat, etc.)")
+                print("    ffmpeg/lib/      (.lib import libraries)")
+                print("    ffmpeg/bin/      (.dll shared libraries)")
+                print("============================================================")
+                print("")
+                os.chdir("../")
+                return
+            end
+        end
+        
+        print("Unzipping FFmpeg to " .. os.getcwd())
+        zip.extract(ffmpeg_zip, os.getcwd())
+        
+        -- Rename the extracted folder to simple name
+        if os.isdir(ffmpeg_extracted) then
+            os.rename(ffmpeg_extracted, "ffmpeg")
+            print("Renamed " .. ffmpeg_extracted .. " to ffmpeg")
+        end
+        
+        os.remove(ffmpeg_zip)
+        
+        -- Verify extraction succeeded
+        if not os.isdir("ffmpeg/include") then
+            print("WARNING: FFmpeg extracted but include/ folder not found.")
+        else
+            print("FFmpeg installed successfully")
+        end
+    else
+        print("FFmpeg already exists")
+    end
+    
+    os.chdir("../")
+end
+
 function build_externals()
     print("Checking external dependencies...")
     
@@ -524,6 +584,9 @@ function build_externals()
     if downloadDiscordSDK and not os.isdir("external/discord_social_sdk/include") then
         all_exist = false
     end
+    if downloadFFmpeg and not os.isdir("external/ffmpeg/include") then
+        all_exist = false
+    end
     
     -- If all dependencies exist, skip version fetching entirely
     if all_exist then
@@ -551,6 +614,9 @@ function build_externals()
     end
     if (downloadDiscordSDK) then
         check_discord_sdk()
+    end
+    if (downloadFFmpeg) then
+        check_ffmpeg()
     end
 end
 
@@ -604,6 +670,10 @@ tracy_dir = "external/tracy"
 -- Override URL via: --discord_sdk_url="..." or DISCORD_SDK_URL env var.
 downloadDiscordSDK = true
 discord_sdk_dir = "external/discord_social_sdk"
+
+-- FFmpeg: auto-downloads shared builds from BtbN GitHub releases
+downloadFFmpeg = true
+ffmpeg_dir = "external/ffmpeg"
 
 workspaceName = 'PlatformGame'
 baseName = path.getbasename(path.getdirectory(os.getcwd()))
@@ -685,6 +755,7 @@ end
         includedirs { libpng_dir .. "/include" }
         includedirs { sdl3_ttf_dir .. "/include" }
         includedirs { tracy_dir .. "/public" }
+        includedirs { ffmpeg_dir .. "/include" }
         -- Discord Social SDK: single-header API (discordpp.h)
         -- Uncomment when the SDK is downloaded and downloadDiscordSDK = true
         -- includedirs { discord_sdk_dir .. "/include" }
@@ -697,6 +768,7 @@ end
             defines{"_WINSOCK_DEPRECATED_NO_WARNINGS", "_CRT_SECURE_NO_WARNINGS"}
             dependson {"box2d", "pugixml", "tracy"}
             links {"box2d", "pugixml", "tracy", "SDL3", "SDL3_image", "SDL3_ttf", "jpeg", "libpng"}
+            links {"avcodec", "avformat", "avutil", "swscale", "swresample"}
             -- Discord Social SDK: uncomment when enabled
             -- links { "discord_partner_sdk" }
             characterset ("Unicode")
@@ -708,7 +780,7 @@ end
             
             -- SDL3 x64 específic
             filter { "system:windows", "platforms:x64" }
-                libdirs { "../bin/%{cfg.buildcfg}", sdl3_dir .. "/lib/x64", sdl3_image_dir .. "/lib/x64", sdl3_ttf_dir .. "/lib/x64", libjpeg_turbo_dir .. "/lib", libpng_dir .. "/lib" }
+                libdirs { "../bin/%{cfg.buildcfg}", sdl3_dir .. "/lib/x64", sdl3_image_dir .. "/lib/x64", sdl3_ttf_dir .. "/lib/x64", libjpeg_turbo_dir .. "/lib", libpng_dir .. "/lib", ffmpeg_dir .. "/lib" }
                 -- Discord Social SDK: uncomment when enabled
                 -- libdirs { discord_sdk_dir .. "/lib/release" }
                 postbuildcommands {
@@ -716,14 +788,15 @@ end
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3\\lib\\x64\\SDL3.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_image\\lib\\x64\\SDL3_image.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_ttf\\lib\\x64\\SDL3_ttf.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
-                    'xcopy /Y /D "$(SolutionDir)build\\external\\libjpeg-turbo\\bin\\jpeg62.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
+                    'xcopy /Y /D "$(SolutionDir)build\\external\\libjpeg-turbo\\bin\\jpeg62.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
+                    'xcopy /Y /D "$(SolutionDir)build\\external\\ffmpeg\\bin\\*.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
                     -- Discord Social SDK: uncomment when enabled
                     -- 'xcopy /Y /D "$(SolutionDir)build\\external\\discord_social_sdk\\bin\\release\\discord_partner_sdk.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
                 }
                 
             -- SDL3 x86 específic
             filter { "system:windows", "platforms:x86" }
-                libdirs { "../bin/%{cfg.buildcfg}", sdl3_dir .. "/lib/x86", sdl3_image_dir .. "/lib/x86", sdl3_ttf_dir .. "/lib/x86", libjpeg_turbo_dir .. "/lib", libpng_dir .. "/lib" }
+                libdirs { "../bin/%{cfg.buildcfg}", sdl3_dir .. "/lib/x86", sdl3_image_dir .. "/lib/x86", sdl3_ttf_dir .. "/lib/x86", libjpeg_turbo_dir .. "/lib", libpng_dir .. "/lib", ffmpeg_dir .. "/lib" }
                 -- Discord Social SDK: uncomment when enabled
                 -- libdirs { discord_sdk_dir .. "/lib/release" }
                 postbuildcommands {
@@ -731,7 +804,8 @@ end
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3\\lib\\x86\\SDL3.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_image\\lib\\x86\\SDL3_image.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_ttf\\lib\\x86\\SDL3_ttf.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
-                    'xcopy /Y /D "$(SolutionDir)build\\external\\libjpeg-turbo\\bin\\jpeg62.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
+                    'xcopy /Y /D "$(SolutionDir)build\\external\\libjpeg-turbo\\bin\\jpeg62.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
+                    'xcopy /Y /D "$(SolutionDir)build\\external\\ffmpeg\\bin\\*.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
                     -- Discord Social SDK: uncomment when enabled
                     -- 'xcopy /Y /D "$(SolutionDir)build\\external\\discord_social_sdk\\bin\\release\\discord_partner_sdk.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
                 }

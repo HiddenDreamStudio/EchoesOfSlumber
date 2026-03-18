@@ -27,7 +27,6 @@ bool Window::Awake()
 	else
 	{
 		// Create window
-		//L05 TODO 6: Get the values from the config file
 		Uint32 flags = 0;
 		bool fullscreen = configParameters.child("fullscreen").attribute("value").as_bool();
 		bool borderless = configParameters.child("borderless").attribute("value").as_bool();
@@ -43,8 +42,7 @@ bool Window::Awake()
 		if (borderless == true)        flags |= SDL_WINDOW_BORDERLESS;
 		if (resizable == true)         flags |= SDL_WINDOW_RESIZABLE;
 
-		// SDL3: SDL_CreateWindow(title, w, h, flags). Set position separately.
-		window = SDL_CreateWindow("Platform Game", width, height, flags);
+		window = SDL_CreateWindow(Engine::GetInstance().gameTitle.c_str(), width, height, flags);
 
 		if (window == NULL)
 		{

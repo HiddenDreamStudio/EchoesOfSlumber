@@ -21,5 +21,3 @@ private:
 	bool canClick = true;
 	bool drawBasic = false;
 };
-
-#pragma once
