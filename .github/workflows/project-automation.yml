@@ -136,7 +136,10 @@ jobs:
             
             # Check if item is in Backlog and has a start date <= today
             if [ "$STATUS" = "Backlog" ] && [ "$START_DATE" != "N/A" ] && [ "$START_DATE" != "null" ]; then
-              if [[ "$START_DATE" <= "$TODAY" ]]; then
+              # Convert dates to integers for comparison (YYYYMMDD format)
+              START_INT=$(echo "$START_DATE" | tr -d '-')
+              TODAY_INT=$(echo "$TODAY" | tr -d '-')
+              if [ "$START_INT" -le "$TODAY_INT" ]; then
                 echo "Moving #$ISSUE_NUMBER ($ISSUE_TITLE) from Backlog to Todo"
                 echo "   Start date: $START_DATE <= Today: $TODAY"
                 
