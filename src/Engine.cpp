@@ -15,6 +15,7 @@
 #include "Log.h"
 #include "UIManager.h"
 #include "Cinematics.h"
+#include "SaveSystem.h"
 #include "tracy/Tracy.hpp"
 
 // Constructor
@@ -40,6 +41,7 @@ Engine::Engine() {
     entityManager = std::make_shared<EntityManager>();
 	uiManager = std::make_shared<UIManager>(); 
 	cinematics = std::make_shared<Cinematics>();
+	saveSystem = std::make_shared<SaveSystem>();
 
     // Ordered for awake / Start / Update
     // Reverse order of CleanUp
@@ -53,6 +55,7 @@ Engine::Engine() {
     AddModule(std::static_pointer_cast<Module>(entityManager));
 	AddModule(std::static_pointer_cast<Module>(uiManager)); 
 	AddModule(std::static_pointer_cast<Module>(cinematics));
+	AddModule(std::static_pointer_cast<Module>(saveSystem));
 
     // Render last 
     AddModule(std::static_pointer_cast<Module>(render));
