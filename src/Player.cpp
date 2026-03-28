@@ -115,18 +115,21 @@ void Player::Draw(float dt) {
 	position.setX((float)x);
 	position.setY((float)y);
 
-	//L10: TODO 7: Center the camera on the player
-	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();	float limitLeft = (float)Engine::GetInstance().render->camera.w / 4;
-	float limitRight = (float)mapSize.getX() - Engine::GetInstance().render->camera.w * 3 / 4;
-	if (position.getX() - limitLeft > 0 && position.getX() < limitRight) {
-		Engine::GetInstance().render->camera.x = (int) - position.getX() + (int)(Engine::GetInstance().render->camera.w / 4);
-	}
-	else if( position.getX() <= limitLeft) {
-		Engine::GetInstance().render->camera.x = 0;
-	}
-	else {
-		Engine::GetInstance().render->camera.x = -(float)mapSize.getX() + Engine::GetInstance().render->camera.w;
-	}
+	// Camera System - Issue #21: Smooth camera follow with dead zones
+	// NOTE: Camera update in Player::Draw causes 1-frame jitter with Map tiles.
+	// TODO (#21): For proper fix, move world rendering to PostUpdate or add a Camera module
+	// that updates after Physics but before Map (requires module order refactoring).
+	auto& render = Engine::GetInstance().render;
+	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();  
+	
+	// Set camera target to player position
+	render->SetCameraTarget(position.getX(), position.getY());
+	
+	// Apply smooth follow with lerp and dead zones
+	render->FollowTarget(dt);
+	
+	// Clamp camera to map boundaries
+	render->ClampCameraToMapBounds(mapSize.getX(), mapSize.getY());
 
 	// Draw the player texture with the current animation frame
 	Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2, &animFrame);
