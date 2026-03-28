@@ -67,7 +67,11 @@ private:
 	float cameraTargetX_ = 0.0f;
 	float cameraTargetY_ = 0.0f;
 	float cameraSmoothSpeed_ = 5.0f;  // Lerp speed (higher = faster follow)
-	float deadZoneWidth_ = 64.0f;     // Dead zone half-width
-	float deadZoneHeight_ = 32.0f;    // Dead zone half-height
+	float deadZoneWidth_ = 64.0f;     // Dead zone half-width (world pixels)
+	float deadZoneHeight_ = 32.0f;    // Dead zone half-height (world pixels)
 	bool cameraInitialized_ = false;
+
+	// Helper to get world-space camera viewport dimensions (accounts for window scale)
+	float GetWorldViewportWidth() const;
+	float GetWorldViewportHeight() const;
 };

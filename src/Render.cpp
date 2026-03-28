@@ -356,8 +356,10 @@ void Render::SetCameraTarget(float x, float y)
 	// On first call, snap camera to target immediately (no lerp)
 	if (!cameraInitialized_)
 	{
-		camera.x = static_cast<int>(-x + camera.w / 2);
-		camera.y = static_cast<int>(-y + camera.h / 2);
+		float viewW = GetWorldViewportWidth();
+		float viewH = GetWorldViewportHeight();
+		camera.x = static_cast<int>(-x + viewW / 2);
+		camera.y = static_cast<int>(-y + viewH / 2);
 		cameraInitialized_ = true;
 	}
 }
@@ -365,9 +367,13 @@ void Render::SetCameraTarget(float x, float y)
 // Smooth follow using lerp with dead zones
 void Render::FollowTarget(float dt)
 {
+	// Get world-space viewport dimensions (accounts for window scale)
+	float viewW = GetWorldViewportWidth();
+	float viewH = GetWorldViewportHeight();
+
 	// Current camera center in world space
-	float currentX = -camera.x + camera.w / 2.0f;
-	float currentY = -camera.y + camera.h / 2.0f;
+	float currentX = -camera.x + viewW / 2.0f;
+	float currentY = -camera.y + viewH / 2.0f;
 
 	// Target position (center of screen should be here)
 	float targetX = cameraTargetX_;
@@ -403,28 +409,39 @@ void Render::FollowTarget(float dt)
 	float newY = currentY + (targetY - currentY) * lerpFactor;
 
 	// Convert back to camera coordinates (negative because camera offset is inverted)
-	camera.x = static_cast<int>(-(newX - camera.w / 2.0f));
-	camera.y = static_cast<int>(-(newY - camera.h / 2.0f));
+	camera.x = static_cast<int>(-(newX - viewW / 2.0f));
+	camera.y = static_cast<int>(-(newY - viewH / 2.0f));
 }
 
 // Camera System - Issue #21: Set camera position directly (for cutscenes, etc.)
 void Render::SetCameraPosition(float x, float y)
 {
-	camera.x = static_cast<int>(-x + camera.w / 2);
-	camera.y = static_cast<int>(-y + camera.h / 2);
+	float viewW = GetWorldViewportWidth();
+	float viewH = GetWorldViewportHeight();
+	camera.x = static_cast<int>(-x + viewW / 2);
+	camera.y = static_cast<int>(-y + viewH / 2);
+
+	// Keep internal camera follow state in sync with the direct position
+	cameraTargetX_ = x;
+	cameraTargetY_ = y;
+	cameraInitialized_ = true;
 }
 
 // Camera System - Issue #21: Clamp camera to map boundaries
 void Render::ClampCameraToMapBounds(float mapWidth, float mapHeight)
 {
+	// Get world-space viewport dimensions (accounts for window scale)
+	float viewW = GetWorldViewportWidth();
+	float viewH = GetWorldViewportHeight();
+
 	// Camera X bounds
 	if (camera.x > 0)
 	{
 		camera.x = 0;  // Left edge
 	}
-	if (camera.x < -(mapWidth - camera.w))
+	if (camera.x < -(mapWidth - viewW))
 	{
-		camera.x = static_cast<int>(-(mapWidth - camera.w));  // Right edge
+		camera.x = static_cast<int>(-(mapWidth - viewW));  // Right edge
 	}
 
 	// Camera Y bounds
@@ -432,42 +449,60 @@ void Render::ClampCameraToMapBounds(float mapWidth, float mapHeight)
 	{
 		camera.y = 0;  // Top edge
 	}
-	if (camera.y < -(mapHeight - camera.h))
+	if (camera.y < -(mapHeight - viewH))
 	{
-		camera.y = static_cast<int>(-(mapHeight - camera.h));  // Bottom edge
+		camera.y = static_cast<int>(-(mapHeight - viewH));  // Bottom edge
 	}
 
 	// Handle edge case where map is smaller than camera
-	if (mapWidth < camera.w)
+	if (mapWidth < viewW)
 	{
-		camera.x = static_cast<int>((camera.w - mapWidth) / 2.0f);
+		camera.x = static_cast<int>((viewW - mapWidth) / 2.0f);
 	}
-	if (mapHeight < camera.h)
+	if (mapHeight < viewH)
 	{
-		camera.y = static_cast<int>((camera.h - mapHeight) / 2.0f);
+		camera.y = static_cast<int>((viewH - mapHeight) / 2.0f);
 	}
 }
 
 // Camera System - Issue #21: Set dead zone size
 void Render::SetDeadZone(float width, float height)
 {
-	deadZoneWidth_ = width;
-	deadZoneHeight_ = height;
+	// Clamp dead zone dimensions to non-negative values
+	deadZoneWidth_ = std::fmax(0.0f, width);
+	deadZoneHeight_ = std::fmax(0.0f, height);
 }
 
 // Camera System - Issue #21: Set camera follow speed
 void Render::SetCameraSmoothSpeed(float speed)
 {
-	cameraSmoothSpeed_ = speed;
+	// Clamp camera smooth speed to non-negative values
+	cameraSmoothSpeed_ = std::fmax(0.0f, speed);
 }
 
 // Camera System - Issue #21: Get current camera center position in world space
 Vector2D Render::GetCameraPosition() const
 {
+	float viewW = GetWorldViewportWidth();
+	float viewH = GetWorldViewportHeight();
 	return Vector2D(
-		static_cast<float>(-camera.x + camera.w / 2),
-		static_cast<float>(-camera.y + camera.h / 2)
+		static_cast<float>(-camera.x + viewW / 2),
+		static_cast<float>(-camera.y + viewH / 2)
 	);
+}
+
+// Camera System: Get world-space viewport width (accounts for window scale)
+float Render::GetWorldViewportWidth() const
+{
+	int scale = Engine::GetInstance().window->GetScale();
+	return static_cast<float>(camera.w) / scale;
+}
+
+// Camera System: Get world-space viewport height (accounts for window scale)
+float Render::GetWorldViewportHeight() const
+{
+	int scale = Engine::GetInstance().window->GetScale();
+	return static_cast<float>(camera.h) / scale;
 }
 
 

@@ -116,6 +116,9 @@ void Player::Draw(float dt) {
 	position.setY((float)y);
 
 	// Camera System - Issue #21: Smooth camera follow with dead zones
+	// NOTE: Camera update in Player::Draw causes 1-frame jitter with Map tiles.
+	// TODO (#21): For proper fix, move world rendering to PostUpdate or add a Camera module
+	// that updates after Physics but before Map (requires module order refactoring).
 	auto& render = Engine::GetInstance().render;
 	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();  
 	
