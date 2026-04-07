@@ -91,7 +91,27 @@ void Enemy::GetPhysicsValues() {
 
 void Enemy::Move() {
 
-	// Move 
+	if (pathfinding->pathTiles.size() < 2) return;
+
+	// pathTiles = [playerTile, ..., nextStep, enemyTile]
+	// Second-to-last element is the next tile toward the player
+	auto nextIt = pathfinding->pathTiles.rbegin();
+	++nextIt;
+	Vector2D nextTile = *nextIt;
+
+	Vector2D nextWorldPos = Engine::GetInstance().map->MapToWorld((int)nextTile.getX(), (int)nextTile.getY());
+	float tileCenterX = nextWorldPos.getX() + Engine::GetInstance().map->GetTileWidth() * 0.5f;
+
+	int bodyX, bodyY;
+	pbody->GetPosition(bodyX, bodyY);
+
+	if (tileCenterX > bodyX + 2) {
+		velocity.x = speed;
+	} else if (tileCenterX < bodyX - 2) {
+		velocity.x = -speed;
+	} else {
+		velocity.x = 0;
+	}
 }
 
 void Enemy::ApplyPhysics() {
