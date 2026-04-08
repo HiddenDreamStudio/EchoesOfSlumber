@@ -22,10 +22,16 @@ bool SaveSystem::Awake()
 {
 	LOG("SaveSystem: Awake");
 
-	// Create save folder if it doesn't exist
-	if (!std::filesystem::exists(saveFolderPath_))
+	// Create save folder if it doesn't exist (use error_code to avoid exceptions)
+	std::error_code ec;
+	if (!std::filesystem::exists(saveFolderPath_, ec))
 	{
-		std::filesystem::create_directories(saveFolderPath_);
+		if (!std::filesystem::create_directories(saveFolderPath_, ec) && ec)
+		{
+			LOG("SaveSystem: Failed to create save folder at %s (error: %s)", 
+				saveFolderPath_.c_str(), ec.message().c_str());
+			return false;
+		}
 		LOG("SaveSystem: Created save folder at %s", saveFolderPath_.c_str());
 	}
 
@@ -51,7 +57,11 @@ bool SaveSystem::Update(float dt)
 	{
 		pendingSave_ = false;
 		CollectGameState();
-		WriteXML(quickSavePath_);
+		bool saveOk = WriteXML(quickSavePath_);
+		if (!saveOk)
+		{
+			LOG("SaveSystem: Quick save failed for %s", quickSavePath_.c_str());
+		}
 	}
 
 	return true;
@@ -65,19 +75,23 @@ bool SaveSystem::CleanUp()
 
 bool SaveSystem::SaveGame(const std::string& filename)
 {
-	LOG("SaveSystem: Saving game to %s", filename.c_str());
+	// Note: filename should be a base name (e.g., "slot1.xml"), not a full path
+	std::string fullPath = saveFolderPath_ + filename;
+	LOG("SaveSystem: Saving game to %s", fullPath.c_str());
 
 	CollectGameState();
-	return WriteXML(saveFolderPath_ + filename);
+	return WriteXML(fullPath);
 }
 
 bool SaveSystem::LoadGame(const std::string& filename)
 {
-	LOG("SaveSystem: Loading game from %s", filename.c_str());
+	// Note: filename should be a base name (e.g., "slot1.xml"), not a full path
+	std::string fullPath = saveFolderPath_ + filename;
+	LOG("SaveSystem: Loading game from %s", fullPath.c_str());
 
-	if (!ReadXML(saveFolderPath_ + filename))
+	if (!ReadXML(fullPath))
 	{
-		LOG("SaveSystem: Failed to read save file");
+		LOG("SaveSystem: Failed to read save file %s", fullPath.c_str());
 		return false;
 	}
 
@@ -115,7 +129,16 @@ bool SaveSystem::QuickLoad()
 
 bool SaveSystem::SaveFileExists(const std::string& filename) const
 {
-	return std::filesystem::exists(filename);
+	// Use error_code overload to avoid exceptions on filesystem errors
+	std::error_code ec;
+	bool exists = std::filesystem::exists(filename, ec);
+	if (ec)
+	{
+		LOG("SaveSystem: Error checking file existence for %s: %s", 
+			filename.c_str(), ec.message().c_str());
+		return false;
+	}
+	return exists;
 }
 
 void SaveSystem::CollectGameState()
@@ -151,9 +174,10 @@ void SaveSystem::CollectPlayerState()
 	gameState_.playerPosX = playerPos.getX();
 	gameState_.playerPosY = playerPos.getY();
 
-	// Get player reference for additional state
-	// Note: We access through Scene since Player is managed by EntityManager
-	// For now, we save position. Speed and jumpForce are defaults.
+	// NOTE: Currently we only persist the player's position.
+	// Additional runtime state such as speed, jump force, and jump status
+	// should be read from Player (via Scene or another API) once exposed.
+	// These are placeholder values until Player exposes getters for them.
 	gameState_.playerSpeed = 4.0f;
 	gameState_.playerJumpForce = 2.5f;
 	gameState_.playerIsJumping = false;
@@ -198,9 +222,9 @@ void SaveSystem::ApplyPlayerState()
 
 void SaveSystem::ApplySceneState()
 {
-	// For now, we assume the scene is already loaded
-	// Full scene transitions would require more complex handling
-	LOG("SaveSystem: Scene state applied (scene=%d)", gameState_.currentSceneId);
+	// For now, we assume the scene/map is already loaded elsewhere.
+	// Full scene/map restoration (including transitions) is not implemented yet.
+	LOG("SaveSystem: Scene state restoration not implemented yet (saved scene=%d)", gameState_.currentSceneId);
 }
 
 void SaveSystem::ApplyEntityStates()
