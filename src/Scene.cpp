@@ -14,6 +14,7 @@
 #include "Item.h"
 #include "Enemy.h"
 #include "UIManager.h"
+#include "SaveSystem.h"
 
 Scene::Scene() : Module()
 {
@@ -110,6 +111,11 @@ Vector2D Scene::GetPlayerPosition()
 {
 	if (player) return player->GetPosition();
 	else return Vector2D(0,0);
+}
+
+void Scene::SetPlayerPosition(Vector2D pos)
+{
+	if (player) player->SetPosition(pos);
 }
 
 // *********************************************
@@ -249,12 +255,12 @@ void Scene::UnloadGameplay() {
 
 void Scene::PostUpdateGameplay() {
 
-	// Save/Load entity positions
+	// Save/Load game state
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F5) == KEY_DOWN) {
-		Engine::GetInstance().map->LoadEntities(player);
+		Engine::GetInstance().saveSystem->QuickLoad();
 	}
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F6) == KEY_DOWN) {
-		Engine::GetInstance().map->SaveEntities(player);
+		Engine::GetInstance().saveSystem->QuickSave();
 	}
 }
