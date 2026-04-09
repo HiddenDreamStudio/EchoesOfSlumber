@@ -221,7 +221,7 @@ void Scene::LoadGameplay() {
 	// If the map didn't contain an Entities object group, create the player manually
 	if (player == nullptr) {
 		player = std::dynamic_pointer_cast<Player>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-		player->position = Vector2D(96, 672);
+		player->position = Vector2D(128, 128);
 		player->Start();
 	}
 
