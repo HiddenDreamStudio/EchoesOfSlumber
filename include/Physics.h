@@ -78,6 +78,7 @@ public:
 
     void DeletePhysBody(PhysBody* physBody);
     bool IsPendingToDelete(PhysBody* physBody);
+    bool IsDebug() const { return debug; }
 
     // --- Velocity helpers (thin wrappers over Box2D 3.x C API)
     b2Vec2 GetLinearVelocity(const PhysBody* p) const;

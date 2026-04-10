@@ -93,21 +93,18 @@ void Enemy::Move() {
 
 	if (pathfinding->pathTiles.size() < 2) return;
 
-	// pathTiles = [playerTile, ..., nextStep, enemyTile]
-	// Second-to-last element is the next tile toward the player
-	auto nextIt = pathfinding->pathTiles.rbegin();
-	++nextIt;
-	Vector2D nextTile = *nextIt;
-
-	Vector2D nextWorldPos = Engine::GetInstance().map->MapToWorld((int)nextTile.getX(), (int)nextTile.getY());
-	float tileCenterX = nextWorldPos.getX() + Engine::GetInstance().map->GetTileWidth() * 0.5f;
+	// Path exists: move horizontally toward the player
+	Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
 
 	int bodyX, bodyY;
 	pbody->GetPosition(bodyX, bodyY);
 
-	if (tileCenterX > bodyX + 2) {
+	float playerCenterX = playerPos.getX() + texW * 0.5f;
+
+	const float POSITION_TOLERANCE = 2.0f;
+	if (playerCenterX > bodyX + POSITION_TOLERANCE) {
 		velocity.x = speed;
-	} else if (tileCenterX < bodyX - 2) {
+	} else if (playerCenterX < bodyX - POSITION_TOLERANCE) {
 		velocity.x = -speed;
 	} else {
 		velocity.x = 0;
@@ -131,8 +128,9 @@ void Enemy::Draw(float dt) {
 	position.setX((float)x);
 	position.setY((float)y);
 
-	// Draw pathfinding debug
-	pathfinding->DrawPath();
+	// Draw pathfinding debug only when F9 debug mode is active
+	if (Engine::GetInstance().physics->IsDebug())
+		pathfinding->DrawPath();
 
 	//Draw the player using the texture and the current animation frame
 	Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2, &animFrame);
