@@ -79,18 +79,29 @@ void Player::Move() {
 		velocity.x = -speed;
 		anims.SetCurrent("move");
 	}
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT) {
+	else if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT) {
 		velocity.x = speed;
 		anims.SetCurrent("move");
+	}
+	else if (!isJumping) {
+		anims.SetCurrent("idle");
 	}
 }
 
 void Player::Jump() {
-	// This function can be used for more complex jump logic if needed
+
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN && isJumping == false) {
 		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -jumpForce, true);
 		anims.SetCurrent("jump");
 		isJumping = true;
+	}
+
+	// Parametric jump: cut vertical velocity when space is released early
+	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_UP && isJumping) {
+		float vy = Engine::GetInstance().physics->GetYVelocity(pbody);
+		if (vy < 0) {
+			Engine::GetInstance().physics->SetYVelocity(pbody, vy * 0.5f);
+		}
 	}
 }
 
