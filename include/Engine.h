@@ -20,6 +20,7 @@ class Map;
 class Physics;
 class UIManager;
 class Cinematics;
+class SaveSystem;
 
 class Engine
 {
@@ -102,6 +103,7 @@ public:
 	std::shared_ptr<Physics> physics;
 	std::shared_ptr<UIManager> uiManager;
 	std::shared_ptr<Cinematics> cinematics;
+	std::shared_ptr<SaveSystem> saveSystem;
 
 	std::string gameTitle = "Echoes of Slumber";
 
