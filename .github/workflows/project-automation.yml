@@ -1,0 +1,176 @@
+name: Project Board Automation
+
+on:
+  schedule:
+    # Run daily at 06:00 UTC (08:00 CET)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+  PROJECT_NUMBER: 7
+  ORG_NAME: HiddenDreamStudio
+
+jobs:
+  move-backlog-to-todo:
+    name: Move Backlog items to Todo based on start date
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Get current date
+        id: date
+        run: echo "TODAY=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
+      
+      - name: Get project data
+        id: project
+        run: |
+          # Get project ID
+          PROJECT_ID=$(gh api graphql -f query='
+            query($org: String!, $number: Int!) {
+              organization(login: $org) {
+                projectV2(number: $number) {
+                  id
+                }
+              }
+            }' -f org=$ORG_NAME -F number=$PROJECT_NUMBER --jq '.data.organization.projectV2.id')
+          echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_OUTPUT
+
+          # Get Status field ID and Backlog/Todo option IDs
+          gh api graphql -f query='
+            query($org: String!, $number: Int!) {
+              organization(login: $org) {
+                projectV2(number: $number) {
+                  id
+                  fields(first: 20) {
+                    nodes {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                        options {
+                          id
+                          name
+                        }
+                      }
+                      ... on ProjectV2Field {
+                        id
+                        name
+                      }
+                    }
+                  }
+                }
+              }
+            }' -f org=$ORG_NAME -F number=$PROJECT_NUMBER > project_fields.json
+
+          # Extract Status field ID
+          STATUS_FIELD_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id' project_fields.json)
+          echo "STATUS_FIELD_ID=$STATUS_FIELD_ID" >> $GITHUB_OUTPUT
+
+          # Extract Backlog option ID
+          BACKLOG_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="Backlog") | .id' project_fields.json)
+          echo "BACKLOG_ID=$BACKLOG_ID" >> $GITHUB_OUTPUT
+
+          # Extract Todo option ID
+          TODO_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="Todo") | .id' project_fields.json)
+          echo "TODO_ID=$TODO_ID" >> $GITHUB_OUTPUT
+
+          # Extract Start date field ID
+          START_DATE_FIELD_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Start date") | .id' project_fields.json)
+          echo "START_DATE_FIELD_ID=$START_DATE_FIELD_ID" >> $GITHUB_OUTPUT
+
+      - name: Get Backlog items with start dates
+        id: items
+        run: |
+          # Get all items in the project with their fields
+          gh api graphql -f query='
+            query($projectId: ID!) {
+              node(id: $projectId) {
+                ... on ProjectV2 {
+                  items(first: 100) {
+                    nodes {
+                      id
+                      fieldValues(first: 10) {
+                        nodes {
+                          ... on ProjectV2ItemFieldSingleSelectValue {
+                            field { ... on ProjectV2SingleSelectField { name } }
+                            name
+                          }
+                          ... on ProjectV2ItemFieldDateValue {
+                            field { ... on ProjectV2Field { name } }
+                            date
+                          }
+                        }
+                      }
+                      content {
+                        ... on Issue {
+                          number
+                          title
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }' -f projectId=${{ steps.project.outputs.PROJECT_ID }} > items.json
+
+      - name: Move eligible items to Todo
+        run: |
+          TODAY="${{ steps.date.outputs.TODAY }}"
+          PROJECT_ID="${{ steps.project.outputs.PROJECT_ID }}"
+          STATUS_FIELD_ID="${{ steps.project.outputs.STATUS_FIELD_ID }}"
+          TODO_ID="${{ steps.project.outputs.TODO_ID }}"
+
+          echo "Today: $TODAY"
+          echo "Processing Backlog items..."
+          
+          # Process each item
+          jq -c '.data.node.items.nodes[]' items.json | while read -r item; do
+            ITEM_ID=$(echo "$item" | jq -r '.id')
+            ISSUE_NUMBER=$(echo "$item" | jq -r '.content.number // "N/A"')
+            ISSUE_TITLE=$(echo "$item" | jq -r '.content.title // "N/A"')
+            
+            # Get status
+            STATUS=$(echo "$item" | jq -r '.fieldValues.nodes[] | select(.field.name=="Status") | .name // "N/A"')
+            
+            # Get start date
+            START_DATE=$(echo "$item" | jq -r '.fieldValues.nodes[] | select(.field.name=="Start date") | .date // "N/A"')
+            
+            # Check if item is in Backlog and has a start date <= today
+            if [ "$STATUS" = "Backlog" ] && [ "$START_DATE" != "N/A" ] && [ "$START_DATE" != "null" ]; then
+              # Convert dates to integers for comparison (YYYYMMDD format)
+              START_INT=$(echo "$START_DATE" | tr -d '-')
+              TODAY_INT=$(echo "$TODAY" | tr -d '-')
+              if [ "$START_INT" -le "$TODAY_INT" ]; then
+                echo "Moving #$ISSUE_NUMBER ($ISSUE_TITLE) from Backlog to Todo"
+                echo "   Start date: $START_DATE <= Today: $TODAY"
+                
+                # Update the item status to Todo
+                gh api graphql -f query='
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                    updateProjectV2ItemFieldValue(
+                      input: {
+                        projectId: $projectId
+                        itemId: $itemId
+                        fieldId: $fieldId
+                        value: { singleSelectOptionId: $optionId }
+                      }
+                    ) {
+                      projectV2Item { id }
+                    }
+                  }' -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" -f fieldId="$STATUS_FIELD_ID" -f optionId="$TODO_ID"
+                
+                echo "Moved successfully!"
+              else
+                echo "# $ISSUE_NUMBER: Start date ($START_DATE) is in the future"
+              fi
+            fi
+          done
+          
+          echo "Done processing Backlog items"
+
+      - name: Summary
+        run: |
+          echo "## Project Automation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** ${{ steps.date.outputs.TODAY }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Checked all Backlog items and moved eligible ones to Todo based on start date." >> $GITHUB_STEP_SUMMARY

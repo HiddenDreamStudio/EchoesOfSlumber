@@ -44,6 +44,12 @@ public:
 	// Return the player position
 	Vector2D GetPlayerPosition();
 
+	// Set the player position
+	void SetPlayerPosition(Vector2D pos);
+
+	// Get current scene ID
+	SceneID GetCurrentScene() const { return currentScene; }
+
 	// Get tilePosDebug value
 	std::string GetTilePosDebug() {
 		return tilePosDebug;

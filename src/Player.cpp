@@ -116,8 +116,7 @@ void Player::Draw(float dt) {
 	position.setY((float)y);
 
 	//L10: TODO 7: Center the camera on the player
-	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();	
-	float limitLeft = (float)Engine::GetInstance().render->camera.w / 4;
+	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();	float limitLeft = (float)Engine::GetInstance().render->camera.w / 4;
 	float limitRight = (float)mapSize.getX() - Engine::GetInstance().render->camera.w * 3 / 4;
 	if (position.getX() - limitLeft > 0 && position.getX() < limitRight) {
 		Engine::GetInstance().render->camera.x = (int) - position.getX() + (int)(Engine::GetInstance().render->camera.w / 4);
