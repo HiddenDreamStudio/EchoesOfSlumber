@@ -34,9 +34,9 @@ bool Player::Start() {
 	//L03: TODO 2: Initialize Player parameters
 	texture = Engine::GetInstance().textures->Load("Assets/Textures/player2_spritesheet.png");
 
-	texW = 64;
-	texH = 64;
-	pbody = Engine::GetInstance().physics->CreateCircle((int)position.getX(), (int)position.getY(), 28, bodyType::DYNAMIC);	
+	texW = 32;
+	texH = 32;
+	pbody = Engine::GetInstance().physics->CreateCircle((int)position.getX(), (int)position.getY(), texW / 2, bodyType::DYNAMIC);
 
 	pbody->listener = this;
 	pbody->ctype = ColliderType::PLAYER;
@@ -115,34 +115,24 @@ void Player::Draw(float dt) {
 	position.setX((float)x);
 	position.setY((float)y);
 
-	//L10: TODO 7: Center the camera on the player
-	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();	float limitLeft = (float)Engine::GetInstance().render->camera.w / 4;
-	float limitRight = (float)mapSize.getX() - Engine::GetInstance().render->camera.w * 3 / 4;
-	if (position.getX() - limitLeft > 0 && position.getX() < limitRight) {
-		Engine::GetInstance().render->camera.x = (int) - position.getX() + (int)(Engine::GetInstance().render->camera.w / 4);
-	}
-	else if( position.getX() <= limitLeft) {
-		Engine::GetInstance().render->camera.x = 0;
-	}
-	else {
-		Engine::GetInstance().render->camera.x = -(float)mapSize.getX() + Engine::GetInstance().render->camera.w;
-	}
+	// Camera System - Issue #21: Smooth camera follow with dead zones
+	// NOTE: Camera update in Player::Draw causes 1-frame jitter with Map tiles.
+	// TODO (#21): For proper fix, move world rendering to PostUpdate or add a Camera module
+	// that updates after Physics but before Map (requires module order refactoring).
+	auto& render = Engine::GetInstance().render;
+	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();  
+	
+	// Set camera target to player position
+	render->SetCameraTarget(position.getX(), position.getY());
+	
+	// Apply smooth follow with lerp and dead zones
+	render->FollowTarget(dt);
+	
+	// Clamp camera to map boundaries
+	render->ClampCameraToMapBounds(mapSize.getX(), mapSize.getY());
 
-	float limitTop = (float)Engine::GetInstance().render->camera.h / 3;
-	float limitBottom = (float)mapSize.getY() - Engine::GetInstance().render->camera.h * 2 / 3;
-	if (position.getY() - limitTop > 0 && position.getY() < limitBottom) {
-		Engine::GetInstance().render->camera.y = (int)-position.getY() + (int)(Engine::GetInstance().render->camera.h / 3);
-	}
-	else if (position.getY() <= limitTop) {
-		Engine::GetInstance().render->camera.y = 0;
-	}
-	else {
-		Engine::GetInstance().render->camera.y = -(float)mapSize.getY() + Engine::GetInstance().render->camera.h;
-	}
-
-	int drawX = x - 32;
-	int drawY = y - 32;
-	Engine::GetInstance().render->DrawTexture(texture, drawX, drawY, &animFrame, 2.0f);
+	// Draw the player texture with the current animation frame
+	Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2, &animFrame);
 }
 
 bool Player::CleanUp()

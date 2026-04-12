@@ -202,7 +202,7 @@ bool Map::Load(std::string path, std::string fileName)
                 for (int i = 0; i < mapData.width; i++) {
                     for (int j = 0; j < mapData.height; j++) {
                         int gid = mapLayer->Get(i, j);
-                        if (gid == 3) {
+                        if (gid == 49) {
                             Vector2D mapCoord = MapToWorld(i, j);
                             PhysBody* c1 = Engine::GetInstance().physics.get()->CreateRectangle((int)(mapCoord.getX()+ mapData.tileWidth/2), (int)(mapCoord.getY()+ mapData.tileHeight/2), mapData.tileWidth, mapData.tileHeight, STATIC);
                             c1->ctype = ColliderType::PLATFORM;
@@ -333,10 +333,8 @@ MapLayer* Map::GetNavigationLayer() {
                     // Create Player entity
                     if (player == nullptr) {
                         player = std::dynamic_pointer_cast<Player>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-                        player->position = Vector2D(x + 32, y + 32);
+                        player->position = Vector2D(x, y);
                         player->Start(); //L17: Importan to call Start to initialize teh Entity
-                        LOG("Player spawned at: %f, %f", x, y); 
-
                     }
 					//If the player already exists, just set its position
                     else {
