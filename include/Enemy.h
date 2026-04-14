@@ -34,7 +34,7 @@ private:
 public:
 
 	//Declare enemy parameters
-	float speed = 4.0f;
+	float speed = 2.5f;
 	SDL_Texture* texture = NULL;
 	int texW, texH;
 	PhysBody* pbody;
