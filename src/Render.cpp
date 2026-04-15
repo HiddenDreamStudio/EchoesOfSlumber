@@ -1,4 +1,4 @@
-﻿#include "Engine.h"
+#include "Engine.h"
 #include "Window.h"
 #include "Render.h"
 #include "Log.h"
@@ -123,7 +123,7 @@ void Render::ResetViewPort()
 }
 
 // Blit to screen
-bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* section, float speed, double angle, int pivotX, int pivotY) const
+bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* section, float speed, double angle, int pivotX, int pivotY, SDL_FlipMode flip, float drawScale) const
 {
 	bool ret = true;
 	int scale = Engine::GetInstance().window->GetScale();
@@ -135,8 +135,8 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 
 	if (section != NULL)
 	{
-		rect.w = (float)(section->w * scale);
-		rect.h = (float)(section->h * scale);
+		rect.w = (float)(section->w * scale * drawScale);
+		rect.h = (float)(section->h * scale * drawScale);
 	}
 	else
 	{
@@ -170,8 +170,8 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 		p = &pivot;
 	}
 
-	// SDL3: returns bool; map to int-style check
-	int rc = SDL_RenderTextureRotated(renderer, texture, src, &rect, angle, p, SDL_FLIP_NONE) ? 0 : -1;
+	// SDL3: returns bool; use the flip parameter
+	int rc = SDL_RenderTextureRotated(renderer, texture, src, &rect, angle, p, flip) ? 0 : -1;
 	if (rc != 0)
 	{
 		LOG("Cannot blit to screen. SDL_RenderTextureRotated error: %s", SDL_GetError());

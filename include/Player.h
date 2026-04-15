@@ -52,11 +52,13 @@ public:
 	int pickCoinFxId;
 
 	PhysBody* pbody;
-	float jumpForce = 2.5f; // The force to apply when jumping
+	float jumpForce = 10.0f; // The force to apply when jumping
 	bool isJumping = false; // Flag to check if the player is currently jumping
 
 private:
 	b2Vec2 velocity;
 	AnimationSet anims;
+	float drawScale = 1.0f; // scale factor: desired display size / source tile size
+	bool facingRight = true; // true = sprite faces right, false = flip horizontally
 
 };
