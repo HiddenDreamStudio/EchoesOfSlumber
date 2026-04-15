@@ -9,6 +9,7 @@
 #include "tracy/Tracy.hpp"
 
 #include <math.h>
+#include <sstream>
 
 Map::Map() : Module(), mapLoaded(false)
 {
@@ -179,9 +180,49 @@ bool Map::Load(std::string path, std::string fileName)
             tileSet->tileCount = tilesetNode.attribute("tilecount").as_int();
             tileSet->columns = tilesetNode.attribute("columns").as_int();
 
-            //Load the tileset image
+            //Load the tileset image (skip if tileset uses per-tile images)
             std::string imgName = tilesetNode.child("image").attribute("source").as_string();
-            tileSet->texture = Engine::GetInstance().textures->Load((mapPath + imgName).c_str());
+            if (!imgName.empty()) {
+                tileSet->texture = Engine::GetInstance().textures->Load((mapPath + imgName).c_str());
+            } else {
+                tileSet->texture = nullptr;
+            }
+
+            // Parse tile object groups for collisions
+            for (pugi::xml_node tileNode = tilesetNode.child("tile"); tileNode != NULL; tileNode = tileNode.next_sibling("tile")) {
+                int tileId = tileNode.attribute("id").as_int();
+                pugi::xml_node objectGroupNode = tileNode.child("objectgroup");
+                if (objectGroupNode != NULL) {
+                    std::vector<ObjectCollision> collisions;
+                    for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+                        ObjectCollision col;
+                        col.x = objectNode.attribute("x").as_float(0.0f);
+                        col.y = objectNode.attribute("y").as_float(0.0f);
+                        col.width = objectNode.attribute("width").as_float(0.0f);
+                        col.height = objectNode.attribute("height").as_float(0.0f);
+                        
+                        pugi::xml_node polyNode = objectNode.child("polygon");
+                        if (polyNode != NULL) {
+                            std::string pointsStr = polyNode.attribute("points").as_string();
+                            std::stringstream ss(pointsStr);
+                            std::string pointPair;
+                            while(std::getline(ss, pointPair, ' ')) {
+                                if(pointPair.empty()) continue;
+                                std::stringstream ssPair(pointPair);
+                                std::string xStr, yStr;
+                                if(std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
+                                    col.polygonPoints.push_back((int)std::stof(xStr));
+                                    col.polygonPoints.push_back((int)std::stof(yStr));
+                                }
+                            }
+                        }
+                        collisions.push_back(col);
+                    }
+                    if (!collisions.empty()) {
+                        tileSet->tileCollisions[tileId] = collisions;
+                    }
+                }
+            }
 
             mapData.tilesets.push_back(tileSet);
         }
@@ -211,21 +252,112 @@ bool Map::Load(std::string path, std::string fileName)
 
         // L08 TODO 3: Create colliders
         // L08 TODO 7: Assign collider type
-        // Later you can create a function here to load and create the colliders from the map
+        // Optimized with greedy meshing: merge rectangular colliders both horizontally and vertically
 
-        //Iterate the layer and create colliders
         for (const auto& mapLayer : mapData.layers) {
-            if (mapLayer->name == "Collisions") {
+            // Skip the old Collisions metadata layer
+            if (mapLayer->name == "Collisions") continue;
+
+            // First pass: create polygon colliders individually (can't merge these)
+            // and build a grid marking tiles that need rectangular colliders
+            std::vector<bool> hasRectCollider(mapData.width * mapData.height, false);
+
+            for (int j = 0; j < mapData.height; j++) {
                 for (int i = 0; i < mapData.width; i++) {
-                    for (int j = 0; j < mapData.height; j++) {
-                        int gid = mapLayer->Get(i, j);
-                        if (gid == 3) {
+                    int gid = mapLayer->Get(i, j);
+                    if (gid == 0) continue;
+
+                    TileSet* tileSet = GetTilesetFromTileId(gid);
+                    if (tileSet == nullptr || tileSet->tileCollisions.empty()) continue;
+
+                    int relativeId = gid - tileSet->firstGid;
+                    auto it = tileSet->tileCollisions.find(relativeId);
+                    if (it == tileSet->tileCollisions.end()) continue;
+
+                    for (const auto& col : it->second) {
+                        if (col.polygonPoints.size() > 0) {
+                            // Polygon: create individually
                             Vector2D mapCoord = MapToWorld(i, j);
-                            PhysBody* c1 = Engine::GetInstance().physics.get()->CreateRectangle((int)(mapCoord.getX() + mapData.tileWidth / 2), (int)(mapCoord.getY() + mapData.tileHeight / 2), mapData.tileWidth, mapData.tileHeight, STATIC);
-                            c1->ctype = ColliderType::PLATFORM;
-                            colliderList.push_back(c1);
+                            int numVerts = (int)col.polygonPoints.size() / 2;
+                            PhysBody* c1 = nullptr;
+                            if (numVerts >= 4) {
+                                c1 = Engine::GetInstance().physics.get()->CreateChain(
+                                    (int)(mapCoord.getX() + col.x),
+                                    (int)(mapCoord.getY() + col.y),
+                                    (int*)col.polygonPoints.data(),
+                                    (int)col.polygonPoints.size(),
+                                    STATIC);
+                            } else if (numVerts >= 3) {
+                                c1 = Engine::GetInstance().physics.get()->CreateConvexPolygon(
+                                    (int)(mapCoord.getX() + col.x),
+                                    (int)(mapCoord.getY() + col.y),
+                                    (int*)col.polygonPoints.data(),
+                                    (int)col.polygonPoints.size(),
+                                    STATIC);
+                            }
+                            if (c1 != nullptr) {
+                                c1->ctype = ColliderType::PLATFORM;
+                                colliderList.push_back(c1);
+                            }
+                        } else {
+                            // Mark for rectangle merging
+                            hasRectCollider[j * mapData.width + i] = true;
                         }
                     }
+                }
+            }
+
+            // Second pass: greedy mesh to merge rectangles
+            std::vector<bool> visited(mapData.width * mapData.height, false);
+
+            for (int j = 0; j < mapData.height; j++) {
+                for (int i = 0; i < mapData.width; i++) {
+                    if (!hasRectCollider[j * mapData.width + i]) continue;
+                    if (visited[j * mapData.width + i]) continue;
+
+                    // Extend right as far as possible
+                    int w = 1;
+                    while (i + w < mapData.width &&
+                           hasRectCollider[j * mapData.width + (i + w)] &&
+                           !visited[j * mapData.width + (i + w)]) {
+                        w++;
+                    }
+
+                    // Extend down as far as possible for the full width
+                    int h = 1;
+                    bool canExtend = true;
+                    while (j + h < mapData.height && canExtend) {
+                        for (int k = 0; k < w; k++) {
+                            int idx = (j + h) * mapData.width + (i + k);
+                            if (!hasRectCollider[idx] || visited[idx]) {
+                                canExtend = false;
+                                break;
+                            }
+                        }
+                        if (canExtend) h++;
+                    }
+
+                    // Mark all tiles in this merged rect as visited
+                    for (int jj = 0; jj < h; jj++) {
+                        for (int ii = 0; ii < w; ii++) {
+                            visited[(j + jj) * mapData.width + (i + ii)] = true;
+                        }
+                    }
+
+                    // Create one large rectangle collider
+                    float px = (float)(i * mapData.tileWidth);
+                    float py = (float)(j * mapData.tileHeight);
+                    float totalW = (float)(w * mapData.tileWidth);
+                    float totalH = (float)(h * mapData.tileHeight);
+
+                    PhysBody* c1 = Engine::GetInstance().physics.get()->CreateRectangle(
+                        (int)(px + totalW / 2.0f),
+                        (int)(py + totalH / 2.0f),
+                        (int)totalW,
+                        (int)totalH,
+                        STATIC);
+                    c1->ctype = ColliderType::PLATFORM;
+                    colliderList.push_back(c1);
                 }
             }
         }

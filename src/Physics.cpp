@@ -211,6 +211,38 @@ PhysBody* Physics::CreateChain(int x, int y, int* points, int size, bodyType typ
     return pbody;
 }
 
+PhysBody* Physics::CreateConvexPolygon(int x, int y, int* points, int size, bodyType type)
+{
+    b2BodyDef def = b2DefaultBodyDef();
+    def.type = ToB2Type(type);
+    def.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
+
+    b2BodyId b = b2CreateBody(world, &def);
+
+    const int count = size / 2;
+    std::vector<b2Vec2> verts(count);
+    for (int i = 0; i < count; ++i)
+    {
+        verts[i].x = PIXEL_TO_METERS(points[i * 2 + 0]);
+        verts[i].y = PIXEL_TO_METERS(points[i * 2 + 1]);
+    }
+
+    b2Hull hull = b2ComputeHull(verts.data(), count);
+    if (hull.count > 0) {
+        b2Polygon poly = b2MakePolygon(&hull, 0.0f);
+        b2ShapeDef sdef = b2DefaultShapeDef();
+        sdef.density = 1.0f;
+        sdef.enableContactEvents = true;
+        sdef.enableSensorEvents = true;
+        b2CreatePolygonShape(b, &sdef, &poly);
+    }
+
+    PhysBody* pbody = new PhysBody();
+    pbody->body = b;
+    b2Body_SetUserData(b, ToUserData(pbody));
+    return pbody;
+}
+
 // 
 bool Physics::PostUpdate()
 {

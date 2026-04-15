@@ -72,6 +72,7 @@ public:
     PhysBody* CreateCapsule(int x, int y, int width, int height, bodyType type);
     PhysBody* CreateRectangleSensor(int x, int y, int width, int height, bodyType type);
     PhysBody* CreateChain(int x, int y, int* points, int size, bodyType type);
+    PhysBody* CreateConvexPolygon(int x, int y, int* points, int size, bodyType type);
 
     // Invoked from our event processing
     void BeginContact(b2ShapeId shapeA, b2ShapeId shapeB);

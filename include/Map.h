@@ -3,7 +3,16 @@
 #include "Module.h"
 #include <list>
 #include <vector>
+#include <map>
 #include "Player.h"
+
+struct ObjectCollision {
+    float x;
+    float y;
+    float width;
+    float height;
+    std::vector<int> polygonPoints; 
+};
 
 struct Properties
 {
@@ -64,6 +73,7 @@ struct TileSet
     int tileCount;
     int columns;
     SDL_Texture* texture;
+    std::map<int, std::vector<ObjectCollision>> tileCollisions;
 
     // Get the source rect for a tile gid
     SDL_Rect GetRect(unsigned int gid) {
