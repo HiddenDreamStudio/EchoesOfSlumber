@@ -69,8 +69,10 @@ public:
     // Create basic physics objects
     PhysBody* CreateRectangle(int x, int y, int width, int height, bodyType type);
     PhysBody* CreateCircle(int x, int y, int radious, bodyType type);
+    PhysBody* CreateCapsule(int x, int y, int width, int height, bodyType type);
     PhysBody* CreateRectangleSensor(int x, int y, int width, int height, bodyType type);
     PhysBody* CreateChain(int x, int y, int* points, int size, bodyType type);
+    PhysBody* CreateConvexPolygon(int x, int y, int* points, int size, bodyType type);
 
     // Invoked from our event processing
     void BeginContact(b2ShapeId shapeA, b2ShapeId shapeB);
@@ -78,6 +80,7 @@ public:
 
     void DeletePhysBody(PhysBody* physBody);
     bool IsPendingToDelete(PhysBody* physBody);
+    bool IsDebug() const { return debug; }
 
     // --- Velocity helpers (thin wrappers over Box2D 3.x C API)
     b2Vec2 GetLinearVelocity(const PhysBody* p) const;

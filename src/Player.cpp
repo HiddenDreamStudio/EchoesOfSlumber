@@ -26,23 +26,33 @@ bool Player::Awake() {
 
 bool Player::Start() {
 
-	// load
-	std::unordered_map<int, std::string> aliases = { {0,"idle"},{11,"move"},{22,"jump"} };
-	anims.LoadFromTSX("Assets/Textures/PLayer2_Spritesheet.tsx", aliases);
+	// Load animations from TSX.
+	// testpersonaje.tsx has 250x250 tiles with only one animation at tile id 0.
+	// We map id 0 to all three state names so SetCurrent() never fails.
+	std::unordered_map<int, std::string> aliases = { {0,"idle"} };
+	anims.LoadFromTSX("assets/textures/testpersonaje.tsx", aliases);
 	anims.SetCurrent("idle");
 
-	//L03: TODO 2: Initialize Player parameters
-	texture = Engine::GetInstance().textures->Load("Assets/Textures/player2_spritesheet.png");
+	// Load the spritesheet texture (source frames are 250x250)
+	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheet damage color.png");
 
-	texW = 64;
-	texH = 64;
-	pbody = Engine::GetInstance().physics->CreateCircle((int)position.getX(), (int)position.getY(), 28, bodyType::DYNAMIC);	
+	// Desired in-game display size for the player sprite.
+	// The source tile is 250x250 but we want the player to appear ~128x128 on screen.
+	texW = 128;
+	texH = 128;
 
+	// Compute the draw scale: how much to shrink the 250px source frame to 128px display.
+	drawScale = (float)texW / 250.0f;
+
+	// Create a capsule collider to match the tall player sprite.
+	// Width 40px (body width), height 100px (body height) - vertical capsule.
+	pbody = Engine::GetInstance().physics->CreateCapsule((int)position.getX(), (int)position.getY(), 40, 100, bodyType::DYNAMIC);
+	
 	pbody->listener = this;
 	pbody->ctype = ColliderType::PLAYER;
 
 	//initialize audio effect
-	pickCoinFxId = Engine::GetInstance().audio->LoadFx("Assets/Audio/Fx/coin-collision-sound-342335.wav");
+	pickCoinFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/coin-collision-sound-342335.wav");
 	return true;
 }
 
@@ -75,13 +85,17 @@ void Player::GetPhysicsValues() {
 void Player::Move() {
 
 	// Move left/right
+	// Note: testpersonaje.tsx only has one animation ("idle").
+	// When separate move/jump animations are added to the TSX, update these strings.
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
 		velocity.x = -speed;
-		anims.SetCurrent("move");
+		facingRight = true;
+		if (anims.Has("move")) anims.SetCurrent("move");
 	}
 	else if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT) {
 		velocity.x = speed;
-		anims.SetCurrent("move");
+		facingRight = false;
+		if (anims.Has("move")) anims.SetCurrent("move");
 	}
 	else if (!isJumping) {
 		anims.SetCurrent("idle");
@@ -92,7 +106,7 @@ void Player::Jump() {
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN && isJumping == false) {
 		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -jumpForce, true);
-		anims.SetCurrent("jump");
+		if (anims.Has("jump")) anims.SetCurrent("jump");
 		isJumping = true;
 	}
 
@@ -142,21 +156,14 @@ void Player::Draw(float dt) {
 	// Clamp camera to map boundaries
 	render->ClampCameraToMapBounds(mapSize.getX(), mapSize.getY());
 
-	float limitTop = (float)Engine::GetInstance().render->camera.h / 3;
-	float limitBottom = (float)mapSize.getY() - Engine::GetInstance().render->camera.h * 2 / 3;
-	if (position.getY() - limitTop > 0 && position.getY() < limitBottom) {
-		Engine::GetInstance().render->camera.y = (int)-position.getY() + (int)(Engine::GetInstance().render->camera.h / 3);
-	}
-	else if (position.getY() <= limitTop) {
-		Engine::GetInstance().render->camera.y = 0;
-	}
-	else {
-		Engine::GetInstance().render->camera.y = -(float)mapSize.getY() + Engine::GetInstance().render->camera.h;
-	}
+	// Center the sprite on the physics body position.
+	int drawX = x - texW / 2;
+	int drawY = y - texH / 2;
 
-	int drawX = x - 32;
-	int drawY = y - 32;
-	Engine::GetInstance().render->DrawTexture(texture, drawX, drawY, &animFrame, 2.0f);
+	// Flip the sprite horizontally when facing left.
+	// drawScale converts the 250px source frame to the desired 128px display size.
+	SDL_FlipMode flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+	Engine::GetInstance().render->DrawTexture(texture, drawX, drawY, &animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, drawScale);
 }
 
 bool Player::CleanUp()

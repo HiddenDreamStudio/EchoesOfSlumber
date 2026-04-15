@@ -58,5 +58,7 @@ public:
 private:
 	b2Vec2 velocity;
 	AnimationSet anims;
+	float drawScale = 1.0f; // scale factor: desired display size / source tile size
+	bool facingRight = true; // true = sprite faces right, false = flip horizontally
 
 };

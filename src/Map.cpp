@@ -1,4 +1,3 @@
-
 #include "Engine.h"
 #include "Render.h"
 #include "Textures.h"
@@ -6,9 +5,11 @@
 #include "Log.h"
 #include "Physics.h"
 #include "EntityManager.h"
+#include "Enemy.h"
 #include "tracy/Tracy.hpp"
 
 #include <math.h>
+#include <sstream>
 
 Map::Map() : Module(), mapLoaded(false)
 {
@@ -17,7 +18,8 @@ Map::Map() : Module(), mapLoaded(false)
 
 // Destructor
 Map::~Map()
-{}
+{
+}
 
 // Called before render is available
 bool Map::Awake()
@@ -35,12 +37,21 @@ bool Map::Start() {
 
 bool Map::Update(float dt)
 {
-	ZoneScoped;
+    ZoneScoped;
 
     bool ret = true;
 
     if (mapLoaded) {
 
+        for (const auto& imgLayer : mapData.imageLayers) {
+            if (imgLayer->texture) {
+                Engine::GetInstance().render->DrawTexture(
+                    imgLayer->texture,
+                    (int)imgLayer->offsetX,
+                    (int)imgLayer->offsetY
+                );
+            }
+        }
         // L07 TODO 5: Prepare the loop to draw all tiles in a layer + DrawTexture()
         // iterate all tiles in a layer
         for (const auto& mapLayer : mapData.layers) {
@@ -110,11 +121,18 @@ bool Map::CleanUp()
     }
     mapData.layers.clear();
 
-	// Clean up collider list
+    // Clean up collider list
     for (const auto& collider : colliderList) {
-		Engine::GetInstance().physics->DeletePhysBody(collider);
+        Engine::GetInstance().physics->DeletePhysBody(collider);
     }
-	colliderList.clear();
+    colliderList.clear();
+
+    for (const auto& imgLayer : mapData.imageLayers) {
+        if (imgLayer->texture)
+            Engine::GetInstance().textures->UnLoad(imgLayer->texture);
+        delete imgLayer;
+    }
+    mapData.imageLayers.clear();
 
     return true;
 }
@@ -132,10 +150,10 @@ bool Map::Load(std::string path, std::string fileName)
     //L15 TODO 2: make mapFileXML an attribute of the Map class
     pugi::xml_parse_result result = mapFileXML.load_file(mapPathName.c_str());
 
-    if(result == NULL)
-	{
-		LOG("Could not load map xml file %s. pugi error: %s", mapPathName.c_str(), result.description());
-		ret = false;
+    if (result == NULL)
+    {
+        LOG("Could not load map xml file %s. pugi error: %s", mapPathName.c_str(), result.description());
+        ret = false;
     }
     else {
 
@@ -147,12 +165,12 @@ bool Map::Load(std::string path, std::string fileName)
         mapData.tileHeight = mapFileXML.child("map").attribute("tileheight").as_int();
 
         // L06: TODO 4: Implement the LoadTileSet function to load the tileset properties
-       
+
         //Iterate the Tileset
-        for(pugi::xml_node tilesetNode = mapFileXML.child("map").child("tileset"); tilesetNode!=NULL; tilesetNode = tilesetNode.next_sibling("tileset"))
-		{
+        for (pugi::xml_node tilesetNode = mapFileXML.child("map").child("tileset"); tilesetNode != NULL; tilesetNode = tilesetNode.next_sibling("tileset"))
+        {
             //Load Tileset attributes
-			TileSet* tileSet = new TileSet();
+            TileSet* tileSet = new TileSet();
             tileSet->firstGid = tilesetNode.attribute("firstgid").as_int();
             tileSet->name = tilesetNode.attribute("name").as_string();
             tileSet->tileWidth = tilesetNode.attribute("tilewidth").as_int();
@@ -162,12 +180,52 @@ bool Map::Load(std::string path, std::string fileName)
             tileSet->tileCount = tilesetNode.attribute("tilecount").as_int();
             tileSet->columns = tilesetNode.attribute("columns").as_int();
 
-			//Load the tileset image
-			std::string imgName = tilesetNode.child("image").attribute("source").as_string();
-            tileSet->texture = Engine::GetInstance().textures->Load((mapPath+imgName).c_str());
+            //Load the tileset image (skip if tileset uses per-tile images)
+            std::string imgName = tilesetNode.child("image").attribute("source").as_string();
+            if (!imgName.empty()) {
+                tileSet->texture = Engine::GetInstance().textures->Load((mapPath + imgName).c_str());
+            } else {
+                tileSet->texture = nullptr;
+            }
 
-			mapData.tilesets.push_back(tileSet);
-		}
+            // Parse tile object groups for collisions
+            for (pugi::xml_node tileNode = tilesetNode.child("tile"); tileNode != NULL; tileNode = tileNode.next_sibling("tile")) {
+                int tileId = tileNode.attribute("id").as_int();
+                pugi::xml_node objectGroupNode = tileNode.child("objectgroup");
+                if (objectGroupNode != NULL) {
+                    std::vector<ObjectCollision> collisions;
+                    for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+                        ObjectCollision col;
+                        col.x = objectNode.attribute("x").as_float(0.0f);
+                        col.y = objectNode.attribute("y").as_float(0.0f);
+                        col.width = objectNode.attribute("width").as_float(0.0f);
+                        col.height = objectNode.attribute("height").as_float(0.0f);
+                        
+                        pugi::xml_node polyNode = objectNode.child("polygon");
+                        if (polyNode != NULL) {
+                            std::string pointsStr = polyNode.attribute("points").as_string();
+                            std::stringstream ss(pointsStr);
+                            std::string pointPair;
+                            while(std::getline(ss, pointPair, ' ')) {
+                                if(pointPair.empty()) continue;
+                                std::stringstream ssPair(pointPair);
+                                std::string xStr, yStr;
+                                if(std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
+                                    col.polygonPoints.push_back((int)std::stof(xStr));
+                                    col.polygonPoints.push_back((int)std::stof(yStr));
+                                }
+                            }
+                        }
+                        collisions.push_back(col);
+                    }
+                    if (!collisions.empty()) {
+                        tileSet->tileCollisions[tileId] = collisions;
+                    }
+                }
+            }
+
+            mapData.tilesets.push_back(tileSet);
+        }
 
         // L07: TODO 3: Iterate all layers in the TMX and load each of them
         for (pugi::xml_node layerNode = mapFileXML.child("map").child("layer"); layerNode != NULL; layerNode = layerNode.next_sibling("layer")) {
@@ -194,24 +252,117 @@ bool Map::Load(std::string path, std::string fileName)
 
         // L08 TODO 3: Create colliders
         // L08 TODO 7: Assign collider type
-        // Later you can create a function here to load and create the colliders from the map
+        // Optimized with greedy meshing: merge rectangular colliders both horizontally and vertically
 
-        //Iterate the layer and create colliders
         for (const auto& mapLayer : mapData.layers) {
-            if (mapLayer->name == "Collisions") {
+            // Skip the old Collisions metadata layer
+            if (mapLayer->name == "Collisions") continue;
+
+            // First pass: create polygon colliders individually (can't merge these)
+            // and build a grid marking tiles that need rectangular colliders
+            std::vector<bool> hasRectCollider(mapData.width * mapData.height, false);
+
+            for (int j = 0; j < mapData.height; j++) {
                 for (int i = 0; i < mapData.width; i++) {
-                    for (int j = 0; j < mapData.height; j++) {
-                        int gid = mapLayer->Get(i, j);
-                        if (gid == 3) {
+                    int gid = mapLayer->Get(i, j);
+                    if (gid == 0) continue;
+
+                    TileSet* tileSet = GetTilesetFromTileId(gid);
+                    if (tileSet == nullptr || tileSet->tileCollisions.empty()) continue;
+
+                    int relativeId = gid - tileSet->firstGid;
+                    auto it = tileSet->tileCollisions.find(relativeId);
+                    if (it == tileSet->tileCollisions.end()) continue;
+
+                    for (const auto& col : it->second) {
+                        if (col.polygonPoints.size() > 0) {
+                            // Polygon: create individually
                             Vector2D mapCoord = MapToWorld(i, j);
-                            PhysBody* c1 = Engine::GetInstance().physics.get()->CreateRectangle((int)(mapCoord.getX()+ mapData.tileWidth/2), (int)(mapCoord.getY()+ mapData.tileHeight/2), mapData.tileWidth, mapData.tileHeight, STATIC);
-                            c1->ctype = ColliderType::PLATFORM;
-							colliderList.push_back(c1);
+                            int numVerts = (int)col.polygonPoints.size() / 2;
+                            PhysBody* c1 = nullptr;
+                            if (numVerts >= 4) {
+                                c1 = Engine::GetInstance().physics.get()->CreateChain(
+                                    (int)(mapCoord.getX() + col.x),
+                                    (int)(mapCoord.getY() + col.y),
+                                    (int*)col.polygonPoints.data(),
+                                    (int)col.polygonPoints.size(),
+                                    STATIC);
+                            } else if (numVerts >= 3) {
+                                c1 = Engine::GetInstance().physics.get()->CreateConvexPolygon(
+                                    (int)(mapCoord.getX() + col.x),
+                                    (int)(mapCoord.getY() + col.y),
+                                    (int*)col.polygonPoints.data(),
+                                    (int)col.polygonPoints.size(),
+                                    STATIC);
+                            }
+                            if (c1 != nullptr) {
+                                c1->ctype = ColliderType::PLATFORM;
+                                colliderList.push_back(c1);
+                            }
+                        } else {
+                            // Mark for rectangle merging
+                            hasRectCollider[j * mapData.width + i] = true;
                         }
                     }
                 }
             }
+
+            // Second pass: greedy mesh to merge rectangles
+            std::vector<bool> visited(mapData.width * mapData.height, false);
+
+            for (int j = 0; j < mapData.height; j++) {
+                for (int i = 0; i < mapData.width; i++) {
+                    if (!hasRectCollider[j * mapData.width + i]) continue;
+                    if (visited[j * mapData.width + i]) continue;
+
+                    // Extend right as far as possible
+                    int w = 1;
+                    while (i + w < mapData.width &&
+                           hasRectCollider[j * mapData.width + (i + w)] &&
+                           !visited[j * mapData.width + (i + w)]) {
+                        w++;
+                    }
+
+                    // Extend down as far as possible for the full width
+                    int h = 1;
+                    bool canExtend = true;
+                    while (j + h < mapData.height && canExtend) {
+                        for (int k = 0; k < w; k++) {
+                            int idx = (j + h) * mapData.width + (i + k);
+                            if (!hasRectCollider[idx] || visited[idx]) {
+                                canExtend = false;
+                                break;
+                            }
+                        }
+                        if (canExtend) h++;
+                    }
+
+                    // Mark all tiles in this merged rect as visited
+                    for (int jj = 0; jj < h; jj++) {
+                        for (int ii = 0; ii < w; ii++) {
+                            visited[(j + jj) * mapData.width + (i + ii)] = true;
+                        }
+                    }
+
+                    // Create one large rectangle collider
+                    float px = (float)(i * mapData.tileWidth);
+                    float py = (float)(j * mapData.tileHeight);
+                    float totalW = (float)(w * mapData.tileWidth);
+                    float totalH = (float)(h * mapData.tileHeight);
+
+                    PhysBody* c1 = Engine::GetInstance().physics.get()->CreateRectangle(
+                        (int)(px + totalW / 2.0f),
+                        (int)(py + totalH / 2.0f),
+                        (int)totalW,
+                        (int)totalH,
+                        STATIC);
+                    c1->ctype = ColliderType::PLATFORM;
+                    colliderList.push_back(c1);
+                }
+            }
         }
+
+        LoadImageLayers();
 
         ret = true;
 
@@ -229,13 +380,13 @@ bool Map::Load(std::string path, std::string fileName)
                 LOG("tile width : %d tile height : %d", tileset->tileWidth, tileset->tileHeight);
                 LOG("spacing : %d margin : %d", tileset->spacing, tileset->margin);
             }
-            			
+
             LOG("Layers----");
 
             for (const auto& layer : mapData.layers) {
                 LOG("id : %d name : %s", layer->id, layer->name.c_str());
-				LOG("Layer width : %d Layer height : %d", layer->width, layer->height);
-            }   
+                LOG("Layer width : %d Layer height : %d", layer->width, layer->height);
+            }
         }
         else {
             LOG("Error while parsing map file: %s", mapPathName.c_str());
@@ -313,21 +464,21 @@ MapLayer* Map::GetNavigationLayer() {
 }
 
 //L15 TODO 2: Define a method to load entities from the map XML
- void Map::LoadEntities(std::shared_ptr<Player>& player) {
-    
-	 //Iterate the object groups
-     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
-		 //Check if the object group is "Entities"
+void Map::LoadEntities(std::shared_ptr<Player>& player) {
+
+    //Iterate the object groups
+    for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
+        //Check if the object group is "Entities"
         if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
-            
-			//Iterate the objects
+
+            //Iterate the objects
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
 
-				//Get the entity type and position
+                //Get the entity type and position
                 std::string entityType = objectNode.attribute("type").as_string();
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
-                
+
                 // Create entity based on type
                 if (entityType == "Player") {
                     // Create Player entity
@@ -335,48 +486,69 @@ MapLayer* Map::GetNavigationLayer() {
                         player = std::dynamic_pointer_cast<Player>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
                         player->position = Vector2D(x + 32, y + 32);
                         player->Start(); //L17: Importan to call Start to initialize teh Entity
-                        LOG("Player spawned at: %f, %f", x, y); 
-
+                        LOG("Player spawned at: %f, %f", x, y);
                     }
-					//If the player already exists, just set its position
+                    //If the player already exists, just set its position
                     else {
                         player->SetPosition(Vector2D(x, y));
                     }
+                }
+                else if (entityType == "Enemy") {
+                    auto enemy = std::dynamic_pointer_cast<Enemy>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
+                    enemy->position = Vector2D(x, y);
+                    enemy->Start();
+                    LOG("Enemy spawned at: %f, %f", x, y);
                 }
             }
         }
     }
 }
 
- //L15 TODO 4: Define a method to save entities to the map XML
- void Map::SaveEntities(std::shared_ptr<Player> player) {
-     
-	 //Iterate the object groups
-     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
+//L15 TODO 4: Define a method to save entities to the map XML
+void Map::SaveEntities(std::shared_ptr<Player> player) {
 
-		 //Check if the object group is "Entities"
-         if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
+    //Iterate the object groups
+    for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
 
-			 //Iterate the objects
-             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
-                 std::string entityType = objectNode.attribute("type").as_string();
-                 // Modify entity based on type
-                 if (entityType == "Player") {
-                     // Modify the Player entity values
-                     Vector2D playerPos = player->GetPosition();
-                     objectNode.attribute("x").set_value(playerPos.getX());
-                     objectNode.attribute("y").set_value(playerPos.getY());
-                 }
-             }
-         }
-     }
+        //Check if the object group is "Entities"
+        if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
 
-     //Important: save the modifications to the XML 
-     std::string mapPathName = mapPath + mapFileName;
-     mapFileXML.save_file(mapPathName.c_str());
- 
- }
+            //Iterate the objects
+            for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+                std::string entityType = objectNode.attribute("type").as_string();
+                // Modify entity based on type
+                if (entityType == "Player") {
+                    // Modify the Player entity values
+                    Vector2D playerPos = player->GetPosition();
+                    objectNode.attribute("x").set_value(playerPos.getX());
+                    objectNode.attribute("y").set_value(playerPos.getY());
+                }
+            }
+        }
+    }
 
+    //Important: save the modifications to the XML 
+    std::string mapPathName = mapPath + mapFileName;
+    mapFileXML.save_file(mapPathName.c_str());
 
+}
 
+void Map::LoadImageLayers()
+{
+    for (pugi::xml_node imgNode = mapFileXML.child("map").child("imagelayer");
+        imgNode != NULL;
+        imgNode = imgNode.next_sibling("imagelayer"))
+    {
+        ImageLayer* imgLayer = new ImageLayer();
+        imgLayer->name = imgNode.attribute("name").as_string();
+        imgLayer->offsetX = imgNode.attribute("offsetx").as_float(0.0f);
+        imgLayer->offsetY = imgNode.attribute("offsety").as_float(0.0f);
+        imgLayer->source = imgNode.child("image").attribute("source").as_string();
 
+        std::string fullPath = mapPath + imgLayer->source;
+        imgLayer->texture = Engine::GetInstance().textures->Load(fullPath.c_str());
+
+        mapData.imageLayers.push_back(imgLayer);
+        LOG("ImageLayer loaded: %s", imgLayer->name.c_str());
+    }
+}

@@ -124,6 +124,40 @@ PhysBody* Physics::CreateCircle(int x, int y, int radious, bodyType type)
     return pbody;
 }
 
+PhysBody* Physics::CreateCapsule(int x, int y, int width, int height, bodyType type)
+{
+    b2BodyDef def = b2DefaultBodyDef();
+    def.type = ToB2Type(type);
+    def.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
+    def.fixedRotation = true; // prevent the capsule from rotating
+
+    b2BodyId b = b2CreateBody(world, &def);
+
+    // Capsule: the radius is half the width, the total height includes both semicircles.
+    // The two center points define the segment between the semicircle centers.
+    float radius = PIXEL_TO_METERS(width) * 0.5f;
+    float halfHeight = PIXEL_TO_METERS(height) * 0.5f;
+    float segmentHalf = halfHeight - radius; // distance from center to each semicircle center
+    if (segmentHalf < 0.0f) segmentHalf = 0.0f; // degenerate to sphere if height <= width
+
+    b2Capsule capsule;
+    capsule.center1 = { 0.0f, -segmentHalf }; // top semicircle center
+    capsule.center2 = { 0.0f,  segmentHalf }; // bottom semicircle center
+    capsule.radius = radius;
+
+    b2ShapeDef sdef = b2DefaultShapeDef();
+    sdef.density = 1.0f;
+    sdef.enableContactEvents = true;
+    sdef.enableSensorEvents = true;
+
+    b2CreateCapsuleShape(b, &sdef, &capsule);
+
+    PhysBody* pbody = new PhysBody();
+    pbody->body = b;
+    b2Body_SetUserData(b, ToUserData(pbody));
+    return pbody;
+}
+
 PhysBody* Physics::CreateRectangleSensor(int x, int y, int width, int height, bodyType type)
 {
     b2BodyDef def = b2DefaultBodyDef();
@@ -170,6 +204,38 @@ PhysBody* Physics::CreateChain(int x, int y, int* points, int size, bodyType typ
     cdef.isLoop = true; // mirrors old CreateLoop
     cdef.enableSensorEvents = true;
     b2CreateChain(b, &cdef); // creates internal chain segment shapes
+
+    PhysBody* pbody = new PhysBody();
+    pbody->body = b;
+    b2Body_SetUserData(b, ToUserData(pbody));
+    return pbody;
+}
+
+PhysBody* Physics::CreateConvexPolygon(int x, int y, int* points, int size, bodyType type)
+{
+    b2BodyDef def = b2DefaultBodyDef();
+    def.type = ToB2Type(type);
+    def.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
+
+    b2BodyId b = b2CreateBody(world, &def);
+
+    const int count = size / 2;
+    std::vector<b2Vec2> verts(count);
+    for (int i = 0; i < count; ++i)
+    {
+        verts[i].x = PIXEL_TO_METERS(points[i * 2 + 0]);
+        verts[i].y = PIXEL_TO_METERS(points[i * 2 + 1]);
+    }
+
+    b2Hull hull = b2ComputeHull(verts.data(), count);
+    if (hull.count > 0) {
+        b2Polygon poly = b2MakePolygon(&hull, 0.0f);
+        b2ShapeDef sdef = b2DefaultShapeDef();
+        sdef.density = 1.0f;
+        sdef.enableContactEvents = true;
+        sdef.enableSensorEvents = true;
+        b2CreatePolygonShape(b, &sdef, &poly);
+    }
 
     PhysBody* pbody = new PhysBody();
     pbody->body = b;
@@ -280,8 +346,8 @@ void Physics::DeletePhysBody(PhysBody* physBody)
 	if (B2_IS_NULL(world)) return; // world already destroyed
     if (physBody && !B2_IS_NULL(physBody->body) && physBody->listener && physBody->listener->active)
     {
-        // Don’t change contact/sensor flags here (can mismatch event buffers).
-        // Just clear user data so late events won’t dereference a dangling PhysBody*.
+        // Donï¿½t change contact/sensor flags here (can mismatch event buffers).
+        // Just clear user data so late events wonï¿½t dereference a dangling PhysBody*.
         b2Body_SetUserData(physBody->body, nullptr);
     }
     bodiesToDelete.push_back(physBody);
@@ -473,8 +539,40 @@ void Physics::DrawSolidCircleCb(b2Transform xf, float radius, b2HexColor color, 
     DrawCircleCb(xf.p, radius, color, ctx);
 }
 
-// ---- No-op stubs to avoid null calls -----------------------
-void Physics::DrawSolidCapsuleStub(b2Vec2, b2Vec2, float, b2HexColor, void*) {}
+// ---- Capsule debug draw ----
+void Physics::DrawSolidCapsuleStub(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor /*color*/, void* /*ctx*/)
+{
+    auto& r = *Engine::GetInstance().render.get();
+    int scale = Engine::GetInstance().window.get()->GetScale();
+    int radiusPx = METERS_TO_PIXELS(radius) * scale;
+
+    // Draw circles at both endpoints
+    r.DrawCircle(METERS_TO_PIXELS(p1.x), METERS_TO_PIXELS(p1.y), radiusPx, 0, 255, 0);
+    r.DrawCircle(METERS_TO_PIXELS(p2.x), METERS_TO_PIXELS(p2.y), radiusPx, 0, 255, 0);
+
+    // Draw connecting lines on each side
+    float dx = 0.0f; // capsule is vertical, so offset is horizontal
+    float dy = 0.0f;
+    // The perpendicular to (p2-p1) gives the offset direction
+    float segX = p2.x - p1.x;
+    float segY = p2.y - p1.y;
+    float len = sqrtf(segX * segX + segY * segY);
+    if (len > 0.0001f) {
+        // perpendicular normalized * radius
+        dx = (-segY / len) * radius;
+        dy = (segX / len) * radius;
+    } else {
+        dx = radius;
+        dy = 0.0f;
+    }
+
+    r.DrawLine(METERS_TO_PIXELS(p1.x + dx), METERS_TO_PIXELS(p1.y + dy),
+               METERS_TO_PIXELS(p2.x + dx), METERS_TO_PIXELS(p2.y + dy),
+               0, 255, 0);
+    r.DrawLine(METERS_TO_PIXELS(p1.x - dx), METERS_TO_PIXELS(p1.y - dy),
+               METERS_TO_PIXELS(p2.x - dx), METERS_TO_PIXELS(p2.y - dy),
+               0, 255, 0);
+}
 void Physics::DrawPointStub(b2Vec2, float, b2HexColor, void*) {}
 void Physics::DrawStringStub(b2Vec2, const char*, b2HexColor, void*) {}
 void Physics::DrawTransformStub(b2Transform, void*) {}
