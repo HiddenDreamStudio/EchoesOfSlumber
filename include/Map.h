@@ -11,7 +11,7 @@ struct ObjectCollision {
     float y;
     float width;
     float height;
-    std::vector<int> polygonPoints; 
+    std::vector<int> polygonPoints;
 };
 
 struct Properties
@@ -75,6 +75,7 @@ struct TileSet
     SDL_Texture* texture;
     std::map<int, std::vector<ObjectCollision>> tileCollisions;
 
+    std::map<int, SDL_Texture*> tileTextures;
     // Get the source rect for a tile gid
     SDL_Rect GetRect(unsigned int gid) {
         SDL_Rect rect = { 0 };
@@ -99,6 +100,16 @@ struct ImageLayer
     SDL_Texture* texture = nullptr;
 };
 
+struct DecorationObject
+{
+    float x;      
+    float y;     
+    float width;  
+    float height; 
+    int   gid;    
+    SDL_Texture* texture = nullptr; 
+};
+
 struct MapData
 {
     int width;
@@ -109,6 +120,7 @@ struct MapData
     // L07: TODO 2: Add the info to the MapLayer Struct
     std::list<MapLayer*> layers;
     std::list<ImageLayer*> imageLayers;
+    std::list<DecorationObject*> decorationObjects;
 };
 
 class Map : public Module
@@ -163,6 +175,7 @@ public:
     Vector2D GetCameraLimitsInTiles(Vector2D camPosTile);
 
     void LoadImageLayers();
+    void LoadDecorationObjects();
 
 public:
     std::string mapFileName;
