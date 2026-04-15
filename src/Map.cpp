@@ -484,7 +484,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     // Create Player entity
                     if (player == nullptr) {
                         player = std::dynamic_pointer_cast<Player>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-                        player->position = Vector2D(x, y);
+                        player->position = Vector2D(x + 32, y + 32);
                         player->Start(); //L17: Importan to call Start to initialize teh Entity
                         LOG("Player spawned at: %f, %f", x, y);
                     }
