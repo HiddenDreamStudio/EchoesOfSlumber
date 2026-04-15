@@ -5,6 +5,7 @@
 #include "Log.h"
 #include "Physics.h"
 #include "EntityManager.h"
+#include "Enemy.h"
 #include "tracy/Tracy.hpp"
 
 #include <math.h>
@@ -353,11 +354,18 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                         player = std::dynamic_pointer_cast<Player>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
                         player->position = Vector2D(x, y);
                         player->Start(); //L17: Importan to call Start to initialize teh Entity
+                        LOG("Player spawned at: %f, %f", x, y);
                     }
                     //If the player already exists, just set its position
                     else {
                         player->SetPosition(Vector2D(x, y));
                     }
+                }
+                else if (entityType == "Enemy") {
+                    auto enemy = std::dynamic_pointer_cast<Enemy>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
+                    enemy->position = Vector2D(x, y);
+                    enemy->Start();
+                    LOG("Enemy spawned at: %f, %f", x, y);
                 }
             }
         }

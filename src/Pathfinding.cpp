@@ -138,22 +138,21 @@ bool Pathfinding::IsWalkable(int x, int y) {
 
     bool isWalkable = false;
 
-    // L11: TODO 3: return true only if x and y are within map limits
-    // and the tile is walkable (not blocked)
-    if(layerNav != nullptr) {
+    // Check map limits
+    if (x >= 0 && x < map->GetMapSizeInTiles().getX() &&
+        y >= 0 && y < map->GetMapSizeInTiles().getY()) {
 
-		//Check map limits
-        if (x >= 0 && x < map->GetMapSizeInTiles().getX() &&
-            y >= 0 && y < map->GetMapSizeInTiles().getY()) {
-			//Get the gid of the tile
+        if (layerNav != nullptr) {
             int gid = layerNav->Get(x, y);
-
-			//Check if the gid is different from the blocked gid
             if (gid != blockedGid) {
                 isWalkable = true;
             }
         }
-	}
+        else {
+            // No navigation layer: treat all in-bounds tiles as walkable
+            isWalkable = true;
+        }
+    }
 
     return isWalkable;
 }
@@ -363,11 +362,16 @@ int Pathfinding::MovementCost(int x, int y)
 
     if ((x >= 0) && (x < map->GetMapSizeInTiles().getX()) && (y >= 0) && (y < map->GetMapSizeInTiles().getY()))
     {
-        int gid = layerNav->Get(x, y);
-        if (gid == highCostGid) {
-            ret = 5;
+        if (layerNav != nullptr) {
+            int gid = layerNav->Get(x, y);
+            if (gid == highCostGid) {
+                ret = 5;
+            }
+            else ret = 1;
         }
-        else ret = 1;
+        else {
+            ret = 1;
+        }
     }
 
     return ret;

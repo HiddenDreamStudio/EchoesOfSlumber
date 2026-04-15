@@ -1,96 +1,109 @@
 #pragma once
-
 #include "Module.h"
 #include "Player.h"
-#include "UIButton.h"
+#include "UIManager.h"
+#include "UIElement.h"
 
-struct SDL_Texture;
-
-enum class SceneID
-{
-	MAIN_MENU,
-	INTRO_CINEMATIC,
-	GAMEPLAY
+enum class SceneID {
+    MAIN_MENU,
+    INTRO_CINEMATIC,
+    GAMEPLAY
 };
-
 
 class Scene : public Module
 {
 public:
+    Scene();
+    ~Scene();
 
-	Scene();
+    bool Awake()          override;
+    bool Start()          override;
+    bool PreUpdate()      override;
+    bool Update(float dt) override;
+    bool PostUpdate()     override;
+    bool CleanUp()        override;
 
-	// Destructor
-	virtual ~Scene();
+    bool OnUIMouseClickEvent(UIElement* uiElement);
 
-	// Called before render is available
-	bool Awake();
+    Vector2D GetPlayerPosition();
+    void     SetPlayerPosition(Vector2D pos);
+    SceneID  GetCurrentScene() const { return currentScene; }
+    std::string GetTilePosDebug() const { return ""; }
 
-	// Called before the first frame
-	bool Start();
-
-	// Called before all Updates
-	bool PreUpdate();
-
-	// Called each loop iteration
-	bool Update(float dt);
-
-	// Called before all Updates
-	bool PostUpdate();
-
-	// Called before quitting
-	bool CleanUp();
-
-	// Return the player position
-	Vector2D GetPlayerPosition();
-
-	// Set the player position
-	void SetPlayerPosition(Vector2D pos);
-
-	// Get current scene ID
-	SceneID GetCurrentScene() const { return currentScene; }
-
-	// Get tilePosDebug value
-	std::string GetTilePosDebug() {
-		return tilePosDebug;
-	}
-
-	// Handles multiple Gui Event methods
-	bool OnUIMouseClickEvent(UIElement* uiElement);
-
-	void ChangeScene(SceneID newScene);
-	void UnloadCurrentScene();
-	void LoadScene(SceneID newScene);
+    std::shared_ptr<Player> player = nullptr;
 
 private:
+    // ?? Scene routing ?????????????????????????????????????????????????????????
+    SceneID currentScene = SceneID::MAIN_MENU;
+    bool    hasPendingSceneChange = false;
+    SceneID pendingScene = SceneID::MAIN_MENU;
 
-	void LoadMainMenu();
-	void UnloadMainMenu();
-	void UpdateMainMenu(float dt);
-	void HandleMainMenuUIEvents(UIElement* uiElement);
+    void LoadScene(SceneID s);
+    void ChangeScene(SceneID s);
+    void UnloadCurrentScene();
 
-	void LoadIntroCinematic();
-	void UnloadIntroCinematic();
-	void UpdateIntroCinematic(float dt);
+    // ?? Shared volume state (main menu + pause) ????????????????????????????????
+    float musicVolume_ = 0.8f;
+    float sfxVolume_ = 0.8f;
 
-	void LoadGameplay();
-	void UnloadGameplay();
-	void UpdateGameplay(float dt);
-	void PostUpdateGameplay();
+    // ????????????????????????????????????????????????????????????????????????
+    //  MAIN MENU
+    // ????????????????????????????????????????????????????????????????????????
+    bool showSettings_ = false;
+    int  settingsCooldown_ = 0;
 
-private:
+    void LoadMainMenu();
+    void UnloadMainMenu();
+    void UpdateMainMenu(float dt);
+    void PostUpdateMainMenu();
+    void HandleMainMenuUIEvents(UIElement* uiElement);
+    void DrawSettingsPanel(int winW, int winH);
+    void SetSettingsPanelVisible(bool visible);
 
-	std::shared_ptr<Player> player;
-	SDL_Texture* mouseTileTex = nullptr;
-	std::string tilePosDebug = "[0,0]";
-	bool once = false;
+    // Button IDs – main menu
+    static constexpr int BTN_PLAY = 1;
+    static constexpr int BTN_SETTINGS = 2;
+    static constexpr int BTN_EXIT = 3;
+    static constexpr int BTN_SETTINGS_BACK = 10;
+    static constexpr int BTN_MUSIC_UP = 11;
+    static constexpr int BTN_MUSIC_DOWN = 12;
+    static constexpr int BTN_SFX_UP = 13;
+    static constexpr int BTN_SFX_DOWN = 14;
 
-	std::shared_ptr<UIButton> uiBt;
-	float volume = 1.0;
+    // ????????????????????????????????????????????????????????????????????????
+    //  INTRO CINEMATIC
+    // ????????????????????????????????????????????????????????????????????????
+    void LoadIntroCinematic();
+    void UnloadIntroCinematic();
+    void UpdateIntroCinematic(float dt);
 
-	SceneID currentScene = SceneID::MAIN_MENU;
+    // ????????????????????????????????????????????????????????????????????????
+    //  GAMEPLAY + PAUSE MENU
+    // ????????????????????????????????????????????????????????????????????????
+    bool isPaused_ = false;
+    bool showPauseOptions_ = false;
 
-	// Deferred scene change to avoid use-after-free when called from UI callbacks
-	bool hasPendingSceneChange = false;
-	SceneID pendingScene = SceneID::MAIN_MENU;
+    void LoadGameplay();
+    void UnloadGameplay();
+    void UpdateGameplay(float dt);
+    void PostUpdateGameplay();
+
+    void LoadPauseMenuButtons();
+    void SetPauseMenuVisible(bool visible);
+    void SetPauseOptionsPanelVisible(bool visible);
+    void DrawPauseMenu();
+    void DrawPauseOptionsPanel(int winW, int winH);
+    void HandlePauseMenuUIEvents(UIElement* uiElement);
+
+    // Button IDs – pause menu
+    static constexpr int BTN_PAUSE_CONTINUE = 20;
+    static constexpr int BTN_PAUSE_OPTIONS = 21;
+    static constexpr int BTN_PAUSE_SAVE = 22;
+    static constexpr int BTN_PAUSE_MAINMENU = 23;
+    static constexpr int BTN_PAUSE_QUIT = 24;
+    static constexpr int BTN_PAUSE_OPT_MUSIC_UP = 25;
+    static constexpr int BTN_PAUSE_OPT_MUSIC_DOWN = 26;
+    static constexpr int BTN_PAUSE_OPT_SFX_UP = 27;
+    static constexpr int BTN_PAUSE_OPT_SFX_DOWN = 28;
+    static constexpr int BTN_PAUSE_OPT_BACK = 29;
 };
