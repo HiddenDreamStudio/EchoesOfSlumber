@@ -1,4 +1,3 @@
-
 #include "Engine.h"
 #include "Render.h"
 #include "Textures.h"
@@ -17,7 +16,8 @@ Map::Map() : Module(), mapLoaded(false)
 
 // Destructor
 Map::~Map()
-{}
+{
+}
 
 // Called before render is available
 bool Map::Awake()
@@ -35,12 +35,21 @@ bool Map::Start() {
 
 bool Map::Update(float dt)
 {
-	ZoneScoped;
+    ZoneScoped;
 
     bool ret = true;
 
     if (mapLoaded) {
 
+        for (const auto& imgLayer : mapData.imageLayers) {
+            if (imgLayer->texture) {
+                Engine::GetInstance().render->DrawTexture(
+                    imgLayer->texture,
+                    (int)imgLayer->offsetX,
+                    (int)imgLayer->offsetY
+                );
+            }
+        }
         // L07 TODO 5: Prepare the loop to draw all tiles in a layer + DrawTexture()
         // iterate all tiles in a layer
         for (const auto& mapLayer : mapData.layers) {
@@ -110,11 +119,18 @@ bool Map::CleanUp()
     }
     mapData.layers.clear();
 
-	// Clean up collider list
+    // Clean up collider list
     for (const auto& collider : colliderList) {
-		Engine::GetInstance().physics->DeletePhysBody(collider);
+        Engine::GetInstance().physics->DeletePhysBody(collider);
     }
-	colliderList.clear();
+    colliderList.clear();
+
+    for (const auto& imgLayer : mapData.imageLayers) {
+        if (imgLayer->texture)
+            Engine::GetInstance().textures->UnLoad(imgLayer->texture);
+        delete imgLayer;
+    }
+    mapData.imageLayers.clear();
 
     return true;
 }
@@ -132,10 +148,10 @@ bool Map::Load(std::string path, std::string fileName)
     //L15 TODO 2: make mapFileXML an attribute of the Map class
     pugi::xml_parse_result result = mapFileXML.load_file(mapPathName.c_str());
 
-    if(result == NULL)
-	{
-		LOG("Could not load map xml file %s. pugi error: %s", mapPathName.c_str(), result.description());
-		ret = false;
+    if (result == NULL)
+    {
+        LOG("Could not load map xml file %s. pugi error: %s", mapPathName.c_str(), result.description());
+        ret = false;
     }
     else {
 
@@ -147,12 +163,12 @@ bool Map::Load(std::string path, std::string fileName)
         mapData.tileHeight = mapFileXML.child("map").attribute("tileheight").as_int();
 
         // L06: TODO 4: Implement the LoadTileSet function to load the tileset properties
-       
+
         //Iterate the Tileset
-        for(pugi::xml_node tilesetNode = mapFileXML.child("map").child("tileset"); tilesetNode!=NULL; tilesetNode = tilesetNode.next_sibling("tileset"))
-		{
+        for (pugi::xml_node tilesetNode = mapFileXML.child("map").child("tileset"); tilesetNode != NULL; tilesetNode = tilesetNode.next_sibling("tileset"))
+        {
             //Load Tileset attributes
-			TileSet* tileSet = new TileSet();
+            TileSet* tileSet = new TileSet();
             tileSet->firstGid = tilesetNode.attribute("firstgid").as_int();
             tileSet->name = tilesetNode.attribute("name").as_string();
             tileSet->tileWidth = tilesetNode.attribute("tilewidth").as_int();
@@ -162,12 +178,12 @@ bool Map::Load(std::string path, std::string fileName)
             tileSet->tileCount = tilesetNode.attribute("tilecount").as_int();
             tileSet->columns = tilesetNode.attribute("columns").as_int();
 
-			//Load the tileset image
-			std::string imgName = tilesetNode.child("image").attribute("source").as_string();
-            tileSet->texture = Engine::GetInstance().textures->Load((mapPath+imgName).c_str());
+            //Load the tileset image
+            std::string imgName = tilesetNode.child("image").attribute("source").as_string();
+            tileSet->texture = Engine::GetInstance().textures->Load((mapPath + imgName).c_str());
 
-			mapData.tilesets.push_back(tileSet);
-		}
+            mapData.tilesets.push_back(tileSet);
+        }
 
         // L07: TODO 3: Iterate all layers in the TMX and load each of them
         for (pugi::xml_node layerNode = mapFileXML.child("map").child("layer"); layerNode != NULL; layerNode = layerNode.next_sibling("layer")) {
@@ -204,14 +220,16 @@ bool Map::Load(std::string path, std::string fileName)
                         int gid = mapLayer->Get(i, j);
                         if (gid == 3) {
                             Vector2D mapCoord = MapToWorld(i, j);
-                            PhysBody* c1 = Engine::GetInstance().physics.get()->CreateRectangle((int)(mapCoord.getX()+ mapData.tileWidth/2), (int)(mapCoord.getY()+ mapData.tileHeight/2), mapData.tileWidth, mapData.tileHeight, STATIC);
+                            PhysBody* c1 = Engine::GetInstance().physics.get()->CreateRectangle((int)(mapCoord.getX() + mapData.tileWidth / 2), (int)(mapCoord.getY() + mapData.tileHeight / 2), mapData.tileWidth, mapData.tileHeight, STATIC);
                             c1->ctype = ColliderType::PLATFORM;
-							colliderList.push_back(c1);
+                            colliderList.push_back(c1);
                         }
                     }
                 }
             }
         }
+
+        LoadImageLayers();
 
         ret = true;
 
@@ -229,13 +247,13 @@ bool Map::Load(std::string path, std::string fileName)
                 LOG("tile width : %d tile height : %d", tileset->tileWidth, tileset->tileHeight);
                 LOG("spacing : %d margin : %d", tileset->spacing, tileset->margin);
             }
-            			
+
             LOG("Layers----");
 
             for (const auto& layer : mapData.layers) {
                 LOG("id : %d name : %s", layer->id, layer->name.c_str());
-				LOG("Layer width : %d Layer height : %d", layer->width, layer->height);
-            }   
+                LOG("Layer width : %d Layer height : %d", layer->width, layer->height);
+            }
         }
         else {
             LOG("Error while parsing map file: %s", mapPathName.c_str());
@@ -313,21 +331,21 @@ MapLayer* Map::GetNavigationLayer() {
 }
 
 //L15 TODO 2: Define a method to load entities from the map XML
- void Map::LoadEntities(std::shared_ptr<Player>& player) {
-    
-	 //Iterate the object groups
-     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
-		 //Check if the object group is "Entities"
+void Map::LoadEntities(std::shared_ptr<Player>& player) {
+
+    //Iterate the object groups
+    for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
+        //Check if the object group is "Entities"
         if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
-            
-			//Iterate the objects
+
+            //Iterate the objects
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
 
-				//Get the entity type and position
+                //Get the entity type and position
                 std::string entityType = objectNode.attribute("type").as_string();
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
-                
+
                 // Create entity based on type
                 if (entityType == "Player") {
                     // Create Player entity
@@ -336,7 +354,7 @@ MapLayer* Map::GetNavigationLayer() {
                         player->position = Vector2D(x, y);
                         player->Start(); //L17: Importan to call Start to initialize teh Entity
                     }
-					//If the player already exists, just set its position
+                    //If the player already exists, just set its position
                     else {
                         player->SetPosition(Vector2D(x, y));
                     }
@@ -346,35 +364,51 @@ MapLayer* Map::GetNavigationLayer() {
     }
 }
 
- //L15 TODO 4: Define a method to save entities to the map XML
- void Map::SaveEntities(std::shared_ptr<Player> player) {
-     
-	 //Iterate the object groups
-     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
+//L15 TODO 4: Define a method to save entities to the map XML
+void Map::SaveEntities(std::shared_ptr<Player> player) {
 
-		 //Check if the object group is "Entities"
-         if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
+    //Iterate the object groups
+    for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
 
-			 //Iterate the objects
-             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
-                 std::string entityType = objectNode.attribute("type").as_string();
-                 // Modify entity based on type
-                 if (entityType == "Player") {
-                     // Modify the Player entity values
-                     Vector2D playerPos = player->GetPosition();
-                     objectNode.attribute("x").set_value(playerPos.getX());
-                     objectNode.attribute("y").set_value(playerPos.getY());
-                 }
-             }
-         }
-     }
+        //Check if the object group is "Entities"
+        if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
 
-     //Important: save the modifications to the XML 
-     std::string mapPathName = mapPath + mapFileName;
-     mapFileXML.save_file(mapPathName.c_str());
- 
- }
+            //Iterate the objects
+            for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+                std::string entityType = objectNode.attribute("type").as_string();
+                // Modify entity based on type
+                if (entityType == "Player") {
+                    // Modify the Player entity values
+                    Vector2D playerPos = player->GetPosition();
+                    objectNode.attribute("x").set_value(playerPos.getX());
+                    objectNode.attribute("y").set_value(playerPos.getY());
+                }
+            }
+        }
+    }
 
+    //Important: save the modifications to the XML 
+    std::string mapPathName = mapPath + mapFileName;
+    mapFileXML.save_file(mapPathName.c_str());
 
+}
 
+void Map::LoadImageLayers()
+{
+    for (pugi::xml_node imgNode = mapFileXML.child("map").child("imagelayer");
+        imgNode != NULL;
+        imgNode = imgNode.next_sibling("imagelayer"))
+    {
+        ImageLayer* imgLayer = new ImageLayer();
+        imgLayer->name = imgNode.attribute("name").as_string();
+        imgLayer->offsetX = imgNode.attribute("offsetx").as_float(0.0f);
+        imgLayer->offsetY = imgNode.attribute("offsety").as_float(0.0f);
+        imgLayer->source = imgNode.child("image").attribute("source").as_string();
 
+        std::string fullPath = mapPath + imgLayer->source;
+        imgLayer->texture = Engine::GetInstance().textures->Load(fullPath.c_str());
+
+        mapData.imageLayers.push_back(imgLayer);
+        LOG("ImageLayer loaded: %s", imgLayer->name.c_str());
+    }
+}

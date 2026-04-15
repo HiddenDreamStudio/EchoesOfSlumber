@@ -80,15 +80,25 @@ struct TileSet
 
 };
 
+struct ImageLayer
+{
+    std::string name;
+    float offsetX;
+    float offsetY;
+    std::string source;
+    SDL_Texture* texture = nullptr;
+};
+
 struct MapData
 {
-	int width;
-	int height;
-	int tileWidth;
-	int tileHeight;
+    int width;
+    int height;
+    int tileWidth;
+    int tileHeight;
     std::list<TileSet*> tilesets;
     // L07: TODO 2: Add the info to the MapLayer Struct
     std::list<MapLayer*> layers;
+    std::list<ImageLayer*> imageLayers;
 };
 
 class Map : public Module
@@ -139,10 +149,12 @@ public:
     void LoadEntities(std::shared_ptr<Player>& player);
     void SaveEntities(std::shared_ptr<Player> player);
 
-	Vector2D GetCameraPositionInTiles();
-	Vector2D GetCameraLimitsInTiles(Vector2D camPosTile);
+    Vector2D GetCameraPositionInTiles();
+    Vector2D GetCameraLimitsInTiles(Vector2D camPosTile);
 
-public: 
+    void LoadImageLayers();
+
+public:
     std::string mapFileName;
     std::string mapPath;
 
@@ -151,5 +163,5 @@ private:
     MapData mapData;
     pugi::xml_document mapFileXML;
     //
-	std::list<PhysBody*> colliderList;
+    std::list<PhysBody*> colliderList;
 };
