@@ -213,6 +213,8 @@ bool Map::Load(std::string path, std::string fileName)
                         col.width = objectNode.attribute("width").as_float(0.0f);
                         col.height = objectNode.attribute("height").as_float(0.0f);
 
+
+                        
                         pugi::xml_node polyNode = objectNode.child("polygon");
                         if (polyNode != NULL) {
                             std::string pointsStr = polyNode.attribute("points").as_string();
@@ -497,7 +499,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     // Create Player entity
                     if (player == nullptr) {
                         player = std::dynamic_pointer_cast<Player>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-                        player->position = Vector2D(x, y);
+                        player->position = Vector2D(x + 32, y + 32);
                         player->Start(); //L17: Importan to call Start to initialize teh Entity
                         LOG("Player spawned at: %f, %f", x, y);
                     }
@@ -565,6 +567,7 @@ void Map::LoadImageLayers()
         LOG("ImageLayer loaded: %s", imgLayer->name.c_str());
     }
 }
+
 
 void Map::LoadDecorationObjects()
 {
