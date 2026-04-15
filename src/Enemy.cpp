@@ -91,7 +91,24 @@ void Enemy::GetPhysicsValues() {
 
 void Enemy::Move() {
 
-	// Move 
+	if (pathfinding->pathTiles.size() < 2) return;
+
+	// Path exists: move horizontally toward the player
+	Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
+
+	int bodyX, bodyY;
+	pbody->GetPosition(bodyX, bodyY);
+
+	float playerCenterX = playerPos.getX() + texW * 0.5f;
+
+	const float POSITION_TOLERANCE = 2.0f;
+	if (playerCenterX > bodyX + POSITION_TOLERANCE) {
+		velocity.x = speed;
+	} else if (playerCenterX < bodyX - POSITION_TOLERANCE) {
+		velocity.x = -speed;
+	} else {
+		velocity.x = 0;
+	}
 }
 
 void Enemy::ApplyPhysics() {
@@ -111,8 +128,9 @@ void Enemy::Draw(float dt) {
 	position.setX((float)x);
 	position.setY((float)y);
 
-	// Draw pathfinding debug
-	pathfinding->DrawPath();
+	// Draw pathfinding debug only when F9 debug mode is active
+	if (Engine::GetInstance().physics->IsDebug())
+		pathfinding->DrawPath();
 
 	//Draw the player using the texture and the current animation frame
 	Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2, &animFrame);

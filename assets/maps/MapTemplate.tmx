@@ -3142,4 +3142,8 @@
    <tile gid="49"/>
   </data>
  </layer>
+ <objectgroup id="5" name="Entities">
+  <object id="6" name="Player" type="Player" x="96" y="672" width="32" height="32"/>
+  <object id="7" name="Enemy" type="Enemy" x="400" y="672" width="32" height="32"/>
+ </objectgroup>
 </map>
