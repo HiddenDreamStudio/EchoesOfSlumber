@@ -40,6 +40,7 @@ public:
 
     // manage animations
     void SetCurrent(const std::string& name);
+    void ResetCurrent(); // Reset current animation to frame 0
     void Update(float dtSeconds);
     const SDL_Rect& GetCurrentFrame() const;
     const std::string& GetCurrentName() const;

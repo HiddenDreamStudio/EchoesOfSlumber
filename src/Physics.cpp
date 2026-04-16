@@ -150,6 +150,7 @@ PhysBody* Physics::CreateCapsule(int x, int y, int width, int height, bodyType t
 
     b2ShapeDef sdef = b2DefaultShapeDef();
     sdef.density = 1.0f;
+    sdef.material.friction = 0.0f; // Zero friction to prevent sticking to walls
     sdef.enableContactEvents = true;
     sdef.enableSensorEvents = true;
 

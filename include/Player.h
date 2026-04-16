@@ -53,7 +53,10 @@ public:
 
 	PhysBody* pbody;
 	float jumpForce = 10.0f; // The force to apply when jumping
+	float doubleJumpForce = 11.0f; // The force to apply when double jumping
 	bool isJumping = false; // Flag to check if the player is currently jumping
+	bool canDoubleJump = false; // Flag to allow a second jump in the air
+	bool hasDoubleJumped = false; // Flag to track if double jump was already used
 
 private:
 	b2Vec2 velocity;
