@@ -42,6 +42,13 @@ bool Item::Update(float dt)
 {
 	if (!active) return true;
 
+	if (Engine::GetInstance().scene->isPaused_) {
+		int x, y;
+		pbody->GetPosition(x, y);
+		Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2);
+		return true;
+	}
+
 	// L08 TODO 4: Add a physics to an item - update the position of the object from the physics.  
 	int x, y;
 	pbody->GetPosition(x, y);

@@ -26,23 +26,31 @@ bool Player::Awake() {
 
 bool Player::Start() {
 
-	// Load animations from TSX.
-	// testpersonaje.tsx has 250x250 tiles with only one animation at tile id 0.
-	// We map id 0 to all three state names so SetCurrent() never fails.
-	std::unordered_map<int, std::string> aliases = { {0,"idle"} };
-	anims.LoadFromTSX("assets/textures/testpersonaje.tsx", aliases);
+	std::unordered_map<int, std::string> aliases = { 
+		{0, "idle"}, 
+		{12, "turnaround"}, 
+		{24, "jump"}, 
+		{36, "hide"}, 
+		{48, "damage"}, 
+		{60, "death"} 
+	};
+	anims.LoadFromTSX("assets/textures/animations/protagonistAnimation.xml", aliases);
 	anims.SetCurrent("idle");
 
-	// Load the spritesheet texture (source frames are 250x250)
-	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheet damage color.png");
+	anims.SetLoop("turnaround", false);
+	anims.SetLoop("jump", false);
+	anims.SetLoop("damage", false);
+	anims.SetLoop("death", false);
+
+	// Load the spritesheet texture
+	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheet.png");
 
 	// Desired in-game display size for the player sprite.
-	// The source tile is 250x250 but we want the player to appear ~128x128 on screen.
 	texW = 128;
 	texH = 128;
 
-	// Compute the draw scale: how much to shrink the 250px source frame to 128px display.
-	drawScale = (float)texW / 250.0f;
+	// Compute the draw scale.
+	drawScale = 1.0f;
 
 	// Create a capsule collider to match the tall player sprite.
 	// Width 40px (body width), height 100px (body height) - vertical capsule.
@@ -59,6 +67,12 @@ bool Player::Start() {
 bool Player::Update(float dt)
 {
 	ZoneScoped;
+	
+	if (Engine::GetInstance().scene->isPaused_) {
+		Draw(0.0f);
+		return true;
+	}
+
 	GetPhysicsValues();
 	Move();
 	Jump();
@@ -84,18 +98,35 @@ void Player::GetPhysicsValues() {
 
 void Player::Move() {
 
-	// Move left/right
-	// Note: testpersonaje.tsx only has one animation ("idle").
-	// When separate move/jump animations are added to the TSX, update these strings.
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
 		velocity.x = -speed;
-		facingRight = true;
-		if (anims.Has("move")) anims.SetCurrent("move");
+		// If we were going right (facingRight == false) and now go left
+		if (!facingRight) {
+			facingRight = true;
+			if (!isJumping) anims.SetCurrent("turnaround");
+		}
+		
+		if (!isJumping) {
+			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
+				if (anims.Has("move")) anims.SetCurrent("move");
+				else anims.SetCurrent("idle");
+			}
+		}
 	}
 	else if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT) {
 		velocity.x = speed;
-		facingRight = false;
-		if (anims.Has("move")) anims.SetCurrent("move");
+		// If we were going left (facingRight == true) and now go right
+		if (facingRight) {
+			facingRight = false;
+			if (!isJumping) anims.SetCurrent("turnaround");
+		}
+		
+		if (!isJumping) {
+			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
+				if (anims.Has("move")) anims.SetCurrent("move");
+				else anims.SetCurrent("idle");
+			}
+		}
 	}
 	else if (!isJumping) {
 		anims.SetCurrent("idle");
@@ -161,8 +192,13 @@ void Player::Draw(float dt) {
 	int drawY = y - texH / 2;
 
 	// Flip the sprite horizontally when facing left.
-	// drawScale converts the 250px source frame to the desired 128px display size.
 	SDL_FlipMode flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+
+	// The source frames for jump and turnaround face the opposite direction, so we invert the flip for them
+	if (anims.GetCurrentName() == "jump" || anims.GetCurrentName() == "turnaround") {
+		flip = (flip == SDL_FLIP_NONE) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+	}
+
 	Engine::GetInstance().render->DrawTexture(texture, drawX, drawY, &animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, drawScale);
 }
 

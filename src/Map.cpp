@@ -52,6 +52,13 @@ bool Map::Update(float dt)
                 );
             }
         }
+        for (const auto& deco : mapData.decorationObjects) {
+            if (deco->texture) {
+                int drawX = (int)deco->x;
+                int drawY = (int)(deco->y - deco->height);
+                Engine::GetInstance().render->DrawTexture(deco->texture, drawX, drawY, nullptr, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 1.0f);
+            }
+        }
         // L07 TODO 5: Prepare the loop to draw all tiles in a layer + DrawTexture()
         // iterate all tiles in a layer
         for (const auto& mapLayer : mapData.layers) {
@@ -134,6 +141,11 @@ bool Map::CleanUp()
     }
     mapData.imageLayers.clear();
 
+    for (const auto& deco : mapData.decorationObjects) {
+        delete deco;
+    }
+    mapData.decorationObjects.clear();
+
     return true;
 }
 
@@ -200,6 +212,8 @@ bool Map::Load(std::string path, std::string fileName)
                         col.y = objectNode.attribute("y").as_float(0.0f);
                         col.width = objectNode.attribute("width").as_float(0.0f);
                         col.height = objectNode.attribute("height").as_float(0.0f);
+
+
                         
                         pugi::xml_node polyNode = objectNode.child("polygon");
                         if (polyNode != NULL) {
@@ -318,8 +332,8 @@ bool Map::Load(std::string path, std::string fileName)
                     // Extend right as far as possible
                     int w = 1;
                     while (i + w < mapData.width &&
-                           hasRectCollider[j * mapData.width + (i + w)] &&
-                           !visited[j * mapData.width + (i + w)]) {
+                        hasRectCollider[j * mapData.width + (i + w)] &&
+                        !visited[j * mapData.width + (i + w)]) {
                         w++;
                     }
 
@@ -363,6 +377,7 @@ bool Map::Load(std::string path, std::string fileName)
         }
 
         LoadImageLayers();
+        LoadDecorationObjects();
 
         ret = true;
 
@@ -551,4 +566,76 @@ void Map::LoadImageLayers()
         mapData.imageLayers.push_back(imgLayer);
         LOG("ImageLayer loaded: %s", imgLayer->name.c_str());
     }
+}
+
+
+void Map::LoadDecorationObjects()
+{
+    for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
+        groupNode != NULL;
+        groupNode = groupNode.next_sibling("objectgroup"))
+    {
+        if (groupNode.attribute("name").as_string() != std::string("Decoracion"))
+            continue;
+
+        for (pugi::xml_node objNode = groupNode.child("object");
+            objNode != NULL;
+            objNode = objNode.next_sibling("object"))
+        {
+            int gid = objNode.attribute("gid").as_int(0);
+            if (gid == 0) continue; 
+
+          
+            TileSet* ts = GetTilesetFromTileId(gid);
+            if (ts == nullptr) continue;
+
+            int relativeId = gid - ts->firstGid; 
+
+           
+            if (ts->tileTextures.find(relativeId) == ts->tileTextures.end())
+            {
+             
+                for (pugi::xml_node tsNode = mapFileXML.child("map").child("tileset");
+                    tsNode != NULL;
+                    tsNode = tsNode.next_sibling("tileset"))
+                {
+                    if (tsNode.attribute("firstgid").as_int() != ts->firstGid) continue;
+
+                    for (pugi::xml_node tileNode = tsNode.child("tile");
+                        tileNode != NULL;
+                        tileNode = tileNode.next_sibling("tile"))
+                    {
+                        if (tileNode.attribute("id").as_int(-1) != relativeId) continue;
+
+                        std::string imgSrc = tileNode.child("image").attribute("source").as_string();
+                        if (!imgSrc.empty())
+                        {
+                            std::string fullPath = mapPath + imgSrc;
+                            SDL_Texture* tex = Engine::GetInstance().textures->Load(fullPath.c_str());
+                            ts->tileTextures[relativeId] = tex;
+                            LOG("DecorationSprite loaded: id=%d path=%s", relativeId, fullPath.c_str());
+                        }
+                        break;
+                    }
+                    break;
+                }
+            }
+
+            DecorationObject* deco = new DecorationObject();
+            deco->x = objNode.attribute("x").as_float();
+            deco->y = objNode.attribute("y").as_float();
+            deco->width = objNode.attribute("width").as_float();
+            deco->height = objNode.attribute("height").as_float();
+            deco->gid = gid;
+
+            auto it = ts->tileTextures.find(relativeId);
+            deco->texture = (it != ts->tileTextures.end()) ? it->second : nullptr;
+
+            mapData.decorationObjects.push_back(deco);
+        }
+
+        break; 
+    }
+
+    LOG("DecorationObjects loaded: %d sprites", (int)mapData.decorationObjects.size());
 }
