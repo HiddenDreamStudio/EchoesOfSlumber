@@ -80,6 +80,12 @@ public:
 
 	// Possible properties, it depends on how generic we
 	// want our Entity class, maybe it's not renderable...
-	Vector2D position;       
+	Vector2D position;
 	bool renderable = true;
+
+	// Health system
+	int health = 3;
+	int maxHealth = 3;
+
+	virtual void TakeDamage(int damage) { health -= damage; }
 };

@@ -45,9 +45,10 @@ public:
     const std::string& GetCurrentName() const;
 
     bool Has(const std::string& name) const;
-    
+
     void SetLoop(const std::string& name, bool loop);
     bool HasFinishedOnce(const std::string& name) const;
+    void ResetCurrent();
 
 private:
     int tileW_ = 0, tileH_ = 0, columns_ = 0;

@@ -23,6 +23,7 @@ public:
 	void SetPosition(Vector2D pos);
 	Vector2D GetPosition();
 	bool Destroy();
+	void TakeDamage(int damage) override;
 
 private:
 	void PerformPathfinding();
@@ -43,4 +44,10 @@ private:
 	b2Vec2 velocity;
 	AnimationSet anims;
 	std::shared_ptr<Pathfinding> pathfinding;
+
+	// Contact damage
+	static constexpr float ATTACK_INTERVAL = 1000.0f; // ms between hits
+	bool    isContactWithPlayer_ = false;
+	float   attackCooldown_      = 0.0f;
+	Entity* playerListener_      = nullptr;
 };
