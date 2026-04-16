@@ -60,6 +60,12 @@ bool Enemy::Start() {
 bool Enemy::Update(float dt)
 {
 	ZoneScoped;
+	
+	if (Engine::GetInstance().scene->isPaused_) {
+		Draw(0.0f);
+		return true;
+	}
+
 	PerformPathfinding();
 	GetPhysicsValues();
 	Move();

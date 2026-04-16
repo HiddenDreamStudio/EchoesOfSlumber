@@ -7,6 +7,7 @@
 #include "Render.h"
 #include "Player.h"
 #include "Window.h"
+#include "Scene.h"
 #include <vector>
 #include <box2d/box2d.h>
 
@@ -39,6 +40,8 @@ bool Physics::Start()
 bool Physics::PreUpdate()
 {
     bool ret = true;
+
+    if (Engine::GetInstance().scene->isPaused_) return true;
 
     // Step (update) the World
     // Get the dt from the engine. Note that dt is in milliseconds and Box2D steps in seconds
