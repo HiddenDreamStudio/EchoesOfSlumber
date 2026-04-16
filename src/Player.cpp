@@ -28,11 +28,12 @@ bool Player::Start() {
 
 	std::unordered_map<int, std::string> aliases = { 
 		{0, "idle"}, 
-		{12, "turnaround"}, 
-		{24, "jump"}, 
-		{36, "hide"}, 
-		{48, "damage"}, 
-		{60, "death"} 
+		{14, "turnaround"}, 
+		{28, "run"}, 
+		{42, "jump"}, 
+		{56, "hide"}, 
+		{70, "damage"}, 
+		{84, "death"} 
 	};
 	anims.LoadFromTSX("assets/textures/animations/protagonistAnimation.xml", aliases);
 	anims.SetCurrent("idle");
@@ -108,7 +109,7 @@ void Player::Move() {
 		
 		if (!isJumping) {
 			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
-				if (anims.Has("move")) anims.SetCurrent("move");
+				if (anims.Has("run")) anims.SetCurrent("run");
 				else anims.SetCurrent("idle");
 			}
 		}
@@ -123,7 +124,7 @@ void Player::Move() {
 		
 		if (!isJumping) {
 			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
-				if (anims.Has("move")) anims.SetCurrent("move");
+				if (anims.Has("run")) anims.SetCurrent("run");
 				else anims.SetCurrent("idle");
 			}
 		}
@@ -217,7 +218,6 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		LOG("Collision PLATFORM");
 		//reset the jump flag when touching the ground
 		isJumping = false;
-		anims.SetCurrent("idle");
 		break;
 	case ColliderType::ITEM:
 		LOG("Collision ITEM");
