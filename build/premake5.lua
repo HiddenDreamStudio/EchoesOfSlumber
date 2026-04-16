@@ -20,6 +20,13 @@ newoption
     description = "Override the Discord Social SDK download URL (for CI or custom hosting)"
 }
 
+newoption
+{
+    trigger = "toolset_ver",
+    value = "VERSION",
+    description = "Override the default toolset version (e.g. v143, v145)"
+}
+
 function download_progress(total, current)
     local ratio = current / total
     ratio = math.min(math.max(ratio, 0), 1)
@@ -712,6 +719,10 @@ workspace (workspaceName)
 
     filter {}
 
+    if _OPTIONS["toolset_ver"] then
+        toolset (_OPTIONS["toolset_ver"])
+    end
+
     targetdir "bin/%{cfg.buildcfg}/"
 
 if (downloadSDL3 or downloadBox2D or downloadLibJPEGTurbo or downloadPugiXML or downloadSDL3Image or downloadLibPNG or downloadSDL3TTF or downloadTracy or downloadDiscordSDK) then
@@ -734,6 +745,7 @@ end
         {
             ["Header Files/*"] = { "../include/**.h", "../include/**.hpp", "../src/**.h", "../src/**.hpp"},
             ["Source Files/*"] = {"../src/**.c", "../src/**.cpp"},
+            ["Windows Resource Files/*"] = {"../src/**.rc", "../src/**.ico"},
         }
         
         files {
@@ -744,6 +756,11 @@ end
             "../include/**.h", 
             "../include/**.hpp"
         }
+        
+        filter {"system:windows", "action:vs*"}
+            files {"../src/*.rc", "../src/*.ico"}
+
+        filter{}
 
         includedirs { "../src" }
         includedirs { "../include" }
