@@ -144,3 +144,16 @@ const std::string& AnimationSet::GetCurrentName() const {
 bool AnimationSet::Has(const std::string& name) const {
     return clips_.find(name) != clips_.end();
 }
+
+void AnimationSet::SetLoop(const std::string& name, bool loop) {
+    if (Has(name)) {
+        clips_[name].SetLoop(loop);
+    }
+}
+
+bool AnimationSet::HasFinishedOnce(const std::string& name) const {
+    if (Has(name)) {
+        return clips_.at(name).HasFinishedOnce();
+    }
+    return false;
+}
