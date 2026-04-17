@@ -13,8 +13,8 @@
 - [ ] `build`: Canvis al sistema de build
 
 ## Checklist
-- [x] El codi compila sense errors
-- [x] He provat els canvis localment
-- [x] He seguit les naming conventions (PascalCase classes, camelCase mètodes, m_ membres)
-- [x] He usat Conventional Commits al títol del PR
-- [x] He enllaçat la Issue corresponent
+- [ ] El codi compila sense errors
+- [ ] He provat els canvis localment
+- [ ] He seguit les naming conventions (PascalCase classes, camelCase mètodes, m_ membres)
+- [ ] He usat Conventional Commits al títol del PR
+- [ ] He enllaçat la Issue corresponent
