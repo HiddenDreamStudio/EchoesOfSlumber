@@ -957,13 +957,15 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 {
 	srand((unsigned)time(nullptr));
 
-	// Character face exclusion zone (top-right area ~upper 40% of child, central 50% width)
-	// The character image occupies [childX .. winW] x [20 .. winH]
-	// Face is roughly in the upper portion, horizontally centered in the child image
-	float faceLeft   = childX + childW * 0.25f;
-	float faceRight  = childX + childW * 0.75f;
-	float faceTop    = 20.0f;
-	float faceBottom = winH * 0.40f;
+	// Character face exclusion zone — upper center of the child image
+	float faceLeft   = childX + childW * 0.20f;
+	float faceRight  = childX + childW * 0.80f;
+	float faceTop    = 0.0f;
+	float faceBottom = winH * 0.45f;
+
+	// Screen quadrant boundaries
+	float halfW = winW * 0.5f;
+	float halfH = winH * 0.5f;
 
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		auto& f = fragments_[i];
@@ -973,27 +975,44 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		float tw = 0, th = 0;
 		SDL_GetTextureSize(f.tex, &tw, &th);
 
-		// Scale fragments to ~8-16% of screen width
-		float scale = RandF(0.08f, 0.16f);
+		// Bigger fragments: 18-30% of screen width
+		float scale = RandF(0.18f, 0.30f);
 		f.w = winW * scale;
 		f.h = f.w * (th / tw);
 
-		// Decide front vs back: ~40% chance in front
-		f.inFront = (rand() % 100) < 40;
+		// Decide front vs back: first 3 front, rest back
+		f.inFront = (i < 3);
 
-		// Random position across the right 60% of the screen (where character is)
-		// Retry if the center of the fragment falls in the face zone
-		int maxRetries = 20;
+		// Position based on layer:
+		//   BACK  fragments → Top-right quadrant, specifically left & right of head
+		//   FRONT fragments → Bottom-right quadrant
+		int maxRetries = 30;
 		for (int r = 0; r < maxRetries; r++) {
-			f.x = RandF(winW * 0.30f, winW - f.w * 0.3f);
-			f.y = RandF(-f.h * 0.2f, winH - f.h * 0.5f);
+			if (f.inFront) {
+				// Bottom-right: strictly right half of the screen!
+				f.x = RandF(halfW + 20.0f, winW - f.w - 20.0f);
+				f.y = RandF(halfH, winH - f.h * 0.3f);
+			} else {
+				// We have 2 back fragments (indices 3 and 4)
+				if (i == 3) {
+					// Top left of head, BUT still in the right screen half!
+					f.x = RandF(halfW + 10.0f, faceLeft - f.w);
+					if (f.x < halfW) f.x = halfW + 10.0f; // Hard boundary
+					f.y = RandF(0.0f, faceBottom - f.h * 0.3f);
+				} else {
+					// Top right of head
+					f.x = RandF(faceRight + 10.0f, winW - f.w - 20.0f);
+					if (f.x > winW - f.w) f.x = winW - f.w - 10.0f;
+					f.y = RandF(0.0f, faceBottom - f.h * 0.3f);
+				}
+			}
 
-			// Check face exclusion only for fragments that are in front
+			// Face exclusion for front fragments
 			if (f.inFront) {
 				float cx = f.x + f.w * 0.5f;
 				float cy = f.y + f.h * 0.5f;
 				if (cx > faceLeft && cx < faceRight && cy > faceTop && cy < faceBottom) {
-					continue; // retry - too close to the face
+					continue;
 				}
 			}
 			break;
@@ -1001,15 +1020,15 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 
 		// Animation parameters — unique per fragment
 		f.floatSpeed     = RandF(0.4f, 0.9f);     // rad/s (slow, dreamy)
-		f.floatAmplitude = RandF(6.0f, 18.0f);     // px vertical sway
+		f.floatAmplitude = RandF(8.0f, 22.0f);     // px vertical sway
 		f.floatPhase     = RandF(0.0f, 6.2831f);   // random start phase
 		f.driftX         = RandF(0.15f, 0.45f);    // subtle horizontal sway speed
 		f.driftPhase     = RandF(0.0f, 6.2831f);
-		f.rotSpeed       = RandF(-8.0f, 8.0f);     // degrees/sec - very gentle
+		f.rotSpeed       = RandF(-6.0f, 6.0f);     // degrees/sec - very gentle
 		f.rotation       = RandF(0.0f, 360.0f);
 
-		// Alpha: back fragments are more opaque, front fragments are ghostly/blurred
-		f.alpha = f.inFront ? (Uint8)RandF(60, 110) : (Uint8)RandF(160, 220);
+		// Alpha: no blur, full opacity
+		f.alpha = 255;
 	}
 }
 
