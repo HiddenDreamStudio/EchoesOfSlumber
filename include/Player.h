@@ -61,6 +61,9 @@ public:
 private:
 	b2Vec2 velocity;
 	AnimationSet anims;
+	Animation wakeUpAnim;
+	SDL_Texture* wakeUpTexture = nullptr;
+	bool isWakingUp = true;
 	float drawScale = 1.0f;
 	bool facingRight = true;
 

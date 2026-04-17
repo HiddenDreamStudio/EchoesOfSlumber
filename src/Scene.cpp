@@ -39,7 +39,9 @@ Scene::~Scene() {}
 bool Scene::Awake()
 {
 	LOG("Loading Scene");
-	LoadScene(currentScene);
+	// Defer initial scene load – renderer is not ready during Awake()
+	hasPendingSceneChange = true;
+	pendingScene = currentScene;
 	return true;
 }
 
@@ -48,6 +50,13 @@ bool Scene::PreUpdate() { return true; }
 
 bool Scene::Update(float dt)
 {
+	// Handle fade-driven scene transitions
+	if (waitingForFade_ && Engine::GetInstance().render->IsFadeComplete()) {
+		waitingForFade_ = false;
+		ChangeScene(fadeTargetScene_);
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
+	}
+
 	if (hasPendingSceneChange) {
 		hasPendingSceneChange = false;
 		ChangeScene(pendingScene);
@@ -55,9 +64,10 @@ bool Scene::Update(float dt)
 
 	switch (currentScene)
 	{
+	case SceneID::INTRO:
+		UpdateIntro(dt);
+		break;
 	case SceneID::MAIN_MENU:
-		// Draw background FIRST (Scene runs before UIManager in module list,
-		// so buttons will render on top in UIManager::Update)
 		PostUpdateMainMenu();
 		UpdateMainMenu(dt);
 		break;
@@ -129,6 +139,7 @@ void Scene::LoadScene(SceneID s)
 {
 	switch (s)
 	{
+	case SceneID::INTRO:           LoadIntro();           break;
 	case SceneID::MAIN_MENU:       LoadMainMenu();       break;
 	case SceneID::INTRO_CINEMATIC: LoadIntroCinematic(); break;
 	case SceneID::GAMEPLAY:        LoadGameplay();        break;
@@ -146,6 +157,7 @@ void Scene::UnloadCurrentScene()
 {
 	switch (currentScene)
 	{
+	case SceneID::INTRO:           UnloadIntro();           break;
 	case SceneID::MAIN_MENU:       UnloadMainMenu();       break;
 	case SceneID::INTRO_CINEMATIC: UnloadIntroCinematic(); break;
 	case SceneID::GAMEPLAY:        UnloadGameplay();        break;
@@ -163,36 +175,62 @@ void Scene::LoadMainMenu()
 	musicVolume_ = 0.8f;
 	sfxVolume_ = 0.8f;
 
+	// Load menu textures
+	SDL_Texture* rawLogo = Engine::GetInstance().textures->Load("assets/textures/menu/EchoesOfSlumber.png");
+	// Recolor logo from blue to #D4DAEA (212, 218, 234)
+	texMenuLogo_ = Engine::GetInstance().render->RecolorTexture(rawLogo, 212, 218, 234);
+	Engine::GetInstance().textures->UnLoad(rawLogo);
+	texMenuChild_ = Engine::GetInstance().textures->Load("assets/textures/menu/IL_NenFront_01.png");
+	texMenuButton_ = Engine::GetInstance().textures->Load("assets/textures/menu/UI_Pause_Menu_button_white.png");
+
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-	const int btnW = 220;
-	const int btnH = 42;
-	const int btnX = winW / 2 - btnW / 2;
-	const int startY = winH / 2 - 20;
-	const int gap = 58;
+	// Left half layout: logo + buttons centered horizontally in left half
+	const int leftHalf = winW / 2;
 
-	SDL_Rect playPos = { btnX, startY,         btnW, btnH };
-	SDL_Rect settingsPos = { btnX, startY + gap,    btnW, btnH };
-	SDL_Rect exitPos = { btnX, startY + gap * 2,  btnW, btnH };
+	// Logo dimensions (used to position buttons below)
+	const int logoW = 385;
+	const int logoH = (int)(logoW * (569.0f / 1559.0f)); // ~117px
+	const int logoX = (leftHalf - logoW) / 2;
+	const int logoY = winH / 4 - logoH / 2;  // centered at 1/4 vertical
 
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PLAY, "PLAY", playPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS, "SETTINGS", settingsPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_EXIT, "EXIT", exitPos, this);
+	// Buttons centered in left half, below the logo
+	// Button texture is 456x130 — keep proportional
+	const int btnW = 315;
+	const int btnH = (int)(btnW * (130.0f / 456.0f)); // ~90px
+	const int btnX = (leftHalf - btnW) / 2;
+	const int startY = logoY + logoH + 50;
+	const int gap = btnH + 15;
+
+	SDL_Rect playPos     = { btnX, startY,           btnW, btnH };
+	SDL_Rect settingsPos = { btnX, startY + gap,     btnW, btnH };
+	SDL_Rect exitPos     = { btnX, startY + gap * 2, btnW, btnH };
+
+	auto playBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PLAY, "play", playPos, this);
+	auto settingsBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS, "options", settingsPos, this);
+	auto exitBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_EXIT, "exit", exitPos, this);
+
+	// Set stone button texture
+	if (texMenuButton_) {
+		playBtn->SetTexture(texMenuButton_);
+		settingsBtn->SetTexture(texMenuButton_);
+		exitBtn->SetTexture(texMenuButton_);
+	}
 
 	// Settings panel — placed in the TOP half so BACK never overlaps main buttons
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
-	const int panelY = 60;          // always near top, away from main buttons
+	const int panelY = 60;
 	const int smallBtnW = 40;
 	const int smallBtnH = 34;
 	const int rowH = 52;
 
-	SDL_Rect musicUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60,              smallBtnW, smallBtnH };
+	SDL_Rect musicUpPos   = { panelX + panelW - smallBtnW - 12, panelY + 60,              smallBtnW, smallBtnH };
 	SDL_Rect musicDownPos = { panelX + 12,                       panelY + 60,              smallBtnW, smallBtnH };
-	SDL_Rect sfxUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,       smallBtnW, smallBtnH };
-	SDL_Rect sfxDownPos = { panelX + 12,                       panelY + 60 + rowH,       smallBtnW, smallBtnH };
-	SDL_Rect backPos = { panelX + panelW / 2 - 60,            panelY + 60 + rowH * 2 + 10, 120, btnH };
+	SDL_Rect sfxUpPos     = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,       smallBtnW, smallBtnH };
+	SDL_Rect sfxDownPos   = { panelX + 12,                       panelY + 60 + rowH,       smallBtnW, smallBtnH };
+	SDL_Rect backPos      = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120, btnH };
 
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_MUSIC_UP, "+", musicUpPos, this);
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_MUSIC_DOWN, "-", musicDownPos, this);
@@ -206,6 +244,9 @@ void Scene::LoadMainMenu()
 void Scene::UnloadMainMenu()
 {
 	Engine::GetInstance().uiManager->CleanUp();
+	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_); texMenuLogo_ = nullptr; }
+	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_); texMenuChild_ = nullptr; }
+	if (texMenuButton_) { Engine::GetInstance().textures->UnLoad(texMenuButton_); texMenuButton_ = nullptr; }
 }
 
 void Scene::UpdateMainMenu(float dt)
@@ -227,39 +268,30 @@ void Scene::PostUpdateMainMenu()
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-	// ── Background ───────────────────────────────────────────────────────────
+	// ── Background #151F20 ───────────────────────────────────────────────────────
 	SDL_Rect bg = { 0, 0, winW, winH };
-	render.DrawRectangle(bg, 5, 8, 18, 255, true, false);
+	render.DrawRectangle(bg, 21, 31, 32, 255, true, false);
 
-	// Decorative horizontal scanlines (subtle)
-	for (int y = 0; y < winH; y += 4)
-	{
-		SDL_Rect line = { 0, y, winW, 1 };
-		render.DrawRectangle(line, 255, 255, 255, 6, true, false);
+	// ── Character (right half, fill from near top to bottom) ─────────────────
+	if (texMenuChild_) {
+		// IL_NenFront_01.png is 1421x913
+		// Target: character fills the right half of the screen, small margin above head
+		int childH = winH - 20;  // fill height with 20px top margin
+		int childW = (int)(childH * (1421.0f / 913.0f));
+		int childX = winW - childW;
+		int childY = 20;  // small space above head
+		render.DrawTextureAlpha(texMenuChild_, childX, childY, childW, childH, 255);
 	}
 
-	// Left vertical accent strip
-	SDL_Rect strip = { 0, 0, 5, winH };
-	render.DrawRectangle(strip, 80, 140, 200, 200, true, false);
-
-	// ── Title ────────────────────────────────────────────────────────────────
-	// Font is 25px — draw title at natural size (no stretching = sharp)
-	const int titleX = winW / 2 - 130;
-	const int titleY = winH / 4 - 13;
-
-	// Title shadow
-	render.DrawText("ECHOES OF SLUMBERS", titleX + 2, titleY + 2, 0, 0, { 0, 0, 0, 200 });
-	// Title glow
-	render.DrawText("ECHOES OF SLUMBERS", titleX - 1, titleY - 1, 0, 0, { 80, 140, 200, 70 });
-	// Title main
-	render.DrawText("ECHOES OF SLUMBERS", titleX, titleY, 0, 0, { 200, 220, 255, 255 });
-
-	// Subtitle (natural size, centred approximately)
-	render.DrawText("HIDDEN DREAM STUDIOS", winW / 2 - 115, titleY + 32, 0, 0, { 80, 110, 160, 200 });
-
-	// Decorative line under title
-	render.DrawLine(winW / 2 - 160, titleY + 56, winW / 2 + 160, titleY + 56,
-		80, 130, 190, 160, false);
+	// ── Game logo (centered in left half at 1/4 vertical, #D4DAEA) ─────────
+	if (texMenuLogo_) {
+		const int leftHalf = winW / 2;
+		int logoW = 385;
+		int logoH = (int)(logoW * (569.0f / 1559.0f));
+		int logoX = (leftHalf - logoW) / 2;
+		int logoY = winH / 4 - logoH / 2;
+		render.DrawTextureAlpha(texMenuLogo_, logoX, logoY, logoW, logoH, 255);
+	}
 
 	// ── Settings Panel (drawn before UI buttons so buttons render on top) ───
 	if (showSettings_)
@@ -328,7 +360,8 @@ void Scene::DrawSettingsPanel(int winW, int winH)
 
 void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 {
-	// Ignore events during cooldown (prevents settings panel from instantly closing)
+	// Ignore events during fade or cooldown
+	if (waitingForFade_) return;
 	if (settingsCooldown_ > 0) return;
 
 	switch (uiElement->id)
@@ -336,8 +369,9 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 		// ── Main buttons ─────────────────────────────────────────────────────────
 	case BTN_PLAY:
 		LOG("Main Menu: Play");
-		hasPendingSceneChange = true;
-		pendingScene = SceneID::INTRO_CINEMATIC;
+		waitingForFade_ = true;
+		fadeTargetScene_ = SceneID::INTRO_CINEMATIC;
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1000.0f);
 		break;
 
 	case BTN_SETTINGS:
@@ -405,6 +439,150 @@ void Scene::SetSettingsPanelVisible(bool visible)
 }
 
 // ============================================================================
+//  INTRO (Splash Logos)
+// ============================================================================
+
+static constexpr float INTRO_FADE_MS  = 800.0f;
+static constexpr float INTRO_HOLD_MS  = 1500.0f;
+static constexpr float INTRO_TOTAL_MS = INTRO_FADE_MS * 2.0f + INTRO_HOLD_MS;
+
+void Scene::LoadIntro()
+{
+	LOG("Loading Intro splash screen");
+	introPhase_ = IntroPhase::CITM_FADEIN;
+	introTimer_ = 0.0f;
+
+	// Fade in from black at game boot
+	Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
+
+	texCitmLogo_ = Engine::GetInstance().textures->Load("assets/textures/icons/logo-citm.png");
+	texStudioPlaceholder_ = Engine::GetInstance().render->CreateMenuTextTexture(
+		"HIDDEN DREAM STUDIO", { 255, 255, 255, 255 });
+}
+
+void Scene::UnloadIntro()
+{
+	if (texCitmLogo_) { Engine::GetInstance().textures->UnLoad(texCitmLogo_); texCitmLogo_ = nullptr; }
+	if (texStudioPlaceholder_) { SDL_DestroyTexture(texStudioPlaceholder_); texStudioPlaceholder_ = nullptr; }
+}
+
+void Scene::UpdateIntro(float dt)
+{
+	// Skip with Space
+	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
+		if (!waitingForFade_) {
+			waitingForFade_ = true;
+			fadeTargetScene_ = SceneID::MAIN_MENU;
+			Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 300.0f);
+		}
+	}
+
+	if (waitingForFade_) { DrawIntro(); return; }
+
+	introTimer_ += dt;
+
+	switch (introPhase_) {
+	case IntroPhase::CITM_FADEIN:
+		if (introTimer_ >= INTRO_FADE_MS) { introTimer_ = 0; introPhase_ = IntroPhase::CITM_HOLD; }
+		break;
+	case IntroPhase::CITM_HOLD:
+		if (introTimer_ >= INTRO_HOLD_MS) { introTimer_ = 0; introPhase_ = IntroPhase::CITM_FADEOUT; }
+		break;
+	case IntroPhase::CITM_FADEOUT:
+		if (introTimer_ >= INTRO_FADE_MS) { introTimer_ = 0; introPhase_ = IntroPhase::STUDIO_FADEIN; }
+		break;
+	case IntroPhase::STUDIO_FADEIN:
+		if (introTimer_ >= INTRO_FADE_MS) { introTimer_ = 0; introPhase_ = IntroPhase::STUDIO_HOLD; }
+		break;
+	case IntroPhase::STUDIO_HOLD:
+		if (introTimer_ >= INTRO_HOLD_MS) { introTimer_ = 0; introPhase_ = IntroPhase::STUDIO_FADEOUT; }
+		break;
+	case IntroPhase::STUDIO_FADEOUT:
+		if (introTimer_ >= INTRO_FADE_MS) {
+			introPhase_ = IntroPhase::DONE;
+			waitingForFade_ = true;
+			fadeTargetScene_ = SceneID::MAIN_MENU;
+			Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 500.0f);
+		}
+		break;
+	case IntroPhase::DONE:
+		break;
+	}
+
+	DrawIntro();
+}
+
+void Scene::DrawIntro()
+{
+	auto& render = *Engine::GetInstance().render;
+	int winW = 0, winH = 0;
+	Engine::GetInstance().window->GetWindowSize(winW, winH);
+
+	// Black background
+	SDL_Rect bg = { 0, 0, winW, winH };
+	render.DrawRectangle(bg, 0, 0, 0, 255, true, false);
+
+	SDL_Texture* logo = nullptr;
+	Uint8 alpha = 0;
+	float cumTime = 0.0f;
+
+	bool isCitm = (introPhase_ == IntroPhase::CITM_FADEIN ||
+	               introPhase_ == IntroPhase::CITM_HOLD ||
+	               introPhase_ == IntroPhase::CITM_FADEOUT);
+	bool isStudio = (introPhase_ == IntroPhase::STUDIO_FADEIN ||
+	                 introPhase_ == IntroPhase::STUDIO_HOLD ||
+	                 introPhase_ == IntroPhase::STUDIO_FADEOUT);
+
+	if (isCitm) {
+		logo = texCitmLogo_;
+		if (introPhase_ == IntroPhase::CITM_FADEIN) {
+			alpha = (Uint8)(255.0f * (introTimer_ / INTRO_FADE_MS));
+			cumTime = introTimer_;
+		} else if (introPhase_ == IntroPhase::CITM_HOLD) {
+			alpha = 255;
+			cumTime = INTRO_FADE_MS + introTimer_;
+		} else {
+			alpha = (Uint8)(255.0f * (1.0f - introTimer_ / INTRO_FADE_MS));
+			cumTime = INTRO_FADE_MS + INTRO_HOLD_MS + introTimer_;
+		}
+	}
+	else if (isStudio) {
+		logo = texStudioPlaceholder_;
+		if (introPhase_ == IntroPhase::STUDIO_FADEIN) {
+			alpha = (Uint8)(255.0f * (introTimer_ / INTRO_FADE_MS));
+			cumTime = introTimer_;
+		} else if (introPhase_ == IntroPhase::STUDIO_HOLD) {
+			alpha = 255;
+			cumTime = INTRO_FADE_MS + introTimer_;
+		} else {
+			alpha = (Uint8)(255.0f * (1.0f - introTimer_ / INTRO_FADE_MS));
+			cumTime = INTRO_FADE_MS + INTRO_HOLD_MS + introTimer_;
+		}
+	}
+
+	if (logo && alpha > 0) {
+		float zoomProgress = cumTime / INTRO_TOTAL_MS;
+		if (zoomProgress > 1.0f) zoomProgress = 1.0f;
+		float zoom = 1.0f + 0.05f * zoomProgress;
+
+		float tw = 0, th = 0;
+		SDL_GetTextureSize(logo, &tw, &th);
+
+		// Scale logo to fit nicely on screen
+		float targetW = winW * 0.45f;
+		float logoScale = targetW / tw;
+		if (logoScale > 3.0f) logoScale = 3.0f;
+
+		int drawW = (int)(tw * logoScale * zoom);
+		int drawH = (int)(th * logoScale * zoom);
+		int drawX = (winW - drawW) / 2;
+		int drawY = (winH - drawH) / 2;
+
+		render.DrawTextureAlpha(logo, drawX, drawY, drawW, drawH, alpha);
+	}
+}
+
+// ============================================================================
 //  INTRO CINEMATIC
 // ============================================================================
 
@@ -421,8 +599,23 @@ void Scene::UnloadIntroCinematic()
 
 void Scene::UpdateIntroCinematic(float dt)
 {
-	if (!Engine::GetInstance().cinematics->IsPlaying())
-		ChangeScene(SceneID::GAMEPLAY);
+	if (waitingForFade_) return;
+
+	bool skipRequested = Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN || 
+						 Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN;
+
+	if (skipRequested) {
+		// Smoothly fade out the ongoing video
+		waitingForFade_ = true;
+		fadeTargetScene_ = SceneID::GAMEPLAY;
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1000.0f);
+	} 
+	else if (!Engine::GetInstance().cinematics->IsPlaying()) {
+		// Video finished naturally. It has already vanished, so transition immediately!
+		waitingForFade_ = true;
+		fadeTargetScene_ = SceneID::GAMEPLAY;
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 0.0f);
+	}
 }
 
 // ============================================================================
@@ -654,6 +847,8 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 
 void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 {
+	if (waitingForFade_) return;
+
 	switch (uiElement->id)
 	{
 	case BTN_PAUSE_CONTINUE:
@@ -674,8 +869,9 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 
 	case BTN_PAUSE_MAINMENU:
 		isPaused_ = false;
-		hasPendingSceneChange = true;
-		pendingScene = SceneID::MAIN_MENU;
+		waitingForFade_ = true;
+		fadeTargetScene_ = SceneID::MAIN_MENU;
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 500.0f);
 		break;
 
 	case BTN_PAUSE_QUIT:

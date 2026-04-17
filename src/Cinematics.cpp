@@ -39,18 +39,6 @@ bool Cinematics::Update(float dt)
 {
 	if (!playing) return true;
 
-	// Check for skip (Space or Escape or Enter)
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
-		Engine::GetInstance().input->GetKey(SDL_SCANCODE_RETURN) == KEY_DOWN)
-	{
-		skipRequested = true;
-	}
-
-	if (skipRequested) {
-		StopVideo();
-		return true;
-	}
-
 	// Accumulate time
 	elapsedMs += dt;
 	double elapsedSec = elapsedMs / 1000.0;
