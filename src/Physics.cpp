@@ -127,7 +127,7 @@ PhysBody* Physics::CreateCircle(int x, int y, int radious, bodyType type)
     return pbody;
 }
 
-PhysBody* Physics::CreateCapsule(int x, int y, int width, int height, bodyType type)
+PhysBody* Physics::CreateCapsule(int x, int y, int width, int height, bodyType type, float friction)
 {
     b2BodyDef def = b2DefaultBodyDef();
     def.type = ToB2Type(type);
@@ -150,7 +150,7 @@ PhysBody* Physics::CreateCapsule(int x, int y, int width, int height, bodyType t
 
     b2ShapeDef sdef = b2DefaultShapeDef();
     sdef.density = 1.0f;
-    sdef.material.friction = 0.0f; // Zero friction to prevent sticking to walls
+    sdef.material.friction = friction; // Set friction based on parameter
     sdef.enableContactEvents = true;
     sdef.enableSensorEvents = true;
 

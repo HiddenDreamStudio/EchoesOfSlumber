@@ -63,7 +63,7 @@ bool Player::Start() {
 
 	// Create a capsule collider to match the tall player sprite.
 	// Width 40px (body width), height 100px (body height) - vertical capsule.
-	pbody = Engine::GetInstance().physics->CreateCapsule((int)position.getX(), (int)position.getY(), 40, 100, bodyType::DYNAMIC);
+	pbody = Engine::GetInstance().physics->CreateCapsule((int)position.getX(), (int)position.getY(), 40, 100, bodyType::DYNAMIC, 0.0f);
 	
 	pbody->listener = this;
 	pbody->ctype = ColliderType::PLAYER;
