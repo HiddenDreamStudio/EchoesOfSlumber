@@ -135,4 +135,29 @@ private:
     // Fade orchestration
     bool waitingForFade_ = false;
     SceneID fadeTargetScene_ = SceneID::MAIN_MENU;
+
+    // ── Floating fragments decoration ────────────────────────────────────────
+    static constexpr int NUM_FRAGMENTS = 5;
+
+    struct MenuFragment {
+        SDL_Texture* tex = nullptr;
+        float x, y;               // base position (randomized)
+        float w, h;               // drawn size
+        float floatSpeed;          // oscillation speed (rad/s)
+        float floatAmplitude;      // oscillation range (px)
+        float floatPhase;          // initial phase offset
+        float driftX;              // horizontal micro-drift speed
+        float driftPhase;          // horizontal drift phase
+        float rotation;            // current rotation angle
+        float rotSpeed;            // degrees per second
+        bool  inFront;             // drawn in front of the character?
+        Uint8 alpha;               // alpha (lower for in-front = blur/ghostly)
+    };
+
+    MenuFragment fragments_[NUM_FRAGMENTS];
+    float fragmentTime_ = 0.0f;
+    bool  fragmentsInited_ = false;
+
+    void InitFragments(int winW, int winH, int childX, int childW);
+    void DrawFragments(bool front, int winW, int winH);
 };

@@ -15,6 +15,8 @@
 #include "Enemy.h"
 #include "UIManager.h"
 #include "SaveSystem.h"
+#include <cstdlib>
+#include <cmath>
 
 // ────────────────────────────────────────────────────────────────────────────
 // Button IDs  (main menu)
@@ -183,6 +185,19 @@ void Scene::LoadMainMenu()
 	texMenuChild_ = Engine::GetInstance().textures->Load("assets/textures/menu/IL_NenFront_01.png");
 	texMenuButton_ = Engine::GetInstance().textures->Load("assets/textures/menu/UI_Pause_Menu_button_white.png");
 
+	// Load fragment textures
+	const char* fragPaths[NUM_FRAGMENTS] = {
+		"assets/textures/Menu/UI_Fragment1.png",
+		"assets/textures/Menu/UI_Fragment2.png",
+		"assets/textures/Menu/UI_Fragment3.png",
+		"assets/textures/Menu/UI_Fragment4.png",
+		"assets/textures/Menu/UI_Fragment5.png"
+	};
+	for (int i = 0; i < NUM_FRAGMENTS; i++)
+		fragments_[i].tex = Engine::GetInstance().textures->Load(fragPaths[i]);
+	fragmentsInited_ = false;
+	fragmentTime_ = 0.0f;
+
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
@@ -247,12 +262,19 @@ void Scene::UnloadMainMenu()
 	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_); texMenuLogo_ = nullptr; }
 	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_); texMenuChild_ = nullptr; }
 	if (texMenuButton_) { Engine::GetInstance().textures->UnLoad(texMenuButton_); texMenuButton_ = nullptr; }
+	for (int i = 0; i < NUM_FRAGMENTS; i++) {
+		if (fragments_[i].tex) { Engine::GetInstance().textures->UnLoad(fragments_[i].tex); fragments_[i].tex = nullptr; }
+	}
+	fragmentsInited_ = false;
 }
 
 void Scene::UpdateMainMenu(float dt)
 {
 	// Decrement cooldown each frame
 	if (settingsCooldown_ > 0) settingsCooldown_--;
+
+	// Accumulate time for fragment floating animations
+	fragmentTime_ += dt;
 
 	// ESC closes settings
 	if (showSettings_ && Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
@@ -268,20 +290,32 @@ void Scene::PostUpdateMainMenu()
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
+	// Compute character rect (needed for fragment init + draw ordering)
+	int childH = winH - 20;
+	int childW = (int)(childH * (1421.0f / 913.0f));
+	int childX = winW - childW;
+
+	// Lazy-init fragments on first frame (needs winW/winH)
+	if (!fragmentsInited_) {
+		InitFragments(winW, winH, childX, childW);
+		fragmentsInited_ = true;
+	}
+
 	// ── Background #151F20 ───────────────────────────────────────────────────────
 	SDL_Rect bg = { 0, 0, winW, winH };
 	render.DrawRectangle(bg, 21, 31, 32, 255, true, false);
 
+	// ── Fragments BEHIND the character ──────────────────────────────────────
+	DrawFragments(false, winW, winH);
+
 	// ── Character (right half, fill from near top to bottom) ─────────────────
 	if (texMenuChild_) {
-		// IL_NenFront_01.png is 1421x913
-		// Target: character fills the right half of the screen, small margin above head
-		int childH = winH - 20;  // fill height with 20px top margin
-		int childW = (int)(childH * (1421.0f / 913.0f));
-		int childX = winW - childW;
-		int childY = 20;  // small space above head
+		int childY = 20;
 		render.DrawTextureAlpha(texMenuChild_, childX, childY, childW, childH, 255);
 	}
+
+	// ── Fragments IN FRONT of the character ─────────────────────────────────
+	DrawFragments(true, winW, winH);
 
 	// ── Game logo (centered in left half at 1/4 vertical, #D4DAEA) ─────────
 	if (texMenuLogo_) {
@@ -908,5 +942,114 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 		break;
 
 	default: break;
+	}
+}
+
+// ============================================================================
+//  FLOATING FRAGMENTS  (Main Menu Decoration)
+// ============================================================================
+
+static float RandF(float lo, float hi) {
+	return lo + (float)rand() / (float)RAND_MAX * (hi - lo);
+}
+
+void Scene::InitFragments(int winW, int winH, int childX, int childW)
+{
+	srand((unsigned)time(nullptr));
+
+	// Character face exclusion zone (top-right area ~upper 40% of child, central 50% width)
+	// The character image occupies [childX .. winW] x [20 .. winH]
+	// Face is roughly in the upper portion, horizontally centered in the child image
+	float faceLeft   = childX + childW * 0.25f;
+	float faceRight  = childX + childW * 0.75f;
+	float faceTop    = 20.0f;
+	float faceBottom = winH * 0.40f;
+
+	for (int i = 0; i < NUM_FRAGMENTS; i++) {
+		auto& f = fragments_[i];
+		if (!f.tex) continue;
+
+		// Query native texture size
+		float tw = 0, th = 0;
+		SDL_GetTextureSize(f.tex, &tw, &th);
+
+		// Scale fragments to ~8-16% of screen width
+		float scale = RandF(0.08f, 0.16f);
+		f.w = winW * scale;
+		f.h = f.w * (th / tw);
+
+		// Decide front vs back: ~40% chance in front
+		f.inFront = (rand() % 100) < 40;
+
+		// Random position across the right 60% of the screen (where character is)
+		// Retry if the center of the fragment falls in the face zone
+		int maxRetries = 20;
+		for (int r = 0; r < maxRetries; r++) {
+			f.x = RandF(winW * 0.30f, winW - f.w * 0.3f);
+			f.y = RandF(-f.h * 0.2f, winH - f.h * 0.5f);
+
+			// Check face exclusion only for fragments that are in front
+			if (f.inFront) {
+				float cx = f.x + f.w * 0.5f;
+				float cy = f.y + f.h * 0.5f;
+				if (cx > faceLeft && cx < faceRight && cy > faceTop && cy < faceBottom) {
+					continue; // retry - too close to the face
+				}
+			}
+			break;
+		}
+
+		// Animation parameters — unique per fragment
+		f.floatSpeed     = RandF(0.4f, 0.9f);     // rad/s (slow, dreamy)
+		f.floatAmplitude = RandF(6.0f, 18.0f);     // px vertical sway
+		f.floatPhase     = RandF(0.0f, 6.2831f);   // random start phase
+		f.driftX         = RandF(0.15f, 0.45f);    // subtle horizontal sway speed
+		f.driftPhase     = RandF(0.0f, 6.2831f);
+		f.rotSpeed       = RandF(-8.0f, 8.0f);     // degrees/sec - very gentle
+		f.rotation       = RandF(0.0f, 360.0f);
+
+		// Alpha: back fragments are more opaque, front fragments are ghostly/blurred
+		f.alpha = f.inFront ? (Uint8)RandF(60, 110) : (Uint8)RandF(160, 220);
+	}
+}
+
+void Scene::DrawFragments(bool front, int winW, int winH)
+{
+	auto& render = *Engine::GetInstance().render;
+
+	// Time in seconds (fragmentTime_ is in ms from dt)
+	float t = fragmentTime_ / 1000.0f;
+
+	for (int i = 0; i < NUM_FRAGMENTS; i++) {
+		auto& f = fragments_[i];
+		if (!f.tex || f.inFront != front) continue;
+
+		// Smooth sinusoidal floating
+		float yOff = f.floatAmplitude * sinf(t * f.floatSpeed + f.floatPhase);
+		float xOff = (f.floatAmplitude * 0.3f) * sinf(t * f.driftX + f.driftPhase);
+
+		// Smooth rotation update
+		float angle = f.rotation + f.rotSpeed * t;
+
+		float drawX = f.x + xOff;
+		float drawY = f.y + yOff;
+
+		// Use DrawTextureAlphaF for sub-pixel smooth rendering
+		// For the rotation, we need to use the full DrawTexture with angle
+		// But DrawTextureAlphaF doesn't support rotation, so we'll use SDL directly
+		SDL_SetTextureAlphaMod(f.tex, f.alpha);
+		SDL_SetTextureBlendMode(f.tex, SDL_BLENDMODE_BLEND);
+
+		int scale = Engine::GetInstance().window->GetScale();
+		SDL_FRect dst;
+		dst.x = drawX * scale;
+		dst.y = drawY * scale;
+		dst.w = f.w * scale;
+		dst.h = f.h * scale;
+
+		SDL_RenderTextureRotated(render.renderer, f.tex, nullptr, &dst,
+			(double)angle, nullptr, SDL_FLIP_NONE);
+
+		SDL_SetTextureAlphaMod(f.tex, 255);
 	}
 }
