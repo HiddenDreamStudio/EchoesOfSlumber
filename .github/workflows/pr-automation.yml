@@ -1,0 +1,147 @@
+name: PR Link Automation
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+env:
+  GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+  PROJECT_NUMBER: 7
+  ORG_NAME: HiddenDreamStudio
+
+jobs:
+  pr-automation:
+    name: Reopen Issues and Move to In Review
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Fetch repository and PR information
+        id: fetch_pr
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          echo "OWNER=$OWNER" >> $GITHUB_OUTPUT
+          echo "REPO=$REPO" >> $GITHUB_OUTPUT
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Get Linked Issues
+        id: linked_issues
+        run: |
+          gh api graphql -F owner=${{ steps.fetch_pr.outputs.OWNER }} -F name=${{ steps.fetch_pr.outputs.REPO }} -F pr=${{ steps.fetch_pr.outputs.PR_NUMBER }} -f query='
+            query($owner: String!, $name: String!, $pr: Int!) {
+              repository(owner: $owner, name: $name) {
+                pullRequest(number: $pr) {
+                  closingIssuesReferences(first: 10) {
+                    nodes {
+                      id
+                      number
+                      state
+                      projectItems(first: 10) {
+                        nodes {
+                          id
+                          project { number }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }' > linked_issues.json
+            
+          cat linked_issues.json
+
+      - name: Reopen Closed Issues
+        run: |
+          jq -c '.data.repository.pullRequest.closingIssuesReferences.nodes[]' linked_issues.json | while read -r issue; do
+            NUMBER=$(echo "$issue" | jq -r '.number')
+            STATE=$(echo "$issue" | jq -r '.state')
+            if [ "$STATE" = "CLOSED" ]; then
+              echo "Reopening closed issue #$NUMBER"
+              gh issue reopen "$NUMBER" --repo "${{ github.repository }}"
+            fi
+          done
+
+      - name: Get Project and Layout Data
+        id: project_data
+        run: |
+          # Get Project ID
+          PROJECT_ID=$(gh api graphql -f query='
+            query($org: String!, $number: Int!) {
+              organization(login: $org) {
+                projectV2(number: $number) { id }
+              }
+            }' -f org=$ORG_NAME -F number=$PROJECT_NUMBER --jq '.data.organization.projectV2.id')
+          echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_OUTPUT
+
+          # Get Status field and 'In Review' option ID
+          gh api graphql -f query='
+            query($org: String!, $number: Int!) {
+              organization(login: $org) {
+                projectV2(number: $number) {
+                  fields(first: 20) {
+                    nodes {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                        options { id name }
+                      }
+                    }
+                  }
+                }
+              }
+            }' -f org=$ORG_NAME -F number=$PROJECT_NUMBER > project_fields.json
+
+          STATUS_FIELD_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .id' project_fields.json)
+          echo "STATUS_FIELD_ID=$STATUS_FIELD_ID" >> $GITHUB_OUTPUT
+
+          IN_REVIEW_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name=="Status") | .options[] | select(.name=="In Review") | .id' project_fields.json)
+          echo "IN_REVIEW_ID=$IN_REVIEW_ID" >> $GITHUB_OUTPUT
+
+      - name: Move to In Review
+        run: |
+          PROJECT_ID="${{ steps.project_data.outputs.PROJECT_ID }}"
+          STATUS_FIELD_ID="${{ steps.project_data.outputs.STATUS_FIELD_ID }}"
+          IN_REVIEW_ID="${{ steps.project_data.outputs.IN_REVIEW_ID }}"
+
+          jq -c '.data.repository.pullRequest.closingIssuesReferences.nodes[]' linked_issues.json | while read -r issue; do
+            # Extract Project Item ID for this project (number 7)
+            ITEM_ID=$(echo "$issue" | jq -r --argjson PRJ $PROJECT_NUMBER '.projectItems.nodes[] | select(.project.number == $PRJ) | .id')
+            
+            if [ -n "$ITEM_ID" ] && [ "$ITEM_ID" != "null" ]; then
+              echo "Moving Issue to 'In Review' on project board"
+              gh api graphql -f query='
+                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                  updateProjectV2ItemFieldValue(
+                    input: {
+                      projectId: $projectId
+                      itemId: $itemId
+                      fieldId: $fieldId
+                      value: { singleSelectOptionId: $optionId }
+                    }
+                  ) { projectV2Item { id } }
+                }' -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" -f fieldId="$STATUS_FIELD_ID" -f optionId="$IN_REVIEW_ID"
+            else
+              echo "Issue is not in Project $PROJECT_NUMBER, adding it..."
+              ISSUE_NODE_ID=$(echo "$issue" | jq -r '.id')
+              NEW_ITEM_ID=$(gh api graphql -f query='
+                mutation($project: ID!, $content: ID!) {
+                  addProjectV2ItemById(input: {projectId: $project, contentId: $content}) { item { id } }
+                }' -f project="$PROJECT_ID" -f content="$ISSUE_NODE_ID" --jq '.data.addProjectV2ItemById.item.id')
+              
+              if [ -n "$NEW_ITEM_ID" ] && [ "$NEW_ITEM_ID" != "null" ]; then
+                echo "Added issue to project. Now moving to 'In Review'..."
+                 gh api graphql -f query='
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                    updateProjectV2ItemFieldValue(
+                      input: {
+                        projectId: $projectId
+                        itemId: $itemId
+                        fieldId: $fieldId
+                        value: { singleSelectOptionId: $optionId }
+                      }
+                    ) { projectV2Item { id } }
+                  }' -f projectId="$PROJECT_ID" -f itemId="$NEW_ITEM_ID" -f fieldId="$STATUS_FIELD_ID" -f optionId="$IN_REVIEW_ID"
+              fi
+            fi
+          done
