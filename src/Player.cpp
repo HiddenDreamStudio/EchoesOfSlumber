@@ -231,13 +231,6 @@ void Player::Draw(float dt) {
 	// Flip the sprite horizontally when facing left.
 	SDL_FlipMode flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
-	// The source frames for jump and turnaround face the opposite direction, so we invert the flip for them
-	if (!isDead_ && !isShowingDamageAnim_) {
-		if (anims.GetCurrentName() == "jump" || anims.GetCurrentName() == "turnaround") {
-			flip = (flip == SDL_FLIP_NONE) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-		}
-	}
-
 	if (isWakingUp) {
 		wakeUpAnim.Update(dt);
 		if (wakeUpAnim.HasFinishedOnce()) {
