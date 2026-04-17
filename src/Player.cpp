@@ -85,7 +85,8 @@ bool Player::Update(float dt)
 	GetPhysicsValues();
 	if (!isDead_ && !isWakingUp)
 	{
-		Move();
+		Dash(dt);
+		if (!isDashing_) Move();
 		Jump();
 		Attack(dt);
 		Teleport();
@@ -171,6 +172,9 @@ void Player::ApplyPhysics() {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
 	}
 
+	// Dash overrides horizontal velocity
+	if (isDashing_) velocity.x = dashDirX_ * DASH_SPEED;
+
 	// Apply velocity via helper
 	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
 }
@@ -248,10 +252,42 @@ void Player::Draw(float dt) {
 		}
 	}
 
-	// I-frame flicker: skip every other 100ms slice while invincible (not when dead)
-	bool skipDraw = !isDead_ && isInvincible_ && ((int)(iFrameTimer_ / 100.0f) % 2 == 0);
+	// I-frame flicker: skip every other 100ms slice while invincible from damage (not during dash or death)
+	bool skipDraw = !isDead_ && !isDashing_ && isInvincible_ && ((int)(iFrameTimer_ / 100.0f) % 2 == 0);
 	if (!skipDraw)
 		Engine::GetInstance().render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, drawScale);
+}
+
+void Player::Dash(float dt)
+{
+	auto& input = Engine::GetInstance().input;
+
+	if (dashCooldown_ > 0.0f) dashCooldown_ -= dt;
+
+	if (!isDashing_ && dashCooldown_ <= 0.0f &&
+		input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_DOWN)
+	{
+		isDashing_   = true;
+		dashTimer_   = DASH_DURATION;
+		dashDirX_    = facingRight ? -1.0f : 1.0f;
+
+		// Grant i-frames for the dash duration
+		isInvincible_ = true;
+		iFrameTimer_  = DASH_DURATION;
+
+		LOG("Player dash started");
+	}
+
+	if (isDashing_)
+	{
+		dashTimer_ -= dt;
+		if (dashTimer_ <= 0.0f)
+		{
+			isDashing_    = false;
+			dashCooldown_ = DASH_COOLDOWN;
+			LOG("Player dash ended");
+		}
+	}
 }
 
 void Player::Attack(float dt)
