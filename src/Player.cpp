@@ -26,30 +26,39 @@ bool Player::Awake() {
 
 bool Player::Start() {
 
-	std::unordered_map<int, std::string> aliases = { 
-		{0, "idle"}, 
-		{14, "turnaround"}, 
-		{28, "run"}, 
-		{42, "jump"}, 
-		{56, "hide"}, 
-		{70, "damage"}, 
-		{84, "death"} 
+	std::unordered_map<int, std::string> aliases = {
+		{0, "idle"},
+		{14, "turnaround"},
+		{28, "run"},
+		{42, "jump"},
+		{56, "hide"}
 	};
 	anims.LoadFromTSX("assets/textures/animations/protagonistAnimation.xml", aliases);
 	anims.SetCurrent("idle");
 
 	anims.SetLoop("turnaround", false);
 	anims.SetLoop("jump", false);
-	anims.SetLoop("damage", false);
-	anims.SetLoop("death", false);
 
 	// Load the spritesheet texture
 	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheet.png");
 
+	// Load separate damage and death textures/animations
+	std::unordered_map<int, std::string> damageAliases = { {0, "damage"} };
+	damageAnims_.LoadFromTSX("assets/textures/animations/playerDamageAnimation.xml", damageAliases);
+	damageAnims_.SetCurrent("damage");
+	damageAnims_.SetLoop("damage", false);
+	damageTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Damage.png");
+
+	std::unordered_map<int, std::string> deathAliases = { {0, "death"} };
+	deathAnims_.LoadFromTSX("assets/textures/animations/playerDeathAnimation.xml", deathAliases);
+	deathAnims_.SetCurrent("death");
+	deathAnims_.SetLoop("death", false);
+	deathTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Death.png");
+
 	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
 	for (int i = 0; i < 58; ++i) {
 		SDL_Rect r = { i * 258, 0, 258, 258 };
-		wakeUpAnim.AddFrame(r, 150);
+		wakeUpAnim.AddFrame(r, 120); // 120ms per frame matching main
 	}
 	wakeUpAnim.SetLoop(false);
 	isWakingUp = true;
@@ -83,9 +92,13 @@ bool Player::Update(float dt)
 	}
 
 	GetPhysicsValues();
-	Move();
-	Jump();
-	Teleport();
+	if (!isDead_ && !isWakingUp)
+	{
+		Move();
+		Jump();
+		Attack(dt);
+		Teleport();
+	}
 	ApplyPhysics();
 	Draw(dt);
 
@@ -173,8 +186,29 @@ void Player::ApplyPhysics() {
 
 void Player::Draw(float dt) {
 
-	anims.Update(dt);
-	const SDL_Rect& animFrame = anims.GetCurrentFrame();
+	// Choose active texture and animation based on state
+	SDL_Texture* activeTex = texture;
+	const SDL_Rect* animFrame = nullptr;
+
+	if (isDead_)
+	{
+		deathAnims_.Update(dt);
+		animFrame = &deathAnims_.GetCurrentFrame();
+		activeTex = deathTexture_;
+	}
+	else if (isShowingDamageAnim_)
+	{
+		damageAnims_.Update(dt);
+		animFrame = &damageAnims_.GetCurrentFrame();
+		activeTex = damageTexture_;
+		if (damageAnims_.HasFinishedOnce("damage"))
+			isShowingDamageAnim_ = false;
+	}
+	else
+	{
+		anims.Update(dt);
+		animFrame = &anims.GetCurrentFrame();
+	}
 
 	// Update render position using your PhysBody helper
 	int x, y;
@@ -189,14 +223,13 @@ void Player::Draw(float dt) {
 	auto& render = Engine::GetInstance().render;
 	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();  
 	
-	// Set camera target to player position
-	render->SetCameraTarget(position.getX(), position.getY());
-	
-	// Apply smooth follow with lerp and dead zones
-	render->FollowTarget(dt);
-	
-	// Clamp camera to map boundaries
-	render->ClampCameraToMapBounds(mapSize.getX(), mapSize.getY());
+	// Camera stops following when player is dead
+	if (!isDead_)
+	{
+		render->SetCameraTarget(position.getX(), position.getY());
+		render->FollowTarget(dt);
+		render->ClampCameraToMapBounds(mapSize.getX(), mapSize.getY());
+	}
 
 	// Center the sprite on the physics body position.
 	int drawX = x - texW / 2;
@@ -206,8 +239,10 @@ void Player::Draw(float dt) {
 	SDL_FlipMode flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
 	// The source frames for jump and turnaround face the opposite direction, so we invert the flip for them
-	if (anims.GetCurrentName() == "jump" || anims.GetCurrentName() == "turnaround") {
-		flip = (flip == SDL_FLIP_NONE) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+	if (!isDead_ && !isShowingDamageAnim_) {
+		if (anims.GetCurrentName() == "jump" || anims.GetCurrentName() == "turnaround") {
+			flip = (flip == SDL_FLIP_NONE) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+		}
 	}
 
 	if (isWakingUp) {
@@ -227,14 +262,115 @@ void Player::Draw(float dt) {
 		}
 	}
 
-	Engine::GetInstance().render->DrawTexture(texture, drawX, drawY, &animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, drawScale);
+	// I-frame flicker: skip every other 100ms slice while invincible (not when dead)
+	bool skipDraw = !isDead_ && isInvincible_ && ((int)(iFrameTimer_ / 100.0f) % 2 == 0);
+	if (!skipDraw)
+		Engine::GetInstance().render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, drawScale);
+}
+
+void Player::Attack(float dt)
+{
+	auto& input   = Engine::GetInstance().input;
+	auto& physics = Engine::GetInstance().physics;
+
+	// Tick attack cooldown
+	if (attackCooldown_ > 0.0f) attackCooldown_ -= dt;
+
+	// Start a new attack on J press
+	if (input->GetKey(SDL_SCANCODE_J) == KEY_DOWN && !isAttacking_ && attackCooldown_ <= 0.0f)
+	{
+		isAttacking_    = true;
+		attackTimer_    = ATTACK_DURATION;
+		attackCooldown_ = ATTACK_COOLDOWN;
+
+		int bodyX, bodyY;
+		pbody->GetPosition(bodyX, bodyY);
+
+		// Place hitbox in front of the player based on facing direction
+		// facingRight = true → sprite faces left; facingRight = false → sprite faces right
+		int hitboxX = facingRight ? bodyX - HITBOX_OFFSET : bodyX + HITBOX_OFFSET;
+		attackHitbox_ = physics->CreateRectangleSensor(hitboxX, bodyY, HITBOX_W, HITBOX_H, bodyType::STATIC);
+		attackHitbox_->listener = this;
+		attackHitbox_->ctype    = ColliderType::ATTACK;
+
+		LOG("Player attack started");
+	}
+
+	// While attacking: track timer and keep hitbox glued to the player
+	if (isAttacking_)
+	{
+		attackTimer_ -= dt;
+
+		// Update hitbox position to follow the player
+		if (attackHitbox_ != nullptr)
+		{
+			int bodyX, bodyY;
+			pbody->GetPosition(bodyX, bodyY);
+			int hitboxX = facingRight ? bodyX - HITBOX_OFFSET : bodyX + HITBOX_OFFSET;
+			attackHitbox_->SetPosition(hitboxX, bodyY);
+		}
+
+		// Attack window expired — destroy hitbox
+		if (attackTimer_ <= 0.0f)
+		{
+			isAttacking_ = false;
+			if (attackHitbox_ != nullptr)
+			{
+				physics->DeletePhysBody(attackHitbox_);
+				attackHitbox_ = nullptr;
+			}
+			LOG("Player attack ended");
+		}
+	}
+
+	// Tick i-frame timer
+	if (isInvincible_)
+	{
+		iFrameTimer_ -= dt;
+		if (iFrameTimer_ <= 0.0f)
+		{
+			isInvincible_ = false;
+		}
+	}
+}
+
+void Player::TakeDamage(int damage)
+{
+	if (isInvincible_) return;
+
+	health -= damage;
+	LOG("Player took %d damage -> health: %d/%d", damage, health, maxHealth);
+
+	isInvincible_ = true;
+	iFrameTimer_  = IFRAME_DURATION;
+
+	if (health <= 0)
+	{
+		health = 0;
+		isDead_ = true;
+		deathAnims_.SetCurrent("death");
+		LOG("Player is dead");
+	}
+	else
+	{
+		isShowingDamageAnim_ = true;
+		damageAnims_.ResetCurrent();
+	}
 }
 
 bool Player::CleanUp()
 {
 	LOG("Cleanup player");
 	Engine::GetInstance().textures->UnLoad(texture);
+	Engine::GetInstance().textures->UnLoad(damageTexture_);
+	Engine::GetInstance().textures->UnLoad(deathTexture_);
 	if (wakeUpTexture) Engine::GetInstance().textures->UnLoad(wakeUpTexture);
+	
+	if (attackHitbox_ != nullptr)
+	{
+		Engine::GetInstance().physics->DeletePhysBody(attackHitbox_);
+		attackHitbox_ = nullptr;
+	}
 	Engine::GetInstance().physics->DeletePhysBody(pbody);
 	return true;
 }
