@@ -87,10 +87,6 @@ private:
 	// Death state
 	bool isDead_ = false;
 
-	// Separate textures and anim sets for hit/death
-	SDL_Texture* damageTexture_ = nullptr;
-	SDL_Texture* deathTexture_  = nullptr;
-	AnimationSet damageAnims_;
-	AnimationSet deathAnims_;
+	// Hit/Death state flag
 	bool isShowingDamageAnim_ = false;
 };
