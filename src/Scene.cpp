@@ -563,7 +563,10 @@ void Scene::DrawIntro()
 	if (logo && alpha > 0) {
 		float zoomProgress = cumTime / INTRO_TOTAL_MS;
 		if (zoomProgress > 1.0f) zoomProgress = 1.0f;
-		float zoom = 1.0f + 0.05f * zoomProgress;
+		
+		// Ease-out quadratic for smoother zoom deceleration
+		float easeT = zoomProgress * (2.0f - zoomProgress);
+		float zoom = 1.0f + 0.05f * easeT;
 
 		float tw = 0, th = 0;
 		SDL_GetTextureSize(logo, &tw, &th);
@@ -573,12 +576,12 @@ void Scene::DrawIntro()
 		float logoScale = targetW / tw;
 		if (logoScale > 3.0f) logoScale = 3.0f;
 
-		int drawW = (int)(tw * logoScale * zoom);
-		int drawH = (int)(th * logoScale * zoom);
-		int drawX = (winW - drawW) / 2;
-		int drawY = (winH - drawH) / 2;
+		float drawW = tw * logoScale * zoom;
+		float drawH = th * logoScale * zoom;
+		float drawX = (winW - drawW) / 2.0f;
+		float drawY = (winH - drawH) / 2.0f;
 
-		render.DrawTextureAlpha(logo, drawX, drawY, drawW, drawH, alpha);
+		render.DrawTextureAlphaF(logo, drawX, drawY, drawW, drawH, alpha);
 	}
 }
 
