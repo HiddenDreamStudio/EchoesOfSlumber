@@ -995,8 +995,8 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		}
 		else if (i == 1) { // FRONT 2 (Bottom-center of the right half)
 			f.x = halfW + (winW - halfW) / 2.0f - (f.w / 2.0f);
-			// Push it down significantly so it doesn't overlap horizontally with 0 and 2
-			f.y = winH - (f.h * 0.45f) - padY;
+			// Ensured it stays 100% inside the screen instead of pushing it out
+			f.y = winH - f.h - padY;
 		}
 		else if (i == 2) { // FRONT 3 (Bottom-right of the right half)
 			f.x = winW - f.w - padX;
