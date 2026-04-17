@@ -53,14 +53,21 @@ jobs:
 
       - name: Reopen Closed Issues
         run: |
+          HAS_REOPENED=false
           jq -c '.data.repository.pullRequest.closingIssuesReferences.nodes[]' linked_issues.json | while read -r issue; do
             NUMBER=$(echo "$issue" | jq -r '.number')
             STATE=$(echo "$issue" | jq -r '.state')
             if [ "$STATE" = "CLOSED" ]; then
               echo "Reopening closed issue #$NUMBER"
               gh issue reopen "$NUMBER" --repo "${{ github.repository }}"
+              HAS_REOPENED=true
             fi
           done
+          
+          if [ "$HAS_REOPENED" = true ]; then
+             echo "Waiting 5 seconds to let native GitHub Project workflows settle..."
+             sleep 5
+          fi
 
       - name: Get Project and Layout Data
         id: project_data
