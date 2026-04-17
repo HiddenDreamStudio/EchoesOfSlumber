@@ -20,4 +20,5 @@ private:
 
 	bool canClick = true;
 	bool drawBasic = false;
+	float animT = 0.0f;
 };
