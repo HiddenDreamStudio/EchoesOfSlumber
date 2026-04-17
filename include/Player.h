@@ -38,6 +38,7 @@ private:
 	void GetPhysicsValues();
 	void Move();
 	void Jump();
+	void Dash(float dt);
 	void Attack(float dt);
 	void Teleport();
 	void ApplyPhysics();
@@ -89,4 +90,13 @@ private:
 
 	// Hit/Death state flag
 	bool isShowingDamageAnim_ = false;
+
+	// Dash
+	static constexpr float DASH_SPEED    = 15.0f;
+	static constexpr float DASH_DURATION = 200.0f; // ms
+	static constexpr float DASH_COOLDOWN = 800.0f; // ms after dash ends
+	bool  isDashing_    = false;
+	float dashTimer_    = 0.0f;
+	float dashCooldown_ = 0.0f;
+	float dashDirX_     = 1.0f;
 };
