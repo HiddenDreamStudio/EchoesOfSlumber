@@ -31,29 +31,20 @@ bool Player::Start() {
 		{14, "turnaround"},
 		{28, "run"},
 		{42, "jump"},
-		{56, "hide"}
+		{56, "hide"},
+		{81, "damage"},
+		{84, "death"}
 	};
 	anims.LoadFromTSX("assets/textures/animations/protagonistAnimation.xml", aliases);
 	anims.SetCurrent("idle");
 
 	anims.SetLoop("turnaround", false);
 	anims.SetLoop("jump", false);
+	anims.SetLoop("damage", false);
+	anims.SetLoop("death", false);
 
 	// Load the spritesheet texture
 	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheet.png");
-
-	// Load separate damage and death textures/animations
-	std::unordered_map<int, std::string> damageAliases = { {0, "damage"} };
-	damageAnims_.LoadFromTSX("assets/textures/animations/playerDamageAnimation.xml", damageAliases);
-	damageAnims_.SetCurrent("damage");
-	damageAnims_.SetLoop("damage", false);
-	damageTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Damage.png");
-
-	std::unordered_map<int, std::string> deathAliases = { {0, "death"} };
-	deathAnims_.LoadFromTSX("assets/textures/animations/playerDeathAnimation.xml", deathAliases);
-	deathAnims_.SetCurrent("death");
-	deathAnims_.SetLoop("death", false);
-	deathTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Death.png");
 
 	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
 	for (int i = 0; i < 58; ++i) {
@@ -208,17 +199,19 @@ void Player::Draw(float dt) {
 
 	if (isDead_)
 	{
-		deathAnims_.Update(dt);
-		animFrame = &deathAnims_.GetCurrentFrame();
-		activeTex = deathTexture_;
+		if (anims.GetCurrentName() != "death") anims.SetCurrent("death");
+		anims.Update(dt);
+		animFrame = &anims.GetCurrentFrame();
 	}
 	else if (isShowingDamageAnim_)
 	{
-		damageAnims_.Update(dt);
-		animFrame = &damageAnims_.GetCurrentFrame();
-		activeTex = damageTexture_;
-		if (damageAnims_.HasFinishedOnce("damage"))
+		if (anims.GetCurrentName() != "damage") anims.SetCurrent("damage");
+		anims.Update(dt);
+		animFrame = &anims.GetCurrentFrame();
+		if (anims.HasFinishedOnce("damage")) {
 			isShowingDamageAnim_ = false;
+			anims.SetCurrent("idle");
+		}
 	}
 	else
 	{
@@ -261,13 +254,6 @@ void Player::Draw(float dt) {
 
 	// Flip the sprite horizontally when facing left.
 	SDL_FlipMode flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
-
-	// The source frames for jump and turnaround face the opposite direction, so we invert the flip for them
-	if (!isDead_ && !isShowingDamageAnim_) {
-		if (anims.GetCurrentName() == "jump" || anims.GetCurrentName() == "turnaround") {
-			flip = (flip == SDL_FLIP_NONE) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-		}
-	}
 
 	if (isWakingUp) {
 		wakeUpAnim.Update(dt);
@@ -372,13 +358,14 @@ void Player::TakeDamage(int damage)
 	{
 		health = 0;
 		isDead_ = true;
-		deathAnims_.SetCurrent("death");
+		anims.SetCurrent("death");
 		LOG("Player is dead");
 	}
 	else
 	{
 		isShowingDamageAnim_ = true;
-		damageAnims_.ResetCurrent();
+		anims.SetCurrent("damage");
+		anims.ResetCurrent();
 	}
 }
 
@@ -386,8 +373,6 @@ bool Player::CleanUp()
 {
 	LOG("Cleanup player");
 	Engine::GetInstance().textures->UnLoad(texture);
-	Engine::GetInstance().textures->UnLoad(damageTexture_);
-	Engine::GetInstance().textures->UnLoad(deathTexture_);
 	if (wakeUpTexture) Engine::GetInstance().textures->UnLoad(wakeUpTexture);
 	
 	if (attackHitbox_ != nullptr)

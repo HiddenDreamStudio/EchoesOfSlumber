@@ -20342,6 +20342,6 @@
  </layer>
  <objectgroup id="9" name="Entities">
   <object id="11" name="Player" type="Player" x="6841" y="4702.67" width="96" height="96"/>
-  <object id="12" name="Enemy" type="Enemy" x="7100" y="4702.67" width="32" height="32"/>
+  <object id="12" name="Enemy" type="Enemy" x="4750" y="4661" width="32" height="32"/>
  </objectgroup>
 </map>

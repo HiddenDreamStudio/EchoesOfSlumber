@@ -490,6 +490,25 @@ bool Render::DrawTextureAlpha(SDL_Texture* texture, int x, int y, int w, int h, 
 	return ok;
 }
 
+bool Render::DrawTextureAlphaF(SDL_Texture* texture, float x, float y, float w, float h, Uint8 alpha) const
+{
+	if (!texture) return false;
+	int scale = Engine::GetInstance().window->GetScale();
+
+	SDL_FRect dst;
+	dst.x = x * scale;
+	dst.y = y * scale;
+	dst.w = w * scale;
+	dst.h = h * scale;
+
+	SDL_SetTextureAlphaMod(texture, alpha);
+	SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+	bool ok = SDL_RenderTexture(renderer, texture, nullptr, &dst);
+	SDL_SetTextureAlphaMod(texture, 255);
+
+	return ok;
+}
+
 // ── Text drawing with menu font (screen-space) ───────────────────────────────
 
 bool Render::DrawMenuText(const char* text, int x, int y, int w, int h, SDL_Color color) const
