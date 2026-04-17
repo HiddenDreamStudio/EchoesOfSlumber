@@ -252,8 +252,25 @@ void Player::Draw(float dt) {
 	int drawX = x - (int)(texW * currentDrawScale) / 2;
 	int drawY = y - (int)(texH * currentDrawScale) / 2;
 
-	// Flip the sprite horizontally when facing left.
-	SDL_FlipMode flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+	// Flip logic: The idle sprite faces LEFT in the spritesheet.
+	// Some animations (run, jump, turnaround) face RIGHT in the spritesheet.
+	// We need to invert the flip for those animations.
+	bool spriteNativeRight = false;
+	const std::string& animName = anims.GetCurrentName();
+	if (animName == "jump" || animName == "turnaround") {
+		spriteNativeRight = true;
+	}
+
+	// facingRight == true means we want the character facing left (A key)
+	// facingRight == false means we want the character facing right (D key)
+	SDL_FlipMode flip;
+	if (spriteNativeRight) {
+		// Sprite already faces right → flip when we want left (facingRight == true)
+		flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+	} else {
+		// Sprite already faces left → flip when we want right (facingRight == false)
+		flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+	}
 
 	if (isWakingUp) {
 		wakeUpAnim.Update(dt);
