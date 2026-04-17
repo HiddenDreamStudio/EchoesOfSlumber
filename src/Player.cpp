@@ -46,6 +46,14 @@ bool Player::Start() {
 	// Load the spritesheet texture
 	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheet.png");
 
+	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
+	for (int i = 0; i < 58; ++i) {
+		SDL_Rect r = { i * 258, 0, 258, 258 };
+		wakeUpAnim.AddFrame(r, 150);
+	}
+	wakeUpAnim.SetLoop(false);
+	isWakingUp = true;
+
 	// Desired in-game display size for the player sprite.
 	texW = 128;
 	texH = 128;
@@ -98,6 +106,7 @@ void Player::GetPhysicsValues() {
 }
 
 void Player::Move() {
+	if (isWakingUp) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
 		velocity.x = -speed;
@@ -135,6 +144,7 @@ void Player::Move() {
 }
 
 void Player::Jump() {
+	if (isWakingUp) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN && isJumping == false) {
 		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -jumpForce, true);
@@ -200,6 +210,23 @@ void Player::Draw(float dt) {
 		flip = (flip == SDL_FLIP_NONE) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
 	}
 
+	if (isWakingUp) {
+		wakeUpAnim.Update(dt);
+		if (wakeUpAnim.HasFinishedOnce()) {
+			isWakingUp = false;
+		} else {
+			const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
+			float wakeScale = 128.0f / 258.0f;
+			
+			int wakeOffsetX = 20;
+            int drawX = x - 64 - wakeOffsetX; 
+			int drawY = y - 64;
+            
+			Engine::GetInstance().render->DrawTexture(wakeUpTexture, drawX, drawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
+			return; 
+		}
+	}
+
 	Engine::GetInstance().render->DrawTexture(texture, drawX, drawY, &animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, drawScale);
 }
 
@@ -207,6 +234,7 @@ bool Player::CleanUp()
 {
 	LOG("Cleanup player");
 	Engine::GetInstance().textures->UnLoad(texture);
+	if (wakeUpTexture) Engine::GetInstance().textures->UnLoad(wakeUpTexture);
 	Engine::GetInstance().physics->DeletePhysBody(pbody);
 	return true;
 }
@@ -215,17 +243,14 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 	switch (physB->ctype)
 	{
 	case ColliderType::PLATFORM:
-		LOG("Collision PLATFORM");
 		//reset the jump flag when touching the ground
 		isJumping = false;
 		break;
 	case ColliderType::ITEM:
-		LOG("Collision ITEM");
 		Engine::GetInstance().audio->PlayFx(pickCoinFxId);
 		physB->listener->Destroy();
 		break;
 	case ColliderType::UNKNOWN:
-		LOG("Collision UNKNOWN");
 		break;
 	default:
 		break;
@@ -237,13 +262,10 @@ void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 	switch (physB->ctype)
 	{
 	case ColliderType::PLATFORM:
-		LOG("End Collision PLATFORM");
 		break;
 	case ColliderType::ITEM:
-		LOG("End Collision ITEM");
 		break;
 	case ColliderType::UNKNOWN:
-		LOG("End Collision UNKNOWN");
 		break;
 	default:
 		break;

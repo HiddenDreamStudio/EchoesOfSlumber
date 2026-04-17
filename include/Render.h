@@ -5,6 +5,8 @@
 #include "SDL3/SDL.h"
 #include "SDL3_ttf/SDL_ttf.h"
 
+enum class FadeDirection { FADE_IN, FADE_OUT };
+
 class Render : public Module
 {
 public:
@@ -37,6 +39,18 @@ public:
 	bool DrawLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a = 255, bool useCamera = true) const;
 	bool DrawCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a = 255, bool useCamera = true) const;
 	bool DrawText(const char* text, int x, int y, int w, int h, SDL_Color color) const;
+	bool DrawTextureAlpha(SDL_Texture* texture, int x, int y, int w, int h, Uint8 alpha = 255) const;
+	bool DrawMenuText(const char* text, int x, int y, int w, int h, SDL_Color color) const;
+	bool DrawMenuTextCentered(const char* text, SDL_Rect area, SDL_Color color) const;
+	SDL_Texture* CreateMenuTextTexture(const char* text, SDL_Color color) const;
+	SDL_Texture* RecolorTexture(SDL_Texture* src, Uint8 r, Uint8 g, Uint8 b) const;
+
+	// Fade overlay system
+	void StartFade(FadeDirection dir, float durationMs);
+	void UpdateFade(float dt);
+	void DrawFade();
+	bool IsFadeComplete() const;
+	Uint8 GetFadeAlpha() const;
 
 	// Set background color
 	void SetBackgroundColor(SDL_Color color);
@@ -62,6 +76,7 @@ public:
 private:
 	bool vsync = false;
 	TTF_Font* font;
+	TTF_Font* menuFont = nullptr;
 
 	// Camera System - Issue #21
 	float cameraTargetX_ = 0.0f;
@@ -74,4 +89,11 @@ private:
 	// Helper to get world-space camera viewport dimensions (accounts for window scale)
 	float GetWorldViewportWidth() const;
 	float GetWorldViewportHeight() const;
+
+	// Fade overlay
+	bool fadeActive_ = false;
+	FadeDirection fadeDir_ = FadeDirection::FADE_IN;
+	float fadeDurationMs_ = 500.0f;
+	float fadeElapsedMs_ = 0.0f;
+	Uint8 fadeAlpha_ = 0;
 };
