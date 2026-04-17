@@ -975,47 +975,40 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		float tw = 0, th = 0;
 		SDL_GetTextureSize(f.tex, &tw, &th);
 
-		// Bigger fragments: 18-30% of screen width
-		float scale = RandF(0.18f, 0.30f);
+		// Size fragments to ~25-30% of screen width as requested
+		float scale = RandF(0.25f, 0.30f);
 		f.w = winW * scale;
 		f.h = f.w * (th / tw);
 
 		// Decide front vs back: first 3 front, rest back
 		f.inFront = (i < 3);
 
-		// Position based on layer:
-		//   BACK  fragments → Top-right quadrant, specifically left & right of head
-		//   FRONT fragments → Bottom-right quadrant
-		int maxRetries = 30;
-		for (int r = 0; r < maxRetries; r++) {
-			if (f.inFront) {
-				// Bottom-right: strictly right half of the screen!
-				f.x = RandF(halfW + 20.0f, winW - f.w - 20.0f);
-				f.y = RandF(halfH, winH - f.h * 0.3f);
-			} else {
-				// We have 2 back fragments (indices 3 and 4)
-				if (i == 3) {
-					// Top left of head, BUT still in the right screen half!
-					f.x = RandF(halfW + 10.0f, faceLeft - f.w);
-					if (f.x < halfW) f.x = halfW + 10.0f; // Hard boundary
-					f.y = RandF(0.0f, faceBottom - f.h * 0.3f);
-				} else {
-					// Top right of head
-					f.x = RandF(faceRight + 10.0f, winW - f.w - 20.0f);
-					if (f.x > winW - f.w) f.x = winW - f.w - 10.0f;
-					f.y = RandF(0.0f, faceBottom - f.h * 0.3f);
-				}
-			}
-
-			// Face exclusion for front fragments
-			if (f.inFront) {
-				float cx = f.x + f.w * 0.5f;
-				float cy = f.y + f.h * 0.5f;
-				if (cx > faceLeft && cx < faceRight && cy > faceTop && cy < faceBottom) {
-					continue;
-				}
-			}
-			break;
+		// Distribute uniformly to surround the character in the right half of the screen.
+		// Since they are HUGE, they have strict fixed positions so they frame the character and NEVER overlap.
+		
+		float padX = 10.0f;
+		float padY = 15.0f;
+		
+		if (i == 0) { // FRONT 1 (Bottom-left of the right half)
+			f.x = halfW + padX;
+			f.y = winH - f.h - padY;
+		}
+		else if (i == 1) { // FRONT 2 (Bottom-center of the right half)
+			f.x = halfW + (winW - halfW) / 2.0f - (f.w / 2.0f);
+			// Push it down significantly so it doesn't overlap horizontally with 0 and 2
+			f.y = winH - (f.h * 0.45f) - padY;
+		}
+		else if (i == 2) { // FRONT 3 (Bottom-right of the right half)
+			f.x = winW - f.w - padX;
+			f.y = winH - f.h - padY;
+		}
+		else if (i == 3) { // BACK 1 (Top-left of the right half - Fixed)
+			f.x = halfW + padX;
+			f.y = padY + 10.0f;
+		}
+		else if (i == 4) { // BACK 2 (Top-right of the right half - Fixed)
+			f.x = winW - f.w - padX;
+			f.y = padY + 10.0f;
 		}
 
 		// Animation parameters — unique per fragment
