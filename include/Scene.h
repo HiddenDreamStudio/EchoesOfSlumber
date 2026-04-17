@@ -138,6 +138,9 @@ private:
     static constexpr int BTN_PAUSE_OPT_BACK = 29;
 
     // Main menu textures
+    SDL_Texture* texPauseBackground_ = nullptr;
+    SDL_Texture* texPauseButtonWhite_ = nullptr;
+    SDL_Texture* texPauseButtonBlack_ = nullptr;
     SDL_Texture* texMenuLogo_ = nullptr;
     SDL_Texture* texMenuChild_ = nullptr;
     SDL_Texture* texMenuButton_ = nullptr;

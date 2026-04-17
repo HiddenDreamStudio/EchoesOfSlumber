@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Input.h"
 #include "Render.h"
 #include "Module.h"
@@ -31,28 +30,23 @@ enum class UIElementState
 class UIElement : public std::enable_shared_from_this<UIElement>
 {
 public:
-
 	UIElement() {}
 
 	// Constructor
-	UIElement(UIElementType type, int id) : type(type), id(id), state(UIElementState::NORMAL) {}
+	UIElement(UIElementType type, int id)
+		: type(type), id(id), state(UIElementState::NORMAL) {
+	}
 
 	// Constructor
-	UIElement(UIElementType type, SDL_Rect bounds, const char* text) :
-		type(type),
-		state(UIElementState::NORMAL),
-		bounds(bounds),
-		text(text)
+	UIElement(UIElementType type, SDL_Rect bounds, const char* text)
+		: type(type), state(UIElementState::NORMAL), bounds(bounds), text(text)
 	{
 		color.r = 255; color.g = 255; color.b = 255;
-		texture = NULL;
+		texture = nullptr;
 	}
 
 	// Called each loop iteration
-	virtual bool Update(float dt)
-	{
-		return true;
-	}
+	virtual bool Update(float dt) { return true; }
 
 	// 
 	void SetTexture(SDL_Texture* tex)
@@ -62,43 +56,31 @@ public:
 	}
 
 	// 
-	void SetObserver(Module* module)
-	{
-		observer = module;
-	}
+	void SetHoverTexture(SDL_Texture* tex) { hoverTexture = tex; }
 
 	// 
-	void NotifyObserver()
-	{
-		observer->OnUIMouseClickEvent(this);
-	}
+	void SetObserver(Module* module) { observer = module; }
 
-	virtual bool CleanUp()
-	{
-		return true;
-	}
+	// 
+	void NotifyObserver() { observer->OnUIMouseClickEvent(this); }
 
-	virtual bool Destroy()
-	{
-		return true;
-	}
+	virtual bool CleanUp() { return true; }
+	virtual bool Destroy() { return true; }
 
 public:
-
-	int id;
+	int id = 0;
 	UIElementType type;
-	UIElementState state;
+	UIElementState state = UIElementState::NORMAL;
 
-	std::string text;       // UIElement text (if required)
-	SDL_Rect bounds;        // Position and size
-	SDL_Color color;        // Tint color
+	SDL_Texture* texture = nullptr;  // Texture atlas reference
+	SDL_Texture* hoverTexture = nullptr;
+	SDL_Rect     section = { 0, 0, 0, 0 };  // Texture atlas base section
 
-	SDL_Texture* texture;   // Texture atlas reference
-	SDL_Rect section;       // Texture atlas base section
+	std::string  text;        // UIElement text (if required)
+	SDL_Rect     bounds = { 0, 0, 0, 0 };  // Position and size
+	SDL_Color    color = { 255, 255, 255, 255 };  // Tint color
+	Module* observer = nullptr;  // Observer
 
-	Module* observer;        // Observer 
-
-	bool pendingToDelete = false;
-	
+	bool  pendingToDelete = false;
 	float alphaMod = 1.0f;  // Global alpha multiplier (0.0 to 1.0)
 };

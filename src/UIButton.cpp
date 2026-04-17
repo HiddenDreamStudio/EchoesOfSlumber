@@ -44,36 +44,21 @@ bool UIButton::Update(float dt)
 	int textX = bounds.x + 16;
 
 	if (texture) {
-		// Texture-backed button (stone buttons, etc.)
 		auto& render = *Engine::GetInstance().render;
-		Uint8 alpha = 230;
+
+		bool isHovered = (state == UIElementState::FOCUSED || state == UIElementState::PRESSED);
 
 		float targetT = 0.0f;
 		switch (state) {
-		case UIElementState::FOCUSED:
-			alpha = 255;
-			targetT = 1.0f;
-			break;
-		case UIElementState::PRESSED:
-			alpha = 255;
-			targetT = 0.5f; // Pressed is halfway between normal and focused
-			break;
-		case UIElementState::DISABLED:
-			alpha = 120;
-			targetT = 0.0f;
-			break;
-		default:
-			alpha = 230;
-			targetT = 0.0f;
-			break;
+		case UIElementState::FOCUSED: targetT = 1.0f;  break;
+		case UIElementState::PRESSED: targetT = 0.5f;  break;
+		default:                      targetT = 0.0f;  break;
 		}
 
-		// Smooth transition
 		float lerpAmount = 0.02f * dt;
 		if (lerpAmount > 1.0f) lerpAmount = 1.0f;
 		animT += (targetT - animT) * lerpAmount;
 
-		// Expand button scale based on animT (0.0 = 1.0x scale, 1.0 = 1.06x scale)
 		float scaleW = 1.0f + (0.06f * animT);
 		float scaleH = 1.0f + (0.06f * animT);
 
@@ -83,30 +68,58 @@ bool UIButton::Update(float dt)
 		renderBounds.x = bounds.x - (renderBounds.w - bounds.w) / 2;
 		renderBounds.y = bounds.y - (renderBounds.h - bounds.h) / 2;
 
-		// Interpolate Colors
-		// TEXT COLOR: Normally { 50, 45, 40 } -> FOCUSED { 240, 240, 240 }
-		SDL_Color textColor;
-		textColor.r = (Uint8)(50 + (240 - 50) * animT);
-		textColor.g = (Uint8)(45 + (240 - 45) * animT);
-		textColor.b = (Uint8)(40 + (240 - 40) * animT);
-		textColor.a = (Uint8)(255 * alphaMod);
+		Uint8 alpha = (state == UIElementState::DISABLED)
+			? (Uint8)(120 * alphaMod)
+			: (Uint8)((isHovered ? 255 : 230) * alphaMod);
 
-		// TEXTURE COLOR: Normally { 255, 255, 255 } -> FOCUSED { 50, 45, 40 }
-		Uint8 texR = (Uint8)(255 + (50 - 255) * animT);
-		Uint8 texG = (Uint8)(255 + (45 - 255) * animT);
-		Uint8 texB = (Uint8)(255 + (40 - 255) * animT);
+		// ?? MODO HOVER-TEXTURE (botones blanco/negro del pause menu) ??????????
+		// Si el botón tiene hoverTexture asignada, hace swap de textura completo.
+		// El color del texto cambia según qué textura está activa.
+		if (hoverTexture)
+		{
+			SDL_Texture* activeTex = isHovered ? hoverTexture : texture;
+			render.DrawTextureAlpha(activeTex,
+				renderBounds.x, renderBounds.y,
+				renderBounds.w, renderBounds.h,
+				alpha);
 
-		SDL_SetTextureColorMod(texture, texR, texG, texB);
-		render.DrawTextureAlpha(texture, renderBounds.x, renderBounds.y, renderBounds.w, renderBounds.h, (Uint8)(alpha * alphaMod));
-		SDL_SetTextureColorMod(texture, 255, 255, 255); // Reset
+			// Texto oscuro sobre botón blanco, texto claro sobre botón negro
+			SDL_Color textColor = isHovered
+				? SDL_Color{ 230, 220, 200, (Uint8)(255 * alphaMod) }
+			: SDL_Color{ 30,  25,  20, (Uint8)(255 * alphaMod) };
 
-		// Shift text slightly downwards for visual centering on the stone texture
-		SDL_Rect textBounds = renderBounds;
-		textBounds.y += (int)(5 * scaleH);
-		render.DrawMenuTextCentered(text.c_str(), textBounds, textColor);
+			SDL_Rect textBounds = renderBounds;
+			textBounds.y += (int)(5 * scaleH);
+			render.DrawMenuTextCentered(text.c_str(), textBounds, textColor);
+		}
+		// ?? MODO ORIGINAL (main menu: tinte de color sobre la misma textura) ?
+		else
+		{
+			// Interpolar tinte de textura: blanco (normal) -> oscuro (hover)
+			SDL_Color textColor;
+			textColor.r = (Uint8)(50 + (240 - 50) * animT);
+			textColor.g = (Uint8)(45 + (240 - 45) * animT);
+			textColor.b = (Uint8)(40 + (240 - 40) * animT);
+			textColor.a = (Uint8)(255 * alphaMod);
+
+			Uint8 texR = (Uint8)(255 + (50 - 255) * animT);
+			Uint8 texG = (Uint8)(255 + (45 - 255) * animT);
+			Uint8 texB = (Uint8)(255 + (40 - 255) * animT);
+
+			SDL_SetTextureColorMod(texture, texR, texG, texB);
+			render.DrawTextureAlpha(texture,
+				renderBounds.x, renderBounds.y,
+				renderBounds.w, renderBounds.h,
+				alpha);
+			SDL_SetTextureColorMod(texture, 255, 255, 255); // Reset
+
+			SDL_Rect textBounds = renderBounds;
+			textBounds.y += (int)(5 * scaleH);
+			render.DrawMenuTextCentered(text.c_str(), textBounds, textColor);
+		}
 	}
 	else {
-		// Original rectangle-based rendering
+		// ?? Renderizado por defecto con rectángulos (sin textura) ?????????????
 		SDL_Rect shadow = { bounds.x + 3, bounds.y + 3, bounds.w, bounds.h };
 
 		switch (state)
