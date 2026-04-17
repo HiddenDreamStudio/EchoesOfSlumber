@@ -321,6 +321,7 @@ bool Render::DrawText(const char* text, int x, int y, int w, int h, SDL_Color co
 	}
 
 	SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(texture, color.a);
 
 	// Apply scale to position and size — same convention as DrawRectangle (use_camera=false)
 	float fx = (float)(x * scale);
@@ -335,6 +336,7 @@ bool Render::DrawText(const char* text, int x, int y, int w, int h, SDL_Color co
 		LOG("DrawText: SDL_RenderTexture failed: %s", SDL_GetError());
 	}
 
+	SDL_SetTextureAlphaMod(texture, 255);
 	SDL_DestroyTexture(texture);
 	SDL_DestroySurface(surface);
 
@@ -527,6 +529,7 @@ bool Render::DrawMenuText(const char* text, int x, int y, int w, int h, SDL_Colo
 	}
 
 	SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(tex, color.a);
 
 	float fx = (float)(x * scale);
 	float fy = (float)(y * scale);
@@ -536,6 +539,7 @@ bool Render::DrawMenuText(const char* text, int x, int y, int w, int h, SDL_Colo
 	SDL_FRect dstrect = { fx, fy, fw, fh };
 	SDL_RenderTexture(renderer, tex, nullptr, &dstrect);
 
+	SDL_SetTextureAlphaMod(tex, 255);
 	SDL_DestroyTexture(tex);
 	SDL_DestroySurface(surface);
 
@@ -560,6 +564,7 @@ bool Render::DrawMenuTextCentered(const char* text, SDL_Rect area, SDL_Color col
 	}
 
 	SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(tex, color.a);
 
 	float textW = (float)surface->w;
 	float textH = (float)surface->h;
@@ -576,6 +581,7 @@ bool Render::DrawMenuTextCentered(const char* text, SDL_Rect area, SDL_Color col
 
 	SDL_RenderTexture(renderer, tex, nullptr, &dstrect);
 
+	SDL_SetTextureAlphaMod(tex, 255);
 	SDL_DestroyTexture(tex);
 	SDL_DestroySurface(surface);
 

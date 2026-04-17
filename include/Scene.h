@@ -60,8 +60,18 @@ private:
     void HandleMainMenuUIEvents(UIElement* uiElement);
     void DrawSettingsPanel(int winW, int winH);
     void SetSettingsPanelVisible(bool visible);
+	enum class MenuAnimState {
+		LOGO_FADE_IN,       // Background goes from black to blue, logo in center
+		LOGO_HOLD,          // Hold logo in center briefly
+		SLIDE_LOGO,         // Logo slides to top-left
+		SLIDE_CHILD,        // Child slides in from right
+		FADE_FRAGS_BTNS,    // Fragments fade in, then buttons fade in
+		IDLE                // Fully interactive
+	};
+	MenuAnimState menuAnimState_ = MenuAnimState::LOGO_FADE_IN;
+	float menuAnimTimer_ = 0.0f;
 
-    // Button IDs � main menu
+    // Button IDs  main menu
     static constexpr int BTN_PLAY = 1;
     static constexpr int BTN_SETTINGS = 2;
     static constexpr int BTN_EXIT = 3;
@@ -131,6 +141,10 @@ private:
     SDL_Texture* texMenuLogo_ = nullptr;
     SDL_Texture* texMenuChild_ = nullptr;
     SDL_Texture* texMenuButton_ = nullptr;
+
+    std::shared_ptr<UIElement> btnPlay_;
+    std::shared_ptr<UIElement> btnSettings_;
+    std::shared_ptr<UIElement> btnExit_;
 
     // Fade orchestration
     bool waitingForFade_ = false;

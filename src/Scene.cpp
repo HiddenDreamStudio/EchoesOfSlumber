@@ -218,19 +218,27 @@ void Scene::LoadMainMenu()
 	const int startY = logoY + logoH + 50;
 	const int gap = btnH + 15;
 
+	menuAnimState_ = MenuAnimState::LOGO_FADE_IN;
+	menuAnimTimer_ = 0.0f;
+
 	SDL_Rect playPos     = { btnX, startY,           btnW, btnH };
 	SDL_Rect settingsPos = { btnX, startY + gap,     btnW, btnH };
 	SDL_Rect exitPos     = { btnX, startY + gap * 2, btnW, btnH };
 
-	auto playBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PLAY, "play", playPos, this);
-	auto settingsBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS, "options", settingsPos, this);
-	auto exitBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_EXIT, "exit", exitPos, this);
+	btnPlay_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PLAY, "play", playPos, this);
+	btnSettings_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS, "options", settingsPos, this);
+	btnExit_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_EXIT, "exit", exitPos, this);
+
+    // Initial cinematic state: Hide buttons initially
+	if (btnPlay_) btnPlay_->alphaMod = 0.0f;
+	if (btnSettings_) btnSettings_->alphaMod = 0.0f;
+	if (btnExit_) btnExit_->alphaMod = 0.0f;
 
 	// Set stone button texture
 	if (texMenuButton_) {
-		playBtn->SetTexture(texMenuButton_);
-		settingsBtn->SetTexture(texMenuButton_);
-		exitBtn->SetTexture(texMenuButton_);
+		btnPlay_->SetTexture(texMenuButton_);
+		btnSettings_->SetTexture(texMenuButton_);
+		btnExit_->SetTexture(texMenuButton_);
 	}
 
 	// Settings panel — placed in the TOP half so BACK never overlaps main buttons
@@ -276,11 +284,54 @@ void Scene::UpdateMainMenu(float dt)
 	// Accumulate time for fragment floating animations
 	fragmentTime_ += dt;
 
-	// ESC closes settings
-	if (showSettings_ && Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
+	// Cinematic logic
+	if (menuAnimState_ != MenuAnimState::IDLE) {
+		menuAnimTimer_ += dt;
+		
+		auto finishCinematic = [&]() {
+			menuAnimState_ = MenuAnimState::IDLE;
+			if (btnPlay_) btnPlay_->alphaMod = 1.0f;
+			if (btnSettings_) btnSettings_->alphaMod = 1.0f;
+			if (btnExit_) btnExit_->alphaMod = 1.0f;
+		};
+
+		// Allow skipping entire cinematic
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN || 
+			Engine::GetInstance().input->GetKey(SDL_SCANCODE_RETURN) == KEY_DOWN || 
+			Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN) 
+		{
+			finishCinematic();
+			return;
+		}
+
+		if (menuAnimState_ == MenuAnimState::LOGO_FADE_IN && menuAnimTimer_ > 1500.0f) {
+			menuAnimState_ = MenuAnimState::LOGO_HOLD;
+			menuAnimTimer_ = 0.0f;
+		}
+		else if (menuAnimState_ == MenuAnimState::LOGO_HOLD && menuAnimTimer_ > 1000.0f) {
+			menuAnimState_ = MenuAnimState::SLIDE_LOGO;
+			menuAnimTimer_ = 0.0f;
+		}
+		else if (menuAnimState_ == MenuAnimState::SLIDE_LOGO && menuAnimTimer_ > 1500.0f) {
+			menuAnimState_ = MenuAnimState::SLIDE_CHILD;
+			menuAnimTimer_ = 0.0f;
+		}
+		else if (menuAnimState_ == MenuAnimState::SLIDE_CHILD && menuAnimTimer_ > 1500.0f) {
+			menuAnimState_ = MenuAnimState::FADE_FRAGS_BTNS;
+			menuAnimTimer_ = 0.0f;
+		}
+		else if (menuAnimState_ == MenuAnimState::FADE_FRAGS_BTNS && menuAnimTimer_ > 3500.0f) {
+			finishCinematic();
+		}
+	} 
+	else 
 	{
-		showSettings_ = false;
-		SetSettingsPanelVisible(false);
+		// ESC closes settings only if IDLE
+		if (showSettings_ && Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
+		{
+			showSettings_ = false;
+			SetSettingsPanelVisible(false);
+		}
 	}
 }
 
@@ -290,20 +341,112 @@ void Scene::PostUpdateMainMenu()
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-	// Compute character rect (needed for fragment init + draw ordering)
+	// Compute target character rect
 	int childH = winH - 20;
 	int childW = (int)(childH * (1421.0f / 913.0f));
-	int childX = winW - childW;
+	int childDestX = winW - childW;
 
-	// Lazy-init fragments on first frame (needs winW/winH)
+	// Compute target Logo dimensions
+	const int leftHalf = winW / 2;
+	int logoW = 385;
+	int logoH = (int)(logoW * (569.0f / 1559.0f));
+	int logoDestX = (leftHalf - logoW) / 2;
+	int logoDestY = winH / 4 - logoH / 2;
+
+	// Lazy-init fragments on first frame
 	if (!fragmentsInited_) {
-		InitFragments(winW, winH, childX, childW);
+		InitFragments(winW, winH, childDestX, childW);
 		fragmentsInited_ = true;
+	}
+
+	// Dynamic Cinematic State Variables
+	int renderChildX = childDestX;
+	int renderLogoX = logoDestX;
+	int renderLogoY = logoDestY;
+	int bgR = 21, bgG = 31, bgB = 32;
+
+	if (menuAnimState_ != MenuAnimState::IDLE) {
+		float t = 0.0f;
+		
+		switch (menuAnimState_) {
+		case MenuAnimState::LOGO_FADE_IN:
+			t = menuAnimTimer_ / 1500.0f;
+			if (t > 1.0f) t = 1.0f;
+			bgR = (int)(21 * t);
+			bgG = (int)(31 * t);
+			bgB = (int)(32 * t);
+			renderLogoX = winW / 2 - logoW / 2;
+			renderLogoY = winH / 2 - logoH / 2;
+			renderChildX = winW; // Hidden fully on the right
+			break;
+
+		case MenuAnimState::LOGO_HOLD:
+			renderLogoX = winW / 2 - logoW / 2;
+			renderLogoY = winH / 2 - logoH / 2;
+			renderChildX = winW;
+			break;
+
+		case MenuAnimState::SLIDE_LOGO:
+			t = menuAnimTimer_ / 1500.0f;
+			if (t > 1.0f) t = 1.0f;
+			t = 1.0f - (float)pow(1.0f - t, 3.0f);
+			renderLogoX = (int)((winW / 2 - logoW / 2) + ((logoDestX) - (winW / 2 - logoW / 2)) * t);
+			renderLogoY = (int)((winH / 2 - logoH / 2) + ((logoDestY) - (winH / 2 - logoH / 2)) * t);
+			renderChildX = winW;
+			break;
+
+		case MenuAnimState::SLIDE_CHILD:
+			t = menuAnimTimer_ / 1500.0f;
+			if (t > 1.0f) t = 1.0f;
+			t = 1.0f - (float)pow(1.0f - t, 3.0f);
+			renderChildX = (int)(winW + (childDestX - winW) * t);
+			renderLogoX = logoDestX;
+			renderLogoY = logoDestY;
+			break;
+
+		case MenuAnimState::FADE_FRAGS_BTNS:
+			renderChildX = childDestX;
+			renderLogoX = logoDestX;
+			renderLogoY = logoDestY;
+
+			if (btnPlay_) {
+				float f0 = (menuAnimTimer_ - 0.0f) / 1000.0f;
+				if (f0 < 0.0f) f0 = 0.0f; if (f0 > 1.0f) f0 = 1.0f;
+				btnPlay_->alphaMod = f0;
+			}
+			if (btnSettings_) {
+				float f1 = (menuAnimTimer_ - 800.0f) / 1000.0f;
+				if (f1 < 0.0f) f1 = 0.0f; if (f1 > 1.0f) f1 = 1.0f;
+				btnSettings_->alphaMod = f1;
+			}
+			if (btnExit_) {
+				float f2 = (menuAnimTimer_ - 1600.0f) / 1000.0f;
+				if (f2 < 0.0f) f2 = 0.0f; if (f2 > 1.0f) f2 = 1.0f;
+				btnExit_->alphaMod = f2;
+			}
+			break;
+		}
+
+		// Enforce fragment fading based on time globally
+		if (menuAnimState_ < MenuAnimState::FADE_FRAGS_BTNS) {
+			for (int i = 0; i < NUM_FRAGMENTS; i++) fragments_[i].alpha = 0;
+		} else if (menuAnimState_ == MenuAnimState::FADE_FRAGS_BTNS) {
+			for (int i = 0; i < NUM_FRAGMENTS; i++) {
+				float f = (menuAnimTimer_ - (i * 400.0f)) / 1000.0f;
+				if (f < 0.0f) f = 0.0f; if (f > 1.0f) f = 1.0f;
+				fragments_[i].alpha = (Uint8)(255 * f);
+			}
+		}
+	} else {
+		// IDLE state
+		for (int i = 0; i < NUM_FRAGMENTS; i++) {
+			fragments_[i].alpha = 255;
+		}
 	}
 
 	// ── Background #151F20 ───────────────────────────────────────────────────────
 	SDL_Rect bg = { 0, 0, winW, winH };
-	render.DrawRectangle(bg, 21, 31, 32, 255, true, false);
+	render.DrawRectangle(bg, bgR, bgG, bgB, 255, true, false);
 
 	// ── Fragments BEHIND the character ──────────────────────────────────────
 	DrawFragments(false, winW, winH);
@@ -311,7 +454,7 @@ void Scene::PostUpdateMainMenu()
 	// ── Character (right half, fill from near top to bottom) ─────────────────
 	if (texMenuChild_) {
 		int childY = 20;
-		render.DrawTextureAlpha(texMenuChild_, childX, childY, childW, childH, 255);
+		render.DrawTextureAlpha(texMenuChild_, renderChildX, childY, childW, childH, 255);
 	}
 
 	// ── Fragments IN FRONT of the character ─────────────────────────────────
@@ -319,12 +462,7 @@ void Scene::PostUpdateMainMenu()
 
 	// ── Game logo (centered in left half at 1/4 vertical, #D4DAEA) ─────────
 	if (texMenuLogo_) {
-		const int leftHalf = winW / 2;
-		int logoW = 385;
-		int logoH = (int)(logoW * (569.0f / 1559.0f));
-		int logoX = (leftHalf - logoW) / 2;
-		int logoY = winH / 4 - logoH / 2;
-		render.DrawTextureAlpha(texMenuLogo_, logoX, logoY, logoW, logoH, 255);
+		render.DrawTextureAlpha(texMenuLogo_, renderLogoX, renderLogoY, logoW, logoH, 255);
 	}
 
 	// ── Settings Panel (drawn before UI buttons so buttons render on top) ───
