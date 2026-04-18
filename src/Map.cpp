@@ -10,6 +10,7 @@
 #include "tracy/Tracy.hpp"
 
 #include <math.h>
+#include <algorithm>
 #include <sstream>
 
 Map::Map() : Module(), mapLoaded(false)
@@ -44,6 +45,9 @@ bool Map::Update(float dt)
 
     if (mapLoaded) {
 
+        Render* render = Engine::GetInstance().render.get();
+        int scale = Engine::GetInstance().window->GetScale();
+
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
                 Engine::GetInstance().render->DrawTexture(
@@ -54,16 +58,29 @@ bool Map::Update(float dt)
             }
         }
         for (const auto& deco : mapData.decorationObjects) {
-            if (deco->texture) {
-                int drawX = (int)deco->x;
-                int drawY = (int)(deco->y - deco->height);
-                Engine::GetInstance().render->DrawTexture(deco->texture, drawX, drawY, nullptr, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 1.0f);
+            if (deco->texture && !deco->isFront) {
+                // Posició en coordenades de món (Tiled usa l'origen a baix-esquerra per objectes gid)
+                float worldX = deco->x;
+                float worldY = deco->y - deco->height;
+
+                // Aplicar la càmera i l'escala de finestra (igual que DrawTexture)
+                SDL_FRect dst;
+                dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
+                dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
+                dst.w = deco->width * scale;
+                dst.h = deco->height * scale;
+
+                // En Tiled, l'origen de rotació dels objectes GID és per defecte a baix-esquerra
+                SDL_FPoint center;
+                center.x = 0.0f;
+                center.y = dst.h;
+
+                SDL_RenderTextureRotated(render->renderer, deco->texture, nullptr, &dst,
+                    deco->rotation, &center, SDL_FLIP_NONE);
             }
         }
         // L07 TODO 5: Prepare the loop to draw all tiles in a layer + DrawTexture()
         // Calculate camera bounds in tiles
-        Render* render = Engine::GetInstance().render.get();
-        int scale = Engine::GetInstance().window->GetScale();
         float camX = -render->camera.x;
         float camY = -render->camera.y;
         float camW = (float)render->camera.w / scale;
@@ -105,28 +122,53 @@ bool Map::Update(float dt)
     return ret;
 }
 
-TileSet* Map::GetTilesetFromTileId(int gid) const
+// Called after Update, for foreground elements
+bool Map::PostUpdate()
 {
-    static int cachedGid = -1;
-    static TileSet* cachedSet = nullptr;
+    if (mapLoaded == false)
+        return true;
 
-    if (gid == cachedGid && cachedSet != nullptr) {
-        return cachedSet;
-    }
+    float scale = Engine::GetInstance().window->scale;
 
-    if (cachedSet != nullptr && gid >= cachedSet->firstGid && gid < cachedSet->firstGid + cachedSet->tileCount) {
-        cachedGid = gid;
-        return cachedSet;
-    }
+    // Dibuixar les decoracions frontals per sobre de les entitats
+    for (const auto& deco : mapData.decorationObjects) {
+        if (deco->texture && deco->isFront) {
+            float worldX = deco->x;
+            float worldY = deco->y - deco->height;
 
-    for (const auto& tileset : mapData.tilesets) {
-        if (gid >= tileset->firstGid && gid < tileset->firstGid + tileset->tileCount) {
-            cachedGid = gid;
-            cachedSet = tileset;
-            return tileset;
+            SDL_FRect dst;
+            dst.x = (float)((int)(Engine::GetInstance().render->camera.x) + (int)worldX * scale);
+            dst.y = (float)((int)(Engine::GetInstance().render->camera.y) + (int)worldY * scale);
+            dst.w = deco->width * scale;
+            dst.h = deco->height * scale;
+
+            SDL_FPoint center;
+            center.x = 0.0f;
+            center.y = dst.h;
+
+            SDL_RenderTextureRotated(Engine::GetInstance().render->renderer, deco->texture, nullptr, &dst,
+                deco->rotation, &center, SDL_FLIP_NONE);
         }
     }
-    return nullptr;
+
+    return true;
+}
+
+TileSet* Map::GetTilesetFromTileId(int gid) const
+{
+    TileSet* bestMatch = nullptr;
+
+    // Suposem que mapData.tilesets està ordenat per firstGid (com sol venir al TMX)
+    for (const auto& tileset : mapData.tilesets) {
+        if (gid >= tileset->firstGid) {
+            bestMatch = tileset;
+        } else {
+            // Al primer tileset on firstGid > gid, parem
+            break;
+        }
+    }
+
+    return bestMatch;
 }
 
 // Called before quitting
@@ -575,30 +617,54 @@ void Map::LoadImageLayers()
 
 void Map::LoadDecorationObjects()
 {
+    // Noms de capes que NO són decoració (entitats, col·lisions, navegació...)
+    const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation" };
+
     for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
         groupNode != NULL;
         groupNode = groupNode.next_sibling("objectgroup"))
     {
-        if (groupNode.attribute("name").as_string() != std::string("Decoracion"))
-            continue;
+        std::string groupName = groupNode.attribute("name").as_string();
+
+        // Saltar capes reservades per entitats/col·lisions
+        bool skip = false;
+        for (const auto& excluded : excludedNames) {
+            if (groupName == excluded) { skip = true; break; }
+        }
+        if (skip) continue;
+
+        // Recollir tots els objectes d'aquesta capa en un vector temporal
+        // per poder-los ordenar per Y (topdown draw order del Tiled)
+        std::vector<DecorationObject*> layerDecos;
 
         for (pugi::xml_node objNode = groupNode.child("object");
             objNode != NULL;
             objNode = objNode.next_sibling("object"))
         {
-            int gid = objNode.attribute("gid").as_int(0);
-            if (gid == 0) continue; 
+            unsigned int rawGid = objNode.attribute("gid").as_uint(0);
+            if (rawGid == 0) continue; // No és un objecte-sprite, saltar
 
-          
+            // Tiled utilitza els bits més alts per flags de "flip" (horitzontal, vertical, diagonal)
+            // Hem de netejar aquests bits per trobar l'ID real del tile
+            const unsigned int FLIPPED_HORIZONTALLY_FLAG = 0x80000000;
+            const unsigned int FLIPPED_VERTICALLY_FLAG   = 0x40000000;
+            const unsigned int FLIPPED_DIAGONALLY_FLAG   = 0x20000000;
+
+            bool flipH = (rawGid & FLIPPED_HORIZONTALLY_FLAG);
+            bool flipV = (rawGid & FLIPPED_VERTICALLY_FLAG);
+            
+            // Netejar els bits de direcció per obtenir l'ID real
+            int gid = rawGid & ~(FLIPPED_HORIZONTALLY_FLAG | FLIPPED_VERTICALLY_FLAG | FLIPPED_DIAGONALLY_FLAG);
+
+            // Buscar el tileset corresponent al gid
             TileSet* ts = GetTilesetFromTileId(gid);
             if (ts == nullptr) continue;
 
-            int relativeId = gid - ts->firstGid; 
+            int relativeId = gid - ts->firstGid;
 
-           
+            // Carregar la textura individual del tile si encara no s'ha carregat
             if (ts->tileTextures.find(relativeId) == ts->tileTextures.end())
             {
-             
                 for (pugi::xml_node tsNode = mapFileXML.child("map").child("tileset");
                     tsNode != NULL;
                     tsNode = tsNode.next_sibling("tileset"))
@@ -629,16 +695,34 @@ void Map::LoadDecorationObjects()
             deco->y = objNode.attribute("y").as_float();
             deco->width = objNode.attribute("width").as_float();
             deco->height = objNode.attribute("height").as_float();
-            deco->gid = gid;
+            deco->rotation = objNode.attribute("rotation").as_double(0.0);
+            deco->isFront = (groupName == "Assets front");
+            
+            // Guardar els flips (opcional, SDL_RenderTextureRotated ho suportaria si vols)
+            // de moment com a mínim tenim la rotació arreglada
 
             auto it = ts->tileTextures.find(relativeId);
             deco->texture = (it != ts->tileTextures.end()) ? it->second : nullptr;
 
-            mapData.decorationObjects.push_back(deco);
+            layerDecos.push_back(deco);
         }
 
-        break; 
-    }
+        // Tiled, per a "objectgroups" ortogonals per defecte pot usar top-down o index.
+        // TMX sovint utilitza l'ordre del fitxer si és "index", però per evitar
+        // trepitjar el que l'altre dia passava, de moment ho deixem amb la Y.
+        // Si cal l'ordre exacte de l'índex XML (Tiled draworder="index"), deixarem d'ordenar aquí.
+        // Efectivament, l'usuari s'ha queixat de l'ordre entre 160 i 203 que són EXACTAMENT en l'ordre XML,
+        // però per a TMX de Tiled objectgroups, Tiled DIBUIXA "TOP-DOWN" per defecte.
+        // Si en el joc es veu malament és només per LA BÀRBARA DESPROPORCIÓ dels Pivots.
+        std::sort(layerDecos.begin(), layerDecos.end(),
+            [](const DecorationObject* a, const DecorationObject* b) {
+                return a->y < b->y;
+            });
 
-    // Decoration objects load completion
+        // Afegir a la llista principal mantenint l'ordre entre capes
+        for (auto* deco : layerDecos) {
+            mapData.decorationObjects.push_back(deco);
+        }
+    }
 }
+

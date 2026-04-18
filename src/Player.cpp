@@ -32,7 +32,7 @@ bool Player::Start() {
 		{28, "run"},
 		{42, "jump"},
 		{56, "hide"},
-		{81, "damage"},
+		{70, "damage"},
 		{84, "death"}
 	};
 	anims.LoadFromTSX("assets/textures/animations/protagonistAnimation.xml", aliases);
@@ -111,6 +111,8 @@ void Player::GetPhysicsValues() {
 
 void Player::Move() {
 	if (isWakingUp) return;
+	// No canviar animació si estem mostrant l'animació de dany
+	if (isShowingDamageAnim_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
 		velocity.x = -speed;
@@ -149,6 +151,8 @@ void Player::Move() {
 
 void Player::Jump() {
 	if (isWakingUp) return;
+	// No permetre saltar durant l'animació de dany
+	if (isShowingDamageAnim_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
 		if (!isJumping) {
@@ -375,6 +379,32 @@ void Player::TakeDamage(int damage)
 
 	isInvincible_ = true;
 	iFrameTimer_  = IFRAME_DURATION;
+
+	// Girar el personatge cap a l'enemic que ha causat el dany
+	int playerX, playerY;
+	pbody->GetPosition(playerX, playerY);
+
+	float closestDist = 999999.0f;
+	float enemyDirX = 0.0f;
+	for (const auto& entity : Engine::GetInstance().entityManager->entities) {
+		if (entity->type == EntityType::ENEMY && entity->active) {
+			float dx = entity->position.getX() - (float)playerX;
+			float dy = entity->position.getY() - (float)playerY;
+			float dist = dx * dx + dy * dy;
+			if (dist < closestDist) {
+				closestDist = dist;
+				enemyDirX = dx;
+			}
+		}
+	}
+
+	// Si l'enemic és a l'esquerra, mirar a l'esquerra (facingRight=true)
+	// Si l'enemic és a la dreta, mirar a la dreta (facingRight=false)
+	if (enemyDirX < 0) {
+		facingRight = true;  // Enemic a l'esquerra -> mirar esquerra
+	} else if (enemyDirX > 0) {
+		facingRight = false; // Enemic a la dreta -> mirar dreta
+	}
 
 	if (health <= 0)
 	{
