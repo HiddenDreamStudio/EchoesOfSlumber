@@ -15,6 +15,7 @@
 #include "Enemy.h"
 #include "UIManager.h"
 #include "SaveSystem.h"
+#include "Physics.h"
 #include <cstdlib>
 #include <cmath>
 
@@ -990,6 +991,54 @@ void Scene::DrawMapViewer(int winW, int winH)
 	int endTileX = std::min((int)map.GetMapSizeInTiles().getX(), (int)(camRight / tileW) + 2);
 	int endTileY = std::min((int)map.GetMapSizeInTiles().getY(), (int)(camBottom / tileH) + 2);
 
+	// ── Step 1: Image Layers (Backgrounds like referenciamapa) ───────────────
+	for (const auto& imgLayer : map.mapData.imageLayers)
+	{
+		if (!imgLayer->texture) continue;
+
+		float worldX = imgLayer->offsetX;
+		float worldY = imgLayer->offsetY;
+
+		float tw, th;
+		SDL_GetTextureSize(imgLayer->texture, &tw, &th);
+
+		float screenX = viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
+		float screenY = viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+		float screenW = tw * mapViewZoom_;
+		float screenH = th * mapViewZoom_;
+
+		// Basic bounds check
+		if (screenX + screenW < viewX || screenX > viewX + viewW) continue;
+		if (screenY + screenH < viewY || screenY > viewY + viewH) continue;
+
+		SDL_FRect dst = { screenX * scale, screenY * scale, screenW * scale, screenH * scale };
+		SDL_RenderTexture(render.renderer, imgLayer->texture, nullptr, &dst);
+	}
+
+	// ── Step 2: Decoration Objects (Assets) ──────────────────────────────────
+	// Drawn BEFORE tiles so platforms (Step 3) appear in front
+	for (const auto& deco : map.mapData.decorationObjects)
+	{
+		if (!deco->texture) continue;
+
+		// Note: Tiled objects with GIDs have (x, y) at bottom-left
+		float worldX = deco->x;
+		float worldY = deco->y - deco->height;
+
+		float screenX = viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
+		float screenY = viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+		float screenW = deco->width * mapViewZoom_;
+		float screenH = deco->height * mapViewZoom_;
+
+		// Skip if outside viewport
+		if (screenX + screenW < viewX || screenX > viewX + viewW) continue;
+		if (screenY + screenH < viewY || screenY > viewY + viewH) continue;
+
+		SDL_FRect dst = { screenX * scale, screenY * scale, screenW * scale, screenH * scale };
+		SDL_RenderTexture(render.renderer, deco->texture, nullptr, &dst);
+	}
+
+	// ── Step 3: Tile Layers ──────────────────────────────────────────────────
 	// Draw visible tiles for each drawable layer
 	for (const auto& layer : map.mapData.layers)
 	{
@@ -1039,27 +1088,43 @@ void Scene::DrawMapViewer(int winW, int winH)
 		}
 	}
 
-	// ── Player marker ─────────────────────────────────────────────────────────
-	if (player) {
-		Vector2D playerPos = player->GetPosition();
-		float px = viewX + mapViewOffsetX_ + playerPos.getX() * mapViewZoom_;
-		float py = viewY + mapViewOffsetY_ + playerPos.getY() * mapViewZoom_;
 
-		int markerSize = std::max(4, (int)(10 * mapViewZoom_));
-		SDL_Rect marker = {
-			(int)(px - markerSize / 2),
-			(int)(py - markerSize / 2),
-			markerSize, markerSize
-		};
-		// Outer ring (white)
-		render.DrawRectangle(marker, 255, 255, 255, 200, false, false);
-		// Inner dot (blue)
-		SDL_Rect innerMarker = {
-			(int)(px - markerSize / 4),
-			(int)(py - markerSize / 4),
-			markerSize / 2, markerSize / 2
-		};
-		render.DrawRectangle(innerMarker, 80, 160, 255, 255, true, false);
+
+	// ── Player marker ─────────────────────────────────────────────────────────
+	if (player && player->pbody) {
+		int worldX, worldY;
+		player->pbody->GetPosition(worldX, worldY);
+
+		float screenX = viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
+		float screenY = viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+
+		// Draw the actual player texture
+		if (player->texture) {
+			SDL_Rect src = player->GetCurrentAnimationRect();
+			// Using 64px base size for better visibility
+			float drawW = 64.0f * mapViewZoom_;
+			float drawH = 64.0f * mapViewZoom_;
+
+			SDL_FRect dst = {
+				(screenX - drawW / 2.0f) * scale,
+				(screenY - drawH / 2.0f) * scale,
+				drawW * scale,
+				drawH * scale
+			};
+
+			SDL_FRect srcF = { (float)src.x, (float)src.y, (float)src.w, (float)src.h };
+			SDL_FlipMode flip = player->IsFacingRight() ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+
+			SDL_RenderTextureRotated(render.renderer, player->texture, &srcF, &dst, 0, nullptr, flip);
+		}
+		else {
+			// Fallback to blue dot if texture not loaded
+			int markerSize = std::max(4, (int)(10 * mapViewZoom_));
+			SDL_Rect marker = { (int)(screenX - markerSize / 2), (int)(screenY - markerSize / 2), markerSize, markerSize };
+			render.DrawRectangle(marker, 255, 255, 255, 200, false, false);
+			SDL_Rect innerMarker = { (int)(screenX - markerSize / 4), (int)(screenY - markerSize / 4), markerSize / 2, markerSize / 2 };
+			render.DrawRectangle(innerMarker, 80, 160, 255, 255, true, false);
+		}
 	}
 
 	// Remove clip

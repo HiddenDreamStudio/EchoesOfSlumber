@@ -406,6 +406,17 @@ bool Player::CleanUp()
 	return true;
 }
 
+SDL_Rect Player::GetCurrentAnimationRect() const
+{
+	if (isWakingUp) return wakeUpAnim.GetCurrentFrame();
+	return anims.GetCurrentFrame();
+}
+
+bool Player::IsFacingRight() const
+{
+	return facingRight;
+}
+
 void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 	switch (physB->ctype)
 	{

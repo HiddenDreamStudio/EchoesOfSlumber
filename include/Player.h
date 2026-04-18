@@ -31,6 +31,9 @@ public:
 	Vector2D GetPosition();
 	void SetPosition(Vector2D pos);
 
+	SDL_Rect GetCurrentAnimationRect() const;
+	bool IsFacingRight() const;
+
 	void TakeDamage(int damage) override;
 
 private:
