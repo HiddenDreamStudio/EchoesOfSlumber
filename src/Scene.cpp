@@ -809,7 +809,8 @@ void Scene::LoadGameplay()
 	// Create pause menu buttons (disabled until paused)
 	LoadPauseMenuButtons();
 
-	// Set ambient lighting tint for cave environment
+	// Set ambient lighting tint for cave environment (GPU color modulation)
+	// Derived from the background palette: dark blue-grey cave (#2B3545 → tint ~60%)
 	Engine::GetInstance().render->SetAmbientTint(140, 155, 190);
 }
 

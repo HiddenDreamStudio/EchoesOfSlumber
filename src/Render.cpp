@@ -132,12 +132,6 @@ void Render::ResetViewPort()
 {
 	SDL_SetRenderViewport(renderer, &viewport);
 }
-void Render::SetAmbientTint(Uint8 r, Uint8 g, Uint8 b)
-{
-	ambientR = r;
-	ambientG = g;
-	ambientB = b;
-}
 // Blit to screen
 bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* section, float speed, double angle, int pivotX, int pivotY, SDL_FlipMode flip, float drawScale) const
 {
@@ -726,4 +720,36 @@ bool Render::IsFadeComplete() const
 Uint8 Render::GetFadeAlpha() const
 {
 	return fadeAlpha_;
+}
+
+// ── Ambient Tint System ─────────────────────────────────────────────────────
+// Uses SDL_SetTextureColorMod which maps to a GPU fragment shader multiply.
+// Each pixel's RGB is multiplied by (tint / 255), giving environment-aware
+// color grading that runs entirely on the GPU.
+
+void Render::SetAmbientTint(Uint8 r, Uint8 g, Uint8 b)
+{
+	ambientTint_ = { r, g, b, 255 };
+}
+
+void Render::SetAmbientTint(SDL_Color c)
+{
+	ambientTint_ = c;
+}
+
+SDL_Color Render::GetAmbientTint() const
+{
+	return ambientTint_;
+}
+
+void Render::ApplyAmbientTint(SDL_Texture* tex) const
+{
+	if (!tex) return;
+	SDL_SetTextureColorMod(tex, ambientTint_.r, ambientTint_.g, ambientTint_.b);
+}
+
+void Render::ResetAmbientTint(SDL_Texture* tex) const
+{
+	if (!tex) return;
+	SDL_SetTextureColorMod(tex, 255, 255, 255);
 }

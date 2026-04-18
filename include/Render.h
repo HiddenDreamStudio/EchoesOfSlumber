@@ -46,6 +46,13 @@ public:
 	SDL_Texture* CreateMenuTextTexture(const char* text, SDL_Color color) const;
 	SDL_Texture* RecolorTexture(SDL_Texture* src, Uint8 r, Uint8 g, Uint8 b) const;
 
+	// Ambient tint system — GPU-accelerated color modulation for entity sprites
+	void SetAmbientTint(Uint8 r, Uint8 g, Uint8 b);
+	void SetAmbientTint(SDL_Color c);
+	SDL_Color GetAmbientTint() const;
+	void ApplyAmbientTint(SDL_Texture* tex) const;
+	void ResetAmbientTint(SDL_Texture* tex) const;
+
 	// Fade overlay system
 	void StartFade(FadeDirection dir, float durationMs);
 	void UpdateFade(float dt);
@@ -57,7 +64,6 @@ public:
 	void SetBackgroundColor(SDL_Color color);
 
 	bool IsOnScreenWorldRect(float x, float y, float w, float h, int margin = 0) const;
-	void SetAmbientTint(Uint8 r, Uint8 g, Uint8 b);
 	// Camera System
 	void SetCameraTarget(float x, float y);
 	void FollowTarget(float dt);
@@ -97,5 +103,6 @@ private:
 	float fadeDurationMs_ = 500.0f;
 	float fadeElapsedMs_ = 0.0f;
 	Uint8 fadeAlpha_ = 0;
-	Uint8 ambientR = 255, ambientG = 255, ambientB = 255;
+	// Ambient tint — applied to entity sprites (GPU fragment shader multiply)
+	SDL_Color ambientTint_ = { 255, 255, 255, 255 }; // neutral = no tint
 };

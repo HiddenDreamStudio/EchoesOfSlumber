@@ -40,6 +40,7 @@ public:
 
     // manage animations
     void SetCurrent(const std::string& name);
+    void ResetCurrent(); // Reset current animation to frame 0
     void Update(float dtSeconds);
     const SDL_Rect& GetCurrentFrame() const;
     const std::string& GetCurrentName() const;
@@ -48,7 +49,6 @@ public:
 
     void SetLoop(const std::string& name, bool loop);
     bool HasFinishedOnce(const std::string& name) const;
-    void ResetCurrent();
 
 private:
     int tileW_ = 0, tileH_ = 0, columns_ = 0;
