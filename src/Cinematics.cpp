@@ -45,7 +45,10 @@ bool Cinematics::Update(float dt)
 
 	// Decode frames until we catch up to the current time
 	while (elapsedSec >= videoFramePts) {
-		if (!DecodeNextFrame()) {
+		// If we are more than 40ms behind the videoFramePts we just skip the texture scale/upload entirely
+		// to catch up instantly without GPU-CPU lock stall
+		bool skipRender = (elapsedSec - videoFramePts > 0.040);
+		if (!DecodeNextFrame(skipRender)) {
 			// End of video
 			StopVideo();
 			return true;
@@ -313,7 +316,7 @@ void Cinematics::CloseVideo()
 // Internal: Decode and render
 // ===================================================================
 
-bool Cinematics::DecodeNextFrame()
+bool Cinematics::DecodeNextFrame(bool skipRender)
 {
 	while (av_read_frame(fmtCtx, packet) >= 0)
 	{
@@ -332,13 +335,15 @@ bool Cinematics::DecodeNextFrame()
 				videoFramePts = frame->pts * timeBase;
 			}
 
-			// Convert to RGBA
-			sws_scale(swsCtx,
-				frame->data, frame->linesize, 0, videoHeight,
-				rgbaFrame->data, rgbaFrame->linesize);
+			if (!skipRender) {
+				// Convert to RGBA
+				sws_scale(swsCtx,
+					frame->data, frame->linesize, 0, videoHeight,
+					rgbaFrame->data, rgbaFrame->linesize);
 
-			// Update SDL texture
-			SDL_UpdateTexture(videoTexture, nullptr, rgbaFrame->data[0], rgbaFrame->linesize[0]);
+				// Update SDL texture
+				SDL_UpdateTexture(videoTexture, nullptr, rgbaFrame->data[0], rgbaFrame->linesize[0]);
+			}
 
 			return true;
 		}

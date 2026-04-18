@@ -284,15 +284,20 @@ void Player::Draw(float dt) {
             int drawX = x - 64 - wakeOffsetX; 
 			int drawY = y - 64;
             
-			Engine::GetInstance().render->DrawTexture(wakeUpTexture, drawX, drawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
+			render->ApplyAmbientTint(wakeUpTexture);
+			render->DrawTexture(wakeUpTexture, drawX, drawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
+			render->ResetAmbientTint(wakeUpTexture);
 			return; 
 		}
 	}
 
 	// I-frame flicker: skip every other 100ms slice while invincible (not when dead)
 	bool skipDraw = !isDead_ && isInvincible_ && ((int)(iFrameTimer_ / 100.0f) % 2 == 0);
-	if (!skipDraw)
-		Engine::GetInstance().render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+	if (!skipDraw) {
+		render->ApplyAmbientTint(activeTex);
+		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+		render->ResetAmbientTint(activeTex);
+	}
 }
 
 void Player::Attack(float dt)
