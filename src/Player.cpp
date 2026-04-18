@@ -54,6 +54,11 @@ bool Player::Start() {
 	wakeUpAnim.SetLoop(false);
 	isWakingUp = true;
 
+	// Load climbing animation (256x256 frames, drawn at 0.5 scale to match 128px visuals)
+	climbAnims.LoadSequentialFromTSX("assets/textures/animations/protagonistClimbing.xml", "climb", 80);
+	climbAnims.SetLoop("climb", false);
+	climbTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/Spritesheet_climb.png");
+
 	// Desired in-game display size for the player sprite.
 	texW = 128;
 	texH = 128;
@@ -83,14 +88,16 @@ bool Player::Update(float dt)
 	}
 
 	GetPhysicsValues();
-	if (!isDead_ && !isWakingUp)
+	if (!isDead_ && !isWakingUp && !isClimbing_)
 	{
 		Move();
 		Jump();
+		CheckLedge();
 		Attack(dt);
 		Teleport();
 	}
-	ApplyPhysics();
+	if (isClimbing_) UpdateClimb(dt);
+	if (!isClimbing_) ApplyPhysics();
 	Draw(dt);
 
 	return true;
@@ -213,7 +220,7 @@ void Player::Draw(float dt) {
 			anims.SetCurrent("idle");
 		}
 	}
-	else
+	else if (!isClimbing_)
 	{
 		anims.Update(dt);
 		animFrame = &anims.GetCurrentFrame();
@@ -289,6 +296,18 @@ void Player::Draw(float dt) {
 			render->ResetAmbientTint(wakeUpTexture);
 			return; 
 		}
+	}
+
+	// Climb animation: render from the separate climb spritesheet at half scale
+	if (isClimbing_) {
+		const SDL_Rect& climbFrame = climbAnims.GetCurrentFrame();
+		int climbDrawX = x - (int)(256.0f * CLIMB_DRAW_SCALE) / 2;
+		int climbDrawY = y - (int)(256.0f * CLIMB_DRAW_SCALE) / 2;
+
+		// Climb sprite needs to be mirrored relative to its native facing
+		SDL_FlipMode climbFlip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+		Engine::GetInstance().render->DrawTexture(climbTexture, climbDrawX, climbDrawY, &climbFrame, 1.0f, 0, INT_MAX, INT_MAX, climbFlip, CLIMB_DRAW_SCALE);
+		return;
 	}
 
 	// I-frame flicker: skip every other 100ms slice while invincible (not when dead)
@@ -396,6 +415,7 @@ bool Player::CleanUp()
 	LOG("Cleanup player");
 	Engine::GetInstance().textures->UnLoad(texture);
 	if (wakeUpTexture) Engine::GetInstance().textures->UnLoad(wakeUpTexture);
+	if (climbTexture) Engine::GetInstance().textures->UnLoad(climbTexture);
 	
 	if (attackHitbox_ != nullptr)
 	{
@@ -458,6 +478,78 @@ Vector2D Player::GetPosition() {
 
 void Player::SetPosition(Vector2D pos) {
 	pbody->SetPosition((int)(pos.getX() + texW / 2), (int)(pos.getY() + texH / 2));
+}
+
+void Player::CheckLedge() {
+	// Only check while airborne (jumping/falling)
+	if (!isJumping || isClimbing_) return;
+
+	auto& physics = Engine::GetInstance().physics;
+	int px, py;
+	pbody->GetPosition(px, py);
+
+	// Determine direction: cast rays in the direction the player is moving
+	// facingRight == true -> character faces LEFT (A key), cast left
+	// facingRight == false -> character faces RIGHT (D key), cast right
+	int dir = facingRight ? -1 : 1;
+
+	// Ray 1 (body level): horizontal ray from body center -> should HIT a wall
+	int bodyRayStartX = px;
+	int bodyRayStartY = py - LEDGE_BODY_OFFSET;
+	int bodyRayEndX   = px + dir * LEDGE_RAY_REACH;
+	int bodyRayEndY   = bodyRayStartY;
+
+	// Ray 2 (head level): horizontal ray above -> should NOT hit (open space above the ledge)
+	int headRayStartX = px;
+	int headRayStartY = py - LEDGE_HEAD_OFFSET;
+	int headRayEndX   = px + dir * LEDGE_RAY_REACH;
+	int headRayEndY   = headRayStartY;
+
+	float bodyHitX, bodyHitY, headHitX, headHitY;
+	bool bodyHit = physics->RayCastWorld(bodyRayStartX, bodyRayStartY, bodyRayEndX, bodyRayEndY, bodyHitX, bodyHitY);
+	bool headHit = physics->RayCastWorld(headRayStartX, headRayStartY, headRayEndX, headRayEndY, headHitX, headHitY);
+
+	// Ledge detected: wall at body level, open space at head level
+	if (bodyHit && !headHit) {
+		isClimbing_ = true;
+
+		// Freeze player physics
+		physics->SetLinearVelocity(pbody, 0.0f, 0.0f);
+		b2Body_SetGravityScale(pbody->body, 0.0f);
+
+		// Target position: on top of the ledge
+		// X: slightly past the wall hit point in the movement direction
+		// Y: above the body hit point (the wall surface is approximately at head ray height)
+		climbTargetX_ = bodyHitX + dir * 30.0f;
+		climbTargetY_ = (float)headRayStartY - 20.0f;
+
+		// Start climb animation
+		climbAnims.SetCurrent("climb");
+		climbAnims.ResetCurrent();
+
+		LOG("Ledge detected via raycast! bodyHit=(%.0f,%.0f) -> target=(%.0f,%.0f)", bodyHitX, bodyHitY, climbTargetX_, climbTargetY_);
+	}
+}
+
+void Player::UpdateClimb(float dt) {
+	climbAnims.Update(dt);
+
+	if (climbAnims.HasFinishedOnce("climb")) {
+		// Teleport player to the top of the ledge
+		pbody->SetPosition((int)climbTargetX_, (int)climbTargetY_);
+
+		// Restore normal physics
+		b2Body_SetGravityScale(pbody->body, 1.0f);
+
+		// Reset state
+		isClimbing_ = false;
+		isJumping = false;
+		canDoubleJump = false;
+		hasDoubleJumped = false;
+		anims.SetCurrent("idle");
+
+		LOG("Ledge climb completed, player teleported to (%.0f, %.0f)", climbTargetX_, climbTargetY_);
+	}
 }
 
 bool Player::Destroy()

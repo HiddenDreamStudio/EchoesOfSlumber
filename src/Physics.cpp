@@ -418,6 +418,22 @@ void Physics::ApplyLinearImpulseToCenter(PhysBody* p, float ix, float iy, bool w
     b2Body_ApplyLinearImpulseToCenter(p->body, imp, wake);
 }
 
+bool Physics::RayCastWorld(int x1, int y1, int x2, int y2, float& hitX, float& hitY) const
+{
+    const b2Vec2 origin = { PIXEL_TO_METERS(x1), PIXEL_TO_METERS(y1) };
+    const b2Vec2 target = { PIXEL_TO_METERS(x2), PIXEL_TO_METERS(y2) };
+    const b2Vec2 translation = { target.x - origin.x, target.y - origin.y };
+
+    b2QueryFilter qf = b2DefaultQueryFilter();
+    const b2RayResult res = b2World_CastRayClosest(world, origin, translation, qf);
+
+    if (!res.hit) return false;
+
+    hitX = (float)METERS_TO_PIXELS(origin.x + translation.x * res.fraction);
+    hitY = (float)METERS_TO_PIXELS(origin.y + translation.y * res.fraction);
+    return true;
+}
+
 //
 //--------------- PhysBody --------------------
 //
