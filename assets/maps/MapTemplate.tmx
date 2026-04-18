@@ -255,7 +255,7 @@
    </objectgroup>
   </tile>
  </tileset>
- <tileset firstgid="105" name="DecoracionSprites" tilewidth="712" tileheight="537" tilecount="27" columns="0">
+ <tileset firstgid="105" name="DecoracionSprites" tilewidth="845" tileheight="758" tilecount="47" columns="0">
   <grid orientation="orthogonal" width="1" height="1"/>
   <tile id="0">
    <image source="AssetsDecoracion/Deco1.png" width="64" height="112"/>
@@ -337,6 +337,66 @@
   </tile>
   <tile id="26">
    <image source="AssetsDecoracion/Deco27.png" width="457" height="537"/>
+  </tile>
+  <tile id="47">
+   <image source="AssetsDecoracion/Deco 28.png" width="845" height="668"/>
+  </tile>
+  <tile id="48">
+   <image source="AssetsDecoracion/Deco 29.png" width="455" height="552"/>
+  </tile>
+  <tile id="49">
+   <image source="AssetsDecoracion/Deco 30.png" width="29" height="178"/>
+  </tile>
+  <tile id="50">
+   <image source="AssetsDecoracion/Deco 31.png" width="72" height="170"/>
+  </tile>
+  <tile id="51">
+   <image source="AssetsDecoracion/Deco 32.png" width="542" height="758"/>
+  </tile>
+  <tile id="52">
+   <image source="AssetsDecoracion/Deco 33.png" width="491" height="598"/>
+  </tile>
+  <tile id="53">
+   <image source="AssetsDecoracion/Deco 34.png" width="497" height="475"/>
+  </tile>
+  <tile id="54">
+   <image source="AssetsDecoracion/Deco 35.png" width="251" height="331"/>
+  </tile>
+  <tile id="55">
+   <image source="AssetsDecoracion/Deco 36.png" width="479" height="445"/>
+  </tile>
+  <tile id="56">
+   <image source="AssetsDecoracion/Deco 37.png" width="456" height="217"/>
+  </tile>
+  <tile id="57">
+   <image source="AssetsDecoracion/Deco 38.png" width="519" height="489"/>
+  </tile>
+  <tile id="58">
+   <image source="AssetsDecoracion/Deco 39.png" width="486" height="753"/>
+  </tile>
+  <tile id="59">
+   <image source="AssetsDecoracion/Deco 40.png" width="389" height="528"/>
+  </tile>
+  <tile id="60">
+   <image source="AssetsDecoracion/Deco 41.png" width="510" height="469"/>
+  </tile>
+  <tile id="61">
+   <image source="AssetsDecoracion/Deco 42.png" width="425" height="358"/>
+  </tile>
+  <tile id="62">
+   <image source="AssetsDecoracion/Deco 43.png" width="486" height="402"/>
+  </tile>
+  <tile id="63">
+   <image source="AssetsDecoracion/Deco 44.png" width="483" height="560"/>
+  </tile>
+  <tile id="64">
+   <image source="AssetsDecoracion/Deco 45.png" width="434" height="346"/>
+  </tile>
+  <tile id="65">
+   <image source="AssetsDecoracion/Deco 46.png" width="321" height="568"/>
+  </tile>
+  <tile id="66">
+   <image source="AssetsDecoracion/Deco 47.png" width="281" height="582"/>
   </tile>
  </tileset>
  <imagelayer id="13" name="ReferenciaMapa" offsetx="-2" offsety="-196">
