@@ -142,9 +142,9 @@ void Scene::LoadScene(SceneID s)
 	switch (s)
 	{
 	case SceneID::INTRO:           LoadIntro();           break;
-	case SceneID::MAIN_MENU:       LoadMainMenu();       break;
-	case SceneID::INTRO_CINEMATIC: LoadIntroCinematic(); break;
-	case SceneID::GAMEPLAY:        LoadGameplay();        break;
+	case SceneID::MAIN_MENU:       LoadMainMenu();        break;
+	case SceneID::INTRO_CINEMATIC: LoadIntroCinematic();  break;
+	case SceneID::GAMEPLAY:        LoadGameplay();         break;
 	}
 }
 
@@ -160,9 +160,9 @@ void Scene::UnloadCurrentScene()
 	switch (currentScene)
 	{
 	case SceneID::INTRO:           UnloadIntro();           break;
-	case SceneID::MAIN_MENU:       UnloadMainMenu();       break;
-	case SceneID::INTRO_CINEMATIC: UnloadIntroCinematic(); break;
-	case SceneID::GAMEPLAY:        UnloadGameplay();        break;
+	case SceneID::MAIN_MENU:       UnloadMainMenu();        break;
+	case SceneID::INTRO_CINEMATIC: UnloadIntroCinematic();  break;
+	case SceneID::GAMEPLAY:        UnloadGameplay();         break;
 	}
 }
 
@@ -230,9 +230,9 @@ void Scene::LoadMainMenu()
 	btnExit_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_EXIT, "exit", exitPos, this);
 
 	// Initial cinematic state: Hide buttons initially
-	if (btnPlay_) btnPlay_->alphaMod = 0.0f;
+	if (btnPlay_)     btnPlay_->alphaMod = 0.0f;
 	if (btnSettings_) btnSettings_->alphaMod = 0.0f;
-	if (btnExit_) btnExit_->alphaMod = 0.0f;
+	if (btnExit_)     btnExit_->alphaMod = 0.0f;
 
 	// Set stone button texture
 	if (texMenuButton_) {
@@ -249,17 +249,17 @@ void Scene::LoadMainMenu()
 	const int smallBtnH = 34;
 	const int rowH = 52;
 
-	SDL_Rect musicUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60,              smallBtnW, smallBtnH };
-	SDL_Rect musicDownPos = { panelX + 12,                       panelY + 60,              smallBtnW, smallBtnH };
-	SDL_Rect sfxUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,       smallBtnW, smallBtnH };
-	SDL_Rect sfxDownPos = { panelX + 12,                       panelY + 60 + rowH,       smallBtnW, smallBtnH };
-	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120, btnH };
+	SDL_Rect musicUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60,                  smallBtnW, smallBtnH };
+	SDL_Rect musicDownPos = { panelX + 12,                       panelY + 60,                  smallBtnW, smallBtnH };
+	SDL_Rect sfxUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,           smallBtnW, smallBtnH };
+	SDL_Rect sfxDownPos = { panelX + 12,                       panelY + 60 + rowH,           smallBtnW, smallBtnH };
+	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120,       btnH };
 
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_MUSIC_UP, "+", musicUpPos, this);
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_MUSIC_DOWN, "-", musicDownPos, this);
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_UP, "+", sfxUpPos, this);
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_DOWN, "-", sfxDownPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS_BACK, "BACK", backPos, this);
+	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS_BACK, "back", backPos, this);
 
 	SetSettingsPanelVisible(false);
 }
@@ -267,8 +267,8 @@ void Scene::LoadMainMenu()
 void Scene::UnloadMainMenu()
 {
 	Engine::GetInstance().uiManager->CleanUp();
-	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_); texMenuLogo_ = nullptr; }
-	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_); texMenuChild_ = nullptr; }
+	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_);                       texMenuLogo_ = nullptr; }
+	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_);  texMenuChild_ = nullptr; }
 	if (texMenuButton_) { Engine::GetInstance().textures->UnLoad(texMenuButton_); texMenuButton_ = nullptr; }
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		if (fragments_[i].tex) { Engine::GetInstance().textures->UnLoad(fragments_[i].tex); fragments_[i].tex = nullptr; }
@@ -290,9 +290,9 @@ void Scene::UpdateMainMenu(float dt)
 
 		auto finishCinematic = [&]() {
 			menuAnimState_ = MenuAnimState::IDLE;
-			if (btnPlay_) btnPlay_->alphaMod = 1.0f;
+			if (btnPlay_)     btnPlay_->alphaMod = 1.0f;
 			if (btnSettings_) btnSettings_->alphaMod = 1.0f;
-			if (btnExit_) btnExit_->alphaMod = 1.0f;
+			if (btnExit_)     btnExit_->alphaMod = 1.0f;
 			};
 
 		// Allow skipping entire cinematic
@@ -304,25 +304,11 @@ void Scene::UpdateMainMenu(float dt)
 			return;
 		}
 
-		if (menuAnimState_ == MenuAnimState::LOGO_FADE_IN && menuAnimTimer_ > 1500.0f) {
-			menuAnimState_ = MenuAnimState::LOGO_HOLD;
-			menuAnimTimer_ = 0.0f;
-		}
-		else if (menuAnimState_ == MenuAnimState::LOGO_HOLD && menuAnimTimer_ > 1000.0f) {
-			menuAnimState_ = MenuAnimState::SLIDE_LOGO;
-			menuAnimTimer_ = 0.0f;
-		}
-		else if (menuAnimState_ == MenuAnimState::SLIDE_LOGO && menuAnimTimer_ > 1500.0f) {
-			menuAnimState_ = MenuAnimState::SLIDE_CHILD;
-			menuAnimTimer_ = 0.0f;
-		}
-		else if (menuAnimState_ == MenuAnimState::SLIDE_CHILD && menuAnimTimer_ > 1500.0f) {
-			menuAnimState_ = MenuAnimState::FADE_FRAGS_BTNS;
-			menuAnimTimer_ = 0.0f;
-		}
-		else if (menuAnimState_ == MenuAnimState::FADE_FRAGS_BTNS && menuAnimTimer_ > 3500.0f) {
-			finishCinematic();
-		}
+		if (menuAnimState_ == MenuAnimState::LOGO_FADE_IN && menuAnimTimer_ > 1500.0f) { menuAnimState_ = MenuAnimState::LOGO_HOLD;       menuAnimTimer_ = 0.0f; }
+		else if (menuAnimState_ == MenuAnimState::LOGO_HOLD && menuAnimTimer_ > 1000.0f) { menuAnimState_ = MenuAnimState::SLIDE_LOGO;      menuAnimTimer_ = 0.0f; }
+		else if (menuAnimState_ == MenuAnimState::SLIDE_LOGO && menuAnimTimer_ > 1500.0f) { menuAnimState_ = MenuAnimState::SLIDE_CHILD;     menuAnimTimer_ = 0.0f; }
+		else if (menuAnimState_ == MenuAnimState::SLIDE_CHILD && menuAnimTimer_ > 1500.0f) { menuAnimState_ = MenuAnimState::FADE_FRAGS_BTNS; menuAnimTimer_ = 0.0f; }
+		else if (menuAnimState_ == MenuAnimState::FADE_FRAGS_BTNS && menuAnimTimer_ > 3500.0f) { finishCinematic(); }
 	}
 	else
 	{
@@ -481,7 +467,7 @@ void Scene::DrawSettingsPanel(int winW, int winH)
 	const int panelW = 340;
 	const int panelH = 240;
 	const int panelX = winW / 2 - panelW / 2;
-	const int panelY = 60;          // matches LoadMainMenu button positions
+	const int panelY = 60;
 	const int rowH = 52;
 
 	// Dim overlay
@@ -490,46 +476,47 @@ void Scene::DrawSettingsPanel(int winW, int winH)
 
 	// Panel background
 	SDL_Rect panel = { panelX, panelY, panelW, panelH };
-	render.DrawRectangle(panel, 10, 14, 28, 245, true, false);
+	render.DrawRectangle(panel, 8, 12, 22, 250, true, false);
 	// Panel border
-	render.DrawRectangle(panel, 80, 120, 180, 200, false, false);
+	render.DrawRectangle(panel, 60, 90, 150, 200, false, false);
 	// Top accent
 	SDL_Rect topBar = { panelX, panelY, panelW, 4 };
 	render.DrawRectangle(topBar, 80, 140, 200, 255, true, false);
 
 	// Title
-	render.DrawText("SETTINGS", panelX + panelW / 2 - 44, panelY + 14, 0, 0,
+	render.DrawMenuTextCentered("SETTINGS", { panelX, panelY + 8, panelW, 30 },
 		{ 180, 210, 240, 255 });
 
 	// ── Music volume row ─────────────────────────────────────────────────────
-	render.DrawText("MUSIC", panelX + 60, panelY + 66, 0, 0, { 150, 180, 210, 220 });
-
-	// Volume bar background
-	SDL_Rect barBg = { panelX + 60, panelY + 86, panelW - 120, 8 };
-	render.DrawRectangle(barBg, 30, 40, 60, 200, true, false);
-	// Volume bar fill
-	int musicFill = (int)((panelW - 120) * musicVolume_);
-	SDL_Rect barFill = { panelX + 60, panelY + 86, musicFill, 8 };
-	render.DrawRectangle(barFill, 80, 160, 220, 255, true, false);
-
-	// Value text
+	// Label izquierda
+	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 50, panelW / 2 - 10, 25 },
+		{ 150, 180, 210, 220 });
+	// Porcentaje derecha
 	char volText[8];
 	snprintf(volText, sizeof(volText), "%d%%", (int)(musicVolume_ * 100));
-	render.DrawText(volText, panelX + panelW / 2 - 15, panelY + 60, 0, 0,
+	render.DrawMenuTextCentered(volText, { panelX + panelW / 2, panelY + 50, panelW / 2, 25 },
 		{ 200, 220, 240, 255 });
+	// Barra de volumen
+	SDL_Rect barBg = { panelX + 20, panelY + 78, panelW - 40, 7 };
+	render.DrawRectangle(barBg, 30, 40, 60, 200, true, false);
+	int musicFill = (int)((panelW - 40) * musicVolume_);
+	SDL_Rect barFill = { panelX + 20, panelY + 78, musicFill, 7 };
+	render.DrawRectangle(barFill, 80, 160, 220, 255, true, false);
 
 	// ── SFX volume row ───────────────────────────────────────────────────────
-	render.DrawText("SFX", panelX + 60, panelY + 66 + rowH, 0, 0, { 150, 180, 210, 220 });
-
-	SDL_Rect sfxBarBg = { panelX + 60, panelY + 86 + rowH, panelW - 120, 8 };
-	render.DrawRectangle(sfxBarBg, 30, 40, 60, 200, true, false);
-	int sfxFill = (int)((panelW - 120) * sfxVolume_);
-	SDL_Rect sfxBarFill = { panelX + 60, panelY + 86 + rowH, sfxFill, 8 };
-	render.DrawRectangle(sfxBarFill, 80, 160, 220, 255, true, false);
-
+	// Label izquierda
+	render.DrawMenuTextCentered("SFX", { panelX, panelY + 50 + rowH, panelW / 2 - 10, 25 },
+		{ 150, 180, 210, 220 });
+	// Porcentaje derecha
 	snprintf(volText, sizeof(volText), "%d%%", (int)(sfxVolume_ * 100));
-	render.DrawText(volText, panelX + panelW / 2 - 15, panelY + 60 + rowH, 0, 0,
+	render.DrawMenuTextCentered(volText, { panelX + panelW / 2, panelY + 50 + rowH, panelW / 2, 25 },
 		{ 200, 220, 240, 255 });
+	// Barra de volumen
+	SDL_Rect sfxBarBg = { panelX + 20, panelY + 78 + rowH, panelW - 40, 7 };
+	render.DrawRectangle(sfxBarBg, 30, 40, 60, 200, true, false);
+	int sfxFill = (int)((panelW - 40) * sfxVolume_);
+	SDL_Rect sfxBarFill = { panelX + 20, panelY + 78 + rowH, sfxFill, 7 };
+	render.DrawRectangle(sfxBarFill, 80, 160, 220, 255, true, false);
 }
 
 void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
@@ -637,7 +624,7 @@ void Scene::LoadIntro()
 void Scene::UnloadIntro()
 {
 	if (texCitmLogo_) { Engine::GetInstance().textures->UnLoad(texCitmLogo_); texCitmLogo_ = nullptr; }
-	if (texStudioPlaceholder_) { SDL_DestroyTexture(texStudioPlaceholder_); texStudioPlaceholder_ = nullptr; }
+	if (texStudioPlaceholder_) { SDL_DestroyTexture(texStudioPlaceholder_);            texStudioPlaceholder_ = nullptr; }
 }
 
 void Scene::UpdateIntro(float dt)
@@ -697,8 +684,8 @@ void Scene::DrawIntro()
 	render.DrawRectangle(bg, 0, 0, 0, 255, true, false);
 
 	SDL_Texture* logo = nullptr;
-	Uint8 alpha = 0;
-	float cumTime = 0.0f;
+	Uint8  alpha = 0;
+	float  cumTime = 0.0f;
 
 	bool isCitm = (introPhase_ == IntroPhase::CITM_FADEIN ||
 		introPhase_ == IntroPhase::CITM_HOLD ||
@@ -807,6 +794,7 @@ void Scene::LoadGameplay()
 {
 	isPaused_ = false;
 	showPauseOptions_ = false;
+	showMapViewer_ = false;
 
 	Engine::GetInstance().map->Load("assets/maps/", "MapTemplate.tmx");
 	Engine::GetInstance().map->LoadEntities(player);
@@ -820,6 +808,9 @@ void Scene::LoadGameplay()
 
 	// Create pause menu buttons (disabled until paused)
 	LoadPauseMenuButtons();
+
+	// Set ambient lighting tint for cave environment
+	Engine::GetInstance().render->SetAmbientTint(140, 155, 190);
 }
 
 void Scene::UpdateGameplay(float dt)
@@ -827,7 +818,12 @@ void Scene::UpdateGameplay(float dt)
 	// Toggle pause with ESC
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
 	{
-		if (showPauseOptions_) {
+		if (showMapViewer_) {
+			// ESC closes map viewer and returns to pause
+			showMapViewer_ = false;
+			SetPauseMenuVisible(true);
+		}
+		else if (showPauseOptions_) {
 			showPauseOptions_ = false;
 			SetPauseOptionsPanelVisible(false);
 		}
@@ -835,6 +831,43 @@ void Scene::UpdateGameplay(float dt)
 			isPaused_ = !isPaused_;
 			SetPauseMenuVisible(isPaused_);
 		}
+	}
+
+	// ── Map viewer input (zoom + pan) ────────────────────────────────────────
+	if (showMapViewer_)
+	{
+		auto& input = *Engine::GetInstance().input;
+
+		// Zoom with mouse wheel (SDL events via GetMouseButtonDown won't work for wheel,
+		// so we poll SDL directly for wheel events this frame)
+		// We use a simple approach: check keyboard +/- as zoom
+		if (input.GetKey(SDL_SCANCODE_KP_PLUS) == KEY_DOWN || input.GetKey(SDL_SCANCODE_EQUALS) == KEY_DOWN)
+			mapViewZoom_ = std::min(mapViewZoom_ + 0.05f, 2.0f);
+		if (input.GetKey(SDL_SCANCODE_KP_MINUS) == KEY_DOWN || input.GetKey(SDL_SCANCODE_MINUS) == KEY_DOWN)
+			mapViewZoom_ = std::max(mapViewZoom_ - 0.05f, 0.05f);
+
+		// Pan with left mouse button drag
+		Vector2D mousePos = input.GetMousePosition();
+		if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN) {
+			mapViewDragging_ = true;
+			mapViewDragStartX_ = mousePos.getX();
+			mapViewDragStartY_ = mousePos.getY();
+			mapViewDragOriginX_ = mapViewOffsetX_;
+			mapViewDragOriginY_ = mapViewOffsetY_;
+		}
+		if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_UP)
+			mapViewDragging_ = false;
+
+		if (mapViewDragging_) {
+			mapViewOffsetX_ = mapViewDragOriginX_ + (mousePos.getX() - mapViewDragStartX_);
+			mapViewOffsetY_ = mapViewDragOriginY_ + (mousePos.getY() - mapViewDragStartY_);
+		}
+
+		// Draw map viewer on top of everything
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		DrawMapViewer(winW, winH);
+		return; // skip normal pause rendering
 	}
 
 	// Draw pause overlay BEFORE UIManager::Update so buttons render on top
@@ -849,6 +882,7 @@ void Scene::UnloadGameplay()
 	Engine::GetInstance().entityManager->CleanUp();
 	isPaused_ = false;
 	showPauseOptions_ = false;
+	showMapViewer_ = false;
 
 	// Liberar texturas del pause menu
 	if (texPauseBackground_) { Engine::GetInstance().textures->UnLoad(texPauseBackground_);  texPauseBackground_ = nullptr; }
@@ -865,6 +899,179 @@ void Scene::PostUpdateGameplay()
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F6) == KEY_DOWN)
 			Engine::GetInstance().saveSystem->QuickSave();
 	}
+}
+
+// ── Map viewer ────────────────────────────────────────────────────────────────
+
+void Scene::DrawMapViewer(int winW, int winH)
+{
+	auto& render = *Engine::GetInstance().render;
+	auto& map = *Engine::GetInstance().map;
+	int   scale = Engine::GetInstance().window->GetScale();
+
+	// Full-screen dark overlay
+	SDL_Rect fullBg = { 0, 0, winW, winH };
+	render.DrawRectangle(fullBg, 5, 8, 15, 240, true, false);
+
+	// ── Title bar ────────────────────────────────────────────────────────────
+	SDL_Rect titleBar = { 0, 0, winW, 36 };
+	render.DrawRectangle(titleBar, 10, 16, 30, 255, true, false);
+	SDL_Rect titleAccent = { 0, 34, winW, 2 };
+	render.DrawRectangle(titleAccent, 80, 140, 200, 255, true, false);
+	render.DrawMenuTextCentered("MAP", { 0, 2, winW, 30 }, { 180, 210, 240, 255 });
+
+	// ── Hint bar (bottom) ────────────────────────────────────────────────────
+	SDL_Rect hintBar = { 0, winH - 28, winW, 28 };
+	render.DrawRectangle(hintBar, 10, 16, 30, 220, true, false);
+	render.DrawText("Left click + drag: pan   |   +/-: zoom   |   ESC: back",
+		winW / 2 - 230, winH - 22, 0, 0, { 120, 160, 200, 200 });
+
+	// ── Map viewport area ─────────────────────────────────────────────────────
+	// Available area: from y=38 to y=winH-30
+	const int viewX = 10;
+	const int viewY = 42;
+	const int viewW = winW - 20;
+	const int viewH = winH - 42 - 30;
+
+	// Clip rendering to viewport
+	SDL_Rect clipRect = { viewX * scale, viewY * scale, viewW * scale, viewH * scale };
+	SDL_SetRenderClipRect(render.renderer, &clipRect);
+
+	// Map dimensions
+	Vector2D mapSizePx = map.GetMapSizeInPixels();
+	float mapW = mapSizePx.getX();
+	float mapH = mapSizePx.getY();
+
+	// Tile info
+	int tileW = map.GetTileWidth();
+	int tileH = map.GetTileHeight();
+
+	// Zoom wheel: read SDL mouse wheel event this frame
+	// (Input module doesn't expose wheel, so we poll SDL events directly)
+	{
+		SDL_Event e;
+		// Peek without consuming (use SDL_PeepEvents to not disrupt Input module)
+		SDL_PumpEvents();
+		SDL_Event events[16];
+		int count = SDL_PeepEvents(events, 16, SDL_PEEKEVENT,
+			SDL_EVENT_MOUSE_WHEEL, SDL_EVENT_MOUSE_WHEEL);
+		for (int i = 0; i < count; i++) {
+			float wheelY = events[i].wheel.y;
+			float zoomDelta = wheelY * 0.05f;
+			float newZoom = mapViewZoom_ + zoomDelta;
+			if (newZoom < 0.05f) newZoom = 0.05f;
+			if (newZoom > 2.0f)  newZoom = 2.0f;
+
+			// Zoom toward mouse cursor
+			Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
+			float mx = mousePos.getX() - viewX;
+			float my = mousePos.getY() - viewY;
+			// Adjust offset so the point under cursor stays fixed
+			mapViewOffsetX_ = mx - (mx - mapViewOffsetX_) * (newZoom / mapViewZoom_);
+			mapViewOffsetY_ = my - (my - mapViewOffsetY_) * (newZoom / mapViewZoom_);
+
+			mapViewZoom_ = newZoom;
+		}
+		// Remove consumed wheel events so Input module doesn't double-process
+		SDL_PeepEvents(events, count, SDL_GETEVENT,
+			SDL_EVENT_MOUSE_WHEEL, SDL_EVENT_MOUSE_WHEEL);
+	}
+
+	// Compute tile range visible in viewport
+	float invZoom = 1.0f / mapViewZoom_;
+	float camLeft = -mapViewOffsetX_ * invZoom;
+	float camTop = -mapViewOffsetY_ * invZoom;
+	float camRight = camLeft + viewW * invZoom;
+	float camBottom = camTop + viewH * invZoom;
+
+	int startTileX = std::max(0, (int)(camLeft / tileW) - 1);
+	int startTileY = std::max(0, (int)(camTop / tileH) - 1);
+	int endTileX = std::min((int)map.GetMapSizeInTiles().getX(), (int)(camRight / tileW) + 2);
+	int endTileY = std::min((int)map.GetMapSizeInTiles().getY(), (int)(camBottom / tileH) + 2);
+
+	// Draw visible tiles for each drawable layer
+	for (const auto& layer : map.mapData.layers)
+	{
+		if (!layer->properties.GetProperty("Draw") ||
+			!layer->properties.GetProperty("Draw")->value)
+			continue;
+
+		for (int ty = startTileY; ty < endTileY; ty++)
+		{
+			for (int tx = startTileX; tx < endTileX; tx++)
+			{
+				int gid = layer->Get(tx, ty);
+				if (gid == 0) continue;
+
+				TileSet* ts = map.GetTilesetFromTileId(gid);
+				if (!ts || !ts->texture) continue;
+
+				SDL_Rect src = ts->GetRect(gid);
+
+				// World position of tile
+				float worldX = (float)(tx * tileW);
+				float worldY = (float)(ty * tileH);
+
+				// Screen position inside viewer
+				float screenX = viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
+				float screenY = viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+				float screenW = tileW * mapViewZoom_;
+				float screenH = tileH * mapViewZoom_;
+
+				// Skip if outside viewport
+				if (screenX + screenW < viewX || screenX > viewX + viewW) continue;
+				if (screenY + screenH < viewY || screenY > viewY + viewH) continue;
+
+				SDL_FRect dst;
+				dst.x = screenX * scale;
+				dst.y = screenY * scale;
+				dst.w = screenW * scale;
+				dst.h = screenH * scale;
+
+				SDL_FRect srcF = {
+					(float)src.x, (float)src.y,
+					(float)src.w, (float)src.h
+				};
+
+				SDL_RenderTexture(render.renderer, ts->texture, &srcF, &dst);
+			}
+		}
+	}
+
+	// ── Player marker ─────────────────────────────────────────────────────────
+	if (player) {
+		Vector2D playerPos = player->GetPosition();
+		float px = viewX + mapViewOffsetX_ + playerPos.getX() * mapViewZoom_;
+		float py = viewY + mapViewOffsetY_ + playerPos.getY() * mapViewZoom_;
+
+		int markerSize = std::max(4, (int)(10 * mapViewZoom_));
+		SDL_Rect marker = {
+			(int)(px - markerSize / 2),
+			(int)(py - markerSize / 2),
+			markerSize, markerSize
+		};
+		// Outer ring (white)
+		render.DrawRectangle(marker, 255, 255, 255, 200, false, false);
+		// Inner dot (blue)
+		SDL_Rect innerMarker = {
+			(int)(px - markerSize / 4),
+			(int)(py - markerSize / 4),
+			markerSize / 2, markerSize / 2
+		};
+		render.DrawRectangle(innerMarker, 80, 160, 255, 255, true, false);
+	}
+
+	// Remove clip
+	SDL_SetRenderClipRect(render.renderer, nullptr);
+
+	// ── Viewport border ───────────────────────────────────────────────────────
+	SDL_Rect viewBorder = { viewX, viewY, viewW, viewH };
+	render.DrawRectangle(viewBorder, 60, 90, 150, 180, false, false);
+
+	// ── Zoom indicator ────────────────────────────────────────────────────────
+	char zoomText[16];
+	snprintf(zoomText, sizeof(zoomText), "%.0f%%", mapViewZoom_ * 100.0f);
+	render.DrawText(zoomText, winW - 60, winH - 22, 0, 0, { 120, 160, 200, 200 });
 }
 
 // ── Pause menu helpers ────────────────────────────────────────────────────────
@@ -888,13 +1095,13 @@ void Scene::LoadPauseMenuButtons()
 	const int btnX = (leftHalf - btnW) / 2;
 	const int startY = (winH - totalH) / 2;
 
-	SDL_Rect optPos = { btnX, startY,                             btnW, btnH };
-	SDL_Rect mapPos = { btnX, startY + (btnH + btnGap),           btnW, btnH };
-	SDL_Rect menuPos = { btnX, startY + (btnH + btnGap) * 2,       btnW, btnH };
-	SDL_Rect contPos = { btnX, startY + (btnH + btnGap) * 3,       btnW, btnH };
+	SDL_Rect optPos = { btnX, startY,                       btnW, btnH };
+	SDL_Rect mapPos = { btnX, startY + (btnH + btnGap),     btnW, btnH };
+	SDL_Rect menuPos = { btnX, startY + (btnH + btnGap) * 2, btnW, btnH };
+	SDL_Rect contPos = { btnX, startY + (btnH + btnGap) * 3, btnW, btnH };
 
 	auto btnOpt = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPTIONS, "options", optPos, this);
-	auto btnMap = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_SAVE, "map", mapPos, this);
+	auto btnMap = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_MAP, "map", mapPos, this);
 	auto btnMenu = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_MAINMENU, "menu", menuPos, this);
 	auto btnCont = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_CONTINUE, "resume", contPos, this);
 
@@ -912,7 +1119,7 @@ void Scene::LoadPauseMenuButtons()
 		btnCont->SetHoverTexture(texPauseButtonBlack_);
 	}
 
-	// Sub-panel de opciones (sin cambios respecto al original)
+	// Sub-panel de opciones
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = winH / 2 - 100;
@@ -920,11 +1127,11 @@ void Scene::LoadPauseMenuButtons()
 	const int smallBtnH = 34;
 	const int rowH = 52;
 
-	SDL_Rect mUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60,              smallBtnW, smallBtnH };
-	SDL_Rect mDownPos = { panelX + 12,                       panelY + 60,              smallBtnW, smallBtnH };
-	SDL_Rect sUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,       smallBtnW, smallBtnH };
-	SDL_Rect sDownPos = { panelX + 12,                       panelY + 60 + rowH,       smallBtnW, smallBtnH };
-	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120, btnH };
+	SDL_Rect mUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60,                  smallBtnW, smallBtnH };
+	SDL_Rect mDownPos = { panelX + 12,                       panelY + 60,                  smallBtnW, smallBtnH };
+	SDL_Rect sUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,           smallBtnW, smallBtnH };
+	SDL_Rect sDownPos = { panelX + 12,                       panelY + 60 + rowH,           smallBtnW, smallBtnH };
+	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120,       btnH };
 
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_MUSIC_UP, "+", mUpPos, this);
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_MUSIC_DOWN, "-", mDownPos, this);
@@ -941,7 +1148,9 @@ void Scene::SetPauseMenuVisible(bool visible)
 	auto& list = Engine::GetInstance().uiManager->UIElementsList;
 	for (auto& el : list)
 	{
-		bool isPauseMain = (el->id >= BTN_PAUSE_CONTINUE && el->id <= BTN_PAUSE_QUIT);
+		bool isPauseMain = (el->id == BTN_PAUSE_CONTINUE || el->id == BTN_PAUSE_OPTIONS ||
+			el->id == BTN_PAUSE_MAP || el->id == BTN_PAUSE_MAINMENU ||
+			el->id == BTN_PAUSE_QUIT);
 		if (isPauseMain)
 			el->state = visible ? UIElementState::NORMAL : UIElementState::DISABLED;
 
@@ -957,7 +1166,9 @@ void Scene::SetPauseOptionsPanelVisible(bool visible)
 	auto& list = Engine::GetInstance().uiManager->UIElementsList;
 	for (auto& el : list)
 	{
-		bool isPauseMain = (el->id >= BTN_PAUSE_CONTINUE && el->id <= BTN_PAUSE_QUIT);
+		bool isPauseMain = (el->id == BTN_PAUSE_CONTINUE || el->id == BTN_PAUSE_OPTIONS ||
+			el->id == BTN_PAUSE_MAP || el->id == BTN_PAUSE_MAINMENU ||
+			el->id == BTN_PAUSE_QUIT);
 		bool isOpt = (el->id >= BTN_PAUSE_OPT_MUSIC_UP && el->id <= BTN_PAUSE_OPT_BACK);
 
 		if (isPauseMain)
@@ -1006,36 +1217,43 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	const int panelY = winH / 2 - 100;
 	const int rowH = 52;
 
+	// Panel background
 	SDL_Rect panel = { panelX, panelY, panelW, panelH };
 	render.DrawRectangle(panel, 8, 12, 22, 250, true, false);
+	// Panel border
 	render.DrawRectangle(panel, 60, 90, 150, 200, false, false);
-
+	// Top accent
 	SDL_Rect topBar = { panelX, panelY, panelW, 4 };
 	render.DrawRectangle(topBar, 80, 140, 200, 255, true, false);
 
-	render.DrawText("OPTIONS", panelX + panelW / 2 - 42, panelY + 14, 0, 0,
+	// Title
+	render.DrawMenuTextCentered("OPTIONS", { panelX, panelY + 8, panelW, 30 },
 		{ 180, 210, 240, 255 });
 
-	// Music row
-	render.DrawText("MUSIC", panelX + 60, panelY + 66, 0, 0, { 150, 180, 210, 220 });
-	SDL_Rect mBarBg = { panelX + 60, panelY + 86, panelW - 120, 8 };
-	render.DrawRectangle(mBarBg, 30, 40, 60, 200, true, false);
-	int mFill = (int)((panelW - 120) * musicVolume_);
-	SDL_Rect mBarFill = { panelX + 60, panelY + 86, mFill, 8 };
-	render.DrawRectangle(mBarFill, 80, 160, 220, 255, true, false);
+	// ── Music row ────────────────────────────────────────────────────────────
+	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 50, panelW / 2 - 10, 25 },
+		{ 150, 180, 210, 220 });
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d%%", (int)(musicVolume_ * 100));
-	render.DrawText(vol, panelX + panelW / 2 - 15, panelY + 60, 0, 0, { 200, 220, 240, 255 });
+	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 50, panelW / 2, 25 },
+		{ 200, 220, 240, 255 });
+	SDL_Rect mBarBg = { panelX + 20, panelY + 78, panelW - 40, 7 };
+	render.DrawRectangle(mBarBg, 30, 40, 60, 200, true, false);
+	int mFill = (int)((panelW - 40) * musicVolume_);
+	SDL_Rect mBarFill = { panelX + 20, panelY + 78, mFill, 7 };
+	render.DrawRectangle(mBarFill, 80, 160, 220, 255, true, false);
 
-	// SFX row
-	render.DrawText("SFX", panelX + 60, panelY + 66 + rowH, 0, 0, { 150, 180, 210, 220 });
-	SDL_Rect sBarBg = { panelX + 60, panelY + 86 + rowH, panelW - 120, 8 };
-	render.DrawRectangle(sBarBg, 30, 40, 60, 200, true, false);
-	int sFill = (int)((panelW - 120) * sfxVolume_);
-	SDL_Rect sBarFill = { panelX + 60, panelY + 86 + rowH, sFill, 8 };
-	render.DrawRectangle(sBarFill, 80, 160, 220, 255, true, false);
+	// ── SFX row ──────────────────────────────────────────────────────────────
+	render.DrawMenuTextCentered("SFX", { panelX, panelY + 50 + rowH, panelW / 2 - 10, 25 },
+		{ 150, 180, 210, 220 });
 	snprintf(vol, sizeof(vol), "%d%%", (int)(sfxVolume_ * 100));
-	render.DrawText(vol, panelX + panelW / 2 - 15, panelY + 60 + rowH, 0, 0, { 200, 220, 240, 255 });
+	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 50 + rowH, panelW / 2, 25 },
+		{ 200, 220, 240, 255 });
+	SDL_Rect sBarBg = { panelX + 20, panelY + 78 + rowH, panelW - 40, 7 };
+	render.DrawRectangle(sBarBg, 30, 40, 60, 200, true, false);
+	int sFill = (int)((panelW - 40) * sfxVolume_);
+	SDL_Rect sBarFill = { panelX + 20, panelY + 78 + rowH, sFill, 7 };
+	render.DrawRectangle(sBarFill, 80, 160, 220, 255, true, false);
 }
 
 void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
@@ -1052,6 +1270,29 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 	case BTN_PAUSE_OPTIONS:
 		showPauseOptions_ = true;
 		SetPauseOptionsPanelVisible(true);
+		break;
+
+	case BTN_PAUSE_MAP:
+		// Open map viewer — hide pause buttons while viewer is open
+		showMapViewer_ = true;
+		SetPauseMenuVisible(false);
+		// Center map on player initially
+		{
+			int winW = 0, winH = 0;
+			Engine::GetInstance().window->GetWindowSize(winW, winH);
+			const int viewW = winW - 20;
+			const int viewH = winH - 42 - 30;
+			// Default zoom: fit whole map
+			Vector2D mapSizePx = Engine::GetInstance().map->GetMapSizeInPixels();
+			float zoomX = (float)viewW / mapSizePx.getX();
+			float zoomY = (float)viewH / mapSizePx.getY();
+			mapViewZoom_ = std::min(zoomX, zoomY) * 0.95f;
+			if (mapViewZoom_ < 0.05f) mapViewZoom_ = 0.05f;
+			if (mapViewZoom_ > 2.0f)  mapViewZoom_ = 2.0f;
+			// Center map in viewport
+			mapViewOffsetX_ = (viewW - mapSizePx.getX() * mapViewZoom_) / 2.0f;
+			mapViewOffsetY_ = (viewH - mapSizePx.getY() * mapViewZoom_) / 2.0f;
+		}
 		break;
 
 	case BTN_PAUSE_SAVE:

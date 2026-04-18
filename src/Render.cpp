@@ -132,7 +132,12 @@ void Render::ResetViewPort()
 {
 	SDL_SetRenderViewport(renderer, &viewport);
 }
-
+void Render::SetAmbientTint(Uint8 r, Uint8 g, Uint8 b)
+{
+	ambientR = r;
+	ambientG = g;
+	ambientB = b;
+}
 // Blit to screen
 bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* section, float speed, double angle, int pivotX, int pivotY, SDL_FlipMode flip, float drawScale) const
 {

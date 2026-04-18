@@ -57,7 +57,7 @@ public:
 	void SetBackgroundColor(SDL_Color color);
 
 	bool IsOnScreenWorldRect(float x, float y, float w, float h, int margin = 0) const;
-
+	void SetAmbientTint(Uint8 r, Uint8 g, Uint8 b);
 	// Camera System
 	void SetCameraTarget(float x, float y);
 	void FollowTarget(float dt);
@@ -97,4 +97,5 @@ private:
 	float fadeDurationMs_ = 500.0f;
 	float fadeElapsedMs_ = 0.0f;
 	Uint8 fadeAlpha_ = 0;
+	Uint8 ambientR = 255, ambientG = 255, ambientB = 255;
 };
