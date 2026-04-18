@@ -5,6 +5,7 @@
 #include "UIElement.h"
 
 enum class SceneID {
+    INTRO,
     MAIN_MENU,
     INTRO_CINEMATIC,
     GAMEPLAY
@@ -34,7 +35,7 @@ public:
 
 private:
     // ?? Scene routing ?????????????????????????????????????????????????????????
-    SceneID currentScene = SceneID::MAIN_MENU;
+    SceneID currentScene = SceneID::INTRO;
     bool    hasPendingSceneChange = false;
     SceneID pendingScene = SceneID::MAIN_MENU;
 
@@ -59,8 +60,18 @@ private:
     void HandleMainMenuUIEvents(UIElement* uiElement);
     void DrawSettingsPanel(int winW, int winH);
     void SetSettingsPanelVisible(bool visible);
+	enum class MenuAnimState {
+		LOGO_FADE_IN,       // Background goes from black to blue, logo in center
+		LOGO_HOLD,          // Hold logo in center briefly
+		SLIDE_LOGO,         // Logo slides to top-left
+		SLIDE_CHILD,        // Child slides in from right
+		FADE_FRAGS_BTNS,    // Fragments fade in, then buttons fade in
+		IDLE                // Fully interactive
+	};
+	MenuAnimState menuAnimState_ = MenuAnimState::LOGO_FADE_IN;
+	float menuAnimTimer_ = 0.0f;
 
-    // Button IDs � main menu
+    // Button IDs  main menu
     static constexpr int BTN_PLAY = 1;
     static constexpr int BTN_SETTINGS = 2;
     static constexpr int BTN_EXIT = 3;
@@ -73,6 +84,23 @@ private:
     // ????????????????????????????????????????????????????????????????????????
     //  INTRO CINEMATIC
     // ????????????????????????????????????????????????????????????????????????
+    // INTRO (Splash Logos)
+    enum class IntroPhase {
+        CITM_FADEIN, CITM_HOLD, CITM_FADEOUT,
+        STUDIO_FADEIN, STUDIO_HOLD, STUDIO_FADEOUT,
+        DONE
+    };
+    IntroPhase introPhase_ = IntroPhase::CITM_FADEIN;
+    float introTimer_ = 0.0f;
+    SDL_Texture* texCitmLogo_ = nullptr;
+    SDL_Texture* texStudioPlaceholder_ = nullptr;
+
+    void LoadIntro();
+    void UnloadIntro();
+    void UpdateIntro(float dt);
+    void DrawIntro();
+
+    // INTRO CINEMATIC
     void LoadIntroCinematic();
     void UnloadIntroCinematic();
     void UpdateIntroCinematic(float dt);
@@ -108,4 +136,42 @@ private:
     static constexpr int BTN_PAUSE_OPT_SFX_UP = 27;
     static constexpr int BTN_PAUSE_OPT_SFX_DOWN = 28;
     static constexpr int BTN_PAUSE_OPT_BACK = 29;
+
+    // Main menu textures
+    SDL_Texture* texMenuLogo_ = nullptr;
+    SDL_Texture* texMenuChild_ = nullptr;
+    SDL_Texture* texMenuButton_ = nullptr;
+
+    std::shared_ptr<UIElement> btnPlay_;
+    std::shared_ptr<UIElement> btnSettings_;
+    std::shared_ptr<UIElement> btnExit_;
+
+    // Fade orchestration
+    bool waitingForFade_ = false;
+    SceneID fadeTargetScene_ = SceneID::MAIN_MENU;
+
+    // ── Floating fragments decoration ────────────────────────────────────────
+    static constexpr int NUM_FRAGMENTS = 5;
+
+    struct MenuFragment {
+        SDL_Texture* tex = nullptr;
+        float x, y;               // base position (randomized)
+        float w, h;               // drawn size
+        float floatSpeed;          // oscillation speed (rad/s)
+        float floatAmplitude;      // oscillation range (px)
+        float floatPhase;          // initial phase offset
+        float driftX;              // horizontal micro-drift speed
+        float driftPhase;          // horizontal drift phase
+        float rotation;            // current rotation angle
+        float rotSpeed;            // degrees per second
+        bool  inFront;             // drawn in front of the character?
+        Uint8 alpha;               // alpha (lower for in-front = blur/ghostly)
+    };
+
+    MenuFragment fragments_[NUM_FRAGMENTS];
+    float fragmentTime_ = 0.0f;
+    bool  fragmentsInited_ = false;
+
+    void InitFragments(int winW, int winH, int childX, int childW);
+    void DrawFragments(bool front, int winW, int winH);
 };

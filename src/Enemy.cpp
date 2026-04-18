@@ -27,17 +27,16 @@ bool Enemy::Awake() {
 bool Enemy::Start() {
 
 	// load
-	std::unordered_map<int, std::string> aliases = { {0,"idle"} };
-	anims.LoadFromTSX("Assets/Textures/enemy_Spritesheet.tsx", aliases);
+	std::unordered_map<int, std::string> aliases = { {0, "idle"} };
+	anims.LoadFromTSX("assets/textures/animations/carmelAnimation.xml", aliases);
 	anims.SetCurrent("idle");
 
-	//Initialize Player parameters
-	texture = Engine::GetInstance().textures->Load("Assets/Textures/enemy_spritesheet.png");
+	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS enemics C/spritesheet_Carmel_idle.png");
 
 	//Add physics to the enemy - initialize physics body
-	texW = 32;
-	texH = 32;
-	pbody = Engine::GetInstance().physics->CreateCircle((int)position.getX()+texW/2, (int)position.getY()+texH/2, texW / 2, bodyType::DYNAMIC);
+	texW = 64;
+	texH = 64;
+	pbody = Engine::GetInstance().physics->CreateCapsule((int)position.getX()+texW/2, (int)position.getY()+texH/2, 20, 50, bodyType::DYNAMIC);
 
 	//Assign enemy class (using "this") to the listener of the pbody. This makes the Physics module to call the OnCollision method
 	pbody->listener = this;
@@ -70,6 +69,15 @@ bool Enemy::Update(float dt)
 	GetPhysicsValues();
 	Move();
 	ApplyPhysics();
+
+	// Tick attack cooldown and apply contact damage while touching player
+	if (attackCooldown_ > 0.0f) attackCooldown_ -= dt;
+	if (isContactWithPlayer_ && playerListener_ != nullptr && attackCooldown_ <= 0.0f)
+	{
+		playerListener_->TakeDamage(1);
+		attackCooldown_ = ATTACK_INTERVAL;
+	}
+
 	Draw(dt);
 
 	return true;
@@ -81,6 +89,17 @@ void Enemy::PerformPathfinding() {
 	Vector2D pos = GetPosition();
 	//Convert to tile coordinates
 	Vector2D tilePos = Engine::GetInstance().map.get()->WorldToMap((int)pos.getX(), (int)pos.getY());
+	
+	Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
+	Vector2D playerTilePos = Engine::GetInstance().map->WorldToMap((int)playerPos.getX(), (int)playerPos.getY());
+
+	// Security check to avoid FPS drop: Don't pathfind if player is too far (e.g. > 20 tiles)
+	int dist = std::abs((int)tilePos.getX() - (int)playerTilePos.getX()) + std::abs((int)tilePos.getY() - (int)playerTilePos.getY());
+	if (dist > 25) {
+		pathfinding->pathTiles.clear();
+		return;
+	}
+
 	//Reset pathfinding
 	pathfinding->ResetPath(tilePos);
 
@@ -138,7 +157,7 @@ void Enemy::Draw(float dt) {
 	if (Engine::GetInstance().physics->IsDebug())
 		pathfinding->DrawPath();
 
-	//Draw the player using the texture and the current animation frame
+	//Draw the enemy using the texture and the current animation frame
 	Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2, &animFrame);
 }
 
@@ -169,12 +188,53 @@ Vector2D Enemy::GetPosition() {
 	return Vector2D((float)x-texW/2,(float)y-texH/2);
 }
 
-//Define OnCollision function for the enemy. 
+//Define OnCollision function for the enemy.
 void Enemy::OnCollision(PhysBody* physA, PhysBody* physB) {
-
+	if (physB->ctype == ColliderType::ATTACK)
+	{
+		LOG("Enemy hit by player attack");
+		TakeDamage(1);
+	}
+	else if (physB->ctype == ColliderType::PLAYER)
+	{
+		isContactWithPlayer_ = true;
+		playerListener_ = physB->listener;
+		// Deal damage immediately on first contact if cooldown allows
+		if (attackCooldown_ <= 0.0f)
+		{
+			playerListener_->TakeDamage(1);
+			attackCooldown_ = ATTACK_INTERVAL;
+		}
+	}
 }
 
 void Enemy::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 {
-
+	if (physB->ctype == ColliderType::PLAYER)
+	{
+		isContactWithPlayer_ = false;
+		playerListener_ = nullptr;
+	}
 }
+
+void Enemy::TakeDamage(int damage)
+{
+	health -= damage;
+	LOG("Enemy took %d damage -> health: %d/%d", damage, health, maxHealth);
+
+	// Knockback: push the enemy away from the player
+	Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
+	int bodyX, bodyY;
+	pbody->GetPosition(bodyX, bodyY);
+
+	float dirX = (bodyX > playerPos.getX()) ? 1.0f : -1.0f;
+	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dirX * 5.0f, -3.0f, true);
+
+	if (health <= 0)
+	{
+		health = 0;
+		LOG("Enemy is dead");
+		Destroy();
+	}
+}
+

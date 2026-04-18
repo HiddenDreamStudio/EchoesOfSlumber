@@ -127,6 +127,10 @@ void AnimationSet::SetCurrent(const std::string& name) {
     clips_[currentName_].Reset();
 }
 
+void AnimationSet::ResetCurrent() {
+    if (Has(currentName_)) clips_[currentName_].Reset();
+}
+
 void AnimationSet::Update(float dtSeconds) {
     if (Has(currentName_)) clips_[currentName_].Update(dtSeconds);
 }
