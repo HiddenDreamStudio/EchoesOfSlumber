@@ -89,6 +89,17 @@ void Enemy::PerformPathfinding() {
 	Vector2D pos = GetPosition();
 	//Convert to tile coordinates
 	Vector2D tilePos = Engine::GetInstance().map.get()->WorldToMap((int)pos.getX(), (int)pos.getY());
+	
+	Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
+	Vector2D playerTilePos = Engine::GetInstance().map->WorldToMap((int)playerPos.getX(), (int)playerPos.getY());
+
+	// Security check to avoid FPS drop: Don't pathfind if player is too far (e.g. > 20 tiles)
+	int dist = std::abs((int)tilePos.getX() - (int)playerTilePos.getX()) + std::abs((int)tilePos.getY() - (int)playerTilePos.getY());
+	if (dist > 25) {
+		pathfinding->pathTiles.clear();
+		return;
+	}
+
 	//Reset pathfinding
 	pathfinding->ResetPath(tilePos);
 

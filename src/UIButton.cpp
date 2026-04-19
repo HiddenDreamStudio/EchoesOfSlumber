@@ -89,7 +89,7 @@ bool UIButton::Update(float dt)
 		textColor.r = (Uint8)(50 + (240 - 50) * animT);
 		textColor.g = (Uint8)(45 + (240 - 45) * animT);
 		textColor.b = (Uint8)(40 + (240 - 40) * animT);
-		textColor.a = 255;
+		textColor.a = (Uint8)(255 * alphaMod);
 
 		// TEXTURE COLOR: Normally { 255, 255, 255 } -> FOCUSED { 50, 45, 40 }
 		Uint8 texR = (Uint8)(255 + (50 - 255) * animT);
@@ -97,7 +97,7 @@ bool UIButton::Update(float dt)
 		Uint8 texB = (Uint8)(255 + (40 - 255) * animT);
 
 		SDL_SetTextureColorMod(texture, texR, texG, texB);
-		render.DrawTextureAlpha(texture, renderBounds.x, renderBounds.y, renderBounds.w, renderBounds.h, alpha);
+		render.DrawTextureAlpha(texture, renderBounds.x, renderBounds.y, renderBounds.w, renderBounds.h, (Uint8)(alpha * alphaMod));
 		SDL_SetTextureColorMod(texture, 255, 255, 255); // Reset
 
 		// Shift text slightly downwards for visual centering on the stone texture
@@ -112,40 +112,40 @@ bool UIButton::Update(float dt)
 		switch (state)
 		{
 		case UIElementState::NORMAL:
-			Engine::GetInstance().render->DrawRectangle(shadow, 0, 0, 0, 80, true, false);
-			Engine::GetInstance().render->DrawRectangle(bounds, 15, 15, 25, 220, true, false);
+			Engine::GetInstance().render->DrawRectangle(shadow, 0, 0, 0, (Uint8)(80 * alphaMod), true, false);
+			Engine::GetInstance().render->DrawRectangle(bounds, 15, 15, 25, (Uint8)(220 * alphaMod), true, false);
 			{
 				SDL_Rect accent = { bounds.x, bounds.y, 3, bounds.h };
-				Engine::GetInstance().render->DrawRectangle(accent, 80, 140, 200, 255, true, false);
+				Engine::GetInstance().render->DrawRectangle(accent, 80, 140, 200, (Uint8)(255 * alphaMod), true, false);
 			}
-			Engine::GetInstance().render->DrawRectangle(bounds, 60, 80, 120, 180, false, false);
-			Engine::GetInstance().render->DrawText(text.c_str(), textX, textY, 0, 0, { 180, 200, 220, 255 });
+			Engine::GetInstance().render->DrawRectangle(bounds, 60, 80, 120, (Uint8)(180 * alphaMod), false, false);
+			Engine::GetInstance().render->DrawText(text.c_str(), textX, textY, 0, 0, { 180, 200, 220, (Uint8)(255 * alphaMod) });
 			break;
 
 		case UIElementState::FOCUSED:
-			Engine::GetInstance().render->DrawRectangle(shadow, 0, 0, 0, 60, true, false);
-			Engine::GetInstance().render->DrawRectangle(bounds, 25, 35, 60, 240, true, false);
+			Engine::GetInstance().render->DrawRectangle(shadow, 0, 0, 0, (Uint8)(60 * alphaMod), true, false);
+			Engine::GetInstance().render->DrawRectangle(bounds, 25, 35, 60, (Uint8)(240 * alphaMod), true, false);
 			{
 				SDL_Rect accent = { bounds.x, bounds.y, 4, bounds.h };
-				Engine::GetInstance().render->DrawRectangle(accent, 100, 180, 255, 255, true, false);
+				Engine::GetInstance().render->DrawRectangle(accent, 100, 180, 255, (Uint8)(255 * alphaMod), true, false);
 			}
-			Engine::GetInstance().render->DrawRectangle(bounds, 80, 120, 180, 220, false, false);
-			Engine::GetInstance().render->DrawText(text.c_str(), textX, textY, 0, 0, { 220, 235, 255, 255 });
+			Engine::GetInstance().render->DrawRectangle(bounds, 80, 120, 180, (Uint8)(220 * alphaMod), false, false);
+			Engine::GetInstance().render->DrawText(text.c_str(), textX, textY, 0, 0, { 220, 235, 255, (Uint8)(255 * alphaMod) });
 			break;
 
 		case UIElementState::PRESSED:
-			Engine::GetInstance().render->DrawRectangle(bounds, 10, 60, 120, 255, true, false);
+			Engine::GetInstance().render->DrawRectangle(bounds, 10, 60, 120, (Uint8)(255 * alphaMod), true, false);
 			{
 				SDL_Rect accent = { bounds.x, bounds.y, 4, bounds.h };
-				Engine::GetInstance().render->DrawRectangle(accent, 140, 220, 255, 255, true, false);
+				Engine::GetInstance().render->DrawRectangle(accent, 140, 220, 255, (Uint8)(255 * alphaMod), true, false);
 			}
-			Engine::GetInstance().render->DrawRectangle(bounds, 100, 160, 220, 255, false, false);
-			Engine::GetInstance().render->DrawText(text.c_str(), textX + 2, textY + 1, 0, 0, { 255, 255, 255, 255 });
+			Engine::GetInstance().render->DrawRectangle(bounds, 100, 160, 220, (Uint8)(255 * alphaMod), false, false);
+			Engine::GetInstance().render->DrawText(text.c_str(), textX + 2, textY + 1, 0, 0, { 255, 255, 255, (Uint8)(255 * alphaMod) });
 			break;
 
 		default:
-			Engine::GetInstance().render->DrawRectangle(bounds, 40, 40, 40, 160, true, false);
-			Engine::GetInstance().render->DrawText(text.c_str(), textX, textY, 0, 0, { 100, 100, 100, 200 });
+			Engine::GetInstance().render->DrawRectangle(bounds, 40, 40, 40, (Uint8)(160 * alphaMod), true, false);
+			Engine::GetInstance().render->DrawText(text.c_str(), textX, textY, 0, 0, { 100, 100, 100, (Uint8)(200 * alphaMod) });
 			break;
 		}
 	}

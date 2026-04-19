@@ -99,4 +99,6 @@ public:
 	Module* observer;        // Observer 
 
 	bool pendingToDelete = false;
+	
+	float alphaMod = 1.0f;  // Global alpha multiplier (0.0 to 1.0)
 };

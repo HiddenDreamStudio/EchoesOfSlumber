@@ -40,7 +40,7 @@ private:
 	// Internal helpers
 	bool OpenVideo(const char* path);
 	void CloseVideo();
-	bool DecodeNextFrame();
+	bool DecodeNextFrame(bool skipRender = false);
 	void RenderFrame();
 
 	// FFmpeg state

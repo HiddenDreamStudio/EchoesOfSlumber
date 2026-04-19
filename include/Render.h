@@ -40,10 +40,18 @@ public:
 	bool DrawCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a = 255, bool useCamera = true) const;
 	bool DrawText(const char* text, int x, int y, int w, int h, SDL_Color color) const;
 	bool DrawTextureAlpha(SDL_Texture* texture, int x, int y, int w, int h, Uint8 alpha = 255) const;
+	bool DrawTextureAlphaF(SDL_Texture* texture, float x, float y, float w, float h, Uint8 alpha = 255) const;
 	bool DrawMenuText(const char* text, int x, int y, int w, int h, SDL_Color color) const;
 	bool DrawMenuTextCentered(const char* text, SDL_Rect area, SDL_Color color) const;
 	SDL_Texture* CreateMenuTextTexture(const char* text, SDL_Color color) const;
 	SDL_Texture* RecolorTexture(SDL_Texture* src, Uint8 r, Uint8 g, Uint8 b) const;
+
+	// Ambient tint system — GPU-accelerated color modulation for entity sprites
+	void SetAmbientTint(Uint8 r, Uint8 g, Uint8 b);
+	void SetAmbientTint(SDL_Color c);
+	SDL_Color GetAmbientTint() const;
+	void ApplyAmbientTint(SDL_Texture* tex) const;
+	void ResetAmbientTint(SDL_Texture* tex) const;
 
 	// Fade overlay system
 	void StartFade(FadeDirection dir, float durationMs);
@@ -96,4 +104,7 @@ private:
 	float fadeDurationMs_ = 500.0f;
 	float fadeElapsedMs_ = 0.0f;
 	Uint8 fadeAlpha_ = 0;
+
+	// Ambient tint — applied to entity sprites (GPU fragment shader multiply)
+	SDL_Color ambientTint_ = { 255, 255, 255, 255 }; // neutral = no tint
 };
