@@ -43,6 +43,7 @@ private:
 	void Teleport();
 	void ApplyPhysics();
 	void Draw(float dt);
+	void UpdateClimb(float dt);
 
 public:
 
@@ -50,12 +51,12 @@ public:
 	float speed = 4.0f;
 	SDL_Texture* texture = NULL;
 
-	int texW, texH;
+	int texW = 0, texH = 0;
 
 	//Audio fx
-	int pickCoinFxId;
+	int pickCoinFxId = -1;
 
-	PhysBody* pbody;
+	PhysBody* pbody = nullptr;
 	float jumpForce = 10.0f; // The force to apply when jumping
 	float doubleJumpForce = 11.0f; // The force to apply when double jumping
 	bool isJumping = false; // Flag to check if the player is currently jumping
@@ -63,10 +64,11 @@ public:
 	bool hasDoubleJumped = false; // Flag to track if double jump was already used
 
 private:
-	b2Vec2 velocity;
+	b2Vec2 velocity = { 0.0f, 0.0f };
 	AnimationSet anims;
 	Animation wakeUpAnim;
 	SDL_Texture* wakeUpTexture = nullptr;
+	// Walkthrough/Cinematic state (from main)
 	bool isWakingUp = true;
 	float drawScale = 1.0f;
 	bool facingRight = true;
@@ -93,6 +95,21 @@ private:
 
 	// Hit/Death state flag
 	bool isShowingDamageAnim_ = false;
+	float damageFlashTimer_ = 0.0f;
+
+	// Ledge climb
+	AnimationSet climbAnims;
+	SDL_Texture* climbTexture = nullptr;
+	static constexpr float CLIMB_DRAW_SCALE = 0.5f; // 256->128 visual match
+	bool isClimbing_ = false;
+	float climbTargetX_ = 0.0f;  // World X to teleport after climb
+	float climbTargetY_ = 0.0f;  // World Y to teleport after climb (top of ledge)
+
+	// Ledge detection via raycasts (auto-detect, no Tiled objects needed)
+	void CheckLedge();
+	static constexpr int LEDGE_RAY_REACH   = 30;  // horizontal raycast distance (px)
+	static constexpr int LEDGE_HEAD_OFFSET = 40;   // how far above body center to cast the "head" ray
+	static constexpr int LEDGE_BODY_OFFSET = 10;   // how far above body center to cast the "body" ray
 
 	// Dash
 	static constexpr float DASH_SPEED    = 15.0f;
