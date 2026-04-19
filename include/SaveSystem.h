@@ -21,6 +21,7 @@ struct GameState
 	float playerSpeed = 4.0f;
 	float playerJumpForce = 2.5f;
 	bool playerIsJumping = false;
+	int playerHealth = 3;
 
 	// Timestamp
 	long long saveTimestamp = 0;
@@ -43,6 +44,7 @@ public:
 	bool LoadGame(const std::string& filename);
 	bool QuickSave();
 	bool QuickLoad();
+	bool HasValidSave() const;
 
 	// Check if save file exists
 	bool SaveFileExists(const std::string& filename) const;

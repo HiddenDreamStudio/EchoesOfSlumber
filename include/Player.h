@@ -32,6 +32,7 @@ public:
 	void SetPosition(Vector2D pos);
 
 	void TakeDamage(int damage) override;
+	void Revive();
 
 private:
 
@@ -92,4 +93,8 @@ private:
 
 	// Hit/Death state flag
 	bool isShowingDamageAnim_ = false;
+
+	// Combat - visual feedback
+	static constexpr float DAMAGE_FLASH_DURATION = 150.0f; // ms
+	float damageFlashTimer_ = 0.0f;
 };

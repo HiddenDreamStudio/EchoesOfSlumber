@@ -48,15 +48,15 @@ bool Map::Update(float dt)
             if (imgLayer->texture) {
                 Engine::GetInstance().render->DrawTexture(
                     imgLayer->texture,
-                    (int)imgLayer->offsetX,
-                    (int)imgLayer->offsetY
+                    static_cast<int>(imgLayer->offsetX),
+                    static_cast<int>(imgLayer->offsetY)
                 );
             }
         }
         for (const auto& deco : mapData.decorationObjects) {
             if (deco->texture) {
-                int drawX = (int)deco->x;
-                int drawY = (int)(deco->y - deco->height);
+                int drawX = static_cast<int>(deco->x);
+                int drawY = static_cast<int>(deco->y - deco->height);
                 Engine::GetInstance().render->DrawTexture(deco->texture, drawX, drawY, nullptr, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 1.0f);
             }
         }
@@ -66,13 +66,13 @@ bool Map::Update(float dt)
         int scale = Engine::GetInstance().window->GetScale();
         float camX = -render->camera.x;
         float camY = -render->camera.y;
-        float camW = (float)render->camera.w / scale;
-        float camH = (float)render->camera.h / scale;
+        float camW = static_cast<float>(render->camera.w) / static_cast<float>(scale);
+        float camH = static_cast<float>(render->camera.h) / static_cast<float>(scale);
 
-        int startX = std::max(0, (int)(camX / mapData.tileWidth) - 2);
-        int startY = std::max(0, (int)(camY / mapData.tileHeight) - 2);
-        int endX = std::min(mapData.width, (int)((camX + camW) / mapData.tileWidth) + 2);
-        int endY = std::min(mapData.height, (int)((camY + camH) / mapData.tileHeight) + 2);
+        int startX = std::max(0, static_cast<int>(camX / static_cast<float>(mapData.tileWidth)) - 2);
+        int startY = std::max(0, static_cast<int>(camY / static_cast<float>(mapData.tileHeight)) - 2);
+        int endX = std::min(mapData.width, static_cast<int>((camX + camW) / static_cast<float>(mapData.tileWidth)) + 2);
+        int endY = std::min(mapData.height, static_cast<int>((camY + camH) / static_cast<float>(mapData.tileHeight)) + 2);
 
         // iterate all tiles in a layer that are visible to the camera
         for (const auto& mapLayer : mapData.layers) {
@@ -107,22 +107,8 @@ bool Map::Update(float dt)
 
 TileSet* Map::GetTilesetFromTileId(int gid) const
 {
-    static int cachedGid = -1;
-    static TileSet* cachedSet = nullptr;
-
-    if (gid == cachedGid && cachedSet != nullptr) {
-        return cachedSet;
-    }
-
-    if (cachedSet != nullptr && gid >= cachedSet->firstGid && gid < cachedSet->firstGid + cachedSet->tileCount) {
-        cachedGid = gid;
-        return cachedSet;
-    }
-
     for (const auto& tileset : mapData.tilesets) {
         if (gid >= tileset->firstGid && gid < tileset->firstGid + tileset->tileCount) {
-            cachedGid = gid;
-            cachedSet = tileset;
             return tileset;
         }
     }

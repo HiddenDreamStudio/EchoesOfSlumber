@@ -11,8 +11,14 @@
 #include "Map.h"
 #include "tracy/Tracy.hpp"
 
-Player::Player() : Entity(EntityType::PLAYER)
+Player::Player() : Entity(EntityType::PLAYER),
+	texW(128), texH(128),
+	pickCoinFxId(-1),
+	pbody(nullptr),
+	damageFlashTimer_(0.0f)
 {
+	velocity.x = 0.0f;
+	velocity.y = 0.0f;
 	name = "Player";
 }
 
@@ -91,6 +97,9 @@ bool Player::Update(float dt)
 		Teleport();
 	}
 	ApplyPhysics();
+
+	if (damageFlashTimer_ > 0.0f) damageFlashTimer_ -= dt;
+
 	Draw(dt);
 
 	return true;
@@ -106,7 +115,7 @@ void Player::Teleport() {
 void Player::GetPhysicsValues() {
 	// Read current velocity
 	velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
-	velocity = { 0, velocity.y }; // Reset horizontal velocity by default, this way the player stops when no key is pressed
+	velocity.x = 0.0f; // Reset horizontal velocity by default
 }
 
 void Player::Move() {
@@ -175,7 +184,7 @@ void Player::Jump() {
 	// Parametric jump: cut vertical velocity when space is released early
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_UP && isJumping) {
 		float vy = Engine::GetInstance().physics->GetYVelocity(pbody);
-		if (vy < 0) {
+		if (vy < 0.0f) {
 			Engine::GetInstance().physics->SetYVelocity(pbody, vy * 0.5f);
 		}
 	}
@@ -220,10 +229,10 @@ void Player::Draw(float dt) {
 	}
 
 	// Update render position using your PhysBody helper
-	int x, y;
-	pbody->GetPosition(x, y);
-	position.setX((float)x);
-	position.setY((float)y);
+	int xInt, yInt;
+	pbody->GetPosition(xInt, yInt);
+	position.setX(static_cast<float>(xInt));
+	position.setY(static_cast<float>(yInt));
 
 	// Camera System - Issue #21: Smooth camera follow with dead zones
 	// NOTE: Camera update in Player::Draw causes 1-frame jitter with Map tiles.
@@ -249,8 +258,8 @@ void Player::Draw(float dt) {
 	}
 
 	// Center the sprite on the physics body position based on the current scale.
-	int drawX = x - (int)(texW * currentDrawScale) / 2;
-	int drawY = y - (int)(texH * currentDrawScale) / 2;
+	int drawX = static_cast<int>(position.getX() - (static_cast<float>(texW) * currentDrawScale) / 2.0f);
+	int drawY = static_cast<int>(position.getY() - (static_cast<float>(texH) * currentDrawScale) / 2.0f);
 
 	// Flip logic: The idle sprite faces LEFT in the spritesheet.
 	// Some animations (run, jump, turnaround) face RIGHT in the spritesheet.
@@ -281,8 +290,8 @@ void Player::Draw(float dt) {
 			float wakeScale = 128.0f / 258.0f;
 			
 			int wakeOffsetX = 20;
-            int drawX = x - 64 - wakeOffsetX; 
-			int drawY = y - 64;
+            int drawX = xInt - 64 - wakeOffsetX; 
+			int drawY = yInt - 64;
             
 			render->ApplyAmbientTint(wakeUpTexture);
 			render->DrawTexture(wakeUpTexture, drawX, drawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
@@ -292,11 +301,22 @@ void Player::Draw(float dt) {
 	}
 
 	// I-frame flicker: skip every other 100ms slice while invincible (not when dead)
-	bool skipDraw = !isDead_ && isInvincible_ && ((int)(iFrameTimer_ / 100.0f) % 2 == 0);
+	bool skipDraw = !isDead_ && isInvincible_ && (static_cast<int>(iFrameTimer_ / 100.0f) % 2 == 0);
 	if (!skipDraw) {
 		render->ApplyAmbientTint(activeTex);
+		
+		// Damage flash: tint red
+		if (damageFlashTimer_ > 0.0f) {
+			SDL_SetTextureColorMod(activeTex, 255, 100, 100);
+		}
+
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
-		render->ResetAmbientTint(activeTex);
+		
+		if (damageFlashTimer_ > 0.0f) {
+			render->ApplyAmbientTint(activeTex); // Restore ambient tint
+		} else {
+			render->ResetAmbientTint(activeTex);
+		}
 	}
 }
 
@@ -320,8 +340,8 @@ void Player::Attack(float dt)
 
 		// Place hitbox in front of the player based on facing direction
 		// facingRight = true → sprite faces left; facingRight = false → sprite faces right
-		int hitboxX = facingRight ? bodyX - HITBOX_OFFSET : bodyX + HITBOX_OFFSET;
-		attackHitbox_ = physics->CreateRectangleSensor(hitboxX, bodyY, HITBOX_W, HITBOX_H, bodyType::STATIC);
+		int hitboxX = facingRight ? bodyX - (int)HITBOX_OFFSET : bodyX + (int)HITBOX_OFFSET;
+		attackHitbox_ = physics->CreateRectangleSensor(hitboxX, bodyY, (int)HITBOX_W, (int)HITBOX_H, bodyType::STATIC);
 		attackHitbox_->listener = this;
 		attackHitbox_->ctype    = ColliderType::ATTACK;
 
@@ -338,7 +358,7 @@ void Player::Attack(float dt)
 		{
 			int bodyX, bodyY;
 			pbody->GetPosition(bodyX, bodyY);
-			int hitboxX = facingRight ? bodyX - HITBOX_OFFSET : bodyX + HITBOX_OFFSET;
+			int hitboxX = facingRight ? bodyX - (int)HITBOX_OFFSET : bodyX + (int)HITBOX_OFFSET;
 			attackHitbox_->SetPosition(hitboxX, bodyY);
 		}
 
@@ -375,6 +395,12 @@ void Player::TakeDamage(int damage)
 
 	isInvincible_ = true;
 	iFrameTimer_  = IFRAME_DURATION;
+	damageFlashTimer_ = DAMAGE_FLASH_DURATION;
+
+	// Knockback: apply impulse in opposite direction
+	float knockbackForce = 5.0f;
+	float dir = facingRight ? 1.0f : -1.0f; // facingRight=true means facing left
+	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
 
 	if (health <= 0)
 	{
@@ -389,6 +415,15 @@ void Player::TakeDamage(int damage)
 		anims.SetCurrent("damage");
 		anims.ResetCurrent();
 	}
+}
+
+void Player::Revive()
+{
+	isDead_ = false;
+	isInvincible_ = false;
+	isShowingDamageAnim_ = false;
+	anims.SetCurrent("idle");
+	damageFlashTimer_ = 0.0f;
 }
 
 bool Player::CleanUp()
@@ -453,11 +488,11 @@ Vector2D Player::GetPosition() {
 	int x, y;
 	pbody->GetPosition(x, y);
 	// Adjust for center
-	return Vector2D((float)x - texW / 2, (float)y - texH / 2);
+	return Vector2D(static_cast<float>(x) - texW / 2.0f, static_cast<float>(y) - texH / 2.0f);
 }
 
 void Player::SetPosition(Vector2D pos) {
-	pbody->SetPosition((int)(pos.getX() + texW / 2), (int)(pos.getY() + texH / 2));
+	pbody->SetPosition(static_cast<int>(pos.getX() + texW / 2.0f), static_cast<int>(pos.getY() + texH / 2.0f));
 }
 
 bool Player::Destroy()

@@ -17,26 +17,29 @@ UIButton::~UIButton() {}
 
 bool UIButton::Update(float dt)
 {
-	if (state == UIElementState::DISABLED) return false;
+	if (!isVisible) return false;
 
-	Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
-
-	bool hovered = (mousePos.getX() > bounds.x &&
-		mousePos.getX() < bounds.x + bounds.w &&
-		mousePos.getY() > bounds.y &&
-		mousePos.getY() < bounds.y + bounds.h);
-
-	if (hovered)
+	if (state != UIElementState::DISABLED)
 	{
-		state = UIElementState::FOCUSED;
-		if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT)
-			state = UIElementState::PRESSED;
-		if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_UP)
-			NotifyObserver();
-	}
-	else
-	{
-		state = UIElementState::NORMAL;
+		Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
+
+		bool hovered = (mousePos.getX() > (float)bounds.x &&
+			mousePos.getX() < (float)bounds.x + (float)bounds.w &&
+			mousePos.getY() > (float)bounds.y &&
+			mousePos.getY() < (float)bounds.y + (float)bounds.h);
+
+		if (hovered)
+		{
+			state = UIElementState::FOCUSED;
+			if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT)
+				state = UIElementState::PRESSED;
+			if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_UP)
+				NotifyObserver();
+		}
+		else
+		{
+			state = UIElementState::NORMAL;
+		}
 	}
 
 	// Vertical centre: font is 25px tall
@@ -102,7 +105,7 @@ bool UIButton::Update(float dt)
 
 		// Shift text slightly downwards for visual centering on the stone texture
 		SDL_Rect textBounds = renderBounds;
-		textBounds.y += (int)(5 * scaleH);
+		textBounds.y += (int)(1 * scaleH);
 		render.DrawMenuTextCentered(text.c_str(), textBounds, textColor);
 	}
 	else {
