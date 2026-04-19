@@ -85,7 +85,8 @@ bool Player::Update(float dt)
 	GetPhysicsValues();
 	if (!isDead_ && !isWakingUp)
 	{
-		Move();
+		Dash(dt);
+		if (!isDashing_) Move();
 		Jump();
 		Attack(dt);
 		Teleport();
@@ -148,7 +149,7 @@ void Player::Move() {
 }
 
 void Player::Jump() {
-	if (isWakingUp) return;
+	if (isWakingUp || isDashing_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
 		if (!isJumping) {
@@ -185,6 +186,12 @@ void Player::ApplyPhysics() {
 	// Preserve vertical speed while jumping
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
+	}
+
+	// Dash overrides horizontal velocity and forces zero vertical velocity for a pure horizontal dash
+	if (isDashing_) {
+		velocity.x = dashDirX_ * DASH_SPEED;
+		velocity.y = 0.0f;
 	}
 
 	// Apply velocity via helper
@@ -291,12 +298,44 @@ void Player::Draw(float dt) {
 		}
 	}
 
-	// I-frame flicker: skip every other 100ms slice while invincible (not when dead)
-	bool skipDraw = !isDead_ && isInvincible_ && ((int)(iFrameTimer_ / 100.0f) % 2 == 0);
+	// I-frame flicker: skip every other 100ms slice while invincible from damage (not during dash or death)
+	bool skipDraw = !isDead_ && !isDashing_ && isInvincible_ && ((int)(iFrameTimer_ / 100.0f) % 2 == 0);
 	if (!skipDraw) {
 		render->ApplyAmbientTint(activeTex);
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
 		render->ResetAmbientTint(activeTex);
+	}
+}
+
+void Player::Dash(float dt)
+{
+	auto& input = Engine::GetInstance().input;
+
+	if (dashCooldown_ > 0.0f) dashCooldown_ -= dt;
+
+	if (!isDashing_ && dashCooldown_ <= 0.0f &&
+		input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_DOWN)
+	{
+		isDashing_   = true;
+		dashTimer_   = DASH_DURATION;
+		dashDirX_    = facingRight ? -1.0f : 1.0f;
+
+		// Grant i-frames for the dash duration
+		isInvincible_ = true;
+		iFrameTimer_  = DASH_DURATION;
+
+		LOG("Player dash started");
+	}
+
+	if (isDashing_)
+	{
+		dashTimer_ -= dt;
+		if (dashTimer_ <= 0.0f)
+		{
+			isDashing_    = false;
+			dashCooldown_ = DASH_COOLDOWN;
+			LOG("Player dash ended");
+		}
 	}
 }
 
