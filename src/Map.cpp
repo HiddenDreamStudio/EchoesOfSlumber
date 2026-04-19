@@ -6,6 +6,7 @@
 #include "Physics.h"
 #include "EntityManager.h"
 #include "Enemy.h"
+#include "Window.h"
 #include "tracy/Tracy.hpp"
 
 #include <math.h>
@@ -60,21 +61,31 @@ bool Map::Update(float dt)
             }
         }
         // L07 TODO 5: Prepare the loop to draw all tiles in a layer + DrawTexture()
-        // iterate all tiles in a layer
+        // Calculate camera bounds in tiles
+        Render* render = Engine::GetInstance().render.get();
+        int scale = Engine::GetInstance().window->GetScale();
+        float camX = -render->camera.x;
+        float camY = -render->camera.y;
+        float camW = (float)render->camera.w / scale;
+        float camH = (float)render->camera.h / scale;
+
+        int startX = std::max(0, (int)(camX / mapData.tileWidth) - 2);
+        int startY = std::max(0, (int)(camY / mapData.tileHeight) - 2);
+        int endX = std::min(mapData.width, (int)((camX + camW) / mapData.tileWidth) + 2);
+        int endY = std::min(mapData.height, (int)((camY + camH) / mapData.tileHeight) + 2);
+
+        // iterate all tiles in a layer that are visible to the camera
         for (const auto& mapLayer : mapData.layers) {
             //L09 TODO 7: Check if the property Draw exist get the value, if it's true draw the lawyer
             if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true) {
-                for (int i = 0; i < mapData.width; i++) {
-                    for (int j = 0; j < mapData.height; j++) {
-
-                        // L07 TODO 9: Complete the draw function
+                for (int i = startX; i < endX; i++) {
+                    for (int j = startY; j < endY; j++) {
 
                         //Get the gid from tile
                         int gid = mapLayer->Get(i, j);
 
                         //Check if the gid is different from 0 - some tiles are empty
                         if (gid != 0) {
-                            //L09: TODO 3: Obtain the tile set using GetTilesetFromTileId
                             TileSet* tileSet = GetTilesetFromTileId(gid);
                             if (tileSet != nullptr) {
                                 //Get the Rect from the tileSetTexture;
@@ -82,7 +93,7 @@ bool Map::Update(float dt)
                                 //Get the screen coordinates from the tile coordinates
                                 Vector2D mapCoord = MapToWorld(i, j);
                                 //Draw the texture
-                                Engine::GetInstance().render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect);
+                                render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect);
                             }
                         }
                     }
@@ -94,17 +105,28 @@ bool Map::Update(float dt)
     return ret;
 }
 
-// L09: TODO 2: Implement function to the Tileset based on a tile id
 TileSet* Map::GetTilesetFromTileId(int gid) const
 {
-    TileSet* set = nullptr;
+    static int cachedGid = -1;
+    static TileSet* cachedSet = nullptr;
+
+    if (gid == cachedGid && cachedSet != nullptr) {
+        return cachedSet;
+    }
+
+    if (cachedSet != nullptr && gid >= cachedSet->firstGid && gid < cachedSet->firstGid + cachedSet->tileCount) {
+        cachedGid = gid;
+        return cachedSet;
+    }
+
     for (const auto& tileset : mapData.tilesets) {
-        set = tileset;
         if (gid >= tileset->firstGid && gid < tileset->firstGid + tileset->tileCount) {
-            break;
+            cachedGid = gid;
+            cachedSet = tileset;
+            return tileset;
         }
     }
-    return set;
+    return nullptr;
 }
 
 // Called before quitting
