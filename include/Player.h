@@ -32,6 +32,7 @@ public:
 	void SetPosition(Vector2D pos);
 
 	void TakeDamage(int damage) override;
+	void Revive();
 
 private:
 
@@ -95,6 +96,9 @@ private:
 
 	// Hit/Death state flag
 	bool isShowingDamageAnim_ = false;
+
+	// Combat - visual feedback
+	static constexpr float DAMAGE_FLASH_DURATION = 150.0f; // ms
 	float damageFlashTimer_ = 0.0f;
 
 	// Ledge climb
@@ -109,7 +113,7 @@ private:
 	void CheckLedge();
 	static constexpr int LEDGE_RAY_REACH   = 30;  // horizontal raycast distance (px)
 	static constexpr int LEDGE_HEAD_OFFSET = 40;   // how far above body center to cast the "head" ray
-	static constexpr int LEDGE_BODY_OFFSET = 10;   // how far above body center to cast the "body" ray
+	static constexpr int LEDGE_RAY_MARGIN  = 10;   // Margin for ledge detection raycasts
 
 	// Dash
 	static constexpr float DASH_SPEED    = 15.0f;

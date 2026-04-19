@@ -11,8 +11,14 @@
 #include "Map.h"
 #include "tracy/Tracy.hpp"
 
-Player::Player() : Entity(EntityType::PLAYER)
+Player::Player() : Entity(EntityType::PLAYER),
+	texW(128), texH(128),
+	pickCoinFxId(-1),
+	pbody(nullptr),
+	damageFlashTimer_(0.0f)
 {
+	velocity.x = 0.0f;
+	velocity.y = 0.0f;
 	name = "Player";
 }
 
@@ -88,6 +94,7 @@ bool Player::Update(float dt)
 	}
 
 	GetPhysicsValues();
+
 	if (!isDead_ && !isWakingUp && !isClimbing_)
 	{
 		Dash(dt);
@@ -97,8 +104,14 @@ bool Player::Update(float dt)
 		Attack(dt);
 		Teleport();
 	}
+
 	if (isClimbing_) UpdateClimb(dt);
 	if (!isClimbing_) ApplyPhysics();
+
+	if (damageFlashTimer_ > 0.0f) damageFlashTimer_ -= dt;
+	if (iFrameTimer_ > 0.0f) iFrameTimer_ -= dt;
+	if (iFrameTimer_ <= 0.0f) isInvincible_ = false;
+
 	Draw(dt);
 
 	return true;
@@ -114,7 +127,7 @@ void Player::Teleport() {
 void Player::GetPhysicsValues() {
 	// Read current velocity
 	velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
-	velocity = { 0, velocity.y }; // Reset horizontal velocity by default, this way the player stops when no key is pressed
+	velocity.x = 0.0f; // Reset horizontal velocity by default
 }
 
 void Player::Move() {
@@ -183,7 +196,7 @@ void Player::Jump() {
 	// Parametric jump: cut vertical velocity when space is released early
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_UP && isJumping) {
 		float vy = Engine::GetInstance().physics->GetYVelocity(pbody);
-		if (vy < 0) {
+		if (vy < 0.0f) {
 			Engine::GetInstance().physics->SetYVelocity(pbody, vy * 0.5f);
 		}
 	}
@@ -234,15 +247,12 @@ void Player::Draw(float dt) {
 	}
 
 	// Update render position using your PhysBody helper
-	int x, y;
-	pbody->GetPosition(x, y);
-	position.setX((float)x);
-	position.setY((float)y);
+	int xInt, yInt;
+	pbody->GetPosition(xInt, yInt);
+	position.setX(static_cast<float>(xInt));
+	position.setY(static_cast<float>(yInt));
 
 	// Camera System - Issue #21: Smooth camera follow with dead zones
-	// NOTE: Camera update in Player::Draw causes 1-frame jitter with Map tiles.
-	// TODO (#21): For proper fix, move world rendering to PostUpdate or add a Camera module
-	// that updates after Physics but before Map (requires module order refactoring).
 	auto& render = Engine::GetInstance().render;
 	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();  
 	
@@ -255,34 +265,24 @@ void Player::Draw(float dt) {
 	}
 
 	// Center the sprite on the physics body position.
-	// Determine current draw scale. The jump animation is drawn smaller in the spritesheet,
-	// so we slightly scale it up to match the "on the ground" size throughout the jump.
 	float currentDrawScale = drawScale;
 	if (anims.GetCurrentName() == "jump") {
-		currentDrawScale *= 1.25f; // Scale up factor to match the original size
+		currentDrawScale *= 1.25f; 
 	}
 
-	// Center the sprite on the physics body position based on the current scale.
-	int drawX = x - (int)(texW * currentDrawScale) / 2;
-	int drawY = y - (int)(texH * currentDrawScale) / 2;
+	int drawX = static_cast<int>(position.getX() - (static_cast<float>(texW) * currentDrawScale) / 2.0f);
+	int drawY = static_cast<int>(position.getY() - (static_cast<float>(texH) * currentDrawScale) / 2.0f);
 
-	// Flip logic: The idle sprite faces LEFT in the spritesheet.
-	// Some animations (run, jump, turnaround) face RIGHT in the spritesheet.
-	// We need to invert the flip for those animations.
 	bool spriteNativeRight = false;
 	const std::string& animName = anims.GetCurrentName();
 	if (animName == "jump" || animName == "turnaround") {
 		spriteNativeRight = true;
 	}
 
-	// facingRight == true means we want the character facing left (A key)
-	// facingRight == false means we want the character facing right (D key)
 	SDL_FlipMode flip;
 	if (spriteNativeRight) {
-		// Sprite already faces right → flip when we want left (facingRight == true)
 		flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
 	} else {
-		// Sprite already faces left → flip when we want right (facingRight == false)
 		flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 	}
 
@@ -295,17 +295,16 @@ void Player::Draw(float dt) {
 			float wakeScale = 128.0f / 258.0f;
 			
 			int wakeOffsetX = 20;
-            int drawX = x - 64 - wakeOffsetX; 
-			int drawY = y - 64;
+            int wakeDrawX = xInt - 64 - wakeOffsetX; 
+			int wakeDrawY = yInt - 64;
             
 			render->ApplyAmbientTint(wakeUpTexture);
-			render->DrawTexture(wakeUpTexture, drawX, drawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
+			render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
 			render->ResetAmbientTint(wakeUpTexture);
 			return; 
 		}
 	}
 
-	// Climb animation: render from the separate climb spritesheet at half scale
 	if (isClimbing_) {
 		const SDL_Rect& climbFrame = climbAnims.GetCurrentFrame();
 		int x, y;
@@ -313,18 +312,17 @@ void Player::Draw(float dt) {
 		int climbDrawX = x - (int)(256.0f * CLIMB_DRAW_SCALE) / 2;
 		int climbDrawY = y - (int)(256.0f * CLIMB_DRAW_SCALE) / 2;
 
-		// Climb sprite needs to be mirrored relative to its native facing
 		SDL_FlipMode climbFlip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
 		Engine::GetInstance().render->DrawTexture(climbTexture, climbDrawX, climbDrawY, &climbFrame, 1.0f, 0, INT_MAX, INT_MAX, climbFlip, CLIMB_DRAW_SCALE);
 		return;
 	}
 
 	// I-frame flicker: skip every other 100ms slice while invincible from damage (not during dash or death)
-	bool skipDraw = !isDead_ && !isDashing_ && isInvincible_ && ((int)(iFrameTimer_ / 100.0f) % 2 == 0);
+	bool skipDraw = !isDead_ && !isDashing_ && isInvincible_ && (static_cast<int>(iFrameTimer_ / 100.0f) % 2 == 0);
+	
 	if (!skipDraw) {
 		render->ApplyAmbientTint(activeTex);
 		
-		// Damage flash: tint red
 		if (damageFlashTimer_ > 0.0f) {
 			SDL_SetTextureColorMod(activeTex, 255, 100, 100);
 		}
@@ -332,10 +330,9 @@ void Player::Draw(float dt) {
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
 		
 		if (damageFlashTimer_ > 0.0f) {
-			render->ApplyAmbientTint(activeTex); // Restore ambient tint
-		} else {
-			render->ResetAmbientTint(activeTex);
+			SDL_SetTextureColorMod(activeTex, 255, 255, 255); // Reset color mod
 		}
+		render->ResetAmbientTint(activeTex);
 	}
 }
 
@@ -389,31 +386,26 @@ void Player::Attack(float dt)
 		int bodyX, bodyY;
 		pbody->GetPosition(bodyX, bodyY);
 
-		// Place hitbox in front of the player based on facing direction
-		// facingRight = true → sprite faces left; facingRight = false → sprite faces right
-		int hitboxX = facingRight ? bodyX - HITBOX_OFFSET : bodyX + HITBOX_OFFSET;
-		attackHitbox_ = physics->CreateRectangleSensor(hitboxX, bodyY, HITBOX_W, HITBOX_H, bodyType::STATIC);
+		int hitboxX = facingRight ? bodyX - (int)HITBOX_OFFSET : bodyX + (int)HITBOX_OFFSET;
+		attackHitbox_ = physics->CreateRectangleSensor(hitboxX, bodyY, (int)HITBOX_W, (int)HITBOX_H, bodyType::STATIC);
 		attackHitbox_->listener = this;
 		attackHitbox_->ctype    = ColliderType::ATTACK;
 
 		LOG("Player attack started");
 	}
 
-	// While attacking: track timer and keep hitbox glued to the player
 	if (isAttacking_)
 	{
 		attackTimer_ -= dt;
 
-		// Update hitbox position to follow the player
 		if (attackHitbox_ != nullptr)
 		{
 			int bodyX, bodyY;
 			pbody->GetPosition(bodyX, bodyY);
-			int hitboxX = facingRight ? bodyX - HITBOX_OFFSET : bodyX + HITBOX_OFFSET;
+			int hitboxX = facingRight ? bodyX - (int)HITBOX_OFFSET : bodyX + (int)HITBOX_OFFSET;
 			attackHitbox_->SetPosition(hitboxX, bodyY);
 		}
 
-		// Attack window expired — destroy hitbox
 		if (attackTimer_ <= 0.0f)
 		{
 			isAttacking_ = false;
@@ -425,16 +417,6 @@ void Player::Attack(float dt)
 			LOG("Player attack ended");
 		}
 	}
-
-	// Tick i-frame timer
-	if (isInvincible_)
-	{
-		iFrameTimer_ -= dt;
-		if (iFrameTimer_ <= 0.0f)
-		{
-			isInvincible_ = false;
-		}
-	}
 }
 
 void Player::TakeDamage(int damage)
@@ -442,10 +424,15 @@ void Player::TakeDamage(int damage)
 	if (isInvincible_) return;
 
 	health -= damage;
-	LOG("Player took %d damage -> health: %d/%d", damage, health, maxHealth);
+	LOG("Player took %d damage -> health: %d", damage, health);
 
 	isInvincible_ = true;
 	iFrameTimer_  = IFRAME_DURATION;
+	damageFlashTimer_ = DAMAGE_FLASH_DURATION;
+
+	float knockbackForce = 5.0f;
+	float dir = facingRight ? 1.0f : -1.0f; 
+	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
 
 	if (health <= 0)
 	{
@@ -460,6 +447,15 @@ void Player::TakeDamage(int damage)
 		anims.SetCurrent("damage");
 		anims.ResetCurrent();
 	}
+}
+
+void Player::Revive()
+{
+	isDead_ = false;
+	isInvincible_ = false;
+	isShowingDamageAnim_ = false;
+	anims.SetCurrent("idle");
+	damageFlashTimer_ = 0.0f;
 }
 
 bool Player::CleanUp()
@@ -483,11 +479,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 	{
 	case ColliderType::PLATFORM:
 	{
-		// Only reset jump when landing on top of a platform, not when hitting a ceiling or wall
 		int playerX, playerY, platX, platY;
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(platX, platY);
-		// Player center must be above the platform center to count as landing
 		if (playerY < platY) {
 			isJumping = false;
 			canDoubleJump = false;
@@ -508,50 +502,32 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 {
-	switch (physB->ctype)
-	{
-	case ColliderType::PLATFORM:
-		break;
-	case ColliderType::ITEM:
-		break;
-	case ColliderType::UNKNOWN:
-		break;
-	default:
-		break;
-	}
 }
 
 Vector2D Player::GetPosition() {
 	int x, y;
 	pbody->GetPosition(x, y);
-	// Adjust for center
-	return Vector2D((float)x - texW / 2, (float)y - texH / 2);
+	return Vector2D(static_cast<float>(x) - texW / 2.0f, static_cast<float>(y) - texH / 2.0f);
 }
 
 void Player::SetPosition(Vector2D pos) {
-	pbody->SetPosition((int)(pos.getX() + texW / 2), (int)(pos.getY() + texH / 2));
+	pbody->SetPosition(static_cast<int>(pos.getX() + texW / 2.0f), static_cast<int>(pos.getY() + texH / 2.0f));
 }
 
 void Player::CheckLedge() {
-	// Only check while airborne (jumping/falling)
 	if (!isJumping || isClimbing_) return;
 
 	auto& physics = Engine::GetInstance().physics;
 	int px, py;
 	pbody->GetPosition(px, py);
 
-	// Determine direction: cast rays in the direction the player is moving
-	// facingRight == true -> character faces LEFT (A key), cast left
-	// facingRight == false -> character faces RIGHT (D key), cast right
 	int dir = facingRight ? -1 : 1;
 
-	// Ray 1 (body level): horizontal ray from body center -> should HIT a wall
 	int bodyRayStartX = px;
-	int bodyRayStartY = py - LEDGE_BODY_OFFSET;
+	int bodyRayStartY = py - 10; // Use a fixed offset for body ray
 	int bodyRayEndX   = px + dir * LEDGE_RAY_REACH;
 	int bodyRayEndY   = bodyRayStartY;
 
-	// Ray 2 (head level): horizontal ray above -> should NOT hit (open space above the ledge)
 	int headRayStartX = px;
 	int headRayStartY = py - LEDGE_HEAD_OFFSET;
 	int headRayEndX   = px + dir * LEDGE_RAY_REACH;
@@ -561,25 +537,19 @@ void Player::CheckLedge() {
 	bool bodyHit = physics->RayCastWorld(bodyRayStartX, bodyRayStartY, bodyRayEndX, bodyRayEndY, bodyHitX, bodyHitY);
 	bool headHit = physics->RayCastWorld(headRayStartX, headRayStartY, headRayEndX, headRayEndY, headHitX, headHitY);
 
-	// Ledge detected: wall at body level, open space at head level
 	if (bodyHit && !headHit) {
 		isClimbing_ = true;
 
-		// Freeze player physics
 		physics->SetLinearVelocity(pbody, 0.0f, 0.0f);
 		b2Body_SetGravityScale(pbody->body, 0.0f);
 
-		// Target position: on top of the ledge
-		// X: slightly past the wall hit point in the movement direction
-		// Y: above the body hit point (the wall surface is approximately at head ray height)
 		climbTargetX_ = bodyHitX + dir * 30.0f;
 		climbTargetY_ = (float)headRayStartY - 20.0f;
 
-		// Start climb animation
 		climbAnims.SetCurrent("climb");
 		climbAnims.ResetCurrent();
 
-		LOG("Ledge detected via raycast! bodyHit=(%.0f,%.0f) -> target=(%.0f,%.0f)", bodyHitX, bodyHitY, climbTargetX_, climbTargetY_);
+		LOG("Ledge detected via raycast!");
 	}
 }
 
@@ -587,20 +557,16 @@ void Player::UpdateClimb(float dt) {
 	climbAnims.Update(dt);
 
 	if (climbAnims.HasFinishedOnce("climb")) {
-		// Teleport player to the top of the ledge
 		pbody->SetPosition((int)climbTargetX_, (int)climbTargetY_);
-
-		// Restore normal physics
 		b2Body_SetGravityScale(pbody->body, 1.0f);
 
-		// Reset state
 		isClimbing_ = false;
 		isJumping = false;
 		canDoubleJump = false;
 		hasDoubleJumped = false;
 		anims.SetCurrent("idle");
 
-		LOG("Ledge climb completed, player teleported to (%.0f, %.0f)", climbTargetX_, climbTargetY_);
+		LOG("Ledge climb completed");
 	}
 }
 

@@ -32,20 +32,32 @@ class UIElement : public std::enable_shared_from_this<UIElement>
 {
 public:
 
-	UIElement() {}
+	UIElement() : type(UIElementType::BUTTON), id(-1), state(UIElementState::NORMAL), texture(nullptr), observer(nullptr), alphaMod(1.0f) {
+		bounds = { 0, 0, 0, 0 };
+		section = { 0, 0, 0, 0 };
+		color = { 255, 255, 255, 255 };
+	}
 
 	// Constructor
-	UIElement(UIElementType type, int id) : type(type), id(id), state(UIElementState::NORMAL) {}
+	UIElement(UIElementType type, int id) : type(type), id(id), state(UIElementState::NORMAL), texture(nullptr), observer(nullptr), alphaMod(1.0f) {
+		bounds = { 0, 0, 0, 0 };
+		section = { 0, 0, 0, 0 };
+		color = { 255, 255, 255, 255 };
+	}
 
 	// Constructor
 	UIElement(UIElementType type, SDL_Rect bounds, const char* text) :
 		type(type),
 		state(UIElementState::NORMAL),
 		bounds(bounds),
-		text(text)
+		text(text),
+		texture(nullptr),
+		observer(nullptr),
+		alphaMod(1.0f),
+		id(-1)
 	{
-		color.r = 255; color.g = 255; color.b = 255;
-		texture = NULL;
+		color = { 255, 255, 255, 255 };
+		section = { 0, 0, 0, 0 };
 	}
 
 	// Called each loop iteration
@@ -99,6 +111,6 @@ public:
 	Module* observer = nullptr;        // Observer 
 
 	bool pendingToDelete = false;
-	
+	bool isVisible = true;
 	float alphaMod = 1.0f;  // Global alpha multiplier (0.0 to 1.0)
 };

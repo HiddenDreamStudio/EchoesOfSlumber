@@ -27,8 +27,8 @@ void Animation::Update(float dt) {
 
     timeInFrameMs_ += static_cast<int>(dt);
 
-    while (timeInFrameMs_ >= frames_[currentIndex_].durationMs) {
-        timeInFrameMs_ -= frames_[currentIndex_].durationMs;
+    while (timeInFrameMs_ >= frames_[static_cast<size_t>(currentIndex_)].durationMs) {
+        timeInFrameMs_ -= frames_[static_cast<size_t>(currentIndex_)].durationMs;
 
         if (currentIndex_ + 1 < static_cast<int>(frames_.size())) {
             ++currentIndex_;
@@ -48,7 +48,7 @@ void Animation::Update(float dt) {
 
 const SDL_Rect& Animation::GetCurrentFrame() const {
     if (frames_.empty()) return kEmpty_;
-    return frames_[currentIndex_].rect;
+    return frames_[static_cast<size_t>(currentIndex_)].rect;
 }
 
 int Animation::GetFrameCount() const { return static_cast<int>(frames_.size()); }
