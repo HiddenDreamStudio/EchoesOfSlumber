@@ -524,7 +524,7 @@ void Player::CheckLedge() {
 	int dir = facingRight ? -1 : 1;
 
 	int bodyRayStartX = px;
-	int bodyRayStartY = py - LEDGE_BODY_OFFSET;
+	int bodyRayStartY = py - 10; // Use a fixed offset for body ray
 	int bodyRayEndX   = px + dir * LEDGE_RAY_REACH;
 	int bodyRayEndY   = bodyRayStartY;
 
