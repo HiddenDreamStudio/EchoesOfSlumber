@@ -95,6 +95,7 @@ private:
 
 	// Hit/Death state flag
 	bool isShowingDamageAnim_ = false;
+	float damageFlashTimer_ = 0.0f;
 
 	// Ledge climb
 	AnimationSet climbAnims;
