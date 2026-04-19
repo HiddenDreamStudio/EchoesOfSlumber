@@ -301,6 +301,7 @@ void Player::Draw(float dt) {
 	}
 
 	// I-frame flicker: skip every other 100ms slice while invincible (not when dead)
+	// I-frame flicker: skip every other 100ms slice while invincible (not when dead)
 	bool skipDraw = !isDead_ && isInvincible_ && (static_cast<int>(iFrameTimer_ / 100.0f) % 2 == 0);
 	if (!skipDraw) {
 		render->ApplyAmbientTint(activeTex);
@@ -317,6 +318,7 @@ void Player::Draw(float dt) {
 		} else {
 			render->ResetAmbientTint(activeTex);
 		}
+	}
 	}
 }
 

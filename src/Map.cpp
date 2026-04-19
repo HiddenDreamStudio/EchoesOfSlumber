@@ -66,8 +66,8 @@ bool Map::Update(float dt)
         int scale = Engine::GetInstance().window->GetScale();
         float camX = -render->camera.x;
         float camY = -render->camera.y;
-        float camW = static_cast<float>(render->camera.w) / static_cast<float>(scale);
-        float camH = static_cast<float>(render->camera.h) / static_cast<float>(scale);
+        float camW = (float)render->camera.w / scale;
+        float camH = (float)render->camera.h / scale;
 
         int startX = std::max(0, static_cast<int>(camX / static_cast<float>(mapData.tileWidth)) - 2);
         int startY = std::max(0, static_cast<int>(camY / static_cast<float>(mapData.tileHeight)) - 2);
@@ -107,8 +107,22 @@ bool Map::Update(float dt)
 
 TileSet* Map::GetTilesetFromTileId(int gid) const
 {
+    static int cachedGid = -1;
+    static TileSet* cachedSet = nullptr;
+
+    if (gid == cachedGid && cachedSet != nullptr) {
+        return cachedSet;
+    }
+
+    if (cachedSet != nullptr && gid >= cachedSet->firstGid && gid < cachedSet->firstGid + cachedSet->tileCount) {
+        cachedGid = gid;
+        return cachedSet;
+    }
+
     for (const auto& tileset : mapData.tilesets) {
         if (gid >= tileset->firstGid && gid < tileset->firstGid + tileset->tileCount) {
+            cachedGid = gid;
+            cachedSet = tileset;
             return tileset;
         }
     }
