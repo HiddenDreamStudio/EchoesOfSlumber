@@ -149,7 +149,7 @@ void Player::Move() {
 }
 
 void Player::Jump() {
-	if (isWakingUp) return;
+	if (isWakingUp || isDashing_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
 		if (!isJumping) {
@@ -188,8 +188,11 @@ void Player::ApplyPhysics() {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
 	}
 
-	// Dash overrides horizontal velocity
-	if (isDashing_) velocity.x = dashDirX_ * DASH_SPEED;
+	// Dash overrides horizontal velocity and forces zero vertical velocity for a pure horizontal dash
+	if (isDashing_) {
+		velocity.x = dashDirX_ * DASH_SPEED;
+		velocity.y = 0.0f;
+	}
 
 	// Apply velocity via helper
 	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
