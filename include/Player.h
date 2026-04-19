@@ -38,6 +38,7 @@ private:
 	void GetPhysicsValues();
 	void Move();
 	void Jump();
+	void Dash(float dt);
 	void Attack(float dt);
 	void Teleport();
 	void ApplyPhysics();
@@ -67,6 +68,7 @@ private:
 	AnimationSet anims;
 	Animation wakeUpAnim;
 	SDL_Texture* wakeUpTexture = nullptr;
+	// Walkthrough/Cinematic state (from main)
 	bool isWakingUp = true;
 	float drawScale = 1.0f;
 	bool facingRight = true;
@@ -107,4 +109,13 @@ private:
 	static constexpr int LEDGE_RAY_REACH   = 30;  // horizontal raycast distance (px)
 	static constexpr int LEDGE_HEAD_OFFSET = 40;   // how far above body center to cast the "head" ray
 	static constexpr int LEDGE_BODY_OFFSET = 10;   // how far above body center to cast the "body" ray
+
+	// Dash
+	static constexpr float DASH_SPEED    = 15.0f;
+	static constexpr float DASH_DURATION = 200.0f; // ms
+	static constexpr float DASH_COOLDOWN = 800.0f; // ms after dash ends
+	bool  isDashing_    = false;
+	float dashTimer_    = 0.0f;
+	float dashCooldown_ = 0.0f;
+	float dashDirX_     = 1.0f;
 };
