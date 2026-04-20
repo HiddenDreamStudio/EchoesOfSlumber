@@ -6,6 +6,8 @@
 #include "Physics.h"
 #include "EntityManager.h"
 #include "Enemy.h"
+#include "Checkpoint.h"
+#include "Box.h"
 #include "Window.h"
 #include "tracy/Tracy.hpp"
 
@@ -53,7 +55,9 @@ bool Map::Update(float dt)
                 Engine::GetInstance().render->DrawTexture(
                     imgLayer->texture,
                     static_cast<int>(imgLayer->offsetX),
-                    static_cast<int>(imgLayer->offsetY)
+                    static_cast<int>(imgLayer->offsetY),
+                    nullptr,
+                    imgLayer->parallaxFactorX
                 );
             }
         }
@@ -519,6 +523,18 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     enemy->Start();
                     LOG("Enemy spawned at: %f, %f", x, y);
                 }
+                else if (entityType == "Checkpoint") {
+                    auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
+                    checkpoint->position = Vector2D(x, y);
+                    checkpoint->Start();
+                    LOG("Checkpoint spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "Box") {
+                    auto box = std::dynamic_pointer_cast<Box>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOX));
+                    box->position = Vector2D(x, y);
+                    box->Start();
+                    LOG("Box spawned at: %f, %f", x, y);
+                }
             }
         }
     }
@@ -556,6 +572,8 @@ void Map::LoadImageLayers()
         imgLayer->name = imgNode.attribute("name").as_string();
         imgLayer->offsetX = imgNode.attribute("offsetx").as_float(0.0f);
         imgLayer->offsetY = imgNode.attribute("offsety").as_float(0.0f);
+        imgLayer->parallaxFactorX = imgNode.attribute("parallaxx").as_float(1.0f);
+        imgLayer->parallaxFactorY = imgNode.attribute("parallaxy").as_float(1.0f);
         imgLayer->source = imgNode.child("image").attribute("source").as_string();
 
         std::string fullPath = mapPath + imgLayer->source;
