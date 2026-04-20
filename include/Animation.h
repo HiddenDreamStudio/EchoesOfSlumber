@@ -19,6 +19,7 @@ public:
     void Update(float dt);
     const SDL_Rect& GetCurrentFrame() const;
     int GetFrameCount() const;
+    int GetCurrentFrameIndex() const;
 
 private:
     std::vector<AnimFrame> frames_;
@@ -52,6 +53,7 @@ public:
 
     void SetLoop(const std::string& name, bool loop);
     bool HasFinishedOnce(const std::string& name) const;
+    int GetCurrentFrameIndex() const;
 
     int GetTileWidth() const { return tileW_; }
     int GetTileHeight() const { return tileH_; }

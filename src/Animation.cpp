@@ -53,6 +53,10 @@ const SDL_Rect& Animation::GetCurrentFrame() const {
 
 int Animation::GetFrameCount() const { return static_cast<int>(frames_.size()); }
 
+int Animation::GetCurrentFrameIndex() const {
+    return currentIndex_;
+}
+
 // ---------- AnimationSet ----------
 
 AnimationSet::AnimationSet() {}
@@ -160,6 +164,11 @@ bool AnimationSet::HasFinishedOnce(const std::string& name) const {
         return clips_.at(name).HasFinishedOnce();
     }
     return false;
+}
+
+int AnimationSet::GetCurrentFrameIndex() const {
+    if (Has(currentName_)) return clips_.at(currentName_).GetCurrentFrameIndex();
+    return 0;
 }
 
 bool AnimationSet::LoadSequentialFromTSX(const char* tsxPath, const std::string& clipName, int frameDurationMs)

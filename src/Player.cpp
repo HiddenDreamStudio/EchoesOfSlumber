@@ -53,7 +53,7 @@ bool Player::Start() {
 	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheet.png");
 
 	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
-	for (int i = 0; i < 58; ++i) {
+	for (int i = 0; i < 51; ++i) {
 		SDL_Rect r = { i * 258, 0, 258, 258 };
 		wakeUpAnim.AddFrame(r, 120); // 120ms per frame matching main
 	}
@@ -164,7 +164,12 @@ void Player::Move() {
 		}
 	}
 	else if (!isJumping) {
-		anims.SetCurrent("idle");
+		if (anims.GetCurrentName() == "jump" && !anims.HasFinishedOnce("jump")) {
+			// Let the landing animation finish
+		}
+		else {
+			anims.SetCurrent("idle");
+		}
 	}
 }
 
@@ -242,7 +247,11 @@ void Player::Draw(float dt) {
 	}
 	else if (!isClimbing_)
 	{
-		anims.Update(dt);
+		bool shouldUpdate = true;
+		if (isJumping && anims.GetCurrentName() == "jump" && anims.GetCurrentFrameIndex() == 7) {
+			shouldUpdate = false;
+		}
+		if (shouldUpdate) anims.Update(dt);
 		animFrame = &anims.GetCurrentFrame();
 	}
 
@@ -292,11 +301,15 @@ void Player::Draw(float dt) {
 			isWakingUp = false;
 		} else {
 			const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
-			float wakeScale = 128.0f / 258.0f;
+			float wakeScale = 0.65f;
 			
-			int wakeOffsetX = 20;
-            int wakeDrawX = xInt - 64 - wakeOffsetX; 
-			int wakeDrawY = yInt - 64;
+			int wakeWidth = (int)(258.0f * wakeScale);
+			int wakeHeight = (int)(258.0f * wakeScale);
+
+			// Center horizontally with an offset to match the sprite's content
+			int wakeDrawX = xInt - (wakeWidth / 2) - 60; 
+			// Align bottom with floor (yInt + 50), with a small overlap for grounding
+			int wakeDrawY = yInt + 50 - wakeHeight + 15;
             
 			render->ApplyAmbientTint(wakeUpTexture);
 			render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
@@ -524,7 +537,7 @@ void Player::CheckLedge() {
 	int dir = facingRight ? -1 : 1;
 
 	int bodyRayStartX = px;
-	int bodyRayStartY = py - 10; // Use a fixed offset for body ray
+	int bodyRayStartY = py - LEDGE_RAY_MARGIN; // Use margin from header
 	int bodyRayEndX   = px + dir * LEDGE_RAY_REACH;
 	int bodyRayEndY   = bodyRayStartY;
 
