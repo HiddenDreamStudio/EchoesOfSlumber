@@ -58,7 +58,7 @@ bool UIButton::Update(float dt)
 		default:                      targetT = 0.0f;  break;
 		}
 
-		float lerpAmount = 0.02f * dt;
+		float lerpAmount = 0.01f * dt; // Slower transition (from 0.02f)
 		if (lerpAmount > 1.0f) lerpAmount = 1.0f;
 		animT += (targetT - animT) * lerpAmount;
 
@@ -93,10 +93,11 @@ bool UIButton::Update(float dt)
 		textColor.b = (Uint8)(30 + (255 - 30) * animT);
 		textColor.a = (Uint8)(255 * alphaMod);
 
-		// Transition: Pure White (Normal) -> Near Black (Hover)
-		Uint8 texR = (Uint8)(255 + (25 - 255) * animT);
-		Uint8 texG = (Uint8)(255 + (22 - 255) * animT);
-		Uint8 texB = (Uint8)(255 + (20 - 255) * animT);
+		// Transition: Pure White (Normal) -> Slightly Dark Grey (Hover)
+		// Request: "no canvii a negre, algo mes fosc" (e.g. 160-180 range)
+		Uint8 texR = (Uint8)(255 + (170 - 255) * animT);
+		Uint8 texG = (Uint8)(255 + (165 - 255) * animT);
+		Uint8 texB = (Uint8)(255 + (160 - 255) * animT);
 
 		SDL_SetTextureColorMod(activeTex, texR, texG, texB);
 		render.DrawTextureAlpha(activeTex,
