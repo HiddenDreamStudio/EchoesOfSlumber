@@ -8,6 +8,8 @@ enum class EntityType
 	PLAYER,
 	ITEM,
 	ENEMY,
+	CHECKPOINT,
+	BOX,
 	UNKNOWN
 };
 
