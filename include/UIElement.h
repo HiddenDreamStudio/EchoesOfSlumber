@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Input.h"
 #include "Render.h"
 #include "Module.h"
@@ -32,27 +31,38 @@ class UIElement : public std::enable_shared_from_this<UIElement>
 {
 public:
 
-	UIElement() {}
+	UIElement() : type(UIElementType::BUTTON), id(-1), state(UIElementState::NORMAL), texture(nullptr), hoverTexture(nullptr), observer(nullptr), alphaMod(1.0f), isVisible(true) {
+		bounds = { 0, 0, 0, 0 };
+		section = { 0, 0, 0, 0 };
+		color = { 255, 255, 255, 255 };
+	}
 
 	// Constructor
-	UIElement(UIElementType type, int id) : type(type), id(id), state(UIElementState::NORMAL) {}
+	UIElement(UIElementType type, int id) : type(type), id(id), state(UIElementState::NORMAL), texture(nullptr), hoverTexture(nullptr), observer(nullptr), alphaMod(1.0f), isVisible(true) {
+		bounds = { 0, 0, 0, 0 };
+		section = { 0, 0, 0, 0 };
+		color = { 255, 255, 255, 255 };
+	}
 
 	// Constructor
 	UIElement(UIElementType type, SDL_Rect bounds, const char* text) :
 		type(type),
 		state(UIElementState::NORMAL),
 		bounds(bounds),
-		text(text)
+		text(text),
+		texture(nullptr),
+		hoverTexture(nullptr),
+		observer(nullptr),
+		alphaMod(1.0f),
+		id(-1),
+		isVisible(true)
 	{
-		color.r = 255; color.g = 255; color.b = 255;
-		texture = NULL;
+		color = { 255, 255, 255, 255 };
+		section = { 0, 0, 0, 0 };
 	}
 
 	// Called each loop iteration
-	virtual bool Update(float dt)
-	{
-		return true;
-	}
+	virtual bool Update(float dt) { return true; }
 
 	// 
 	void SetTexture(SDL_Texture* tex)
@@ -62,43 +72,34 @@ public:
 	}
 
 	// 
-	void SetObserver(Module* module)
-	{
-		observer = module;
-	}
+	void SetHoverTexture(SDL_Texture* tex) { hoverTexture = tex; }
 
 	// 
-	void NotifyObserver()
-	{
-		observer->OnUIMouseClickEvent(this);
-	}
+	void SetObserver(Module* module) { observer = module; }
 
-	virtual bool CleanUp()
-	{
-		return true;
-	}
+	// 
+	void NotifyObserver() { observer->OnUIMouseClickEvent(this); }
 
-	virtual bool Destroy()
-	{
-		return true;
-	}
+	virtual bool CleanUp() { return true; }
+	virtual bool Destroy() { return true; }
 
 public:
 
-	int id;
-	UIElementType type;
-	UIElementState state;
+	int id = -1;
+	UIElementType type = UIElementType::BUTTON;
+	UIElementState state = UIElementState::NORMAL;
 
 	std::string text;       // UIElement text (if required)
-	SDL_Rect bounds;        // Position and size
-	SDL_Color color;        // Tint color
+	SDL_Rect bounds = { 0, 0, 0, 0 };        // Position and size
+	SDL_Color color = { 255, 255, 255, 255 };        // Tint color
 
-	SDL_Texture* texture;   // Texture atlas reference
-	SDL_Rect section;       // Texture atlas base section
+	SDL_Texture* texture = nullptr;   // Texture atlas reference
+	SDL_Texture* hoverTexture = nullptr;
+	SDL_Rect section = { 0, 0, 0, 0 };       // Texture atlas base section
 
-	Module* observer;        // Observer 
+	Module* observer = nullptr;        // Observer 
 
 	bool pendingToDelete = false;
-	
+	bool isVisible = true;
 	float alphaMod = 1.0f;  // Global alpha multiplier (0.0 to 1.0)
 };

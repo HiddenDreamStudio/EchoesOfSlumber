@@ -132,7 +132,6 @@ void Render::ResetViewPort()
 {
 	SDL_SetRenderViewport(renderer, &viewport);
 }
-
 // Blit to screen
 bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* section, float speed, double angle, int pivotX, int pivotY, SDL_FlipMode flip, float drawScale) const
 {
@@ -141,8 +140,8 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 
 	// SDL3 uses float rects for rendering
 	SDL_FRect rect;
-	rect.x = (float)((int)(camera.x) + x * scale);
-	rect.y = (float)((int)(camera.y) + y * scale);
+	rect.x = (float)((int)(camera.x * speed) + x * scale);
+	rect.y = (float)((int)(camera.y * speed) + y * scale);
 
 	if (section != NULL)
 	{
