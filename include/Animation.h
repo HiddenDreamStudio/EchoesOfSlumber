@@ -19,6 +19,7 @@ public:
     void Update(float dt);
     const SDL_Rect& GetCurrentFrame() const;
     int GetFrameCount() const;
+    int GetCurrentFrameIndex() const;
 
 private:
     std::vector<AnimFrame> frames_;
@@ -38,6 +39,9 @@ public:
     bool LoadFromTSX(const char* tsxPath,
         const std::unordered_map<int, std::string>& aliases);
 
+    // Load all tiles as a sequential animation from a TSX with no <animation> nodes
+    bool LoadSequentialFromTSX(const char* tsxPath, const std::string& clipName, int frameDurationMs = 100);
+
     // manage animations
     void SetCurrent(const std::string& name);
     void ResetCurrent(); // Reset current animation to frame 0
@@ -49,6 +53,10 @@ public:
 
     void SetLoop(const std::string& name, bool loop);
     bool HasFinishedOnce(const std::string& name) const;
+    int GetCurrentFrameIndex() const;
+
+    int GetTileWidth() const { return tileW_; }
+    int GetTileHeight() const { return tileH_; }
 
 private:
     int tileW_ = 0, tileH_ = 0, columns_ = 0;

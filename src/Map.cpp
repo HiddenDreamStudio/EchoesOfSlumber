@@ -10,7 +10,6 @@
 #include "tracy/Tracy.hpp"
 
 #include <math.h>
-#include <algorithm>
 #include <sstream>
 
 Map::Map() : Module(), mapLoaded(false)
@@ -45,51 +44,35 @@ bool Map::Update(float dt)
 
     if (mapLoaded) {
 
-        Render* render = Engine::GetInstance().render.get();
-        int scale = Engine::GetInstance().window->GetScale();
-
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
                 Engine::GetInstance().render->DrawTexture(
                     imgLayer->texture,
-                    (int)imgLayer->offsetX,
-                    (int)imgLayer->offsetY
+                    static_cast<int>(imgLayer->offsetX),
+                    static_cast<int>(imgLayer->offsetY)
                 );
             }
         }
         for (const auto& deco : mapData.decorationObjects) {
-            if (deco->texture && !deco->isFront) {
-                // Posició en coordenades de món (Tiled usa l'origen a baix-esquerra per objectes gid)
-                float worldX = deco->x;
-                float worldY = deco->y - deco->height;
-
-                // Aplicar la càmera i l'escala de finestra (igual que DrawTexture)
-                SDL_FRect dst;
-                dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
-                dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
-                dst.w = deco->width * scale;
-                dst.h = deco->height * scale;
-
-                // En Tiled, l'origen de rotació dels objectes GID és per defecte a baix-esquerra
-                SDL_FPoint center;
-                center.x = 0.0f;
-                center.y = dst.h;
-
-                SDL_RenderTextureRotated(render->renderer, deco->texture, nullptr, &dst,
-                    deco->rotation, &center, SDL_FLIP_NONE);
+            if (deco->texture) {
+                int drawX = static_cast<int>(deco->x);
+                int drawY = static_cast<int>(deco->y - deco->height);
+                Engine::GetInstance().render->DrawTexture(deco->texture, drawX, drawY, nullptr, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 1.0f);
             }
         }
         // L07 TODO 5: Prepare the loop to draw all tiles in a layer + DrawTexture()
         // Calculate camera bounds in tiles
+        Render* render = Engine::GetInstance().render.get();
+        int scale = Engine::GetInstance().window->GetScale();
         float camX = -render->camera.x;
         float camY = -render->camera.y;
         float camW = (float)render->camera.w / scale;
         float camH = (float)render->camera.h / scale;
 
-        int startX = std::max(0, (int)(camX / mapData.tileWidth) - 2);
-        int startY = std::max(0, (int)(camY / mapData.tileHeight) - 2);
-        int endX = std::min(mapData.width, (int)((camX + camW) / mapData.tileWidth) + 2);
-        int endY = std::min(mapData.height, (int)((camY + camH) / mapData.tileHeight) + 2);
+        int startX = std::max(0, static_cast<int>(camX / static_cast<float>(mapData.tileWidth)) - 2);
+        int startY = std::max(0, static_cast<int>(camY / static_cast<float>(mapData.tileHeight)) - 2);
+        int endX = std::min(mapData.width, static_cast<int>((camX + camW) / static_cast<float>(mapData.tileWidth)) + 2);
+        int endY = std::min(mapData.height, static_cast<int>((camY + camH) / static_cast<float>(mapData.tileHeight)) + 2);
 
         // iterate all tiles in a layer that are visible to the camera
         for (const auto& mapLayer : mapData.layers) {
@@ -122,53 +105,24 @@ bool Map::Update(float dt)
     return ret;
 }
 
-// Called after Update, for foreground elements
-bool Map::PostUpdate()
-{
-    if (mapLoaded == false)
-        return true;
-
-    float scale = Engine::GetInstance().window->scale;
-
-    // Dibuixar les decoracions frontals per sobre de les entitats
-    for (const auto& deco : mapData.decorationObjects) {
-        if (deco->texture && deco->isFront) {
-            float worldX = deco->x;
-            float worldY = deco->y - deco->height;
-
-            SDL_FRect dst;
-            dst.x = (float)((int)(Engine::GetInstance().render->camera.x) + (int)worldX * scale);
-            dst.y = (float)((int)(Engine::GetInstance().render->camera.y) + (int)worldY * scale);
-            dst.w = deco->width * scale;
-            dst.h = deco->height * scale;
-
-            SDL_FPoint center;
-            center.x = 0.0f;
-            center.y = dst.h;
-
-            SDL_RenderTextureRotated(Engine::GetInstance().render->renderer, deco->texture, nullptr, &dst,
-                deco->rotation, &center, SDL_FLIP_NONE);
-        }
-    }
-
-    return true;
-}
-
 TileSet* Map::GetTilesetFromTileId(int gid) const
 {
     TileSet* bestMatch = nullptr;
 
-    // Suposem que mapData.tilesets està ordenat per firstGid (com sol venir al TMX)
     for (const auto& tileset : mapData.tilesets) {
         if (gid >= tileset->firstGid) {
-            bestMatch = tileset;
-        } else {
-            // Al primer tileset on firstGid > gid, parem
-            break;
+            if (bestMatch == nullptr || tileset->firstGid > bestMatch->firstGid) {
+                bestMatch = tileset;
+            }
         }
     }
 
-    return bestMatch;
+    // Verify if the gid actually belongs to the tileset (within its tile count range)
+    if (bestMatch && gid < bestMatch->firstGid + bestMatch->tileCount) {
+        return bestMatch;
+    }
+
+    return nullptr;
 }
 
 // Called before quitting
@@ -617,52 +571,32 @@ void Map::LoadImageLayers()
 
 void Map::LoadDecorationObjects()
 {
-    // Noms de capes que NO són decoració (entitats, col·lisions, navegació...)
-    const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation" };
-
     for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
         groupNode != NULL;
         groupNode = groupNode.next_sibling("objectgroup"))
     {
         std::string groupName = groupNode.attribute("name").as_string();
 
-        // Saltar capes reservades per entitats/col·lisions
-        bool skip = false;
-        for (const auto& excluded : excludedNames) {
-            if (groupName == excluded) { skip = true; break; }
-        }
-        if (skip) continue;
-
-        // Recollir tots els objectes d'aquesta capa en un vector temporal
-        // per poder-los ordenar per Y (topdown draw order del Tiled)
-        std::vector<DecorationObject*> layerDecos;
+        // Skip non-visual object layers
+        if (groupName == "Entities" || groupName == "Collisions" || groupName == "Navigation" || groupName == "Checkpoints")
+            continue;
 
         for (pugi::xml_node objNode = groupNode.child("object");
             objNode != NULL;
             objNode = objNode.next_sibling("object"))
         {
             unsigned int rawGid = objNode.attribute("gid").as_uint(0);
-            if (rawGid == 0) continue; // No és un objecte-sprite, saltar
+            if (rawGid == 0) continue;
 
-            // Tiled utilitza els bits més alts per flags de "flip" (horitzontal, vertical, diagonal)
-            // Hem de netejar aquests bits per trobar l'ID real del tile
-            const unsigned int FLIPPED_HORIZONTALLY_FLAG = 0x80000000;
-            const unsigned int FLIPPED_VERTICALLY_FLAG   = 0x40000000;
-            const unsigned int FLIPPED_DIAGONALLY_FLAG   = 0x20000000;
+            // Mask out flip bits to get the actual tile ID
+            int gid = rawGid & ~(0x80000000 | 0x40000000 | 0x20000000);
 
-            bool flipH = (rawGid & FLIPPED_HORIZONTALLY_FLAG);
-            bool flipV = (rawGid & FLIPPED_VERTICALLY_FLAG);
-            
-            // Netejar els bits de direcció per obtenir l'ID real
-            int gid = rawGid & ~(FLIPPED_HORIZONTALLY_FLAG | FLIPPED_VERTICALLY_FLAG | FLIPPED_DIAGONALLY_FLAG);
-
-            // Buscar el tileset corresponent al gid
             TileSet* ts = GetTilesetFromTileId(gid);
             if (ts == nullptr) continue;
 
             int relativeId = gid - ts->firstGid;
 
-            // Carregar la textura individual del tile si encara no s'ha carregat
+            // Load texture if not already cached in the tileset
             if (ts->tileTextures.find(relativeId) == ts->tileTextures.end())
             {
                 for (pugi::xml_node tsNode = mapFileXML.child("map").child("tileset");
@@ -695,34 +629,15 @@ void Map::LoadDecorationObjects()
             deco->y = objNode.attribute("y").as_float();
             deco->width = objNode.attribute("width").as_float();
             deco->height = objNode.attribute("height").as_float();
-            deco->rotation = objNode.attribute("rotation").as_double(0.0);
-            deco->isFront = (groupName == "Assets front");
+            deco->gid = gid;
             
-            // Guardar els flips (opcional, SDL_RenderTextureRotated ho suportaria si vols)
-            // de moment com a mínim tenim la rotació arreglada
+            // Note: If we wanted to handle flips/rotation we'd store rawGid/rotation here
+            // But user said "eso viene luego" for general world rendering.
 
             auto it = ts->tileTextures.find(relativeId);
             deco->texture = (it != ts->tileTextures.end()) ? it->second : nullptr;
 
-            layerDecos.push_back(deco);
-        }
-
-        // Tiled, per a "objectgroups" ortogonals per defecte pot usar top-down o index.
-        // TMX sovint utilitza l'ordre del fitxer si és "index", però per evitar
-        // trepitjar el que l'altre dia passava, de moment ho deixem amb la Y.
-        // Si cal l'ordre exacte de l'índex XML (Tiled draworder="index"), deixarem d'ordenar aquí.
-        // Efectivament, l'usuari s'ha queixat de l'ordre entre 160 i 203 que són EXACTAMENT en l'ordre XML,
-        // però per a TMX de Tiled objectgroups, Tiled DIBUIXA "TOP-DOWN" per defecte.
-        // Si en el joc es veu malament és només per LA BÀRBARA DESPROPORCIÓ dels Pivots.
-        std::sort(layerDecos.begin(), layerDecos.end(),
-            [](const DecorationObject* a, const DecorationObject* b) {
-                return a->y < b->y;
-            });
-
-        // Afegir a la llista principal mantenint l'ordre entre capes
-        for (auto* deco : layerDecos) {
             mapData.decorationObjects.push_back(deco);
         }
     }
 }
-
