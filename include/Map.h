@@ -55,6 +55,8 @@ struct MapLayer
     int height;
     std::vector<int> tiles;
     Properties properties;
+    float parallaxFactorX = 1.0f;
+    float parallaxFactorY = 1.0f;
 
     unsigned int Get(int i, int j) const
     {
@@ -98,6 +100,8 @@ struct ImageLayer
     float offsetY;
     std::string source;
     SDL_Texture* texture = nullptr;
+    float parallaxFactorX = 1.0f;
+    float parallaxFactorY = 1.0f;
 };
 
 struct DecorationObject
