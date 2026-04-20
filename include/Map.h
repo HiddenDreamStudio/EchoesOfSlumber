@@ -180,10 +180,10 @@ public:
 public:
     std::string mapFileName;
     std::string mapPath;
+    MapData mapData;
 
 private:
     bool mapLoaded;
-    MapData mapData;
     pugi::xml_document mapFileXML;
     //
     std::list<PhysBody*> colliderList;

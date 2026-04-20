@@ -6,6 +6,7 @@
 #include "Physics.h"
 #include "EntityManager.h"
 #include "Enemy.h"
+#include "Window.h"
 #include "tracy/Tracy.hpp"
 
 #include <math.h>
@@ -47,34 +48,44 @@ bool Map::Update(float dt)
             if (imgLayer->texture) {
                 Engine::GetInstance().render->DrawTexture(
                     imgLayer->texture,
-                    (int)imgLayer->offsetX,
-                    (int)imgLayer->offsetY
+                    static_cast<int>(imgLayer->offsetX),
+                    static_cast<int>(imgLayer->offsetY)
                 );
             }
         }
         for (const auto& deco : mapData.decorationObjects) {
             if (deco->texture) {
-                int drawX = (int)deco->x;
-                int drawY = (int)(deco->y - deco->height);
+                int drawX = static_cast<int>(deco->x);
+                int drawY = static_cast<int>(deco->y - deco->height);
                 Engine::GetInstance().render->DrawTexture(deco->texture, drawX, drawY, nullptr, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 1.0f);
             }
         }
         // L07 TODO 5: Prepare the loop to draw all tiles in a layer + DrawTexture()
-        // iterate all tiles in a layer
+        // Calculate camera bounds in tiles
+        Render* render = Engine::GetInstance().render.get();
+        int scale = Engine::GetInstance().window->GetScale();
+        float camX = -render->camera.x;
+        float camY = -render->camera.y;
+        float camW = (float)render->camera.w / scale;
+        float camH = (float)render->camera.h / scale;
+
+        int startX = std::max(0, static_cast<int>(camX / static_cast<float>(mapData.tileWidth)) - 2);
+        int startY = std::max(0, static_cast<int>(camY / static_cast<float>(mapData.tileHeight)) - 2);
+        int endX = std::min(mapData.width, static_cast<int>((camX + camW) / static_cast<float>(mapData.tileWidth)) + 2);
+        int endY = std::min(mapData.height, static_cast<int>((camY + camH) / static_cast<float>(mapData.tileHeight)) + 2);
+
+        // iterate all tiles in a layer that are visible to the camera
         for (const auto& mapLayer : mapData.layers) {
             //L09 TODO 7: Check if the property Draw exist get the value, if it's true draw the lawyer
             if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true) {
-                for (int i = 0; i < mapData.width; i++) {
-                    for (int j = 0; j < mapData.height; j++) {
-
-                        // L07 TODO 9: Complete the draw function
+                for (int i = startX; i < endX; i++) {
+                    for (int j = startY; j < endY; j++) {
 
                         //Get the gid from tile
                         int gid = mapLayer->Get(i, j);
 
                         //Check if the gid is different from 0 - some tiles are empty
                         if (gid != 0) {
-                            //L09: TODO 3: Obtain the tile set using GetTilesetFromTileId
                             TileSet* tileSet = GetTilesetFromTileId(gid);
                             if (tileSet != nullptr) {
                                 //Get the Rect from the tileSetTexture;
@@ -82,7 +93,7 @@ bool Map::Update(float dt)
                                 //Get the screen coordinates from the tile coordinates
                                 Vector2D mapCoord = MapToWorld(i, j);
                                 //Draw the texture
-                                Engine::GetInstance().render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect);
+                                render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect);
                             }
                         }
                     }
@@ -94,17 +105,24 @@ bool Map::Update(float dt)
     return ret;
 }
 
-// L09: TODO 2: Implement function to the Tileset based on a tile id
 TileSet* Map::GetTilesetFromTileId(int gid) const
 {
-    TileSet* set = nullptr;
+    TileSet* bestMatch = nullptr;
+
     for (const auto& tileset : mapData.tilesets) {
-        set = tileset;
-        if (gid >= tileset->firstGid && gid < tileset->firstGid + tileset->tileCount) {
-            break;
+        if (gid >= tileset->firstGid) {
+            if (bestMatch == nullptr || tileset->firstGid > bestMatch->firstGid) {
+                bestMatch = tileset;
+            }
         }
     }
-    return set;
+
+    // Verify if the gid actually belongs to the tileset (within its tile count range)
+    if (bestMatch && gid < bestMatch->firstGid + bestMatch->tileCount) {
+        return bestMatch;
+    }
+
+    return nullptr;
 }
 
 // Called before quitting
@@ -385,23 +403,6 @@ bool Map::Load(std::string path, std::string fileName)
         if (ret == true)
         {
             LOG("Successfully parsed map XML file :%s", fileName.c_str());
-            LOG("width : %d height : %d", mapData.width, mapData.height);
-            LOG("tile_width : %d tile_height : %d", mapData.tileWidth, mapData.tileHeight);
-            LOG("Tilesets----");
-
-            //iterate the tilesets
-            for (const auto& tileset : mapData.tilesets) {
-                LOG("name : %s firstgid : %d", tileset->name.c_str(), tileset->firstGid);
-                LOG("tile width : %d tile height : %d", tileset->tileWidth, tileset->tileHeight);
-                LOG("spacing : %d margin : %d", tileset->spacing, tileset->margin);
-            }
-
-            LOG("Layers----");
-
-            for (const auto& layer : mapData.layers) {
-                LOG("id : %d name : %s", layer->id, layer->name.c_str());
-                LOG("Layer width : %d Layer height : %d", layer->width, layer->height);
-            }
         }
         else {
             LOG("Error while parsing map file: %s", mapPathName.c_str());
@@ -564,7 +565,6 @@ void Map::LoadImageLayers()
         imgLayer->texture = Engine::GetInstance().textures->Load(fullPath.c_str());
 
         mapData.imageLayers.push_back(imgLayer);
-        LOG("ImageLayer loaded: %s", imgLayer->name.c_str());
     }
 }
 
@@ -575,26 +575,30 @@ void Map::LoadDecorationObjects()
         groupNode != NULL;
         groupNode = groupNode.next_sibling("objectgroup"))
     {
-        if (groupNode.attribute("name").as_string() != std::string("Decoracion"))
+        std::string groupName = groupNode.attribute("name").as_string();
+
+        // Skip non-visual object layers
+        if (groupName == "Entities" || groupName == "Collisions" || groupName == "Navigation" || groupName == "Checkpoints")
             continue;
 
         for (pugi::xml_node objNode = groupNode.child("object");
             objNode != NULL;
             objNode = objNode.next_sibling("object"))
         {
-            int gid = objNode.attribute("gid").as_int(0);
-            if (gid == 0) continue; 
+            unsigned int rawGid = objNode.attribute("gid").as_uint(0);
+            if (rawGid == 0) continue;
 
-          
+            // Mask out flip bits to get the actual tile ID
+            int gid = rawGid & ~(0x80000000 | 0x40000000 | 0x20000000);
+
             TileSet* ts = GetTilesetFromTileId(gid);
             if (ts == nullptr) continue;
 
-            int relativeId = gid - ts->firstGid; 
+            int relativeId = gid - ts->firstGid;
 
-           
+            // Load texture if not already cached in the tileset
             if (ts->tileTextures.find(relativeId) == ts->tileTextures.end())
             {
-             
                 for (pugi::xml_node tsNode = mapFileXML.child("map").child("tileset");
                     tsNode != NULL;
                     tsNode = tsNode.next_sibling("tileset"))
@@ -613,7 +617,6 @@ void Map::LoadDecorationObjects()
                             std::string fullPath = mapPath + imgSrc;
                             SDL_Texture* tex = Engine::GetInstance().textures->Load(fullPath.c_str());
                             ts->tileTextures[relativeId] = tex;
-                            LOG("DecorationSprite loaded: id=%d path=%s", relativeId, fullPath.c_str());
                         }
                         break;
                     }
@@ -627,15 +630,14 @@ void Map::LoadDecorationObjects()
             deco->width = objNode.attribute("width").as_float();
             deco->height = objNode.attribute("height").as_float();
             deco->gid = gid;
+            
+            // Note: If we wanted to handle flips/rotation we'd store rawGid/rotation here
+            // But user said "eso viene luego" for general world rendering.
 
             auto it = ts->tileTextures.find(relativeId);
             deco->texture = (it != ts->tileTextures.end()) ? it->second : nullptr;
 
             mapData.decorationObjects.push_back(deco);
         }
-
-        break; 
     }
-
-    LOG("DecorationObjects loaded: %d sprites", (int)mapData.decorationObjects.size());
 }
