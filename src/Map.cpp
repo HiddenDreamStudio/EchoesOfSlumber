@@ -10,6 +10,7 @@
 #include "tracy/Tracy.hpp"
 
 #include <math.h>
+#include <algorithm>
 #include <sstream>
 
 Map::Map() : Module(), mapLoaded(false)
@@ -44,6 +45,9 @@ bool Map::Update(float dt)
 
     if (mapLoaded) {
 
+        Render* render = Engine::GetInstance().render.get();
+        int scale = Engine::GetInstance().window->GetScale();
+
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
                 Engine::GetInstance().render->DrawTexture(
@@ -54,16 +58,29 @@ bool Map::Update(float dt)
             }
         }
         for (const auto& deco : mapData.decorationObjects) {
-            if (deco->texture) {
-                int drawX = static_cast<int>(deco->x);
-                int drawY = static_cast<int>(deco->y - deco->height);
-                Engine::GetInstance().render->DrawTexture(deco->texture, drawX, drawY, nullptr, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 1.0f);
+            if (deco->texture && !deco->isFront) {
+                // Posició en coordenades de món (Tiled usa l'origen a baix-esquerra per objectes gid)
+                float worldX = deco->x;
+                float worldY = deco->y - deco->height;
+
+                // Aplicar la càmera i l'escala de finestra (igual que DrawTexture)
+                SDL_FRect dst;
+                dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
+                dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
+                dst.w = deco->width * scale;
+                dst.h = deco->height * scale;
+
+                // En Tiled, l'origen de rotació dels objectes GID és per defecte a baix-esquerra
+                SDL_FPoint center;
+                center.x = 0.0f;
+                center.y = dst.h;
+
+                SDL_RenderTextureRotated(render->renderer, deco->texture, nullptr, &dst,
+                    deco->rotation, &center, SDL_FLIP_NONE);
             }
         }
-        // L07 TODO 5: Prepare the loop to draw all tiles in a layer + DrawTexture()
+        
         // Calculate camera bounds in tiles
-        Render* render = Engine::GetInstance().render.get();
-        int scale = Engine::GetInstance().window->GetScale();
         float camX = -render->camera.x;
         float camY = -render->camera.y;
         float camW = (float)render->camera.w / scale;
@@ -76,7 +93,6 @@ bool Map::Update(float dt)
 
         // iterate all tiles in a layer that are visible to the camera
         for (const auto& mapLayer : mapData.layers) {
-            //L09 TODO 7: Check if the property Draw exist get the value, if it's true draw the lawyer
             if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true) {
                 for (int i = startX; i < endX; i++) {
                     for (int j = startY; j < endY; j++) {
@@ -105,6 +121,38 @@ bool Map::Update(float dt)
     return ret;
 }
 
+// Called after Update, for foreground elements
+bool Map::PostUpdate()
+{
+    if (mapLoaded == false)
+        return true;
+
+    float scale = (float)Engine::GetInstance().window->GetScale();
+
+    // Dibuixar les decoracions frontals per sobre de les entitats
+    for (const auto& deco : mapData.decorationObjects) {
+        if (deco->texture && deco->isFront) {
+            float worldX = deco->x;
+            float worldY = deco->y - deco->height;
+
+            SDL_FRect dst;
+            dst.x = (float)((int)(Engine::GetInstance().render->camera.x) + (int)worldX * scale);
+            dst.y = (float)((int)(Engine::GetInstance().render->camera.y) + (int)worldY * scale);
+            dst.w = deco->width * scale;
+            dst.h = deco->height * scale;
+
+            SDL_FPoint center;
+            center.x = 0.0f;
+            center.y = dst.h;
+
+            SDL_RenderTextureRotated(Engine::GetInstance().render->renderer, deco->texture, nullptr, &dst,
+                deco->rotation, &center, SDL_FLIP_NONE);
+        }
+    }
+
+    return true;
+}
+
 TileSet* Map::GetTilesetFromTileId(int gid) const
 {
     TileSet* bestMatch = nullptr;
@@ -117,7 +165,7 @@ TileSet* Map::GetTilesetFromTileId(int gid) const
         }
     }
 
-    // Verify if the gid actually belongs to the tileset (within its tile count range)
+    // Verificar si el gid realment pertany al tileset (dins del seu rang de tileCount)
     if (bestMatch && gid < bestMatch->firstGid + bestMatch->tileCount) {
         return bestMatch;
     }
@@ -130,7 +178,6 @@ bool Map::CleanUp()
 {
     LOG("Unloading map");
 
-    // L06: TODO 2: Make sure you clean up any memory allocated from tilesets/map
     for (const auto& tileset : mapData.tilesets) {
         if (tileset->texture) {
             Engine::GetInstance().textures->UnLoad(tileset->texture);
@@ -139,7 +186,6 @@ bool Map::CleanUp()
     }
     mapData.tilesets.clear();
 
-    // L07 TODO 2: clean up all layer data
     for (const auto& layer : mapData.layers)
     {
         delete layer;
@@ -177,7 +223,6 @@ bool Map::Load(std::string path, std::string fileName)
     mapPath = path;
     std::string mapPathName = mapPath + mapFileName;
 
-    //L15 TODO 2: make mapFileXML an attribute of the Map class
     pugi::xml_parse_result result = mapFileXML.load_file(mapPathName.c_str());
 
     if (result == NULL)
@@ -187,14 +232,10 @@ bool Map::Load(std::string path, std::string fileName)
     }
     else {
 
-        // L06: TODO 3: Implement LoadMap to load the map properties
-        // retrieve the paremeters of the <map> node and store the into the mapData struct
         mapData.width = mapFileXML.child("map").attribute("width").as_int();
         mapData.height = mapFileXML.child("map").attribute("height").as_int();
         mapData.tileWidth = mapFileXML.child("map").attribute("tilewidth").as_int();
         mapData.tileHeight = mapFileXML.child("map").attribute("tileheight").as_int();
-
-        // L06: TODO 4: Implement the LoadTileSet function to load the tileset properties
 
         //Iterate the Tileset
         for (pugi::xml_node tilesetNode = mapFileXML.child("map").child("tileset"); tilesetNode != NULL; tilesetNode = tilesetNode.next_sibling("tileset"))
@@ -230,8 +271,6 @@ bool Map::Load(std::string path, std::string fileName)
                         col.y = objectNode.attribute("y").as_float(0.0f);
                         col.width = objectNode.attribute("width").as_float(0.0f);
                         col.height = objectNode.attribute("height").as_float(0.0f);
-
-
                         
                         pugi::xml_node polyNode = objectNode.child("polygon");
                         if (polyNode != NULL) {
@@ -259,39 +298,26 @@ bool Map::Load(std::string path, std::string fileName)
             mapData.tilesets.push_back(tileSet);
         }
 
-        // L07: TODO 3: Iterate all layers in the TMX and load each of them
         for (pugi::xml_node layerNode = mapFileXML.child("map").child("layer"); layerNode != NULL; layerNode = layerNode.next_sibling("layer")) {
 
-            // L07: TODO 4: Implement the load of a single layer 
-            //Load the attributes and saved in a new MapLayer
             MapLayer* mapLayer = new MapLayer();
             mapLayer->id = layerNode.attribute("id").as_int();
             mapLayer->name = layerNode.attribute("name").as_string();
             mapLayer->width = layerNode.attribute("width").as_int();
             mapLayer->height = layerNode.attribute("height").as_int();
 
-            //L09: TODO 6 Call Load Layer Properties
             LoadProperties(layerNode, mapLayer->properties);
 
-            //Iterate over all the tiles and assign the values in the data array
             for (pugi::xml_node tileNode = layerNode.child("data").child("tile"); tileNode != NULL; tileNode = tileNode.next_sibling("tile")) {
                 mapLayer->tiles.push_back(tileNode.attribute("gid").as_int());
             }
 
-            //add the layer to the map
             mapData.layers.push_back(mapLayer);
         }
 
-        // L08 TODO 3: Create colliders
-        // L08 TODO 7: Assign collider type
-        // Optimized with greedy meshing: merge rectangular colliders both horizontally and vertically
-
         for (const auto& mapLayer : mapData.layers) {
-            // Skip the old Collisions metadata layer
             if (mapLayer->name == "Collisions") continue;
 
-            // First pass: create polygon colliders individually (can't merge these)
-            // and build a grid marking tiles that need rectangular colliders
             std::vector<bool> hasRectCollider(mapData.width * mapData.height, false);
 
             for (int j = 0; j < mapData.height; j++) {
@@ -308,7 +334,6 @@ bool Map::Load(std::string path, std::string fileName)
 
                     for (const auto& col : it->second) {
                         if (col.polygonPoints.size() > 0) {
-                            // Polygon: create individually
                             Vector2D mapCoord = MapToWorld(i, j);
                             int numVerts = (int)col.polygonPoints.size() / 2;
                             PhysBody* c1 = nullptr;
@@ -332,14 +357,12 @@ bool Map::Load(std::string path, std::string fileName)
                                 colliderList.push_back(c1);
                             }
                         } else {
-                            // Mark for rectangle merging
                             hasRectCollider[j * mapData.width + i] = true;
                         }
                     }
                 }
             }
 
-            // Second pass: greedy mesh to merge rectangles
             std::vector<bool> visited(mapData.width * mapData.height, false);
 
             for (int j = 0; j < mapData.height; j++) {
@@ -347,7 +370,6 @@ bool Map::Load(std::string path, std::string fileName)
                     if (!hasRectCollider[j * mapData.width + i]) continue;
                     if (visited[j * mapData.width + i]) continue;
 
-                    // Extend right as far as possible
                     int w = 1;
                     while (i + w < mapData.width &&
                         hasRectCollider[j * mapData.width + (i + w)] &&
@@ -355,7 +377,6 @@ bool Map::Load(std::string path, std::string fileName)
                         w++;
                     }
 
-                    // Extend down as far as possible for the full width
                     int h = 1;
                     bool canExtend = true;
                     while (j + h < mapData.height && canExtend) {
@@ -369,14 +390,12 @@ bool Map::Load(std::string path, std::string fileName)
                         if (canExtend) h++;
                     }
 
-                    // Mark all tiles in this merged rect as visited
                     for (int jj = 0; jj < h; jj++) {
                         for (int ii = 0; ii < w; ii++) {
                             visited[(j + jj) * mapData.width + (i + ii)] = true;
                         }
                     }
 
-                    // Create one large rectangle collider
                     float px = (float)(i * mapData.tileWidth);
                     float py = (float)(j * mapData.tileHeight);
                     float totalW = (float)(w * mapData.tileWidth);
@@ -399,7 +418,6 @@ bool Map::Load(std::string path, std::string fileName)
 
         ret = true;
 
-        // L06: TODO 5: LOG all the data loaded iterate all tilesetsand LOG everything
         if (ret == true)
         {
             LOG("Successfully parsed map XML file :%s", fileName.c_str());
@@ -408,15 +426,12 @@ bool Map::Load(std::string path, std::string fileName)
             LOG("Error while parsing map file: %s", mapPathName.c_str());
         }
 
-        //L15 TODO 2: Remove mapFileXML.reset(); we want keep a reference to the XML
-
     }
 
     mapLoaded = ret;
     return ret;
 }
 
-// L07: TODO 8: Create a method that translates x,y coordinates from map positions to world positions
 Vector2D Map::MapToWorld(int x, int y) const
 {
     Vector2D ret;
@@ -436,7 +451,6 @@ Vector2D Map::WorldToMap(int x, int y) {
     return ret;
 }
 
-// L09: TODO 6: Load a group of properties from a node and fill a list with it
 bool Map::LoadProperties(pugi::xml_node& node, Properties& properties)
 {
     bool ret = false;
@@ -453,7 +467,6 @@ bool Map::LoadProperties(pugi::xml_node& node, Properties& properties)
     return ret;
 }
 
-// L10: TODO 7: Create a method to get the map size in pixels
 Vector2D Map::GetMapSizeInPixels()
 {
     Vector2D sizeInPixels;
@@ -467,7 +480,6 @@ Vector2D Map::GetMapSizeInTiles()
     return Vector2D((float)mapData.width, (float)mapData.height);
 }
 
-// Method to get the navigation layer from the map
 MapLayer* Map::GetNavigationLayer() {
     for (const auto& layer : mapData.layers) {
         if (layer->properties.GetProperty("Navigation") != NULL &&
@@ -479,32 +491,24 @@ MapLayer* Map::GetNavigationLayer() {
     return nullptr;
 }
 
-//L15 TODO 2: Define a method to load entities from the map XML
 void Map::LoadEntities(std::shared_ptr<Player>& player) {
 
-    //Iterate the object groups
     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
-        //Check if the object group is "Entities"
         if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
 
-            //Iterate the objects
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
 
-                //Get the entity type and position
                 std::string entityType = objectNode.attribute("type").as_string();
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
 
-                // Create entity based on type
                 if (entityType == "Player") {
-                    // Create Player entity
                     if (player == nullptr) {
                         player = std::dynamic_pointer_cast<Player>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
                         player->position = Vector2D(x + 32, y + 32);
-                        player->Start(); //L17: Importan to call Start to initialize teh Entity
+                        player->Start();
                         LOG("Player spawned at: %f, %f", x, y);
                     }
-                    //If the player already exists, just set its position
                     else {
                         player->SetPosition(Vector2D(x, y));
                     }
@@ -520,21 +524,15 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
     }
 }
 
-//L15 TODO 4: Define a method to save entities to the map XML
 void Map::SaveEntities(std::shared_ptr<Player> player) {
 
-    //Iterate the object groups
     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
 
-        //Check if the object group is "Entities"
         if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
 
-            //Iterate the objects
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
                 std::string entityType = objectNode.attribute("type").as_string();
-                // Modify entity based on type
                 if (entityType == "Player") {
-                    // Modify the Player entity values
                     Vector2D playerPos = player->GetPosition();
                     objectNode.attribute("x").set_value(playerPos.getX());
                     objectNode.attribute("y").set_value(playerPos.getY());
@@ -543,7 +541,6 @@ void Map::SaveEntities(std::shared_ptr<Player> player) {
         }
     }
 
-    //Important: save the modifications to the XML 
     std::string mapPathName = mapPath + mapFileName;
     mapFileXML.save_file(mapPathName.c_str());
 
@@ -571,32 +568,40 @@ void Map::LoadImageLayers()
 
 void Map::LoadDecorationObjects()
 {
+    const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoints" };
+
     for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
         groupNode != NULL;
         groupNode = groupNode.next_sibling("objectgroup"))
     {
         std::string groupName = groupNode.attribute("name").as_string();
 
-        // Skip non-visual object layers
-        if (groupName == "Entities" || groupName == "Collisions" || groupName == "Navigation" || groupName == "Checkpoints")
-            continue;
+        bool skip = false;
+        for (const auto& excluded : excludedNames) {
+            if (groupName == excluded) { skip = true; break; }
+        }
+        if (skip) continue;
+
+        std::vector<DecorationObject*> layerDecos;
 
         for (pugi::xml_node objNode = groupNode.child("object");
             objNode != NULL;
             objNode = objNode.next_sibling("object"))
         {
             unsigned int rawGid = objNode.attribute("gid").as_uint(0);
-            if (rawGid == 0) continue;
+            if (rawGid == 0) continue; 
 
-            // Mask out flip bits to get the actual tile ID
-            int gid = rawGid & ~(0x80000000 | 0x40000000 | 0x20000000);
+            const unsigned int FLIPPED_HORIZONTALLY_FLAG = 0x80000000;
+            const unsigned int FLIPPED_VERTICALLY_FLAG   = 0x40000000;
+            const unsigned int FLIPPED_DIAGONALLY_FLAG   = 0x20000000;
+
+            int gid = rawGid & ~(FLIPPED_HORIZONTALLY_FLAG | FLIPPED_VERTICALLY_FLAG | FLIPPED_DIAGONALLY_FLAG);
 
             TileSet* ts = GetTilesetFromTileId(gid);
             if (ts == nullptr) continue;
 
             int relativeId = gid - ts->firstGid;
 
-            // Load texture if not already cached in the tileset
             if (ts->tileTextures.find(relativeId) == ts->tileTextures.end())
             {
                 for (pugi::xml_node tsNode = mapFileXML.child("map").child("tileset");
@@ -629,14 +634,22 @@ void Map::LoadDecorationObjects()
             deco->y = objNode.attribute("y").as_float();
             deco->width = objNode.attribute("width").as_float();
             deco->height = objNode.attribute("height").as_float();
+            deco->rotation = objNode.attribute("rotation").as_double(0.0);
+            deco->isFront = (groupName == "Assets front");
             deco->gid = gid;
-            
-            // Note: If we wanted to handle flips/rotation we'd store rawGid/rotation here
-            // But user said "eso viene luego" for general world rendering.
 
             auto it = ts->tileTextures.find(relativeId);
             deco->texture = (it != ts->tileTextures.end()) ? it->second : nullptr;
 
+            layerDecos.push_back(deco);
+        }
+
+        std::sort(layerDecos.begin(), layerDecos.end(),
+            [](const DecorationObject* a, const DecorationObject* b) {
+                return a->y < b->y;
+            });
+
+        for (auto* deco : layerDecos) {
             mapData.decorationObjects.push_back(deco);
         }
     }

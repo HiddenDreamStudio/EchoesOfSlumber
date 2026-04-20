@@ -38,7 +38,7 @@ bool Player::Start() {
 		{28, "run"},
 		{42, "jump"},
 		{56, "hide"},
-		{81, "damage"},
+		{70, "damage"}, // Index ajustat per l'usuari (anteriorment 81)
 		{84, "death"}
 	};
 	anims.LoadFromTSX("assets/textures/animations/protagonistAnimation.xml", aliases);
@@ -93,12 +93,15 @@ bool Player::Update(float dt)
 
 	if (!isDead_ && !isWakingUp && !isClimbing_)
 	{
-		Dash(dt);
-		if (!isDashing_) Move();
-		Jump();
-		CheckLedge();
-		Attack(dt);
-		Teleport();
+		// No canviar estat si estem mostrant l'animació de dany
+		if (!isShowingDamageAnim_) {
+			Dash(dt);
+			if (!isDashing_) Move();
+			Jump();
+			CheckLedge();
+			Attack(dt);
+			Teleport();
+		}
 	}
 
 	if (isClimbing_) UpdateClimb(dt);
@@ -125,7 +128,7 @@ void Player::GetPhysicsValues() {
 }
 
 void Player::Move() {
-	if (isWakingUp) return;
+	if (isWakingUp || isShowingDamageAnim_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
 		velocity.x = -speed;
@@ -157,7 +160,7 @@ void Player::Move() {
 	}
 	else if (!isJumping) {
 		if (anims.GetCurrentName() == "jump" && !anims.HasFinishedOnce("jump")) {
-			// Let the landing animation finish
+			// Deixar que l'animació d'aterratge finalitzi
 		}
 		else {
 			anims.SetCurrent("idle");
@@ -166,7 +169,7 @@ void Player::Move() {
 }
 
 void Player::Jump() {
-	if (isWakingUp || isDashing_) return;
+	if (isWakingUp || isDashing_ || isShowingDamageAnim_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
 		if (!isJumping) {
@@ -426,6 +429,32 @@ void Player::TakeDamage(int damage)
 	iFrameTimer_  = IFRAME_DURATION;
 	damageFlashTimer_ = DAMAGE_FLASH_DURATION;
 
+	// Girar el personatge cap a l'enemic que ha causat el dany
+	int playerX, playerY;
+	pbody->GetPosition(playerX, playerY);
+
+	float closestDist = 999999.0f;
+	float enemyDirX = 0.0f;
+	for (const auto& entity : Engine::GetInstance().entityManager->entities) {
+		if (entity->type == EntityType::ENEMY && entity->active) {
+			float dx = entity->position.getX() - (float)playerX;
+			float dy = entity->position.getY() - (float)playerY;
+			float dist = dx * dx + dy * dy;
+			if (dist < closestDist) {
+				closestDist = dist;
+				enemyDirX = dx;
+			}
+		}
+	}
+
+	// Si l'enemic és a l'esquerra, mirar a l'esquerra (facingRight=true)
+	// Si l'enemic és a la dreta, mirar a la dreta (facingRight=false)
+	if (enemyDirX < 0) {
+		facingRight = true;  // Enemic a l'esquerra -> mirar esquerra
+	} else if (enemyDirX > 0) {
+		facingRight = false; // Enemic a la dreta -> mirar dreta
+	}
+
 	float knockbackForce = 5.0f;
 	float dir = facingRight ? 1.0f : -1.0f; 
 	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
@@ -486,9 +515,11 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 	{
 	case ColliderType::PLATFORM:
 	{
+		// Només resetejar el salt quan s'aterra sobre una plataforma, no al col·lidir amb sostre o paret
 		int playerX, playerY, platX, platY;
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(platX, platY);
+		// El centre del jugador ha d'estar per sobre del centre de la plataforma per comptar com aterratge
 		if (playerY < platY) {
 			isJumping = false;
 			canDoubleJump = false;
@@ -531,7 +562,7 @@ void Player::CheckLedge() {
 	int dir = facingRight ? -1 : 1;
 
 	int bodyRayStartX = px;
-	int bodyRayStartY = py - LEDGE_RAY_MARGIN; // Use margin from header
+	int bodyRayStartY = py - LEDGE_RAY_MARGIN; // Usar el marge de la capçalera
 	int bodyRayEndX   = px + dir * LEDGE_RAY_REACH;
 	int bodyRayEndY   = bodyRayStartY;
 
