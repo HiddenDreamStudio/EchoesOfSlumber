@@ -17,26 +17,29 @@ UIButton::~UIButton() {}
 
 bool UIButton::Update(float dt)
 {
-	if (state == UIElementState::DISABLED) return false;
+	if (!isVisible) return false;
 
-	Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
-
-	bool hovered = (mousePos.getX() > bounds.x &&
-		mousePos.getX() < bounds.x + bounds.w &&
-		mousePos.getY() > bounds.y &&
-		mousePos.getY() < bounds.y + bounds.h);
-
-	if (hovered)
+	if (state != UIElementState::DISABLED)
 	{
-		state = UIElementState::FOCUSED;
-		if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT)
-			state = UIElementState::PRESSED;
-		if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_UP)
-			NotifyObserver();
-	}
-	else
-	{
-		state = UIElementState::NORMAL;
+		Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
+
+		bool hovered = (mousePos.getX() > (float)bounds.x &&
+			mousePos.getX() < (float)bounds.x + (float)bounds.w &&
+			mousePos.getY() > (float)bounds.y &&
+			mousePos.getY() < (float)bounds.y + (float)bounds.h);
+
+		if (hovered)
+		{
+			state = UIElementState::FOCUSED;
+			if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT)
+				state = UIElementState::PRESSED;
+			if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_UP)
+				NotifyObserver();
+		}
+		else
+		{
+			state = UIElementState::NORMAL;
+		}
 	}
 
 	// Vertical centre: font is 25px tall
@@ -72,9 +75,9 @@ bool UIButton::Update(float dt)
 			? (Uint8)(120 * alphaMod)
 			: (Uint8)((isHovered ? 255 : 230) * alphaMod);
 
-		// ?? MODO HOVER-TEXTURE (botones blanco/negro del pause menu) ??????????
-		// Si el bot�n tiene hoverTexture asignada, hace swap de textura completo.
-		// El color del texto cambia seg�n qu� textura est� activa.
+		// ── MODO HOVER-TEXTURE (botones blanco/negro del pause menu) ───────────
+		// Si el botón tiene hoverTexture asignada, hace swap de textura completo.
+		// El color del texto cambia según qué textura esté activa.
 		if (hoverTexture)
 		{
 			SDL_Texture* activeTex = isHovered ? hoverTexture : texture;
@@ -83,7 +86,7 @@ bool UIButton::Update(float dt)
 				renderBounds.w, renderBounds.h,
 				alpha);
 
-			// Texto oscuro sobre bot�n blanco, texto claro sobre bot�n negro
+			// Texto oscuro sobre botón blanco, texto claro sobre botón negro
 			SDL_Color textColor = isHovered
 				? SDL_Color{ 230, 220, 200, (Uint8)(255 * alphaMod) }
 			: SDL_Color{ 30,  25,  20, (Uint8)(255 * alphaMod) };
@@ -92,7 +95,7 @@ bool UIButton::Update(float dt)
 			textBounds.y += (int)(5 * scaleH);
 			render.DrawMenuTextCentered(text.c_str(), textBounds, textColor);
 		}
-		// ?? MODO ORIGINAL (main menu: tinte de color sobre la misma textura) ?
+		// ── MODO ORIGINAL (main menu: tinte de color sobre la misma textura) ──
 		else
 		{
 			// Interpolar tinte de textura: blanco (normal) -> oscuro (hover)
@@ -119,7 +122,7 @@ bool UIButton::Update(float dt)
 		}
 	}
 	else {
-		// ?? Renderizado por defecto con rect�ngulos (sin textura) ?????????????
+		// ── Renderizado por defecto con rectángulos (sin textura) ──────────────
 		SDL_Rect shadow = { bounds.x + 3, bounds.y + 3, bounds.w, bounds.h };
 
 		switch (state)

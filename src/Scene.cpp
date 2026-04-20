@@ -199,12 +199,12 @@ void Scene::LoadMainMenu()
 
 	const int leftHalf = winW / 2;
 	const int logoW = 385;
-	const int logoH = (int)(logoW * (569.0f / 1559.0f));
+	const int logoH = static_cast<int>(static_cast<float>(logoW) * (569.0f / 1559.0f));
 	const int logoX = (leftHalf - logoW) / 2;
 	const int logoY = winH / 4 - logoH / 2;
 
 	const int btnW = 315;
-	const int btnH = (int)(btnW * (130.0f / 456.0f));
+	const int btnH = static_cast<int>(static_cast<float>(btnW) * (130.0f / 456.0f));
 	const int btnX = (leftHalf - btnW) / 2;
 	const int startY = logoY + logoH + 50;
 	const int gap = btnH + 15;
@@ -220,9 +220,9 @@ void Scene::LoadMainMenu()
 	btnSettings_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS, "options", settingsPos, this);
 	btnExit_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_EXIT, "exit", exitPos, this);
 
-	if (btnPlay_)     btnPlay_->alphaMod = 0.0f;
-	if (btnSettings_) btnSettings_->alphaMod = 0.0f;
-	if (btnExit_)     btnExit_->alphaMod = 0.0f;
+	if (btnPlay_) { btnPlay_->alphaMod = 0.0f; btnPlay_->isVisible = false; }
+	if (btnSettings_) { btnSettings_->alphaMod = 0.0f; btnSettings_->isVisible = false; }
+	if (btnExit_) { btnExit_->alphaMod = 0.0f; btnExit_->isVisible = false; }
 
 	if (texMenuButton_) {
 		btnPlay_->SetTexture(texMenuButton_);
@@ -245,8 +245,8 @@ void Scene::LoadMainMenu()
 
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_MUSIC_UP, "+", musicUpPos, this);
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_MUSIC_DOWN, "-", musicDownPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_UP, "+", sfxUpPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_DOWN, "-", sfxDownPos, this);
+	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_UP, "+", sUpPos, this);
+	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_DOWN, "-", sDownPos, this);
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS_BACK, "back", backPos, this);
 
 	SetSettingsPanelVisible(false);
@@ -275,10 +275,10 @@ void Scene::UpdateMainMenu(float dt)
 
 		auto finishCinematic = [&]() {
 			menuAnimState_ = MenuAnimState::IDLE;
-			if (btnPlay_)     btnPlay_->alphaMod = 1.0f;
-			if (btnSettings_) btnSettings_->alphaMod = 1.0f;
-			if (btnExit_)     btnExit_->alphaMod = 1.0f;
-			};
+			if (btnPlay_) { btnPlay_->alphaMod = 1.0f; btnPlay_->isVisible = true; }
+			if (btnSettings_) { btnSettings_->alphaMod = 1.0f; btnSettings_->isVisible = true; }
+			if (btnExit_) { btnExit_->alphaMod = 1.0f; btnExit_->isVisible = true; }
+		};
 
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
 			Engine::GetInstance().input->GetKey(SDL_SCANCODE_RETURN) == KEY_DOWN ||
@@ -311,12 +311,12 @@ void Scene::PostUpdateMainMenu()
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
 	int childH = winH - 20;
-	int childW = (int)(childH * (1421.0f / 913.0f));
+	int childW = static_cast<int>(static_cast<float>(childH) * (1421.0f / 913.0f));
 	int childDestX = winW - childW;
 
 	const int leftHalf = winW / 2;
 	int logoW = 385;
-	int logoH = (int)(logoW * (569.0f / 1559.0f));
+	int logoH = static_cast<int>(static_cast<float>(logoW) * (569.0f / 1559.0f));
 	int logoDestX = (leftHalf - logoW) / 2;
 	int logoDestY = winH / 4 - logoH / 2;
 
@@ -337,9 +337,9 @@ void Scene::PostUpdateMainMenu()
 		case MenuAnimState::LOGO_FADE_IN:
 			t = menuAnimTimer_ / 1500.0f;
 			if (t > 1.0f) t = 1.0f;
-			bgR = (int)(21 * t);
-			bgG = (int)(31 * t);
-			bgB = (int)(32 * t);
+			bgR = static_cast<int>(21.0f * t);
+			bgG = static_cast<int>(31.0f * t);
+			bgB = static_cast<int>(32.0f * t);
 			renderLogoX = winW / 2 - logoW / 2;
 			renderLogoY = winH / 2 - logoH / 2;
 			renderChildX = winW;
@@ -355,8 +355,8 @@ void Scene::PostUpdateMainMenu()
 			t = menuAnimTimer_ / 1500.0f;
 			if (t > 1.0f) t = 1.0f;
 			t = 1.0f - (float)pow(1.0f - t, 3.0f);
-			renderLogoX = (int)((winW / 2 - logoW / 2) + ((logoDestX)-(winW / 2 - logoW / 2)) * t);
-			renderLogoY = (int)((winH / 2 - logoH / 2) + ((logoDestY)-(winH / 2 - logoH / 2)) * t);
+			renderLogoX = static_cast<int>((static_cast<float>(winW) / 2.0f - static_cast<float>(logoW) / 2.0f) + (static_cast<float>(logoDestX) - (static_cast<float>(winW) / 2.0f - static_cast<float>(logoW) / 2.0f)) * t);
+			renderLogoY = static_cast<int>((static_cast<float>(winH) / 2.0f - static_cast<float>(logoH) / 2.0f) + (static_cast<float>(logoDestY) - (static_cast<float>(winH) / 2.0f - static_cast<float>(logoH) / 2.0f)) * t);
 			renderChildX = winW;
 			break;
 
@@ -377,16 +377,19 @@ void Scene::PostUpdateMainMenu()
 				float f0 = (menuAnimTimer_ - 0.0f) / 1000.0f;
 				if (f0 < 0.0f) f0 = 0.0f; if (f0 > 1.0f) f0 = 1.0f;
 				btnPlay_->alphaMod = f0;
+				btnPlay_->isVisible = (f0 > 0.0f);
 			}
 			if (btnSettings_) {
 				float f1 = (menuAnimTimer_ - 800.0f) / 1000.0f;
 				if (f1 < 0.0f) f1 = 0.0f; if (f1 > 1.0f) f1 = 1.0f;
 				btnSettings_->alphaMod = f1;
+				btnSettings_->isVisible = (f1 > 0.0f);
 			}
 			if (btnExit_) {
 				float f2 = (menuAnimTimer_ - 1600.0f) / 1000.0f;
 				if (f2 < 0.0f) f2 = 0.0f; if (f2 > 1.0f) f2 = 1.0f;
 				btnExit_->alphaMod = f2;
+				btnExit_->isVisible = (f2 > 0.0f);
 			}
 			break;
 		}
@@ -449,20 +452,20 @@ void Scene::DrawSettingsPanel(int winW, int winH)
 
 	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 50, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
 	char volText[8];
-	snprintf(volText, sizeof(volText), "%d%%", (int)(musicVolume_ * 100));
+	snprintf(volText, sizeof(volText), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
 	render.DrawMenuTextCentered(volText, { panelX + panelW / 2, panelY + 50, panelW / 2, 25 }, { 200, 220, 240, 255 });
 	SDL_Rect barBg = { panelX + 20, panelY + 78, panelW - 40, 7 };
 	render.DrawRectangle(barBg, 30, 40, 60, 200, true, false);
-	int musicFill = (int)((panelW - 40) * musicVolume_);
+	int musicFill = static_cast<int>(static_cast<float>(panelW - 40) * musicVolume_);
 	SDL_Rect barFill = { panelX + 20, panelY + 78, musicFill, 7 };
 	render.DrawRectangle(barFill, 80, 160, 220, 255, true, false);
 
 	render.DrawMenuTextCentered("SFX", { panelX, panelY + 50 + rowH, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
-	snprintf(volText, sizeof(volText), "%d%%", (int)(sfxVolume_ * 100));
+	snprintf(volText, sizeof(volText), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
 	render.DrawMenuTextCentered(volText, { panelX + panelW / 2, panelY + 50 + rowH, panelW / 2, 25 }, { 200, 220, 240, 255 });
 	SDL_Rect sfxBarBg = { panelX + 20, panelY + 78 + rowH, panelW - 40, 7 };
 	render.DrawRectangle(sfxBarBg, 30, 40, 60, 200, true, false);
-	int sfxFill = (int)((panelW - 40) * sfxVolume_);
+	int sfxFill = static_cast<int>(static_cast<float>(panelW - 40) * sfxVolume_);
 	SDL_Rect sfxBarFill = { panelX + 20, panelY + 78 + rowH, sfxFill, 7 };
 	render.DrawRectangle(sfxBarFill, 80, 160, 220, 255, true, false);
 }
@@ -523,8 +526,16 @@ void Scene::SetSettingsPanelVisible(bool visible)
 	{
 		bool isSettingsBtn = (el->id >= BTN_SETTINGS_BACK && el->id <= BTN_SFX_DOWN) || el->id == BTN_SETTINGS_BACK;
 		bool isMainBtn = (el->id == BTN_PLAY || el->id == BTN_SETTINGS || el->id == BTN_EXIT);
-		if (isSettingsBtn) el->state = visible ? UIElementState::NORMAL : UIElementState::DISABLED;
-		if (isMainBtn)     el->state = visible ? UIElementState::DISABLED : UIElementState::NORMAL;
+
+		if (isSettingsBtn) {
+			el->state = visible ? UIElementState::NORMAL : UIElementState::DISABLED;
+			el->isVisible = visible;
+		}
+
+		if (isMainBtn) {
+			el->state = visible ? UIElementState::DISABLED : UIElementState::NORMAL;
+			el->isVisible = !visible;
+		}
 	}
 }
 
@@ -689,18 +700,99 @@ void Scene::LoadGameplay()
 	if (player == nullptr) {
 		player = std::dynamic_pointer_cast<Player>(
 			Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-		player->position = Vector2D(96, 672);
+		player->position = Vector2D(96.0f, 672.0f);
 		player->Start();
 	}
 
 	LoadPauseMenuButtons();
 
 	Engine::GetInstance().render->SetAmbientTint(140, 155, 190);
+
+
+	auto setupAnimFromTSX = [](const char* tsxPath, Animation& anim, SDL_Texture*& tex) {
+		anim = Animation();
+		pugi::xml_document doc;
+		if (!doc.load_file(tsxPath)) {
+			LOG("Error: Failed to load TSX: %s", tsxPath);
+			return;
+		}
+
+		pugi::xml_node tileset = doc.child("tileset");
+		int tw = tileset.attribute("tilewidth").as_int();
+		int th = tileset.attribute("tileheight").as_int();
+		int count = tileset.attribute("tilecount").as_int();
+		int columns = tileset.attribute("columns").as_int();
+		std::string imgPath = tileset.child("image").attribute("source").as_string();
+		
+		std::string finalPath = "assets/textures/spritesheets/SS Healthbar/";
+		size_t lastSlash = imgPath.find_last_of('/');
+		if (lastSlash != std::string::npos) {
+			finalPath += imgPath.substr(lastSlash + 1);
+		} else {
+			finalPath += imgPath;
+		}
+
+		tex = Engine::GetInstance().textures->Load(finalPath.c_str());
+		if (!tex) LOG("Error: Failed to load texture from TSX: %s", finalPath.c_str());
+
+		LOG("HUD TSX loaded: %s, %dx%d, %d frames", tsxPath, tw, th, count);
+
+		for (int i = 0; i < count; i++) {
+			SDL_Rect r;
+			r.x = (i % columns) * tw;
+			r.y = (i / columns) * th;
+			r.w = tw;
+			r.h = th;
+			anim.AddFrame(r, 100);
+		}
+		anim.SetLoop(false);
+	};
+
+	setupAnimFromTSX("assets/textures/animations/HealthAnimations/SS_Healthbar-1.tsx", animHealth1_, texHealth1_);
+	setupAnimFromTSX("assets/textures/animations/HealthAnimations/SS_Healthbar-2.tsx", animHealth2_, texHealth2_);
+	setupAnimFromTSX("assets/textures/animations/HealthAnimations/SS_Healthbar-3.tsx", animHealth3_, texHealth3_);
+
+	currentHealthUI_ = 3;
+	activeHealthAnim_ = 0;
+	isGameOver_ = false;
+	texGameOver_ = Engine::GetInstance().render->CreateMenuTextTexture("GAME OVER, YOU DIED", { 255, 0, 0, 255 });
+
+	// Game Over Button
+	int winW = 0, winH = 0;
+	Engine::GetInstance().window->GetWindowSize(winW, winH);
+	
+	// Load Game Over textures
+	texGameOverBg_ = nullptr;
+	texGameOverBtn_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
+	texGameOverKid_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Kid_Fragmented2.png");
+	texGameOverFrag1_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Fragment1.png");
+	texGameOverFrag3_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Fragment3.png");
+	texGameOverFrag4_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Fragment4.png");
+	texGameOverFrag5_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Fragment5.png");
+
+	SDL_Rect contBtnPos = { winW / 2 - 230, winH / 2 - 20, 460, 84 };
+	SDL_Rect mainBtnPos = { winW / 2 - 230, winH / 2 + 84, 460, 84 };
+	
+	auto contBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_GAMEOVER_CONTINUE, "CONTINUE", contBtnPos, this);
+	auto goBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_GAMEOVER_MAINMENU, "MAIN MENU", mainBtnPos, this);
+
+	// Hide Game Over buttons by default
+	contBtn->isVisible = false;
+	goBtn->isVisible = false;
+
+	if (texGameOverBtn_) {
+		contBtn->SetTexture(texGameOverBtn_);
+		goBtn->SetTexture(texGameOverBtn_);
+	}
+	if (goBtn) {
+		goBtn->state = UIElementState::DISABLED;
+	}
 }
 
 void Scene::UpdateGameplay(float dt)
 {
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
+	// Toggle pause with ESC
+	if (!isGameOver_ && Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
 	{
 		if (showMapViewer_) {
 			showMapViewer_ = false;
@@ -748,6 +840,62 @@ void Scene::UpdateGameplay(float dt)
 	}
 
 	if (isPaused_) DrawPauseMenu();
+
+	if (isPaused_) return;
+
+	if (player) {
+		// Fall death check
+		Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();
+		if (player->position.getY() > mapSize.getY() + 100.0f && player->health > 0) {
+			player->TakeDamage(player->health);
+			currentHealthUI_ = 0;
+			activeHealthAnim_ = 0;
+			isGameOver_ = true;
+		}
+
+		// HUD Logic
+		if (player->health < currentHealthUI_) {
+			if (currentHealthUI_ == 3) {
+				activeHealthAnim_ = 1;
+				animHealth1_.Reset();
+			} else if (currentHealthUI_ == 2) {
+				activeHealthAnim_ = 2;
+				animHealth2_.Reset();
+			} else if (currentHealthUI_ == 1) {
+				activeHealthAnim_ = 3;
+				animHealth3_.Reset();
+			}
+			currentHealthUI_ = player->health;
+		}
+
+		if (activeHealthAnim_ == 1) {
+			animHealth1_.Update(dt);
+			if (animHealth1_.HasFinishedOnce()) activeHealthAnim_ = 0;
+		} else if (activeHealthAnim_ == 2) {
+			animHealth2_.Update(dt);
+			if (animHealth2_.HasFinishedOnce()) activeHealthAnim_ = 0;
+		} else if (activeHealthAnim_ == 3) {
+			animHealth3_.Update(dt);
+			if (animHealth3_.HasFinishedOnce()) activeHealthAnim_ = 0;
+		}
+
+		if (player->health <= 0 && activeHealthAnim_ == 0 && !isGameOver_) {
+			isGameOver_ = true;
+			// Enable Game Over buttons
+			auto& list = Engine::GetInstance().uiManager->UIElementsList;
+			for (auto& el : list) {
+				if (el->id == BTN_GAMEOVER_MAINMENU || el->id == BTN_GAMEOVER_CONTINUE) {
+					el->isVisible = true;
+					el->state = UIElementState::NORMAL;
+				}
+				
+				if (el->id == BTN_GAMEOVER_CONTINUE) {
+					if (!Engine::GetInstance().saveSystem->HasValidSave())
+						el->state = UIElementState::DISABLED;
+				}
+			}
+		}
+	}
 }
 
 void Scene::UnloadGameplay()
@@ -760,6 +908,18 @@ void Scene::UnloadGameplay()
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
 
+	if (texHealth1_) { Engine::GetInstance().textures->UnLoad(texHealth1_); texHealth1_ = nullptr; }
+	if (texHealth2_) { Engine::GetInstance().textures->UnLoad(texHealth2_); texHealth2_ = nullptr; }
+	if (texHealth3_) { Engine::GetInstance().textures->UnLoad(texHealth3_); texHealth3_ = nullptr; }
+	if (texGameOver_) { SDL_DestroyTexture(texGameOver_); texGameOver_ = nullptr; }
+	
+	if (texGameOverBg_) { Engine::GetInstance().textures->UnLoad(texGameOverBg_); texGameOverBg_ = nullptr; }
+	if (texGameOverBtn_) { Engine::GetInstance().textures->UnLoad(texGameOverBtn_); texGameOverBtn_ = nullptr; }
+	if (texGameOverKid_) { Engine::GetInstance().textures->UnLoad(texGameOverKid_); texGameOverKid_ = nullptr; }
+	if (texGameOverFrag1_) { Engine::GetInstance().textures->UnLoad(texGameOverFrag1_); texGameOverFrag1_ = nullptr; }
+	if (texGameOverFrag3_) { Engine::GetInstance().textures->UnLoad(texGameOverFrag3_); texGameOverFrag3_ = nullptr; }
+	if (texGameOverFrag5_) { Engine::GetInstance().textures->UnLoad(texGameOverFrag5_); texGameOverFrag5_ = nullptr; }
+
 	if (texPauseBackground_) { Engine::GetInstance().textures->UnLoad(texPauseBackground_);  texPauseBackground_ = nullptr; }
 	if (texPauseButtonWhite_) { Engine::GetInstance().textures->UnLoad(texPauseButtonWhite_); texPauseButtonWhite_ = nullptr; }
 	if (texPauseButtonBlack_) { Engine::GetInstance().textures->UnLoad(texPauseButtonBlack_); texPauseButtonBlack_ = nullptr; }
@@ -767,11 +927,113 @@ void Scene::UnloadGameplay()
 
 void Scene::PostUpdateGameplay()
 {
-	if (!isPaused_) {
+	// Quick save/load shortcuts (only when not paused)
+	if (!isPaused_ && !isGameOver_) {
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F5) == KEY_DOWN)
 			Engine::GetInstance().saveSystem->QuickLoad();
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F6) == KEY_DOWN)
 			Engine::GetInstance().saveSystem->QuickSave();
+	}
+
+	// --- Draw Health HUD ---
+	SDL_Rect r;
+	const SDL_Rect* frame = nullptr;
+	SDL_Texture* texToDraw = nullptr;
+
+	if (activeHealthAnim_ == 1) {
+		texToDraw = texHealth1_;
+		frame = &animHealth1_.GetCurrentFrame();
+	} else if (activeHealthAnim_ == 2) {
+		texToDraw = texHealth2_;
+		frame = &animHealth2_.GetCurrentFrame();
+	} else if (activeHealthAnim_ == 3) {
+		texToDraw = texHealth3_;
+		frame = &animHealth3_.GetCurrentFrame();
+	} else {
+		// Draw static frame based on health
+		if (currentHealthUI_ == 3) {
+			texToDraw = texHealth1_;
+			if (texHealth1_) {
+				r = animHealth1_.GetCurrentFrame(); // Use frame 0 (Reset ensures it's at 0)
+				frame = &r;
+			}
+		} else if (currentHealthUI_ == 2) {
+			texToDraw = texHealth2_;
+			if (texHealth2_) {
+				r = animHealth2_.GetCurrentFrame();
+				frame = &r;
+			}
+		} else if (currentHealthUI_ == 1) {
+			texToDraw = texHealth3_;
+			if (texHealth3_) {
+				r = animHealth3_.GetCurrentFrame();
+				frame = &r;
+			}
+		} else if (currentHealthUI_ <= 0) {
+			texToDraw = texHealth3_;
+			if (texHealth3_) {
+				r = animHealth3_.GetCurrentFrame();
+				frame = &r;
+			}
+		}
+	}
+
+	if (texToDraw && frame) {
+		// Draw HUD at top left. Using speed = 0.0f makes it static to camera
+		// Scale reduced to 0.5f as requested
+		Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+	}
+
+	// --- Game Over Screen ---
+	if (isGameOver_) {
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+
+		// Dark overlay removed as requested
+
+		// "GAME OVER" Text
+		if (texGameOver_) {
+			float tw, th;
+			SDL_GetTextureSize(texGameOver_, &tw, &th);
+			float drawX = ((float)winW - tw) / 2.0f;
+			float drawY = ((float)winH - th) / 2.0f - 200.0f; 
+			
+			float scale = 1.5f;
+			float sw = tw * scale;
+			float sh = th * scale;
+			float sx = ((float)winW - sw) / 2.0f;
+			float sy = drawY - (sh - th) / 2.0f;
+
+			// Enable linear filtering for smoother scaling
+			SDL_SetTextureScaleMode(texGameOver_, SDL_SCALEMODE_LINEAR);
+
+			// Directional Shadow: Draw once with a fixed offset and low alpha
+			float shadowOffset = 6.0f;
+			SDL_SetTextureColorMod(texGameOver_, 255, 100, 100); // Shadow color (light red)
+			Engine::GetInstance().render->DrawTextureAlphaF(texGameOver_, sx + shadowOffset, sy + shadowOffset, sw, sh, (Uint8)130);
+			
+			SDL_SetTextureColorMod(texGameOver_, 255, 255, 255); // Reset color mod
+
+			// Main text draw
+			Engine::GetInstance().render->DrawTextureAlphaF(texGameOver_, sx, sy, sw, sh, (Uint8)255);
+		}
+
+		// Draw Fragments and Kid
+		if (texGameOverKid_) {
+			float kw, kh;
+			SDL_GetTextureSize(texGameOverKid_, &kw, &kh);
+			float kScale = 0.22f; // Reduced size as requested
+			Engine::GetInstance().render->DrawTextureAlphaF(texGameOverKid_, (float)winW - kw * kScale - 20.0f, (float)winH - kh * kScale - 20.0f, kw * kScale, kh * kScale, (Uint8)255);
+		}
+		
+		// Distributed fragments
+		if (texGameOverFrag1_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag1_, 100.0f, 150.0f, 160.0f, 160.0f, 180);
+		if (texGameOverFrag3_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag3_, (float)winW - 350.0f, 80.0f, 200.0f, 200.0f, 150);
+		if (texGameOverFrag5_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag5_, 200.0f, (float)winH - 300.0f, 140.0f, 140.0f, 160);
+		if (texGameOverFrag1_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag1_, (float)winW / 2.0f + 250.0f, (float)winH / 2.0f + 120.0f, 120.0f, 120.0f, 130);
+		
+		// New Fragment 4 in bottom-left
+		if (texGameOverFrag4_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag4_, 50.0f, (float)winH - 220.0f, 180.0f, 180.0f, 200);
 	}
 }
 
@@ -820,8 +1082,8 @@ void Scene::DrawMapViewer(int winW, int winH)
 			if (newZoom < 0.05f) newZoom = 0.05f;
 			if (newZoom > 2.0f)  newZoom = 2.0f;
 			Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
-			float mx = mousePos.getX() - viewX;
-			float my = mousePos.getY() - viewY;
+			float mx = mousePos.getX() - (float)viewX;
+			float my = mousePos.getY() - (float)viewY;
 			mapViewOffsetX_ = mx - (mx - mapViewOffsetX_) * (newZoom / mapViewZoom_);
 			mapViewOffsetY_ = my - (my - mapViewOffsetY_) * (newZoom / mapViewZoom_);
 			mapViewZoom_ = newZoom;
@@ -833,13 +1095,13 @@ void Scene::DrawMapViewer(int winW, int winH)
 	float invZoom = 1.0f / mapViewZoom_;
 	float camLeft = -mapViewOffsetX_ * invZoom;
 	float camTop = -mapViewOffsetY_ * invZoom;
-	float camRight = camLeft + viewW * invZoom;
-	float camBottom = camTop + viewH * invZoom;
+	float camRight = camLeft + (float)viewW * invZoom;
+	float camBottom = camTop + (float)viewH * invZoom;
 
-	int startTileX = std::max(0, (int)(camLeft / tileW) - 1);
-	int startTileY = std::max(0, (int)(camTop / tileH) - 1);
-	int endTileX = std::min((int)map.GetMapSizeInTiles().getX(), (int)(camRight / tileW) + 2);
-	int endTileY = std::min((int)map.GetMapSizeInTiles().getY(), (int)(camBottom / tileH) + 2);
+	int startTileX = std::max(0, (int)(camLeft / (float)tileW) - 1);
+	int startTileY = std::max(0, (int)(camTop / (float)tileH) - 1);
+	int endTileX = std::min((int)map.GetMapSizeInTiles().getX(), (int)(camRight / (float)tileW) + 2);
+	int endTileY = std::min((int)map.GetMapSizeInTiles().getY(), (int)(camBottom / (float)tileH) + 2);
 
 	// ── Step 1: Image Layers ─────────────────────────────────────────────────
 	for (const auto& imgLayer : map.mapData.imageLayers)
@@ -847,13 +1109,13 @@ void Scene::DrawMapViewer(int winW, int winH)
 		if (!imgLayer->texture) continue;
 		float tw, th;
 		SDL_GetTextureSize(imgLayer->texture, &tw, &th);
-		float screenX = viewX + mapViewOffsetX_ + imgLayer->offsetX * mapViewZoom_;
-		float screenY = viewY + mapViewOffsetY_ + imgLayer->offsetY * mapViewZoom_;
+		float screenX = (float)viewX + mapViewOffsetX_ + imgLayer->offsetX * mapViewZoom_;
+		float screenY = (float)viewY + mapViewOffsetY_ + imgLayer->offsetY * mapViewZoom_;
 		float screenW = tw * mapViewZoom_;
 		float screenH = th * mapViewZoom_;
-		if (screenX + screenW < viewX || screenX > viewX + viewW) continue;
-		if (screenY + screenH < viewY || screenY > viewY + viewH) continue;
-		SDL_FRect dst = { screenX * scale, screenY * scale, screenW * scale, screenH * scale };
+		if (screenX + screenW < (float)viewX || screenX > (float)viewX + (float)viewW) continue;
+		if (screenY + screenH < (float)viewY || screenY > (float)viewY + (float)viewH) continue;
+		SDL_FRect dst = { screenX * (float)scale, screenY * (float)scale, screenW * (float)scale, screenH * (float)scale };
 		SDL_SetTextureColorMod(imgLayer->texture, 255, 255, 255);
 		SDL_SetTextureAlphaMod(imgLayer->texture, 255);
 		SDL_RenderTexture(render.renderer, imgLayer->texture, nullptr, &dst);
@@ -865,13 +1127,13 @@ void Scene::DrawMapViewer(int winW, int winH)
 		if (!deco->texture) continue;
 		float worldX = deco->x;
 		float worldY = deco->y - deco->height;
-		float screenX = viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
-		float screenY = viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+		float screenX = (float)viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
+		float screenY = (float)viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
 		float screenW = deco->width * mapViewZoom_;
 		float screenH = deco->height * mapViewZoom_;
-		if (screenX + screenW < viewX || screenX > viewX + viewW) continue;
-		if (screenY + screenH < viewY || screenY > viewY + viewH) continue;
-		SDL_FRect dst = { screenX * scale, screenY * scale, screenW * scale, screenH * scale };
+		if (screenX + screenW < (float)viewX || screenX > (float)viewX + (float)viewW) continue;
+		if (screenY + screenH < (float)viewY || screenY > (float)viewY + (float)viewH) continue;
+		SDL_FRect dst = { screenX * (float)scale, screenY * (float)scale, screenW * (float)scale, screenH * (float)scale };
 		SDL_SetTextureColorMod(deco->texture, 255, 255, 255);
 		SDL_SetTextureAlphaMod(deco->texture, 255);
 		SDL_RenderTexture(render.renderer, deco->texture, nullptr, &dst);
@@ -894,13 +1156,13 @@ void Scene::DrawMapViewer(int winW, int winH)
 				SDL_Rect src = ts->GetRect(gid);
 				float worldX = (float)(tx * tileW);
 				float worldY = (float)(ty * tileH);
-				float screenX = viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
-				float screenY = viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
-				float screenW = tileW * mapViewZoom_;
-				float screenH = tileH * mapViewZoom_;
-				if (screenX + screenW < viewX || screenX > viewX + viewW) continue;
-				if (screenY + screenH < viewY || screenY > viewY + viewH) continue;
-				SDL_FRect dst = { screenX * scale, screenY * scale, screenW * scale, screenH * scale };
+				float screenX = (float)viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
+				float screenY = (float)viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+				float screenW = (float)tileW * mapViewZoom_;
+				float screenH = (float)tileH * mapViewZoom_;
+				if (screenX + screenW < (float)viewX || screenX > (float)viewX + (float)viewW) continue;
+				if (screenY + screenH < (float)viewY || screenY > (float)viewY + (float)viewH) continue;
+				SDL_FRect dst = { screenX * (float)scale, screenY * (float)scale, screenW * (float)scale, screenH * (float)scale };
 				SDL_FRect srcF = { (float)src.x, (float)src.y, (float)src.w, (float)src.h };
 				SDL_SetTextureColorMod(ts->texture, 255, 255, 255);
 				SDL_SetTextureAlphaMod(ts->texture, 255);
@@ -914,12 +1176,12 @@ void Scene::DrawMapViewer(int winW, int winH)
 	{
 		// Centro del player en coordenadas mundo
 		Vector2D playerPos = player->GetPosition();
-		float worldX = playerPos.getX() + player->texW / 2.0f;
-		float worldY = playerPos.getY() + player->texH / 2.0f;
+		float worldX = playerPos.getX() + (float)player->texW / 2.0f;
+		float worldY = playerPos.getY() + (float)player->texH / 2.0f;
 
 		// Centro del player en pantalla (espacio de la ventana, sin escala SDL)
-		float screenX = viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
-		float screenY = viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+		float screenX = (float)viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
+		float screenY = (float)viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
 
 		// ── Sprite del player ────────────────────────────────────────────────
 		SDL_Rect src = player->GetCurrentAnimationRect();
@@ -929,10 +1191,10 @@ void Scene::DrawMapViewer(int winW, int winH)
 		float drawH = 128.0f * mapViewZoom_;
 
 		SDL_FRect dst = {
-			(screenX - drawW / 2.0f) * scale,
-			(screenY - drawH / 2.0f) * scale,
-			drawW * scale,
-			drawH * scale
+			(screenX - drawW / 2.0f) * (float)scale,
+			(screenY - drawH / 2.0f) * (float)scale,
+			drawW * (float)scale,
+			drawH * (float)scale
 		};
 
 		bool spriteNativeRight = (src.y / 128 == 3 || src.y / 128 == 1);
@@ -950,12 +1212,12 @@ void Scene::DrawMapViewer(int winW, int winH)
 
 		// ── Marcador "YOU ARE HERE" encima del player ────────────────────────
 		// Radio del circulo escalado con el zoom (minimo 4px, maximo razonable)
-		int r = (int)(9.0f * mapViewZoom_ * scale);
+		int r = (int)(9.0f * mapViewZoom_ * (float)scale);
 		if (r < 4) r = 4;
 
 		// Posicion del marcador: encima del sprite
-		int markerCX = (int)(screenX * scale);
-		int markerCY = (int)((screenY - drawH / 2.0f - 6.0f) * scale);
+		int markerCX = (int)(screenX * (float)scale);
+		int markerCY = (int)((screenY - drawH / 2.0f - 6.0f) * (float)scale);
 
 		// Sombra negra (cuadrado ligeramente mas grande)
 		SDL_Rect shadowRect = {
@@ -987,7 +1249,7 @@ void Scene::DrawMapViewer(int winW, int winH)
 
 		// Etiqueta "YOU" encima del marcador (coordenadas sin escala SDL para DrawText)
 		int labelX = (int)(screenX)-10;
-		int labelY = (int)(screenY - drawH / 2.0f - 6.0f) - r / scale - 14;
+		int labelY = (int)(screenY - drawH / 2.0f - 6.0f) - (int)((float)r / (float)scale) - 14;
 		render.DrawText("YOU", labelX, labelY, 0, 0, { 255, 215, 0, 255 });
 	}
 
@@ -1013,7 +1275,7 @@ void Scene::LoadPauseMenuButtons()
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
 	const int btnW = 315;
-	const int btnH = (int)(btnW * (130.0f / 456.0f));
+	const int btnH = static_cast<int>(static_cast<float>(btnW) * (130.0f / 456.0f));
 	const int btnGap = 15;
 	const int totalH = btnH * 4 + btnGap * 3;
 	const int leftHalf = winW / 2;
@@ -1068,16 +1330,17 @@ void Scene::LoadPauseMenuButtons()
 void Scene::SetPauseMenuVisible(bool visible)
 {
 	auto& list = Engine::GetInstance().uiManager->UIElementsList;
-	for (auto& el : list)
-	{
-		bool isPauseMain = (el->id == BTN_PAUSE_CONTINUE || el->id == BTN_PAUSE_OPTIONS ||
-			el->id == BTN_PAUSE_MAP || el->id == BTN_PAUSE_MAINMENU ||
-			el->id == BTN_PAUSE_QUIT);
-		if (isPauseMain)
+	for (auto& el : list) {
+		if (el->id == BTN_PAUSE_CONTINUE || el->id == BTN_PAUSE_OPTIONS || el->id == BTN_PAUSE_SAVE || el->id == BTN_PAUSE_MAINMENU || el->id == BTN_PAUSE_QUIT || el->id == BTN_PAUSE_MAP) {
+			el->isVisible = visible;
 			el->state = visible ? UIElementState::NORMAL : UIElementState::DISABLED;
+		}
+		
 		bool isOpt = (el->id >= BTN_PAUSE_OPT_MUSIC_UP && el->id <= BTN_PAUSE_OPT_BACK);
-		if (isOpt)
+		if (isOpt) {
 			el->state = UIElementState::DISABLED;
+			el->isVisible = false;
+		}
 	}
 }
 
@@ -1090,9 +1353,36 @@ void Scene::SetPauseOptionsPanelVisible(bool visible)
 			el->id == BTN_PAUSE_MAP || el->id == BTN_PAUSE_MAINMENU ||
 			el->id == BTN_PAUSE_QUIT);
 		bool isOpt = (el->id >= BTN_PAUSE_OPT_MUSIC_UP && el->id <= BTN_PAUSE_OPT_BACK);
-		if (isPauseMain) el->state = visible ? UIElementState::DISABLED : UIElementState::NORMAL;
-		if (isOpt)       el->state = visible ? UIElementState::NORMAL : UIElementState::DISABLED;
+
+		if (isPauseMain) {
+			el->state = visible ? UIElementState::DISABLED : UIElementState::NORMAL;
+			el->isVisible = !visible;
+		}
+		if (isOpt) {
+			el->state = visible ? UIElementState::NORMAL : UIElementState::DISABLED;
+			el->isVisible = visible;
+		}
 	}
+}
+
+void Scene::SetGameOverVisible(bool visible)
+{
+	isGameOver_ = visible;
+	auto& list = Engine::GetInstance().uiManager->UIElementsList;
+	for (auto& el : list) {
+		if (el->id == BTN_GAMEOVER_CONTINUE || el->id == BTN_GAMEOVER_MAINMENU) {
+			el->isVisible = visible;
+		}
+	}
+}
+
+void Scene::ResetHealthUI(int health)
+{
+	currentHealthUI_ = health;
+	activeHealthAnim_ = 0;
+	animHealth1_.Reset();
+	animHealth2_.Reset();
+	animHealth3_.Reset();
 }
 
 void Scene::DrawPauseMenu()
@@ -1137,20 +1427,20 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 
 	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 50, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
 	char vol[8];
-	snprintf(vol, sizeof(vol), "%d%%", (int)(musicVolume_ * 100));
+	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 50, panelW / 2, 25 }, { 200, 220, 240, 255 });
 	SDL_Rect mBarBg = { panelX + 20, panelY + 78, panelW - 40, 7 };
 	render.DrawRectangle(mBarBg, 30, 40, 60, 200, true, false);
-	int mFill = (int)((panelW - 40) * musicVolume_);
+	int mFill = static_cast<int>(static_cast<float>(panelW - 40) * musicVolume_);
 	SDL_Rect mBarFill = { panelX + 20, panelY + 78, mFill, 7 };
 	render.DrawRectangle(mBarFill, 80, 160, 220, 255, true, false);
 
 	render.DrawMenuTextCentered("SFX", { panelX, panelY + 50 + rowH, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
-	snprintf(vol, sizeof(vol), "%d%%", (int)(sfxVolume_ * 100));
+	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 50 + rowH, panelW / 2, 25 }, { 200, 220, 240, 255 });
 	SDL_Rect sBarBg = { panelX + 20, panelY + 78 + rowH, panelW - 40, 7 };
 	render.DrawRectangle(sBarBg, 30, 40, 60, 200, true, false);
-	int sFill = (int)((panelW - 40) * sfxVolume_);
+	int sFill = static_cast<int>(static_cast<float>(panelW - 40) * sfxVolume_);
 	SDL_Rect sBarFill = { panelX + 20, panelY + 78 + rowH, sFill, 7 };
 	render.DrawRectangle(sBarFill, 80, 160, 220, 255, true, false);
 }
@@ -1183,8 +1473,8 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 			mapViewZoom_ = std::min(zoomX, zoomY) * 0.95f;
 			if (mapViewZoom_ < 0.05f) mapViewZoom_ = 0.05f;
 			if (mapViewZoom_ > 2.0f)  mapViewZoom_ = 2.0f;
-			mapViewOffsetX_ = (viewW - mapSizePx.getX() * mapViewZoom_) / 2.0f;
-			mapViewOffsetY_ = (viewH - mapSizePx.getY() * mapViewZoom_) / 2.0f;
+			mapViewOffsetX_ = ((float)viewW - mapSizePx.getX() * mapViewZoom_) / 2.0f;
+			mapViewOffsetY_ = ((float)viewH - mapSizePx.getY() * mapViewZoom_) / 2.0f;
 		}
 		break;
 	case BTN_PAUSE_SAVE:
@@ -1224,7 +1514,23 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 		showPauseOptions_ = false;
 		SetPauseOptionsPanelVisible(false);
 		break;
-	default: break;
+	
+	case BTN_GAMEOVER_MAINMENU:
+		isGameOver_ = false;
+		waitingForFade_ = true;
+		fadeTargetScene_ = SceneID::MAIN_MENU;
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 500.0f);
+		break;
+	
+	case BTN_GAMEOVER_CONTINUE:
+	{
+		SetGameOverVisible(false);
+		Engine::GetInstance().saveSystem->QuickLoad();
+		break;
+	}
+
+	default:
+		break;
 	}
 }
 
@@ -1240,12 +1546,12 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 {
 	srand((unsigned)time(nullptr));
 
-	float faceLeft = childX + childW * 0.20f;
-	float faceRight = childX + childW * 0.80f;
+	float faceLeft = (float)childX + (float)childW * 0.20f;
+	float faceRight = (float)childX + (float)childW * 0.80f;
 	float faceTop = 0.0f;
-	float faceBottom = winH * 0.45f;
-	float halfW = winW * 0.5f;
-	float halfH = winH * 0.5f;
+	float faceBottom = (float)winH * 0.45f;
+	float halfW = (float)winW * 0.5f;
+	float halfH = (float)winH * 0.5f;
 
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		auto& f = fragments_[i];
@@ -1255,17 +1561,17 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		SDL_GetTextureSize(f.tex, &tw, &th);
 
 		float sc = RandF(0.25f, 0.30f);
-		f.w = winW * sc;
+		f.w = (float)winW * sc;
 		f.h = f.w * (th / tw);
 
 		f.inFront = (i < 3);
 
 		float padX = 10.0f, padY = 15.0f;
-		if (i == 0) { f.x = halfW + padX;                                  f.y = winH - f.h - padY; }
-		else if (i == 1) { f.x = halfW + (winW - halfW) / 2.0f - (f.w / 2.0f); f.y = winH - f.h - padY; }
-		else if (i == 2) { f.x = winW - f.w - padX;                             f.y = winH - f.h - padY; }
+		if (i == 0) { f.x = halfW + padX;                                  f.y = (float)winH - f.h - padY; }
+		else if (i == 1) { f.x = halfW + ((float)winW - halfW) / 2.0f - (f.w / 2.0f); f.y = (float)winH - f.h - padY; }
+		else if (i == 2) { f.x = (float)winW - f.w - padX;                             f.y = (float)winH - f.h - padY; }
 		else if (i == 3) { f.x = halfW + padX;                                  f.y = padY + 10.0f; }
-		else if (i == 4) { f.x = winW - f.w - padX;                             f.y = padY + 10.0f; }
+		else if (i == 4) { f.x = (float)winW - f.w - padX;                             f.y = padY + 10.0f; }
 
 		f.floatSpeed = RandF(0.4f, 0.9f);
 		f.floatAmplitude = RandF(8.0f, 22.0f);
@@ -1294,8 +1600,8 @@ void Scene::DrawFragments(bool front, int winW, int winH)
 		SDL_SetTextureAlphaMod(f.tex, f.alpha);
 		SDL_SetTextureBlendMode(f.tex, SDL_BLENDMODE_BLEND);
 
-		int sc = Engine::GetInstance().window->GetScale();
-		SDL_FRect dst = { (f.x + xOff) * sc, (f.y + yOff) * sc, f.w * sc, f.h * sc };
+		int scale = Engine::GetInstance().window->GetScale();
+		SDL_FRect dst = { (f.x + xOff) * (float)scale, (f.y + yOff) * (float)scale, f.w * (float)scale, f.h * (float)scale };
 
 		SDL_RenderTextureRotated(render.renderer, f.tex, nullptr, &dst,
 			(double)angle, nullptr, SDL_FLIP_NONE);

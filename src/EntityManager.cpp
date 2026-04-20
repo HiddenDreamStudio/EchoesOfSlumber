@@ -53,11 +53,11 @@ bool EntityManager::CleanUp()
 {
 	bool ret = true;
 
-	for(const auto entity : entities)
+	for (const auto entity : entities)
 	{
-		if (entity->active == false) continue;
-		ret = entity->Destroy();
+		ret = entity->CleanUp();
 	}
+	entities.clear();
 
 	return ret;
 }

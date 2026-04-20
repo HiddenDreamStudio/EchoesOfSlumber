@@ -113,6 +113,7 @@ private:
 public:
     bool isPaused_ = false;
     bool showPauseOptions_ = false;
+    bool isGameOver_ = false;
 
 private:
     void LoadGameplay();
@@ -123,6 +124,8 @@ private:
     void LoadPauseMenuButtons();
     void SetPauseMenuVisible(bool visible);
     void SetPauseOptionsPanelVisible(bool visible);
+    void SetGameOverVisible(bool visible);
+    void ResetHealthUI(int health);
     void DrawPauseMenu();
     void DrawPauseOptionsPanel(int winW, int winH);
     void HandlePauseMenuUIEvents(UIElement* uiElement);
@@ -138,7 +141,31 @@ private:
     static constexpr int BTN_PAUSE_OPT_SFX_UP = 27;
     static constexpr int BTN_PAUSE_OPT_SFX_DOWN = 28;
     static constexpr int BTN_PAUSE_OPT_BACK = 29;
-    static constexpr int BTN_PAUSE_MAP = 30;
+    static constexpr int BTN_PAUSE_MAP = 32;
+    static constexpr int BTN_GAMEOVER_MAINMENU = 30;
+    static constexpr int BTN_GAMEOVER_CONTINUE = 31;
+
+private:
+
+    // Health HUD
+    SDL_Texture* texHealth1_ = nullptr;
+    SDL_Texture* texHealth2_ = nullptr;
+    SDL_Texture* texHealth3_ = nullptr;
+    Animation animHealth1_;
+    Animation animHealth2_;
+    Animation animHealth3_;
+    int currentHealthUI_ = 3;
+    int activeHealthAnim_ = 0; // 0=None, 1=animHealth1_, 2=animHealth2_, 3=animHealth3_
+    SDL_Texture* texGameOver_ = nullptr;
+    
+    // Game Over Menu Assets
+    SDL_Texture* texGameOverBg_ = nullptr;
+    SDL_Texture* texGameOverBtn_ = nullptr;
+    SDL_Texture* texGameOverKid_ = nullptr;
+    SDL_Texture* texGameOverFrag1_ = nullptr;
+    SDL_Texture* texGameOverFrag3_ = nullptr;
+    SDL_Texture* texGameOverFrag4_ = nullptr;
+    SDL_Texture* texGameOverFrag5_ = nullptr;
 
     // Pause menu textures
     SDL_Texture* texPauseBackground_ = nullptr;
