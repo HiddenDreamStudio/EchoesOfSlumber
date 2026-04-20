@@ -20583,6 +20583,15 @@
  </layer>
  <objectgroup id="9" name="Entities">
   <object id="11" name="Player" type="Player" x="6841" y="4702.67" width="96" height="96"/>
+<<<<<<< HEAD
   <object id="12" name="Enemy" type="Enemy" x="5076.67" y="4687" width="32" height="32"/>
+=======
+  <object id="12" name="Enemy" type="Enemy" x="4750" y="4661" width="32" height="32">
+   <properties>
+    <property name="patrol_left" type="float" value="4550"/>
+    <property name="patrol_right" type="float" value="4950"/>
+   </properties>
+  </object>
+>>>>>>> 28353b0763df53baf241986e7590583d5de99a33
  </objectgroup>
 </map>
