@@ -116,6 +116,17 @@ struct DecorationObject
     SDL_Texture* texture = nullptr; 
 };
 
+struct CheckpointObject
+{
+    float x;
+    float y;
+    float width;
+    float height;
+    bool visited = false;
+    int gid = 0;
+    float glowTimer = 0.0f;
+};
+
 struct MapData
 {
     int width;
@@ -127,6 +138,7 @@ struct MapData
     std::list<MapLayer*> layers;
     std::list<ImageLayer*> imageLayers;
     std::list<DecorationObject*> decorationObjects;
+    std::list<CheckpointObject*> checkpoints;
 };
 
 class Map : public Module

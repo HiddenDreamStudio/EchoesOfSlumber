@@ -214,6 +214,11 @@ bool Map::CleanUp()
     }
     mapData.decorationObjects.clear();
 
+    for (const auto& cp : mapData.checkpoints) {
+        delete cp;
+    }
+    mapData.checkpoints.clear();
+
     return true;
 }
 
@@ -247,24 +252,35 @@ bool Map::Load(std::string path, std::string fileName)
             //Load Tileset attributes
             TileSet* tileSet = new TileSet();
             tileSet->firstGid = tilesetNode.attribute("firstgid").as_int();
-            tileSet->name = tilesetNode.attribute("name").as_string();
-            tileSet->tileWidth = tilesetNode.attribute("tilewidth").as_int();
-            tileSet->tileHeight = tilesetNode.attribute("tileheight").as_int();
-            tileSet->spacing = tilesetNode.attribute("spacing").as_int();
-            tileSet->margin = tilesetNode.attribute("margin").as_int();
-            tileSet->tileCount = tilesetNode.attribute("tilecount").as_int();
-            tileSet->columns = tilesetNode.attribute("columns").as_int();
+
+            // Check for external tileset (.tsx)
+            pugi::xml_document externalTsx;
+            pugi::xml_node actualTilesetNode = tilesetNode;
+            std::string source = tilesetNode.attribute("source").as_string();
+            if (!source.empty()) {
+                if (externalTsx.load_file((mapPath + source).c_str())) {
+                    actualTilesetNode = externalTsx.child("tileset");
+                }
+            }
+
+            tileSet->name = actualTilesetNode.attribute("name").as_string();
+            tileSet->tileWidth = actualTilesetNode.attribute("tilewidth").as_int();
+            tileSet->tileHeight = actualTilesetNode.attribute("tileheight").as_int();
+            tileSet->spacing = actualTilesetNode.attribute("spacing").as_int();
+            tileSet->margin = actualTilesetNode.attribute("margin").as_int();
+            tileSet->tileCount = actualTilesetNode.attribute("tilecount").as_int();
+            tileSet->columns = actualTilesetNode.attribute("columns").as_int();
 
             //Load the tileset image (skip if tileset uses per-tile images)
-            std::string imgName = tilesetNode.child("image").attribute("source").as_string();
+            std::string imgName = actualTilesetNode.child("image").attribute("source").as_string();
             if (!imgName.empty()) {
                 tileSet->texture = Engine::GetInstance().textures->Load((mapPath + imgName).c_str());
             } else {
                 tileSet->texture = nullptr;
             }
 
-            // Parse tile object groups for collisions
-            for (pugi::xml_node tileNode = tilesetNode.child("tile"); tileNode != NULL; tileNode = tileNode.next_sibling("tile")) {
+            // Parse tile object groups for collisions (using actualTilesetNode for external TSX)
+            for (pugi::xml_node tileNode = actualTilesetNode.child("tile"); tileNode != NULL; tileNode = tileNode.next_sibling("tile")) {
                 int tileId = tileNode.attribute("id").as_int();
                 pugi::xml_node objectGroupNode = tileNode.child("objectgroup");
                 if (objectGroupNode != NULL) {
@@ -537,6 +553,30 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                 }
             }
         }
+        else if (objectGroupNode.attribute("name").as_string() == std::string("Checkpoint") || 
+                 objectGroupNode.attribute("name").as_string() == std::string("Checkpoints") ||
+                 objectGroupNode.attribute("name").as_string() == std::string("checkpoint") ||
+                 objectGroupNode.attribute("name").as_string() == std::string("checkpoints")) {
+            for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+                std::string type = objectNode.attribute("type").as_string();
+                std::string cls = objectNode.attribute("class").as_string();
+                std::string name = objectNode.attribute("name").as_string();
+                if (type == "Checkpoint" || cls == "Checkpoint" || type == "checkpoint" || cls == "checkpoint" || name == "Checkpoint" || name == "checkpoint") {
+                    CheckpointObject* cp = new CheckpointObject();
+                    cp->x = objectNode.attribute("x").as_float();
+                    cp->y = objectNode.attribute("y").as_float();
+                    cp->width = objectNode.attribute("width").as_float();
+                    cp->height = objectNode.attribute("height").as_float();
+                    
+                    if (objectNode.attribute("gid")) {
+                        cp->y -= cp->height; // Adjust for gid objects where y is bottom-left
+                    }
+
+                    mapData.checkpoints.push_back(cp);
+                    LOG("Checkpoint parsed at: %f, %f", cp->x, cp->y);
+                }
+            }
+        }
     }
 }
 
@@ -628,7 +668,17 @@ void Map::LoadDecorationObjects()
                 {
                     if (tsNode.attribute("firstgid").as_int() != ts->firstGid) continue;
 
-                    for (pugi::xml_node tileNode = tsNode.child("tile");
+                    // Support external TSX
+                    pugi::xml_document externalTsx;
+                    pugi::xml_node actualTsNode = tsNode;
+                    std::string tsSource = tsNode.attribute("source").as_string();
+                    if (!tsSource.empty()) {
+                        if (externalTsx.load_file((mapPath + tsSource).c_str())) {
+                            actualTsNode = externalTsx.child("tileset");
+                        }
+                    }
+
+                    for (pugi::xml_node tileNode = actualTsNode.child("tile");
                         tileNode != NULL;
                         tileNode = tileNode.next_sibling("tile"))
                     {

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="130" height="77" tilewidth="64" tileheight="64" infinite="0" nextlayerid="32" nextobjectid="283">
+<map version="1.10" tiledversion="1.11.2" class="Checkpoint" orientation="orthogonal" renderorder="right-down" width="130" height="77" tilewidth="64" tileheight="64" infinite="0" nextlayerid="33" nextobjectid="285">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -414,6 +414,7 @@
    <image source="AssetsDecoracion/Pedrolo 4.png" width="1691" height="1975"/>
   </tile>
  </tileset>
+ <tileset firstgid="177" source="Checkpoint.tsx"/>
  <imagelayer id="13" name="ReferenciaMapa" offsetx="-2" offsety="-196">
   <image source="ReferenciaFondo.png" width="8320" height="5782"/>
  </imagelayer>
@@ -531,6 +532,10 @@
   <object id="135" gid="124" x="5788.67" y="1384.55" width="157" height="259"/>
   <object id="140" gid="169" x="6432.35" y="2004.58" width="183.133" height="146"/>
   <object id="141" gid="131" x="7283.09" y="1999.27" width="83.303" height="97.8856"/>
+ </objectgroup>
+ <objectgroup id="32" name="Checkpoint">
+  <object id="283" type="Checkpoint" gid="177" x="6327" y="4810.5" width="51.9204" height="63"/>
+  <object id="284" type="Checkpoint" gid="177" x="3648.54" y="4426" width="51.9204" height="63"/>
  </objectgroup>
  <layer id="1" name="Map" width="130" height="77">
   <properties>

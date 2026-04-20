@@ -187,6 +187,8 @@ private:
     float mapViewDragOriginX_ = 0.0f;
     float mapViewDragOriginY_ = 0.0f;
 
+    float checkpointSaveTimer_ = 0.0f;
+
     void DrawMapViewer(int winW, int winH);
 
     // ── Main menu textures ────────────────────────────────────────────────────

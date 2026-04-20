@@ -851,11 +851,40 @@ void Scene::UpdateGameplay(float dt)
 		return;
 	}
 
+	if (checkpointSaveTimer_ > 0.0f) {
+		checkpointSaveTimer_ -= dt;
+	}
+
 	if (isPaused_) DrawPauseMenu();
 
 	if (isPaused_) return;
 
 	if (player) {
+		// Checkpoint collision logic
+		for (const auto& cp : Engine::GetInstance().map->mapData.checkpoints) {
+			if (!cp->visited) {
+				// Player's approximate collision rect (centered on position)
+				float pLeft = player->position.getX() - 20.0f;
+				float pRight = player->position.getX() + 20.0f;
+				float pTop = player->position.getY() - 50.0f;
+				float pBottom = player->position.getY() + 50.0f;
+				
+				// Checkpoint rect
+				float cLeft = cp->x;
+				float cRight = cp->x + cp->width;
+				float cTop = cp->y;
+				float cBottom = cp->y + cp->height;
+				
+				// AABB Overlap check
+				if (!(pLeft > cRight || pRight < cLeft || pTop > cBottom || pBottom < cTop)) {
+					LOG("Player reached a checkpoint. Auto-saving...");
+					Engine::GetInstance().saveSystem->QuickSave();
+					cp->visited = true;
+					checkpointSaveTimer_ = 2000.0f; // 2 seconds notification
+				}
+			}
+		}
+
 		// Fall death check
 		Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();
 		if (player->position.getY() > mapSize.getY() + 100.0f && player->health > 0) {
@@ -995,6 +1024,30 @@ void Scene::PostUpdateGameplay()
 		// Draw HUD at top left. Using speed = 0.0f makes it static to camera
 		// Scale reduced to 0.5f as requested
 		Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+	}
+
+	if (checkpointSaveTimer_ > 0.0f) {
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		Uint8 alpha = 255;
+		if (checkpointSaveTimer_ < 500.0f) {
+			alpha = (Uint8)((checkpointSaveTimer_ / 500.0f) * 255.0f);
+		}
+		
+		SDL_Texture* tex = Engine::GetInstance().render->CreateMenuTextTexture("GAME SAVED", { 255, 255, 255, alpha });
+		if (tex) {
+			float tw, th;
+			SDL_GetTextureSize(tex, &tw, &th);
+			float scale = 0.6f; // Make it smaller
+			float drawW = tw * scale;
+			float drawH = th * scale;
+			float drawX = (float)winW - drawW - 30.0f; // Bottom right
+			float drawY = (float)winH - drawH - 30.0f;
+			
+			// Dibujarlo con alpha
+			Engine::GetInstance().render->DrawTextureAlphaF(tex, drawX, drawY, drawW, drawH, alpha);
+			SDL_DestroyTexture(tex);
+		}
 	}
 
 	// --- Game Over Screen ---
