@@ -34,7 +34,6 @@ private:
 
 public:
 
-	//Declare enemy parameters
 	float speed = 2.5f;
 	SDL_Texture* texture = NULL;
 	int texW, texH;
@@ -46,8 +45,12 @@ private:
 	std::shared_ptr<Pathfinding> pathfinding;
 
 	// Contact damage
-	static constexpr float ATTACK_INTERVAL = 1000.0f; // ms between hits
+	static constexpr float ATTACK_INTERVAL = 1000.0f;
 	bool    isContactWithPlayer_ = false;
-	float   attackCooldown_      = 0.0f;
-	Entity* playerListener_      = nullptr;
+	float   attackCooldown_ = 0.0f;
+	Entity* playerListener_ = nullptr;
+
+	// Tracks whether the player was hiding on the previous frame.
+	// Used to detect the hide?visible transition and trigger a pathfinding reset.
+	bool wasPlayerHiding_ = false;
 };

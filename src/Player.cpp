@@ -12,10 +12,10 @@
 #include "tracy/Tracy.hpp"
 
 Player::Player() : Entity(EntityType::PLAYER),
-	texW(128), texH(128),
-	pickCoinFxId(-1),
-	pbody(nullptr),
-	damageFlashTimer_(0.0f)
+texW(128), texH(128),
+pickCoinFxId(-1),
+pbody(nullptr),
+damageFlashTimer_(0.0f)
 {
 	velocity.x = 0.0f;
 	velocity.y = 0.0f;
@@ -38,7 +38,7 @@ bool Player::Start() {
 		{28, "run"},
 		{42, "jump"},
 		{56, "hide"},
-		{70, "damage"}, // Index ajustat per l'usuari (anteriorment 81)
+		{70, "damage"},
 		{84, "death"}
 	};
 	anims.LoadFromTSX("assets/textures/animations/protagonistAnimation.xml", aliases);
@@ -48,8 +48,8 @@ bool Player::Start() {
 	anims.SetLoop("jump", false);
 	anims.SetLoop("damage", false);
 	anims.SetLoop("death", false);
+	anims.SetLoop("hide", false); // Play once and freeze on last frame
 
-	// Load the spritesheet texture
 	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheet.png");
 
 	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
@@ -60,15 +60,12 @@ bool Player::Start() {
 	wakeUpAnim.SetLoop(false);
 	isWakingUp = true;
 
-	// Load climbing animation (256x256 frames, drawn at 0.5 scale to match 128px visuals)
 	climbAnims.LoadSequentialFromTSX("assets/textures/animations/protagonistClimbing.xml", "climb", 80);
 	climbAnims.SetLoop("climb", false);
 	climbTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/Spritesheet_climb.png");
 
-	// Desired in-game display size for the player sprite.
 	texW = 128;
 	texH = 128;
-
 	drawScale = 1.0f;
 
 	pbody = Engine::GetInstance().physics->CreateCapsule((int)position.getX(), (int)position.getY(), 40, 100, bodyType::DYNAMIC, 0.0f);
@@ -93,14 +90,19 @@ bool Player::Update(float dt)
 
 	if (!isDead_ && !isWakingUp && !isClimbing_)
 	{
-		// No canviar estat si estem mostrant l'animació de dany
 		if (!isShowingDamageAnim_) {
-			Dash(dt);
-			if (!isDashing_) Move();
-			Jump();
-			CheckLedge();
-			Attack(dt);
-			Teleport();
+			// Hide must be evaluated first so it can block other actions
+			Hide(dt);
+
+			// All other actions are blocked while hiding
+			if (!isHiding_) {
+				Dash(dt);
+				if (!isDashing_) Move();
+				Jump();
+				CheckLedge();
+				Attack(dt);
+				Teleport();
+			}
 		}
 	}
 
@@ -108,8 +110,12 @@ bool Player::Update(float dt)
 	if (!isClimbing_) ApplyPhysics();
 
 	if (damageFlashTimer_ > 0.0f) damageFlashTimer_ -= dt;
-	if (iFrameTimer_ > 0.0f) iFrameTimer_ -= dt;
-	if (iFrameTimer_ <= 0.0f) isInvincible_ = false;
+	if (iFrameTimer_ > 0.0f)      iFrameTimer_ -= dt;
+	if (iFrameTimer_ <= 0.0f)     isInvincible_ = false;
+
+	// Advance hide alpha pulse timer for visual feedback
+	if (isHiding_) hideAlphaTime_ += dt;
+	else           hideAlphaTime_ = 0.0f;
 
 	Draw(dt);
 
@@ -124,11 +130,11 @@ void Player::Teleport() {
 
 void Player::GetPhysicsValues() {
 	velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
-	velocity.x = 0.0f; // Reset horizontal velocity by default
+	velocity.x = 0.0f;
 }
 
 void Player::Move() {
-	if (isWakingUp || isShowingDamageAnim_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
 		velocity.x = -speed;
@@ -160,7 +166,7 @@ void Player::Move() {
 	}
 	else if (!isJumping) {
 		if (anims.GetCurrentName() == "jump" && !anims.HasFinishedOnce("jump")) {
-			// Deixar que l'animació d'aterratge finalitzi
+			// let landing animation finish
 		}
 		else {
 			anims.SetCurrent("idle");
@@ -169,7 +175,7 @@ void Player::Move() {
 }
 
 void Player::Jump() {
-	if (isWakingUp || isDashing_ || isShowingDamageAnim_) return;
+	if (isWakingUp || isDashing_ || isShowingDamageAnim_ || isHiding_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
 		if (!isJumping) {
@@ -182,9 +188,7 @@ void Player::Jump() {
 		else if (canDoubleJump && !hasDoubleJumped) {
 			Engine::GetInstance().physics->SetYVelocity(pbody, 0.0f);
 			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -doubleJumpForce, true);
-			if (anims.Has("jump")) {
-				anims.ResetCurrent();
-			}
+			if (anims.Has("jump")) anims.ResetCurrent();
 			hasDoubleJumped = true;
 		}
 	}
@@ -197,18 +201,57 @@ void Player::Jump() {
 	}
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Hide mechanic
+//   • Pressing H toggles the hiding state.
+//   • While hiding the player stands still and plays the "hide" animation once,
+//     then freezes on the last frame.
+//   • Enemies query IsHiding() and skip pathfinding entirely.
+// ─────────────────────────────────────────────────────────────────────────────
+void Player::Hide(float dt)
+{
+	if (isWakingUp || isClimbing_ || isDashing_ || isShowingDamageAnim_ || isDead_) return;
+
+	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_H) == KEY_DOWN)
+	{
+		isHiding_ = !isHiding_;
+
+		if (isHiding_)
+		{
+			// Freeze horizontal movement
+			velocity.x = 0.0f;
+			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
+			anims.SetCurrent("hide");
+			anims.ResetCurrent(); // Always restart from frame 0 when entering hide
+			LOG("Player hiding");
+		}
+		else
+		{
+			anims.SetCurrent("idle");
+			LOG("Player stopped hiding");
+		}
+	}
+
+	// While hiding keep velocity zeroed so the player stays still.
+	// Only advance the animation if it hasn't finished yet (play once, freeze on last frame).
+	if (isHiding_)
+	{
+		velocity.x = 0.0f;
+		if (!anims.HasFinishedOnce("hide"))
+			anims.Update(dt);
+	}
+}
+
 void Player::ApplyPhysics() {
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
 	}
 
-	// Dash overrides horizontal velocity and forces zero vertical velocity for a pure horizontal dash
 	if (isDashing_) {
 		velocity.x = dashDirX_ * DASH_SPEED;
 		velocity.y = 0.0f;
 	}
 
-	// Apply velocity via helper
 	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
 }
 
@@ -233,6 +276,11 @@ void Player::Draw(float dt) {
 			anims.SetCurrent("idle");
 		}
 	}
+	else if (isHiding_)
+	{
+		// Hide animation is advanced inside Hide() — just grab the current frame
+		animFrame = &anims.GetCurrentFrame();
+	}
 	else if (!isClimbing_)
 	{
 		bool shouldUpdate = true;
@@ -243,13 +291,11 @@ void Player::Draw(float dt) {
 		animFrame = &anims.GetCurrentFrame();
 	}
 
-	// Update render position using your PhysBody helper
 	int xInt, yInt;
 	pbody->GetPosition(xInt, yInt);
 	position.setX(static_cast<float>(xInt));
 	position.setY(static_cast<float>(yInt));
 
-	// Camera System - Issue #21: Smooth camera follow with dead zones
 	auto& render = Engine::GetInstance().render;
 	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();
 
@@ -260,10 +306,9 @@ void Player::Draw(float dt) {
 		render->ClampCameraToMapBounds(mapSize.getX(), mapSize.getY());
 	}
 
-	// Center the sprite on the physics body position.
 	float currentDrawScale = drawScale;
 	if (anims.GetCurrentName() == "jump") {
-		currentDrawScale *= 1.25f; 
+		currentDrawScale *= 1.25f;
 	}
 
 	int drawX = static_cast<int>(position.getX() - (static_cast<float>(texW) * currentDrawScale) / 2.0f);
@@ -278,7 +323,8 @@ void Player::Draw(float dt) {
 	SDL_FlipMode flip;
 	if (spriteNativeRight) {
 		flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-	} else {
+	}
+	else {
 		flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 	}
 
@@ -290,15 +336,10 @@ void Player::Draw(float dt) {
 		else {
 			const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
 			float wakeScale = 0.65f;
-			
 			int wakeWidth = (int)(258.0f * wakeScale);
 			int wakeHeight = (int)(258.0f * wakeScale);
-
-			// Center horizontally with an offset to match the sprite's content
-			int wakeDrawX = xInt - (wakeWidth / 2) - 60; 
-			// Align bottom with floor (yInt + 50), with a small overlap for grounding
+			int wakeDrawX = xInt - (wakeWidth / 2) - 60;
 			int wakeDrawY = yInt + 50 - wakeHeight + 15;
-            
 			render->ApplyAmbientTint(wakeUpTexture);
 			render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
 			render->ResetAmbientTint(wakeUpTexture);
@@ -312,26 +353,39 @@ void Player::Draw(float dt) {
 		pbody->GetPosition(x, y);
 		int climbDrawX = x - (int)(256.0f * CLIMB_DRAW_SCALE) / 2;
 		int climbDrawY = y - (int)(256.0f * CLIMB_DRAW_SCALE) / 2;
-
 		SDL_FlipMode climbFlip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
 		Engine::GetInstance().render->DrawTexture(climbTexture, climbDrawX, climbDrawY, &climbFrame, 1.0f, 0, INT_MAX, INT_MAX, climbFlip, CLIMB_DRAW_SCALE);
 		return;
 	}
 
-	// I-frame flicker: skip every other 100ms slice while invincible from damage (not during dash or death)
-	bool skipDraw = !isDead_ && !isDashing_ && isInvincible_ && (static_cast<int>(iFrameTimer_ / 100.0f) % 2 == 0);
-	
+	// ── I-frame flicker (not during hide, dash, or death) ────────────────────
+	bool skipDraw = !isDead_ && !isDashing_ && !isHiding_ && isInvincible_ &&
+		(static_cast<int>(iFrameTimer_ / 100.0f) % 2 == 0);
+
 	if (!skipDraw) {
 		render->ApplyAmbientTint(activeTex);
-		
+
 		if (damageFlashTimer_ > 0.0f) {
 			SDL_SetTextureColorMod(activeTex, 255, 100, 100);
 		}
 
+		// While hiding: gentle alpha pulse (80‑180) to signal stealth
+		Uint8 drawAlpha = 255;
+		if (isHiding_) {
+			float pulse = 0.5f + 0.3f * sinf(hideAlphaTime_ * 0.004f);
+			drawAlpha = static_cast<Uint8>(80.0f + 100.0f * pulse);
+			SDL_SetTextureAlphaMod(activeTex, drawAlpha);
+			SDL_SetTextureBlendMode(activeTex, SDL_BLENDMODE_BLEND);
+		}
+
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
-		
+
+		// Restore alpha and color modulation
+		if (isHiding_) {
+			SDL_SetTextureAlphaMod(activeTex, 255);
+		}
 		if (damageFlashTimer_ > 0.0f) {
-			SDL_SetTextureColorMod(activeTex, 255, 255, 255); // Reset color mod
+			SDL_SetTextureColorMod(activeTex, 255, 255, 255);
 		}
 		render->ResetAmbientTint(activeTex);
 	}
@@ -346,14 +400,11 @@ void Player::Dash(float dt)
 	if (!isDashing_ && dashCooldown_ <= 0.0f &&
 		input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_DOWN)
 	{
-		isDashing_   = true;
-		dashTimer_   = DASH_DURATION;
-		dashDirX_    = facingRight ? -1.0f : 1.0f;
-
-		// Grant i-frames for the dash duration
+		isDashing_ = true;
+		dashTimer_ = DASH_DURATION;
+		dashDirX_ = facingRight ? -1.0f : 1.0f;
 		isInvincible_ = true;
-		iFrameTimer_  = DASH_DURATION;
-
+		iFrameTimer_ = DASH_DURATION;
 		LOG("Player dash started");
 	}
 
@@ -362,7 +413,7 @@ void Player::Dash(float dt)
 		dashTimer_ -= dt;
 		if (dashTimer_ <= 0.0f)
 		{
-			isDashing_    = false;
+			isDashing_ = false;
 			dashCooldown_ = DASH_COOLDOWN;
 			LOG("Player dash ended");
 		}
@@ -371,6 +422,8 @@ void Player::Dash(float dt)
 
 void Player::Attack(float dt)
 {
+	if (isHiding_) return;
+
 	auto& input = Engine::GetInstance().input;
 	auto& physics = Engine::GetInstance().physics;
 
@@ -389,7 +442,6 @@ void Player::Attack(float dt)
 		attackHitbox_ = physics->CreateRectangleSensor(hitboxX, bodyY, (int)HITBOX_W, (int)HITBOX_H, bodyType::STATIC);
 		attackHitbox_->listener = this;
 		attackHitbox_->ctype = ColliderType::ATTACK;
-
 		LOG("Player attack started");
 	}
 
@@ -420,16 +472,16 @@ void Player::Attack(float dt)
 
 void Player::TakeDamage(int damage)
 {
-	if (isInvincible_) return;
+	// Cannot take damage while hiding
+	if (isInvincible_ || isHiding_) return;
 
 	health -= damage;
 	LOG("Player took %d damage -> health: %d", damage, health);
 
 	isInvincible_ = true;
-	iFrameTimer_  = IFRAME_DURATION;
+	iFrameTimer_ = IFRAME_DURATION;
 	damageFlashTimer_ = DAMAGE_FLASH_DURATION;
 
-	// Girar el personatge cap a l'enemic que ha causat el dany
 	int playerX, playerY;
 	pbody->GetPosition(playerX, playerY);
 
@@ -447,27 +499,24 @@ void Player::TakeDamage(int damage)
 		}
 	}
 
-	// Si l'enemic és a l'esquerra, mirar a l'esquerra (facingRight=true)
-	// Si l'enemic és a la dreta, mirar a la dreta (facingRight=false)
-	if (enemyDirX < 0) {
-		facingRight = true;  // Enemic a l'esquerra -> mirar esquerra
-	} else if (enemyDirX > 0) {
-		facingRight = false; // Enemic a la dreta -> mirar dreta
-	}
+	if (enemyDirX < 0)      facingRight = true;
+	else if (enemyDirX > 0) facingRight = false;
 
 	float knockbackForce = 5.0f;
-	float dir = facingRight ? 1.0f : -1.0f; 
+	float dir = facingRight ? 1.0f : -1.0f;
 	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
 
 	if (health <= 0)
 	{
 		health = 0;
 		isDead_ = true;
+		isHiding_ = false;
 		anims.SetCurrent("death");
 		LOG("Player is dead");
 	}
 	else
 	{
+		isHiding_ = false;
 		isShowingDamageAnim_ = true;
 		anims.SetCurrent("damage");
 		anims.ResetCurrent();
@@ -477,8 +526,10 @@ void Player::TakeDamage(int damage)
 void Player::Revive()
 {
 	isDead_ = false;
+	isHiding_ = false;
 	isInvincible_ = false;
 	isShowingDamageAnim_ = false;
+	hideAlphaTime_ = 0.0f;
 	anims.SetCurrent("idle");
 	damageFlashTimer_ = 0.0f;
 }
@@ -488,8 +539,8 @@ bool Player::CleanUp()
 	LOG("Cleanup player");
 	Engine::GetInstance().textures->UnLoad(texture);
 	if (wakeUpTexture) Engine::GetInstance().textures->UnLoad(wakeUpTexture);
-	if (climbTexture) Engine::GetInstance().textures->UnLoad(climbTexture);
-	
+	if (climbTexture)  Engine::GetInstance().textures->UnLoad(climbTexture);
+
 	if (attackHitbox_ != nullptr)
 	{
 		Engine::GetInstance().physics->DeletePhysBody(attackHitbox_);
@@ -515,11 +566,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 	{
 	case ColliderType::PLATFORM:
 	{
-		// Només resetejar el salt quan s'aterra sobre una plataforma, no al col·lidir amb sostre o paret
 		int playerX, playerY, platX, platY;
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(platX, platY);
-		// El centre del jugador ha d'estar per sobre del centre de la plataforma per comptar com aterratge
 		if (playerY < platY) {
 			isJumping = false;
 			canDoubleJump = false;
@@ -553,7 +602,7 @@ void Player::SetPosition(Vector2D pos) {
 }
 
 void Player::CheckLedge() {
-	if (!isJumping || isClimbing_) return;
+	if (!isJumping || isClimbing_ || isHiding_) return;
 
 	auto& physics = Engine::GetInstance().physics;
 	int px, py;
@@ -562,14 +611,14 @@ void Player::CheckLedge() {
 	int dir = facingRight ? -1 : 1;
 
 	int bodyRayStartX = px;
-	int bodyRayStartY = py - LEDGE_RAY_MARGIN; // Usar el marge de la capçalera
-	int bodyRayEndX   = px + dir * LEDGE_RAY_REACH;
-	int bodyRayEndY   = bodyRayStartY;
+	int bodyRayStartY = py - LEDGE_RAY_MARGIN;
+	int bodyRayEndX = px + dir * LEDGE_RAY_REACH;
+	int bodyRayEndY = bodyRayStartY;
 
 	int headRayStartX = px;
 	int headRayStartY = py - LEDGE_HEAD_OFFSET;
-	int headRayEndX   = px + dir * LEDGE_RAY_REACH;
-	int headRayEndY   = headRayStartY;
+	int headRayEndX = px + dir * LEDGE_RAY_REACH;
+	int headRayEndY = headRayStartY;
 
 	float bodyHitX, bodyHitY, headHitX, headHitY;
 	bool bodyHit = physics->RayCastWorld(bodyRayStartX, bodyRayStartY, bodyRayEndX, bodyRayEndY, bodyHitX, bodyHitY);
