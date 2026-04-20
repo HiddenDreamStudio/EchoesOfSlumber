@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Input.h"
 #include "Render.h"
 #include "Module.h"
@@ -32,14 +31,14 @@ class UIElement : public std::enable_shared_from_this<UIElement>
 {
 public:
 
-	UIElement() : type(UIElementType::BUTTON), id(-1), state(UIElementState::NORMAL), texture(nullptr), observer(nullptr), alphaMod(1.0f) {
+	UIElement() : type(UIElementType::BUTTON), id(-1), state(UIElementState::NORMAL), texture(nullptr), hoverTexture(nullptr), observer(nullptr), alphaMod(1.0f), isVisible(true) {
 		bounds = { 0, 0, 0, 0 };
 		section = { 0, 0, 0, 0 };
 		color = { 255, 255, 255, 255 };
 	}
 
 	// Constructor
-	UIElement(UIElementType type, int id) : type(type), id(id), state(UIElementState::NORMAL), texture(nullptr), observer(nullptr), alphaMod(1.0f) {
+	UIElement(UIElementType type, int id) : type(type), id(id), state(UIElementState::NORMAL), texture(nullptr), hoverTexture(nullptr), observer(nullptr), alphaMod(1.0f), isVisible(true) {
 		bounds = { 0, 0, 0, 0 };
 		section = { 0, 0, 0, 0 };
 		color = { 255, 255, 255, 255 };
@@ -52,19 +51,18 @@ public:
 		bounds(bounds),
 		text(text),
 		texture(nullptr),
+		hoverTexture(nullptr),
 		observer(nullptr),
 		alphaMod(1.0f),
-		id(-1)
+		id(-1),
+		isVisible(true)
 	{
 		color = { 255, 255, 255, 255 };
 		section = { 0, 0, 0, 0 };
 	}
 
 	// Called each loop iteration
-	virtual bool Update(float dt)
-	{
-		return true;
-	}
+	virtual bool Update(float dt) { return true; }
 
 	// 
 	void SetTexture(SDL_Texture* tex)
@@ -74,26 +72,16 @@ public:
 	}
 
 	// 
-	void SetObserver(Module* module)
-	{
-		observer = module;
-	}
+	void SetHoverTexture(SDL_Texture* tex) { hoverTexture = tex; }
 
 	// 
-	void NotifyObserver()
-	{
-		observer->OnUIMouseClickEvent(this);
-	}
+	void SetObserver(Module* module) { observer = module; }
 
-	virtual bool CleanUp()
-	{
-		return true;
-	}
+	// 
+	void NotifyObserver() { observer->OnUIMouseClickEvent(this); }
 
-	virtual bool Destroy()
-	{
-		return true;
-	}
+	virtual bool CleanUp() { return true; }
+	virtual bool Destroy() { return true; }
 
 public:
 
@@ -106,6 +94,7 @@ public:
 	SDL_Color color = { 255, 255, 255, 255 };        // Tint color
 
 	SDL_Texture* texture = nullptr;   // Texture atlas reference
+	SDL_Texture* hoverTexture = nullptr;
 	SDL_Rect section = { 0, 0, 0, 0 };       // Texture atlas base section
 
 	Module* observer = nullptr;        // Observer 

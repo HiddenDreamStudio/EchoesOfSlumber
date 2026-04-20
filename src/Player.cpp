@@ -55,7 +55,7 @@ bool Player::Start() {
 	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
 	for (int i = 0; i < 51; ++i) {
 		SDL_Rect r = { i * 258, 0, 258, 258 };
-		wakeUpAnim.AddFrame(r, 120); // 120ms per frame matching main
+		wakeUpAnim.AddFrame(r, 120);
 	}
 	wakeUpAnim.SetLoop(false);
 	isWakingUp = true;
@@ -69,17 +69,13 @@ bool Player::Start() {
 	texW = 128;
 	texH = 128;
 
-	// Compute the draw scale.
 	drawScale = 1.0f;
 
-	// Create a capsule collider to match the tall player sprite.
-	// Width 40px (body width), height 100px (body height) - vertical capsule.
 	pbody = Engine::GetInstance().physics->CreateCapsule((int)position.getX(), (int)position.getY(), 40, 100, bodyType::DYNAMIC, 0.0f);
-	
+
 	pbody->listener = this;
 	pbody->ctype = ColliderType::PLAYER;
 
-	//initialize audio effect
 	pickCoinFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/coin-collision-sound-342335.wav");
 	return true;
 }
@@ -87,7 +83,7 @@ bool Player::Start() {
 bool Player::Update(float dt)
 {
 	ZoneScoped;
-	
+
 	if (Engine::GetInstance().scene->isPaused_) {
 		Draw(0.0f);
 		return true;
@@ -118,14 +114,12 @@ bool Player::Update(float dt)
 }
 
 void Player::Teleport() {
-	// Teleport the player to a specific position for testing purposes
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_T) == KEY_DOWN) {
 		pbody->SetPosition(96, 96);
 	}
 }
 
 void Player::GetPhysicsValues() {
-	// Read current velocity
 	velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
 	velocity.x = 0.0f; // Reset horizontal velocity by default
 }
@@ -135,12 +129,11 @@ void Player::Move() {
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
 		velocity.x = -speed;
-		// If we were going right (facingRight == false) and now go left
 		if (!facingRight) {
 			facingRight = true;
 			if (!isJumping) anims.SetCurrent("turnaround");
 		}
-		
+
 		if (!isJumping) {
 			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
 				if (anims.Has("run")) anims.SetCurrent("run");
@@ -150,12 +143,11 @@ void Player::Move() {
 	}
 	else if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT) {
 		velocity.x = speed;
-		// If we were going left (facingRight == true) and now go right
 		if (facingRight) {
 			facingRight = false;
 			if (!isJumping) anims.SetCurrent("turnaround");
 		}
-		
+
 		if (!isJumping) {
 			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
 				if (anims.Has("run")) anims.SetCurrent("run");
@@ -178,7 +170,6 @@ void Player::Jump() {
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
 		if (!isJumping) {
-			// First jump from the ground
 			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -jumpForce, true);
 			if (anims.Has("jump")) anims.SetCurrent("jump");
 			isJumping = true;
@@ -186,11 +177,8 @@ void Player::Jump() {
 			hasDoubleJumped = false;
 		}
 		else if (canDoubleJump && !hasDoubleJumped) {
-			// Double jump in the air
-			// Reset vertical velocity before applying the second impulse for a clean second jump
 			Engine::GetInstance().physics->SetYVelocity(pbody, 0.0f);
 			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -doubleJumpForce, true);
-			// Reset the jump animation so it replays from the start
 			if (anims.Has("jump")) {
 				anims.ResetCurrent();
 			}
@@ -198,7 +186,6 @@ void Player::Jump() {
 		}
 	}
 
-	// Parametric jump: cut vertical velocity when space is released early
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_UP && isJumping) {
 		float vy = Engine::GetInstance().physics->GetYVelocity(pbody);
 		if (vy < 0.0f) {
@@ -208,7 +195,6 @@ void Player::Jump() {
 }
 
 void Player::ApplyPhysics() {
-	// Preserve vertical speed while jumping
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
 	}
@@ -225,7 +211,6 @@ void Player::ApplyPhysics() {
 
 void Player::Draw(float dt) {
 
-	// Choose active texture and animation based on state
 	SDL_Texture* activeTex = texture;
 	const SDL_Rect* animFrame = nullptr;
 
@@ -263,9 +248,8 @@ void Player::Draw(float dt) {
 
 	// Camera System - Issue #21: Smooth camera follow with dead zones
 	auto& render = Engine::GetInstance().render;
-	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();  
-	
-	// Camera stops following when player is dead
+	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();
+
 	if (!isDead_)
 	{
 		render->SetCameraTarget(position.getX(), position.getY());
@@ -299,7 +283,8 @@ void Player::Draw(float dt) {
 		wakeUpAnim.Update(dt);
 		if (wakeUpAnim.HasFinishedOnce()) {
 			isWakingUp = false;
-		} else {
+		}
+		else {
 			const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
 			float wakeScale = 0.65f;
 			
@@ -314,7 +299,7 @@ void Player::Draw(float dt) {
 			render->ApplyAmbientTint(wakeUpTexture);
 			render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
 			render->ResetAmbientTint(wakeUpTexture);
-			return; 
+			return;
 		}
 	}
 
@@ -383,17 +368,15 @@ void Player::Dash(float dt)
 
 void Player::Attack(float dt)
 {
-	auto& input   = Engine::GetInstance().input;
+	auto& input = Engine::GetInstance().input;
 	auto& physics = Engine::GetInstance().physics;
 
-	// Tick attack cooldown
 	if (attackCooldown_ > 0.0f) attackCooldown_ -= dt;
 
-	// Start a new attack on J press
 	if (input->GetKey(SDL_SCANCODE_J) == KEY_DOWN && !isAttacking_ && attackCooldown_ <= 0.0f)
 	{
-		isAttacking_    = true;
-		attackTimer_    = ATTACK_DURATION;
+		isAttacking_ = true;
+		attackTimer_ = ATTACK_DURATION;
 		attackCooldown_ = ATTACK_COOLDOWN;
 
 		int bodyX, bodyY;
@@ -402,7 +385,7 @@ void Player::Attack(float dt)
 		int hitboxX = facingRight ? bodyX - (int)HITBOX_OFFSET : bodyX + (int)HITBOX_OFFSET;
 		attackHitbox_ = physics->CreateRectangleSensor(hitboxX, bodyY, (int)HITBOX_W, (int)HITBOX_H, bodyType::STATIC);
 		attackHitbox_->listener = this;
-		attackHitbox_->ctype    = ColliderType::ATTACK;
+		attackHitbox_->ctype = ColliderType::ATTACK;
 
 		LOG("Player attack started");
 	}
@@ -485,6 +468,17 @@ bool Player::CleanUp()
 	}
 	Engine::GetInstance().physics->DeletePhysBody(pbody);
 	return true;
+}
+
+SDL_Rect Player::GetCurrentAnimationRect() const
+{
+	if (isWakingUp) return wakeUpAnim.GetCurrentFrame();
+	return anims.GetCurrentFrame();
+}
+
+bool Player::IsFacingRight() const
+{
+	return facingRight;
 }
 
 void Player::OnCollision(PhysBody* physA, PhysBody* physB) {

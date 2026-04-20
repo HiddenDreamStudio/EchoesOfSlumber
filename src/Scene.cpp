@@ -15,6 +15,7 @@
 #include "Enemy.h"
 #include "UIManager.h"
 #include "SaveSystem.h"
+#include "Physics.h"
 #include <cstdlib>
 #include <cmath>
 
@@ -41,7 +42,6 @@ Scene::~Scene() {}
 bool Scene::Awake()
 {
 	LOG("Loading Scene");
-	// Defer initial scene load – renderer is not ready during Awake()
 	hasPendingSceneChange = true;
 	pendingScene = currentScene;
 	return true;
@@ -52,7 +52,6 @@ bool Scene::PreUpdate() { return true; }
 
 bool Scene::Update(float dt)
 {
-	// Handle fade-driven scene transitions
 	if (waitingForFade_ && Engine::GetInstance().render->IsFadeComplete()) {
 		waitingForFade_ = false;
 		ChangeScene(fadeTargetScene_);
@@ -142,9 +141,9 @@ void Scene::LoadScene(SceneID s)
 	switch (s)
 	{
 	case SceneID::INTRO:           LoadIntro();           break;
-	case SceneID::MAIN_MENU:       LoadMainMenu();       break;
-	case SceneID::INTRO_CINEMATIC: LoadIntroCinematic(); break;
-	case SceneID::GAMEPLAY:        LoadGameplay();        break;
+	case SceneID::MAIN_MENU:       LoadMainMenu();        break;
+	case SceneID::INTRO_CINEMATIC: LoadIntroCinematic();  break;
+	case SceneID::GAMEPLAY:        LoadGameplay();         break;
 	}
 }
 
@@ -160,9 +159,9 @@ void Scene::UnloadCurrentScene()
 	switch (currentScene)
 	{
 	case SceneID::INTRO:           UnloadIntro();           break;
-	case SceneID::MAIN_MENU:       UnloadMainMenu();       break;
-	case SceneID::INTRO_CINEMATIC: UnloadIntroCinematic(); break;
-	case SceneID::GAMEPLAY:        UnloadGameplay();        break;
+	case SceneID::MAIN_MENU:       UnloadMainMenu();        break;
+	case SceneID::INTRO_CINEMATIC: UnloadIntroCinematic();  break;
+	case SceneID::GAMEPLAY:        UnloadGameplay();         break;
 	}
 }
 
@@ -177,15 +176,12 @@ void Scene::LoadMainMenu()
 	musicVolume_ = 0.8f;
 	sfxVolume_ = 0.8f;
 
-	// Load menu textures
 	SDL_Texture* rawLogo = Engine::GetInstance().textures->Load("assets/textures/menu/EchoesOfSlumber.png");
-	// Recolor logo from blue to #D4DAEA (212, 218, 234)
 	texMenuLogo_ = Engine::GetInstance().render->RecolorTexture(rawLogo, 212, 218, 234);
 	Engine::GetInstance().textures->UnLoad(rawLogo);
 	texMenuChild_ = Engine::GetInstance().textures->Load("assets/textures/menu/IL_NenFront_01.png");
 	texMenuButton_ = Engine::GetInstance().textures->Load("assets/textures/menu/UI_Pause_Menu_button_white.png");
 
-	// Load fragment textures
 	const char* fragPaths[NUM_FRAGMENTS] = {
 		"assets/textures/Menu/UI_Fragment1.png",
 		"assets/textures/Menu/UI_Fragment2.png",
@@ -201,19 +197,14 @@ void Scene::LoadMainMenu()
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-	// Left half layout: logo + buttons centered horizontally in left half
 	const int leftHalf = winW / 2;
-
-	// Logo dimensions (used to position buttons below)
 	const int logoW = 385;
-	const int logoH = static_cast<int>(static_cast<float>(logoW) * (569.0f / 1559.0f)); // ~117px
+	const int logoH = static_cast<int>(static_cast<float>(logoW) * (569.0f / 1559.0f));
 	const int logoX = (leftHalf - logoW) / 2;
-	const int logoY = winH / 4 - logoH / 2;  // centered at 1/4 vertical
+	const int logoY = winH / 4 - logoH / 2;
 
-	// Buttons centered in left half, below the logo
-	// Button texture is 456x130 — keep proportional
 	const int btnW = 315;
-	const int btnH = static_cast<int>(static_cast<float>(btnW) * (130.0f / 456.0f)); // ~90px
+	const int btnH = static_cast<int>(static_cast<float>(btnW) * (130.0f / 456.0f));
 	const int btnX = (leftHalf - btnW) / 2;
 	const int startY = logoY + logoH + 50;
 	const int gap = btnH + 15;
@@ -221,27 +212,24 @@ void Scene::LoadMainMenu()
 	menuAnimState_ = MenuAnimState::LOGO_FADE_IN;
 	menuAnimTimer_ = 0.0f;
 
-	SDL_Rect playPos     = { btnX, startY,           btnW, btnH };
+	SDL_Rect playPos = { btnX, startY,           btnW, btnH };
 	SDL_Rect settingsPos = { btnX, startY + gap,     btnW, btnH };
-	SDL_Rect exitPos     = { btnX, startY + gap * 2, btnW, btnH };
+	SDL_Rect exitPos = { btnX, startY + gap * 2, btnW, btnH };
 
 	btnPlay_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PLAY, "play", playPos, this);
 	btnSettings_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS, "options", settingsPos, this);
 	btnExit_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_EXIT, "exit", exitPos, this);
 
-    // Initial cinematic state: Hide buttons initially
 	if (btnPlay_) { btnPlay_->alphaMod = 0.0f; btnPlay_->isVisible = false; }
 	if (btnSettings_) { btnSettings_->alphaMod = 0.0f; btnSettings_->isVisible = false; }
 	if (btnExit_) { btnExit_->alphaMod = 0.0f; btnExit_->isVisible = false; }
 
-	// Set stone button texture
 	if (texMenuButton_) {
 		btnPlay_->SetTexture(texMenuButton_);
 		btnSettings_->SetTexture(texMenuButton_);
 		btnExit_->SetTexture(texMenuButton_);
 	}
 
-	// Settings panel — placed in the TOP half so BACK never overlaps main buttons
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = 60;
@@ -249,17 +237,17 @@ void Scene::LoadMainMenu()
 	const int smallBtnH = 34;
 	const int rowH = 52;
 
-	SDL_Rect musicUpPos   = { panelX + panelW - smallBtnW - 12, panelY + 60,              smallBtnW, smallBtnH };
-	SDL_Rect musicDownPos = { panelX + 12,                       panelY + 60,              smallBtnW, smallBtnH };
-	SDL_Rect sfxUpPos     = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,       smallBtnW, smallBtnH };
-	SDL_Rect sfxDownPos   = { panelX + 12,                       panelY + 60 + rowH,       smallBtnW, smallBtnH };
-	SDL_Rect backPos      = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120, btnH };
+	SDL_Rect musicUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60,                  smallBtnW, smallBtnH };
+	SDL_Rect musicDownPos = { panelX + 12,                       panelY + 60,                  smallBtnW, smallBtnH };
+	SDL_Rect sfxUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,           smallBtnW, smallBtnH };
+	SDL_Rect sfxDownPos = { panelX + 12,                       panelY + 60 + rowH,           smallBtnW, smallBtnH };
+	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120,       btnH };
 
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_MUSIC_UP, "+", musicUpPos, this);
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_MUSIC_DOWN, "-", musicDownPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_UP, "+", sfxUpPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_DOWN, "-", sfxDownPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS_BACK, "BACK", backPos, this);
+	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_UP, "+", sUpPos, this);
+	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_DOWN, "-", sDownPos, this);
+	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS_BACK, "back", backPos, this);
 
 	SetSettingsPanelVisible(false);
 }
@@ -267,8 +255,8 @@ void Scene::LoadMainMenu()
 void Scene::UnloadMainMenu()
 {
 	Engine::GetInstance().uiManager->CleanUp();
-	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_); texMenuLogo_ = nullptr; }
-	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_); texMenuChild_ = nullptr; }
+	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_);                       texMenuLogo_ = nullptr; }
+	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_);  texMenuChild_ = nullptr; }
 	if (texMenuButton_) { Engine::GetInstance().textures->UnLoad(texMenuButton_); texMenuButton_ = nullptr; }
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		if (fragments_[i].tex) { Engine::GetInstance().textures->UnLoad(fragments_[i].tex); fragments_[i].tex = nullptr; }
@@ -278,16 +266,13 @@ void Scene::UnloadMainMenu()
 
 void Scene::UpdateMainMenu(float dt)
 {
-	// Decrement cooldown each frame
 	if (settingsCooldown_ > 0) settingsCooldown_--;
 
-	// Accumulate time for fragment floating animations
 	fragmentTime_ += dt;
 
-	// Cinematic logic
 	if (menuAnimState_ != MenuAnimState::IDLE) {
 		menuAnimTimer_ += dt;
-		
+
 		auto finishCinematic = [&]() {
 			menuAnimState_ = MenuAnimState::IDLE;
 			if (btnPlay_) { btnPlay_->alphaMod = 1.0f; btnPlay_->isVisible = true; }
@@ -295,38 +280,22 @@ void Scene::UpdateMainMenu(float dt)
 			if (btnExit_) { btnExit_->alphaMod = 1.0f; btnExit_->isVisible = true; }
 		};
 
-		// Allow skipping entire cinematic
-		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN || 
-			Engine::GetInstance().input->GetKey(SDL_SCANCODE_RETURN) == KEY_DOWN || 
-			Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN) 
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+			Engine::GetInstance().input->GetKey(SDL_SCANCODE_RETURN) == KEY_DOWN ||
+			Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
 		{
 			finishCinematic();
 			return;
 		}
 
-		if (menuAnimState_ == MenuAnimState::LOGO_FADE_IN && menuAnimTimer_ > 1500.0f) {
-			menuAnimState_ = MenuAnimState::LOGO_HOLD;
-			menuAnimTimer_ = 0.0f;
-		}
-		else if (menuAnimState_ == MenuAnimState::LOGO_HOLD && menuAnimTimer_ > 1000.0f) {
-			menuAnimState_ = MenuAnimState::SLIDE_LOGO;
-			menuAnimTimer_ = 0.0f;
-		}
-		else if (menuAnimState_ == MenuAnimState::SLIDE_LOGO && menuAnimTimer_ > 1500.0f) {
-			menuAnimState_ = MenuAnimState::SLIDE_CHILD;
-			menuAnimTimer_ = 0.0f;
-		}
-		else if (menuAnimState_ == MenuAnimState::SLIDE_CHILD && menuAnimTimer_ > 1500.0f) {
-			menuAnimState_ = MenuAnimState::FADE_FRAGS_BTNS;
-			menuAnimTimer_ = 0.0f;
-		}
-		else if (menuAnimState_ == MenuAnimState::FADE_FRAGS_BTNS && menuAnimTimer_ > 3500.0f) {
-			finishCinematic();
-		}
-	} 
-	else 
+		if (menuAnimState_ == MenuAnimState::LOGO_FADE_IN && menuAnimTimer_ > 1500.0f) { menuAnimState_ = MenuAnimState::LOGO_HOLD;       menuAnimTimer_ = 0.0f; }
+		else if (menuAnimState_ == MenuAnimState::LOGO_HOLD && menuAnimTimer_ > 1000.0f) { menuAnimState_ = MenuAnimState::SLIDE_LOGO;      menuAnimTimer_ = 0.0f; }
+		else if (menuAnimState_ == MenuAnimState::SLIDE_LOGO && menuAnimTimer_ > 1500.0f) { menuAnimState_ = MenuAnimState::SLIDE_CHILD;     menuAnimTimer_ = 0.0f; }
+		else if (menuAnimState_ == MenuAnimState::SLIDE_CHILD && menuAnimTimer_ > 1500.0f) { menuAnimState_ = MenuAnimState::FADE_FRAGS_BTNS; menuAnimTimer_ = 0.0f; }
+		else if (menuAnimState_ == MenuAnimState::FADE_FRAGS_BTNS && menuAnimTimer_ > 3500.0f) { finishCinematic(); }
+	}
+	else
 	{
-		// ESC closes settings only if IDLE
 		if (showSettings_ && Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
 		{
 			showSettings_ = false;
@@ -341,25 +310,21 @@ void Scene::PostUpdateMainMenu()
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-	// Compute target character rect
 	int childH = winH - 20;
 	int childW = static_cast<int>(static_cast<float>(childH) * (1421.0f / 913.0f));
 	int childDestX = winW - childW;
 
-	// Compute target Logo dimensions
 	const int leftHalf = winW / 2;
 	int logoW = 385;
 	int logoH = static_cast<int>(static_cast<float>(logoW) * (569.0f / 1559.0f));
 	int logoDestX = (leftHalf - logoW) / 2;
 	int logoDestY = winH / 4 - logoH / 2;
 
-	// Lazy-init fragments on first frame
 	if (!fragmentsInited_) {
 		InitFragments(winW, winH, childDestX, childW);
 		fragmentsInited_ = true;
 	}
 
-	// Dynamic Cinematic State Variables
 	int renderChildX = childDestX;
 	int renderLogoX = logoDestX;
 	int renderLogoY = logoDestY;
@@ -367,7 +332,7 @@ void Scene::PostUpdateMainMenu()
 
 	if (menuAnimState_ != MenuAnimState::IDLE) {
 		float t = 0.0f;
-		
+
 		switch (menuAnimState_) {
 		case MenuAnimState::LOGO_FADE_IN:
 			t = menuAnimTimer_ / 1500.0f;
@@ -377,7 +342,7 @@ void Scene::PostUpdateMainMenu()
 			bgB = static_cast<int>(32.0f * t);
 			renderLogoX = winW / 2 - logoW / 2;
 			renderLogoY = winH / 2 - logoH / 2;
-			renderChildX = winW; // Hidden fully on the right
+			renderChildX = winW;
 			break;
 
 		case MenuAnimState::LOGO_HOLD:
@@ -408,7 +373,6 @@ void Scene::PostUpdateMainMenu()
 			renderChildX = childDestX;
 			renderLogoX = logoDestX;
 			renderLogoY = logoDestY;
-
 			if (btnPlay_) {
 				float f0 = (menuAnimTimer_ - 0.0f) / 1000.0f;
 				if (f0 < 0.0f) f0 = 0.0f; if (f0 > 1.0f) f0 = 1.0f;
@@ -430,49 +394,39 @@ void Scene::PostUpdateMainMenu()
 			break;
 		}
 
-		// Enforce fragment fading based on time globally
 		if (menuAnimState_ < MenuAnimState::FADE_FRAGS_BTNS) {
 			for (int i = 0; i < NUM_FRAGMENTS; i++) fragments_[i].alpha = 0;
-		} else if (menuAnimState_ == MenuAnimState::FADE_FRAGS_BTNS) {
+		}
+		else if (menuAnimState_ == MenuAnimState::FADE_FRAGS_BTNS) {
 			for (int i = 0; i < NUM_FRAGMENTS; i++) {
 				float f = (menuAnimTimer_ - (i * 400.0f)) / 1000.0f;
 				if (f < 0.0f) f = 0.0f; if (f > 1.0f) f = 1.0f;
 				fragments_[i].alpha = (Uint8)(255 * f);
 			}
 		}
-	} else {
-		// IDLE state
-		for (int i = 0; i < NUM_FRAGMENTS; i++) {
-			fragments_[i].alpha = 255;
-		}
+	}
+	else {
+		for (int i = 0; i < NUM_FRAGMENTS; i++) fragments_[i].alpha = 255;
 	}
 
-	// ── Background #151F20 ───────────────────────────────────────────────────────
 	SDL_Rect bg = { 0, 0, winW, winH };
 	render.DrawRectangle(bg, bgR, bgG, bgB, 255, true, false);
 
-	// ── Fragments BEHIND the character ──────────────────────────────────────
 	DrawFragments(false, winW, winH);
 
-	// ── Character (right half, fill from near top to bottom) ─────────────────
 	if (texMenuChild_) {
 		int childY = 20;
 		render.DrawTextureAlpha(texMenuChild_, renderChildX, childY, childW, childH, 255);
 	}
 
-	// ── Fragments IN FRONT of the character ─────────────────────────────────
 	DrawFragments(true, winW, winH);
 
-	// ── Game logo (centered in left half at 1/4 vertical, #D4DAEA) ─────────
 	if (texMenuLogo_) {
 		render.DrawTextureAlpha(texMenuLogo_, renderLogoX, renderLogoY, logoW, logoH, 255);
 	}
 
-	// ── Settings Panel (drawn before UI buttons so buttons render on top) ───
 	if (showSettings_)
-	{
 		DrawSettingsPanel(winW, winH);
-	}
 }
 
 void Scene::DrawSettingsPanel(int winW, int winH)
@@ -482,113 +436,84 @@ void Scene::DrawSettingsPanel(int winW, int winH)
 	const int panelW = 340;
 	const int panelH = 240;
 	const int panelX = winW / 2 - panelW / 2;
-	const int panelY = 60;          // matches LoadMainMenu button positions
+	const int panelY = 60;
 	const int rowH = 52;
 
-	// Dim overlay
 	SDL_Rect overlay = { 0, 0, winW, winH };
 	render.DrawRectangle(overlay, 0, 0, 0, 160, true, false);
 
-	// Panel background
 	SDL_Rect panel = { panelX, panelY, panelW, panelH };
-	render.DrawRectangle(panel, 10, 14, 28, 245, true, false);
-	// Panel border
-	render.DrawRectangle(panel, 80, 120, 180, 200, false, false);
-	// Top accent
+	render.DrawRectangle(panel, 8, 12, 22, 250, true, false);
+	render.DrawRectangle(panel, 60, 90, 150, 200, false, false);
 	SDL_Rect topBar = { panelX, panelY, panelW, 4 };
 	render.DrawRectangle(topBar, 80, 140, 200, 255, true, false);
 
-	// Title
-	render.DrawText("SETTINGS", panelX + panelW / 2 - 44, panelY + 14, 0, 0,
-		{ 180, 210, 240, 255 });
+	render.DrawMenuTextCentered("SETTINGS", { panelX, panelY + 8, panelW, 30 }, { 180, 210, 240, 255 });
 
-	// ── Music volume row ─────────────────────────────────────────────────────
-	render.DrawText("MUSIC", panelX + 60, panelY + 56, 0, 0, { 150, 180, 210, 220 });
-
-	// Volume bar background
-	SDL_Rect barBg = { panelX + 60, panelY + 86, panelW - 120, 8 };
-	render.DrawRectangle(barBg, 30, 40, 60, 200, true, false);
-	// Volume bar fill
-	int musicFill = static_cast<int>(static_cast<float>(panelW - 120) * musicVolume_);
-	SDL_Rect barFill = { panelX + 60, panelY + 86, musicFill, 8 };
-	render.DrawRectangle(barFill, 80, 160, 220, 255, true, false);
-
-	// Value text
+	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 50, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
 	char volText[8];
 	snprintf(volText, sizeof(volText), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
-	render.DrawText(volText, panelX + panelW / 2 - 15, panelY + 56, 0, 0,
-		{ 200, 220, 240, 255 });
+	render.DrawMenuTextCentered(volText, { panelX + panelW / 2, panelY + 50, panelW / 2, 25 }, { 200, 220, 240, 255 });
+	SDL_Rect barBg = { panelX + 20, panelY + 78, panelW - 40, 7 };
+	render.DrawRectangle(barBg, 30, 40, 60, 200, true, false);
+	int musicFill = static_cast<int>(static_cast<float>(panelW - 40) * musicVolume_);
+	SDL_Rect barFill = { panelX + 20, panelY + 78, musicFill, 7 };
+	render.DrawRectangle(barFill, 80, 160, 220, 255, true, false);
 
-	// ── SFX volume row ───────────────────────────────────────────────────────
-	render.DrawText("SFX", panelX + 60, panelY + 56 + rowH, 0, 0, { 150, 180, 210, 220 });
-
-	SDL_Rect sfxBarBg = { panelX + 60, panelY + 86 + rowH, panelW - 120, 8 };
-	render.DrawRectangle(sfxBarBg, 30, 40, 60, 200, true, false);
-	int sfxFill = static_cast<int>(static_cast<float>(panelW - 120) * sfxVolume_);
-	SDL_Rect sfxBarFill = { panelX + 60, panelY + 86 + rowH, sfxFill, 8 };
-	render.DrawRectangle(sfxBarFill, 80, 160, 220, 255, true, false);
-
+	render.DrawMenuTextCentered("SFX", { panelX, panelY + 50 + rowH, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
 	snprintf(volText, sizeof(volText), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
-	render.DrawText(volText, panelX + panelW / 2 - 15, panelY + 56 + rowH, 0, 0,
-		{ 200, 220, 240, 255 });
+	render.DrawMenuTextCentered(volText, { panelX + panelW / 2, panelY + 50 + rowH, panelW / 2, 25 }, { 200, 220, 240, 255 });
+	SDL_Rect sfxBarBg = { panelX + 20, panelY + 78 + rowH, panelW - 40, 7 };
+	render.DrawRectangle(sfxBarBg, 30, 40, 60, 200, true, false);
+	int sfxFill = static_cast<int>(static_cast<float>(panelW - 40) * sfxVolume_);
+	SDL_Rect sfxBarFill = { panelX + 20, panelY + 78 + rowH, sfxFill, 7 };
+	render.DrawRectangle(sfxBarFill, 80, 160, 220, 255, true, false);
 }
 
 void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 {
-	// Ignore events during fade or cooldown
-	if (waitingForFade_) return;
+	if (waitingForFade_)      return;
 	if (settingsCooldown_ > 0) return;
 
 	switch (uiElement->id)
 	{
-		// ── Main buttons ─────────────────────────────────────────────────────────
 	case BTN_PLAY:
 		LOG("Main Menu: Play");
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::INTRO_CINEMATIC;
 		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1000.0f);
 		break;
-
 	case BTN_SETTINGS:
 		showSettings_ = !showSettings_;
 		SetSettingsPanelVisible(showSettings_);
-		settingsCooldown_ = 4;   // ignore events for 4 frames after opening
+		settingsCooldown_ = 4;
 		break;
-
 	case BTN_EXIT:
 		LOG("Main Menu: Exit");
-		// Signal engine to quit via window event
 		SDL_Event quitEvent;
 		quitEvent.type = SDL_EVENT_QUIT;
 		SDL_PushEvent(&quitEvent);
 		break;
-
-		// ── Settings buttons ─────────────────────────────────────────────────────
 	case BTN_MUSIC_UP:
 		musicVolume_ = std::min(1.0f, musicVolume_ + 0.1f);
 		Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
 		break;
-
 	case BTN_MUSIC_DOWN:
 		musicVolume_ = std::max(0.0f, musicVolume_ - 0.1f);
 		Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
 		break;
-
 	case BTN_SFX_UP:
 		sfxVolume_ = std::min(1.0f, sfxVolume_ + 0.1f);
 		Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
 		break;
-
 	case BTN_SFX_DOWN:
 		sfxVolume_ = std::max(0.0f, sfxVolume_ - 0.1f);
 		Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
 		break;
-
 	case BTN_SETTINGS_BACK:
 		showSettings_ = false;
 		SetSettingsPanelVisible(false);
 		break;
-
 	default:
 		break;
 	}
@@ -596,13 +521,10 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 
 void Scene::SetSettingsPanelVisible(bool visible)
 {
-	// Disable/enable settings-panel buttons and main buttons
 	auto& list = Engine::GetInstance().uiManager->UIElementsList;
-
 	for (auto& el : list)
 	{
-		bool isSettingsBtn = (el->id >= BTN_SETTINGS_BACK && el->id <= BTN_SFX_DOWN)
-			|| el->id == BTN_SETTINGS_BACK;
+		bool isSettingsBtn = (el->id >= BTN_SETTINGS_BACK && el->id <= BTN_SFX_DOWN) || el->id == BTN_SETTINGS_BACK;
 		bool isMainBtn = (el->id == BTN_PLAY || el->id == BTN_SETTINGS || el->id == BTN_EXIT);
 
 		if (isSettingsBtn) {
@@ -621,8 +543,8 @@ void Scene::SetSettingsPanelVisible(bool visible)
 //  INTRO (Splash Logos)
 // ============================================================================
 
-static constexpr float INTRO_FADE_MS  = 800.0f;
-static constexpr float INTRO_HOLD_MS  = 1500.0f;
+static constexpr float INTRO_FADE_MS = 800.0f;
+static constexpr float INTRO_HOLD_MS = 1500.0f;
 static constexpr float INTRO_TOTAL_MS = INTRO_FADE_MS * 2.0f + INTRO_HOLD_MS;
 
 void Scene::LoadIntro()
@@ -631,23 +553,20 @@ void Scene::LoadIntro()
 	introPhase_ = IntroPhase::CITM_FADEIN;
 	introTimer_ = 0.0f;
 
-	// Fade in from black at game boot
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
 
 	texCitmLogo_ = Engine::GetInstance().textures->Load("assets/textures/icons/logo-citm.png");
-	texStudioPlaceholder_ = Engine::GetInstance().render->CreateMenuTextTexture(
-		"HIDDEN DREAM STUDIO", { 255, 255, 255, 255 });
+	texStudioPlaceholder_ = Engine::GetInstance().render->CreateMenuTextTexture("HIDDEN DREAM STUDIO", { 255, 255, 255, 255 });
 }
 
 void Scene::UnloadIntro()
 {
 	if (texCitmLogo_) { Engine::GetInstance().textures->UnLoad(texCitmLogo_); texCitmLogo_ = nullptr; }
-	if (texStudioPlaceholder_) { SDL_DestroyTexture(texStudioPlaceholder_); texStudioPlaceholder_ = nullptr; }
+	if (texStudioPlaceholder_) { SDL_DestroyTexture(texStudioPlaceholder_);            texStudioPlaceholder_ = nullptr; }
 }
 
 void Scene::UpdateIntro(float dt)
 {
-	// Skip with Space
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
 		if (!waitingForFade_) {
 			waitingForFade_ = true;
@@ -661,21 +580,11 @@ void Scene::UpdateIntro(float dt)
 	introTimer_ += dt;
 
 	switch (introPhase_) {
-	case IntroPhase::CITM_FADEIN:
-		if (introTimer_ >= INTRO_FADE_MS) { introTimer_ = 0; introPhase_ = IntroPhase::CITM_HOLD; }
-		break;
-	case IntroPhase::CITM_HOLD:
-		if (introTimer_ >= INTRO_HOLD_MS) { introTimer_ = 0; introPhase_ = IntroPhase::CITM_FADEOUT; }
-		break;
-	case IntroPhase::CITM_FADEOUT:
-		if (introTimer_ >= INTRO_FADE_MS) { introTimer_ = 0; introPhase_ = IntroPhase::STUDIO_FADEIN; }
-		break;
-	case IntroPhase::STUDIO_FADEIN:
-		if (introTimer_ >= INTRO_FADE_MS) { introTimer_ = 0; introPhase_ = IntroPhase::STUDIO_HOLD; }
-		break;
-	case IntroPhase::STUDIO_HOLD:
-		if (introTimer_ >= INTRO_HOLD_MS) { introTimer_ = 0; introPhase_ = IntroPhase::STUDIO_FADEOUT; }
-		break;
+	case IntroPhase::CITM_FADEIN:   if (introTimer_ >= INTRO_FADE_MS) { introTimer_ = 0; introPhase_ = IntroPhase::CITM_HOLD; } break;
+	case IntroPhase::CITM_HOLD:     if (introTimer_ >= INTRO_HOLD_MS) { introTimer_ = 0; introPhase_ = IntroPhase::CITM_FADEOUT; } break;
+	case IntroPhase::CITM_FADEOUT:  if (introTimer_ >= INTRO_FADE_MS) { introTimer_ = 0; introPhase_ = IntroPhase::STUDIO_FADEIN; } break;
+	case IntroPhase::STUDIO_FADEIN: if (introTimer_ >= INTRO_FADE_MS) { introTimer_ = 0; introPhase_ = IntroPhase::STUDIO_HOLD; } break;
+	case IntroPhase::STUDIO_HOLD:   if (introTimer_ >= INTRO_HOLD_MS) { introTimer_ = 0; introPhase_ = IntroPhase::STUDIO_FADEOUT; } break;
 	case IntroPhase::STUDIO_FADEOUT:
 		if (introTimer_ >= INTRO_FADE_MS) {
 			introPhase_ = IntroPhase::DONE;
@@ -684,8 +593,7 @@ void Scene::UpdateIntro(float dt)
 			Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 500.0f);
 		}
 		break;
-	case IntroPhase::DONE:
-		break;
+	case IntroPhase::DONE: break;
 	}
 
 	DrawIntro();
@@ -697,60 +605,38 @@ void Scene::DrawIntro()
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-	// Black background
 	SDL_Rect bg = { 0, 0, winW, winH };
 	render.DrawRectangle(bg, 0, 0, 0, 255, true, false);
 
 	SDL_Texture* logo = nullptr;
-	Uint8 alpha = 0;
-	float cumTime = 0.0f;
+	Uint8  alpha = 0;
+	float  cumTime = 0.0f;
 
-	bool isCitm = (introPhase_ == IntroPhase::CITM_FADEIN ||
-	               introPhase_ == IntroPhase::CITM_HOLD ||
-	               introPhase_ == IntroPhase::CITM_FADEOUT);
-	bool isStudio = (introPhase_ == IntroPhase::STUDIO_FADEIN ||
-	                 introPhase_ == IntroPhase::STUDIO_HOLD ||
-	                 introPhase_ == IntroPhase::STUDIO_FADEOUT);
+	bool isCitm = (introPhase_ == IntroPhase::CITM_FADEIN || introPhase_ == IntroPhase::CITM_HOLD || introPhase_ == IntroPhase::CITM_FADEOUT);
+	bool isStudio = (introPhase_ == IntroPhase::STUDIO_FADEIN || introPhase_ == IntroPhase::STUDIO_HOLD || introPhase_ == IntroPhase::STUDIO_FADEOUT);
 
 	if (isCitm) {
 		logo = texCitmLogo_;
-		if (introPhase_ == IntroPhase::CITM_FADEIN) {
-			alpha = (Uint8)(255.0f * (introTimer_ / INTRO_FADE_MS));
-			cumTime = introTimer_;
-		} else if (introPhase_ == IntroPhase::CITM_HOLD) {
-			alpha = 255;
-			cumTime = INTRO_FADE_MS + introTimer_;
-		} else {
-			alpha = (Uint8)(255.0f * (1.0f - introTimer_ / INTRO_FADE_MS));
-			cumTime = INTRO_FADE_MS + INTRO_HOLD_MS + introTimer_;
-		}
+		if (introPhase_ == IntroPhase::CITM_FADEIN) { alpha = (Uint8)(255.0f * (introTimer_ / INTRO_FADE_MS));               cumTime = introTimer_; }
+		else if (introPhase_ == IntroPhase::CITM_HOLD) { alpha = 255;                                                             cumTime = INTRO_FADE_MS + introTimer_; }
+		else { alpha = (Uint8)(255.0f * (1.0f - introTimer_ / INTRO_FADE_MS));         cumTime = INTRO_FADE_MS + INTRO_HOLD_MS + introTimer_; }
 	}
 	else if (isStudio) {
 		logo = texStudioPlaceholder_;
-		if (introPhase_ == IntroPhase::STUDIO_FADEIN) {
-			alpha = (Uint8)(255.0f * (introTimer_ / INTRO_FADE_MS));
-			cumTime = introTimer_;
-		} else if (introPhase_ == IntroPhase::STUDIO_HOLD) {
-			alpha = 255;
-			cumTime = INTRO_FADE_MS + introTimer_;
-		} else {
-			alpha = (Uint8)(255.0f * (1.0f - introTimer_ / INTRO_FADE_MS));
-			cumTime = INTRO_FADE_MS + INTRO_HOLD_MS + introTimer_;
-		}
+		if (introPhase_ == IntroPhase::STUDIO_FADEIN) { alpha = (Uint8)(255.0f * (introTimer_ / INTRO_FADE_MS));             cumTime = introTimer_; }
+		else if (introPhase_ == IntroPhase::STUDIO_HOLD) { alpha = 255;                                                           cumTime = INTRO_FADE_MS + introTimer_; }
+		else { alpha = (Uint8)(255.0f * (1.0f - introTimer_ / INTRO_FADE_MS));       cumTime = INTRO_FADE_MS + INTRO_HOLD_MS + introTimer_; }
 	}
 
 	if (logo && alpha > 0) {
 		float zoomProgress = cumTime / INTRO_TOTAL_MS;
 		if (zoomProgress > 1.0f) zoomProgress = 1.0f;
-		
-		// Ease-out quadratic for smoother zoom deceleration
 		float easeT = zoomProgress * (2.0f - zoomProgress);
 		float zoom = 1.0f + 0.05f * easeT;
 
 		float tw = 0, th = 0;
 		SDL_GetTextureSize(logo, &tw, &th);
 
-		// Scale logo to fit nicely on screen
 		float targetW = winW * 0.45f;
 		float logoScale = targetW / tw;
 		if (logoScale > 3.0f) logoScale = 3.0f;
@@ -783,17 +669,15 @@ void Scene::UpdateIntroCinematic(float dt)
 {
 	if (waitingForFade_) return;
 
-	bool skipRequested = Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN || 
-						 Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN;
+	bool skipRequested = Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+		Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN;
 
 	if (skipRequested) {
-		// Smoothly fade out the ongoing video
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::GAMEPLAY;
 		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1000.0f);
-	} 
+	}
 	else if (!Engine::GetInstance().cinematics->IsPlaying()) {
-		// Video finished naturally. It has already vanished, so transition immediately!
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::GAMEPLAY;
 		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 0.0f);
@@ -808,6 +692,7 @@ void Scene::LoadGameplay()
 {
 	isPaused_ = false;
 	showPauseOptions_ = false;
+	showMapViewer_ = false;
 
 	Engine::GetInstance().map->Load("assets/maps/", "MapTemplate.tmx");
 	Engine::GetInstance().map->LoadEntities(player);
@@ -819,11 +704,8 @@ void Scene::LoadGameplay()
 		player->Start();
 	}
 
-	// Create pause menu buttons (disabled until paused)
 	LoadPauseMenuButtons();
 
-	// Set ambient lighting tint for cave environment (GPU color modulation)
-	// Derived from the background palette: dark blue-grey cave (#2B3545 → tint ~60%)
 	Engine::GetInstance().render->SetAmbientTint(140, 155, 190);
 
 
@@ -912,7 +794,11 @@ void Scene::UpdateGameplay(float dt)
 	// Toggle pause with ESC
 	if (!isGameOver_ && Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
 	{
-		if (showPauseOptions_) {
+		if (showMapViewer_) {
+			showMapViewer_ = false;
+			SetPauseMenuVisible(true);
+		}
+		else if (showPauseOptions_) {
 			showPauseOptions_ = false;
 			SetPauseOptionsPanelVisible(false);
 		}
@@ -922,7 +808,37 @@ void Scene::UpdateGameplay(float dt)
 		}
 	}
 
-	// Draw pause overlay BEFORE UIManager::Update so buttons render on top
+	if (showMapViewer_)
+	{
+		auto& input = *Engine::GetInstance().input;
+
+		if (input.GetKey(SDL_SCANCODE_KP_PLUS) == KEY_DOWN || input.GetKey(SDL_SCANCODE_EQUALS) == KEY_DOWN)
+			mapViewZoom_ = std::min(mapViewZoom_ + 0.05f, 2.0f);
+		if (input.GetKey(SDL_SCANCODE_KP_MINUS) == KEY_DOWN || input.GetKey(SDL_SCANCODE_MINUS) == KEY_DOWN)
+			mapViewZoom_ = std::max(mapViewZoom_ - 0.05f, 0.05f);
+
+		Vector2D mousePos = input.GetMousePosition();
+		if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN) {
+			mapViewDragging_ = true;
+			mapViewDragStartX_ = mousePos.getX();
+			mapViewDragStartY_ = mousePos.getY();
+			mapViewDragOriginX_ = mapViewOffsetX_;
+			mapViewDragOriginY_ = mapViewOffsetY_;
+		}
+		if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_UP)
+			mapViewDragging_ = false;
+
+		if (mapViewDragging_) {
+			mapViewOffsetX_ = mapViewDragOriginX_ + (mousePos.getX() - mapViewDragStartX_);
+			mapViewOffsetY_ = mapViewDragOriginY_ + (mousePos.getY() - mapViewDragStartY_);
+		}
+
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		DrawMapViewer(winW, winH);
+		return;
+	}
+
 	if (isPaused_) DrawPauseMenu();
 
 	if (isPaused_) return;
@@ -990,6 +906,7 @@ void Scene::UnloadGameplay()
 	Engine::GetInstance().entityManager->CleanUp();
 	isPaused_ = false;
 	showPauseOptions_ = false;
+	showMapViewer_ = false;
 
 	if (texHealth1_) { Engine::GetInstance().textures->UnLoad(texHealth1_); texHealth1_ = nullptr; }
 	if (texHealth2_) { Engine::GetInstance().textures->UnLoad(texHealth2_); texHealth2_ = nullptr; }
@@ -1002,6 +919,10 @@ void Scene::UnloadGameplay()
 	if (texGameOverFrag1_) { Engine::GetInstance().textures->UnLoad(texGameOverFrag1_); texGameOverFrag1_ = nullptr; }
 	if (texGameOverFrag3_) { Engine::GetInstance().textures->UnLoad(texGameOverFrag3_); texGameOverFrag3_ = nullptr; }
 	if (texGameOverFrag5_) { Engine::GetInstance().textures->UnLoad(texGameOverFrag5_); texGameOverFrag5_ = nullptr; }
+
+	if (texPauseBackground_) { Engine::GetInstance().textures->UnLoad(texPauseBackground_);  texPauseBackground_ = nullptr; }
+	if (texPauseButtonWhite_) { Engine::GetInstance().textures->UnLoad(texPauseButtonWhite_); texPauseButtonWhite_ = nullptr; }
+	if (texPauseButtonBlack_) { Engine::GetInstance().textures->UnLoad(texPauseButtonBlack_); texPauseButtonBlack_ = nullptr; }
 }
 
 void Scene::PostUpdateGameplay()
@@ -1116,33 +1037,274 @@ void Scene::PostUpdateGameplay()
 	}
 }
 
+// ── Map viewer ────────────────────────────────────────────────────────────────
+
+void Scene::DrawMapViewer(int winW, int winH)
+{
+	auto& render = *Engine::GetInstance().render;
+	auto& map = *Engine::GetInstance().map;
+	int   scale = Engine::GetInstance().window->GetScale();
+
+	SDL_Rect fullBg = { 0, 0, winW, winH };
+	render.DrawRectangle(fullBg, 5, 8, 15, 240, true, false);
+
+	SDL_Rect titleBar = { 0, 0, winW, 36 };
+	render.DrawRectangle(titleBar, 10, 16, 30, 255, true, false);
+	SDL_Rect titleAccent = { 0, 34, winW, 2 };
+	render.DrawRectangle(titleAccent, 80, 140, 200, 255, true, false);
+	render.DrawMenuTextCentered("MAP", { 0, 2, winW, 30 }, { 180, 210, 240, 255 });
+
+	SDL_Rect hintBar = { 0, winH - 28, winW, 28 };
+	render.DrawRectangle(hintBar, 10, 16, 30, 220, true, false);
+	render.DrawText("Left click + drag: pan   |   +/-: zoom   |   ESC: back",
+		winW / 2 - 230, winH - 22, 0, 0, { 120, 160, 200, 200 });
+
+	const int viewX = 10;
+	const int viewY = 42;
+	const int viewW = winW - 20;
+	const int viewH = winH - 42 - 30;
+
+	SDL_Rect clipRect = { viewX * scale, viewY * scale, viewW * scale, viewH * scale };
+	SDL_SetRenderClipRect(render.renderer, &clipRect);
+
+	int tileW = map.GetTileWidth();
+	int tileH = map.GetTileHeight();
+
+	// Mouse wheel zoom
+	{
+		SDL_PumpEvents();
+		SDL_Event events[16];
+		int count = SDL_PeepEvents(events, 16, SDL_PEEKEVENT,
+			SDL_EVENT_MOUSE_WHEEL, SDL_EVENT_MOUSE_WHEEL);
+		for (int i = 0; i < count; i++) {
+			float wheelY = events[i].wheel.y;
+			float newZoom = mapViewZoom_ + wheelY * 0.05f;
+			if (newZoom < 0.05f) newZoom = 0.05f;
+			if (newZoom > 2.0f)  newZoom = 2.0f;
+			Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
+			float mx = mousePos.getX() - (float)viewX;
+			float my = mousePos.getY() - (float)viewY;
+			mapViewOffsetX_ = mx - (mx - mapViewOffsetX_) * (newZoom / mapViewZoom_);
+			mapViewOffsetY_ = my - (my - mapViewOffsetY_) * (newZoom / mapViewZoom_);
+			mapViewZoom_ = newZoom;
+		}
+		SDL_PeepEvents(events, count, SDL_GETEVENT,
+			SDL_EVENT_MOUSE_WHEEL, SDL_EVENT_MOUSE_WHEEL);
+	}
+
+	float invZoom = 1.0f / mapViewZoom_;
+	float camLeft = -mapViewOffsetX_ * invZoom;
+	float camTop = -mapViewOffsetY_ * invZoom;
+	float camRight = camLeft + (float)viewW * invZoom;
+	float camBottom = camTop + (float)viewH * invZoom;
+
+	int startTileX = std::max(0, (int)(camLeft / (float)tileW) - 1);
+	int startTileY = std::max(0, (int)(camTop / (float)tileH) - 1);
+	int endTileX = std::min((int)map.GetMapSizeInTiles().getX(), (int)(camRight / (float)tileW) + 2);
+	int endTileY = std::min((int)map.GetMapSizeInTiles().getY(), (int)(camBottom / (float)tileH) + 2);
+
+	// ── Step 1: Image Layers ─────────────────────────────────────────────────
+	for (const auto& imgLayer : map.mapData.imageLayers)
+	{
+		if (!imgLayer->texture) continue;
+		float tw, th;
+		SDL_GetTextureSize(imgLayer->texture, &tw, &th);
+		float screenX = (float)viewX + mapViewOffsetX_ + imgLayer->offsetX * mapViewZoom_;
+		float screenY = (float)viewY + mapViewOffsetY_ + imgLayer->offsetY * mapViewZoom_;
+		float screenW = tw * mapViewZoom_;
+		float screenH = th * mapViewZoom_;
+		if (screenX + screenW < (float)viewX || screenX > (float)viewX + (float)viewW) continue;
+		if (screenY + screenH < (float)viewY || screenY > (float)viewY + (float)viewH) continue;
+		SDL_FRect dst = { screenX * (float)scale, screenY * (float)scale, screenW * (float)scale, screenH * (float)scale };
+		SDL_SetTextureColorMod(imgLayer->texture, 255, 255, 255);
+		SDL_SetTextureAlphaMod(imgLayer->texture, 255);
+		SDL_RenderTexture(render.renderer, imgLayer->texture, nullptr, &dst);
+	}
+
+	// ── Step 2: Decoration Objects ───────────────────────────────────────────
+	for (const auto& deco : map.mapData.decorationObjects)
+	{
+		if (!deco->texture) continue;
+		float worldX = deco->x;
+		float worldY = deco->y - deco->height;
+		float screenX = (float)viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
+		float screenY = (float)viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+		float screenW = deco->width * mapViewZoom_;
+		float screenH = deco->height * mapViewZoom_;
+		if (screenX + screenW < (float)viewX || screenX > (float)viewX + (float)viewW) continue;
+		if (screenY + screenH < (float)viewY || screenY > (float)viewY + (float)viewH) continue;
+		SDL_FRect dst = { screenX * (float)scale, screenY * (float)scale, screenW * (float)scale, screenH * (float)scale };
+		SDL_SetTextureColorMod(deco->texture, 255, 255, 255);
+		SDL_SetTextureAlphaMod(deco->texture, 255);
+		SDL_RenderTexture(render.renderer, deco->texture, nullptr, &dst);
+	}
+
+	// ── Step 3: Tile Layers ──────────────────────────────────────────────────
+	for (const auto& layer : map.mapData.layers)
+	{
+		auto* drawProp = layer->properties.GetProperty("Draw");
+		if (drawProp && !drawProp->value) continue;
+
+		for (int ty = startTileY; ty < endTileY; ty++)
+		{
+			for (int tx = startTileX; tx < endTileX; tx++)
+			{
+				int gid = layer->Get(tx, ty);
+				if (gid == 0) continue;
+				TileSet* ts = map.GetTilesetFromTileId(gid);
+				if (!ts || !ts->texture) continue;
+				SDL_Rect src = ts->GetRect(gid);
+				float worldX = (float)(tx * tileW);
+				float worldY = (float)(ty * tileH);
+				float screenX = (float)viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
+				float screenY = (float)viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+				float screenW = (float)tileW * mapViewZoom_;
+				float screenH = (float)tileH * mapViewZoom_;
+				if (screenX + screenW < (float)viewX || screenX > (float)viewX + (float)viewW) continue;
+				if (screenY + screenH < (float)viewY || screenY > (float)viewY + (float)viewH) continue;
+				SDL_FRect dst = { screenX * (float)scale, screenY * (float)scale, screenW * (float)scale, screenH * (float)scale };
+				SDL_FRect srcF = { (float)src.x, (float)src.y, (float)src.w, (float)src.h };
+				SDL_SetTextureColorMod(ts->texture, 255, 255, 255);
+				SDL_SetTextureAlphaMod(ts->texture, 255);
+				SDL_RenderTexture(render.renderer, ts->texture, &srcF, &dst);
+			}
+		}
+	}
+
+	// ── Step 4: Player sprite + marcador de posicion ─────────────────────────
+	if (player && player->texture)
+	{
+		// Centro del player en coordenadas mundo
+		Vector2D playerPos = player->GetPosition();
+		float worldX = playerPos.getX() + (float)player->texW / 2.0f;
+		float worldY = playerPos.getY() + (float)player->texH / 2.0f;
+
+		// Centro del player en pantalla (espacio de la ventana, sin escala SDL)
+		float screenX = (float)viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
+		float screenY = (float)viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+
+		// ── Sprite del player ────────────────────────────────────────────────
+		SDL_Rect src = player->GetCurrentAnimationRect();
+		SDL_FRect srcF = { (float)src.x, (float)src.y, (float)src.w, (float)src.h };
+
+		float drawW = 128.0f * mapViewZoom_;
+		float drawH = 128.0f * mapViewZoom_;
+
+		SDL_FRect dst = {
+			(screenX - drawW / 2.0f) * (float)scale,
+			(screenY - drawH / 2.0f) * (float)scale,
+			drawW * (float)scale,
+			drawH * (float)scale
+		};
+
+		bool spriteNativeRight = (src.y / 128 == 3 || src.y / 128 == 1);
+		bool facingRight = player->IsFacingRight();
+		SDL_FlipMode flip;
+		if (spriteNativeRight)
+			flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+		else
+			flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+
+		SDL_SetTextureColorMod(player->texture, 255, 255, 255);
+		SDL_SetTextureAlphaMod(player->texture, 200);
+		SDL_RenderTextureRotated(render.renderer, player->texture, &srcF, &dst, 0, nullptr, flip);
+		SDL_SetTextureAlphaMod(player->texture, 255);
+
+		// ── Marcador "YOU ARE HERE" encima del player ────────────────────────
+		// Radio del circulo escalado con el zoom (minimo 4px, maximo razonable)
+		int r = (int)(9.0f * mapViewZoom_ * (float)scale);
+		if (r < 4) r = 4;
+
+		// Posicion del marcador: encima del sprite
+		int markerCX = (int)(screenX * (float)scale);
+		int markerCY = (int)((screenY - drawH / 2.0f - 6.0f) * (float)scale);
+
+		// Sombra negra (cuadrado ligeramente mas grande)
+		SDL_Rect shadowRect = {
+			markerCX - r - 2,
+			markerCY - r - 2,
+			(r + 2) * 2,
+			(r + 2) * 2
+		};
+		render.DrawRectangle(shadowRect, 0, 0, 0, 180, true, false);
+
+		// Circulo amarillo solido (representado como rect; si tu render tiene DrawCircle, usalo)
+		SDL_Rect dotRect = {
+			markerCX - r,
+			markerCY - r,
+			r * 2,
+			r * 2
+		};
+		render.DrawRectangle(dotRect, 255, 215, 0, 255, true, false);
+
+		// Punto blanco interior para contraste
+		int innerR = std::max(2, r / 3);
+		SDL_Rect innerDot = {
+			markerCX - innerR,
+			markerCY - innerR,
+			innerR * 2,
+			innerR * 2
+		};
+		render.DrawRectangle(innerDot, 255, 255, 255, 255, true, false);
+
+		// Etiqueta "YOU" encima del marcador (coordenadas sin escala SDL para DrawText)
+		int labelX = (int)(screenX)-10;
+		int labelY = (int)(screenY - drawH / 2.0f - 6.0f) - (int)((float)r / (float)scale) - 14;
+		render.DrawText("YOU", labelX, labelY, 0, 0, { 255, 215, 0, 255 });
+	}
+
+	SDL_SetRenderClipRect(render.renderer, nullptr);
+
+	SDL_Rect viewBorder = { viewX, viewY, viewW, viewH };
+	render.DrawRectangle(viewBorder, 60, 90, 150, 180, false, false);
+
+	char zoomText[16];
+	snprintf(zoomText, sizeof(zoomText), "%.0f%%", mapViewZoom_ * 100.0f);
+	render.DrawText(zoomText, winW - 60, winH - 22, 0, 0, { 120, 160, 200, 200 });
+}
+
 // ── Pause menu helpers ────────────────────────────────────────────────────────
 
 void Scene::LoadPauseMenuButtons()
 {
+	texPauseBackground_ = Engine::GetInstance().textures->Load("assets/textures/menu/UI_Pause_Menu_base+background.png");
+	texPauseButtonWhite_ = Engine::GetInstance().textures->Load("assets/textures/menu/UI_Pause_Menu_button_white.png");
+	texPauseButtonBlack_ = Engine::GetInstance().textures->Load("assets/textures/menu/UI_Pause_Menu_button_black.png");
+
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-	const int btnW = 240;
-	const int btnH = 42;
-	const int btnX = winW / 2 - btnW / 2;
-	const int startY = winH / 2 - 115;
-	const int gap = 54;
+	const int btnW = 315;
+	const int btnH = static_cast<int>(static_cast<float>(btnW) * (130.0f / 456.0f));
+	const int btnGap = 15;
+	const int totalH = btnH * 4 + btnGap * 3;
+	const int leftHalf = winW / 2;
+	const int btnX = (leftHalf - btnW) / 2;
+	const int startY = (winH - totalH) / 2;
 
-	// Main pause buttons
-	SDL_Rect contPos = { btnX, startY,          btnW, btnH };
-	SDL_Rect optPos = { btnX, startY + gap,     btnW, btnH };
-	SDL_Rect savePos = { btnX, startY + gap * 2, btnW, btnH };
-	SDL_Rect menuPos = { btnX, startY + gap * 3, btnW, btnH };
-	SDL_Rect quitPos = { btnX, startY + gap * 4, btnW, btnH };
+	SDL_Rect optPos = { btnX, startY,                       btnW, btnH };
+	SDL_Rect mapPos = { btnX, startY + (btnH + btnGap),     btnW, btnH };
+	SDL_Rect menuPos = { btnX, startY + (btnH + btnGap) * 2, btnW, btnH };
+	SDL_Rect contPos = { btnX, startY + (btnH + btnGap) * 3, btnW, btnH };
 
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_CONTINUE, "CONTINUE", contPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPTIONS, "OPTIONS", optPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_SAVE, "SAVE GAME", savePos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_MAINMENU, "MAIN MENU", menuPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_QUIT, "QUIT GAME", quitPos, this);
+	auto btnOpt = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPTIONS, "options", optPos, this);
+	auto btnMap = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_MAP, "map", mapPos, this);
+	auto btnMenu = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_MAINMENU, "menu", menuPos, this);
+	auto btnCont = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_CONTINUE, "resume", contPos, this);
 
-	// Options sub-panel buttons
+	if (texPauseButtonWhite_) {
+		btnOpt->SetTexture(texPauseButtonWhite_);
+		btnMap->SetTexture(texPauseButtonWhite_);
+		btnMenu->SetTexture(texPauseButtonWhite_);
+		btnCont->SetTexture(texPauseButtonWhite_);
+	}
+	if (texPauseButtonBlack_) {
+		btnOpt->SetHoverTexture(texPauseButtonBlack_);
+		btnMap->SetHoverTexture(texPauseButtonBlack_);
+		btnMenu->SetHoverTexture(texPauseButtonBlack_);
+		btnCont->SetHoverTexture(texPauseButtonBlack_);
+	}
+
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = winH / 2 - 100;
@@ -1150,19 +1312,18 @@ void Scene::LoadPauseMenuButtons()
 	const int smallBtnH = 34;
 	const int rowH = 52;
 
-	SDL_Rect mUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60,         smallBtnW, smallBtnH };
-	SDL_Rect mDownPos = { panelX + 12,                       panelY + 60,         smallBtnW, smallBtnH };
-	SDL_Rect sUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,  smallBtnW, smallBtnH };
-	SDL_Rect sDownPos = { panelX + 12,                       panelY + 60 + rowH,  smallBtnW, smallBtnH };
-	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120, btnH };
+	SDL_Rect mUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60,                  smallBtnW, smallBtnH };
+	SDL_Rect mDownPos = { panelX + 12,                       panelY + 60,                  smallBtnW, smallBtnH };
+	SDL_Rect sUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,           smallBtnW, smallBtnH };
+	SDL_Rect sDownPos = { panelX + 12,                       panelY + 60 + rowH,           smallBtnW, smallBtnH };
+	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120,       btnH };
 
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_MUSIC_UP, "+", mUpPos, this);
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_MUSIC_DOWN, "-", mDownPos, this);
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_SFX_UP, "+", sUpPos, this);
 	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_SFX_DOWN, "-", sDownPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_BACK, "BACK", backPos, this);
+	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_BACK, "back", backPos, this);
 
-	// Everything disabled until paused
 	SetPauseMenuVisible(false);
 }
 
@@ -1170,11 +1331,11 @@ void Scene::SetPauseMenuVisible(bool visible)
 {
 	auto& list = Engine::GetInstance().uiManager->UIElementsList;
 	for (auto& el : list) {
-		if (el->id == BTN_PAUSE_CONTINUE || el->id == BTN_PAUSE_OPTIONS || el->id == BTN_PAUSE_SAVE || el->id == BTN_PAUSE_MAINMENU || el->id == BTN_PAUSE_QUIT) {
+		if (el->id == BTN_PAUSE_CONTINUE || el->id == BTN_PAUSE_OPTIONS || el->id == BTN_PAUSE_SAVE || el->id == BTN_PAUSE_MAINMENU || el->id == BTN_PAUSE_QUIT || el->id == BTN_PAUSE_MAP) {
 			el->isVisible = visible;
 			el->state = visible ? UIElementState::NORMAL : UIElementState::DISABLED;
 		}
-		// Always hide options sub-panel when toggling main
+		
 		bool isOpt = (el->id >= BTN_PAUSE_OPT_MUSIC_UP && el->id <= BTN_PAUSE_OPT_BACK);
 		if (isOpt) {
 			el->state = UIElementState::DISABLED;
@@ -1188,7 +1349,9 @@ void Scene::SetPauseOptionsPanelVisible(bool visible)
 	auto& list = Engine::GetInstance().uiManager->UIElementsList;
 	for (auto& el : list)
 	{
-		bool isPauseMain = (el->id >= BTN_PAUSE_CONTINUE && el->id <= BTN_PAUSE_QUIT);
+		bool isPauseMain = (el->id == BTN_PAUSE_CONTINUE || el->id == BTN_PAUSE_OPTIONS ||
+			el->id == BTN_PAUSE_MAP || el->id == BTN_PAUSE_MAINMENU ||
+			el->id == BTN_PAUSE_QUIT);
 		bool isOpt = (el->id >= BTN_PAUSE_OPT_MUSIC_UP && el->id <= BTN_PAUSE_OPT_BACK);
 
 		if (isPauseMain) {
@@ -1228,39 +1391,20 @@ void Scene::DrawPauseMenu()
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-	// ── Dark overlay ─────────────────────────────────────────────────────────
-	SDL_Rect overlay = { 0, 0, winW, winH };
-	render.DrawRectangle(overlay, 0, 0, 0, 180, true, false);
-
 	if (showPauseOptions_)
 	{
+		SDL_Rect overlay = { 0, 0, winW, winH };
+		render.DrawRectangle(overlay, 0, 0, 0, 180, true, false);
 		DrawPauseOptionsPanel(winW, winH);
 		return;
 	}
 
-	// ── Panel background ─────────────────────────────────────────────────────
-	const int panelW = 300;
-	const int panelH = 340;
-	const int panelX = winW / 2 - panelW / 2;
-	const int panelY = winH / 2 - 180;
-
-	SDL_Rect panelBg = { panelX, panelY, panelW, panelH };
-	SDL_Rect panelSh = { panelX + 4, panelY + 4, panelW, panelH };
-	render.DrawRectangle(panelSh, 0, 0, 0, 100, true, false);
-	render.DrawRectangle(panelBg, 8, 12, 22, 250, true, false);
-	render.DrawRectangle(panelBg, 60, 90, 150, 200, false, false);
-
-	// Top accent bar
-	SDL_Rect topBar = { panelX, panelY, panelW, 4 };
-	render.DrawRectangle(topBar, 80, 140, 200, 255, true, false);
-
-	// ── PAUSED title ─────────────────────────────────────────────────────────
-	render.DrawText("PAUSED", panelX + panelW / 2 - 37, panelY + 14, 0, 0,
-		{ 180, 210, 240, 255 });
-
-	// Thin separator
-	render.DrawLine(panelX + 20, panelY + 46, panelX + panelW - 20, panelY + 46,
-		60, 100, 160, 150, false);
+	if (texPauseBackground_)
+		render.DrawTextureAlpha(texPauseBackground_, 0, 0, winW, winH, 255);
+	else {
+		SDL_Rect overlay = { 0, 0, winW, winH };
+		render.DrawRectangle(overlay, 0, 0, 0, 180, true, false);
+	}
 }
 
 void Scene::DrawPauseOptionsPanel(int winW, int winH)
@@ -1276,33 +1420,29 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	SDL_Rect panel = { panelX, panelY, panelW, panelH };
 	render.DrawRectangle(panel, 8, 12, 22, 250, true, false);
 	render.DrawRectangle(panel, 60, 90, 150, 200, false, false);
-
 	SDL_Rect topBar = { panelX, panelY, panelW, 4 };
 	render.DrawRectangle(topBar, 80, 140, 200, 255, true, false);
 
-	render.DrawText("OPTIONS", panelX + panelW / 2 - 42, panelY + 14, 0, 0,
-		{ 180, 210, 240, 255 });
+	render.DrawMenuTextCentered("OPTIONS", { panelX, panelY + 8, panelW, 30 }, { 180, 210, 240, 255 });
 
-	// Music row
-	render.DrawText("MUSIC", panelX + 60, panelY + 56, 0, 0, { 150, 180, 210, 220 });
-	SDL_Rect mBarBg = { panelX + 60, panelY + 86, panelW - 120, 8 };
-	render.DrawRectangle(mBarBg, 30, 40, 60, 200, true, false);
-	int mFill = static_cast<int>(static_cast<float>(panelW - 120) * musicVolume_);
-	SDL_Rect mBarFill = { panelX + 60, panelY + 86, mFill, 8 };
-	render.DrawRectangle(mBarFill, 80, 160, 220, 255, true, false);
+	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 50, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
-	render.DrawText(vol, panelX + panelW / 2 - 15, panelY + 56, 0, 0, { 200, 220, 240, 255 });
+	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 50, panelW / 2, 25 }, { 200, 220, 240, 255 });
+	SDL_Rect mBarBg = { panelX + 20, panelY + 78, panelW - 40, 7 };
+	render.DrawRectangle(mBarBg, 30, 40, 60, 200, true, false);
+	int mFill = static_cast<int>(static_cast<float>(panelW - 40) * musicVolume_);
+	SDL_Rect mBarFill = { panelX + 20, panelY + 78, mFill, 7 };
+	render.DrawRectangle(mBarFill, 80, 160, 220, 255, true, false);
 
-	// SFX row
-	render.DrawText("SFX", panelX + 60, panelY + 56 + rowH, 0, 0, { 150, 180, 210, 220 });
-	SDL_Rect sBarBg = { panelX + 60, panelY + 86 + rowH, panelW - 120, 8 };
-	render.DrawRectangle(sBarBg, 30, 40, 60, 200, true, false);
-	int sFill = static_cast<int>(static_cast<float>(panelW - 120) * sfxVolume_);
-	SDL_Rect sBarFill = { panelX + 60, panelY + 86 + rowH, sFill, 8 };
-	render.DrawRectangle(sBarFill, 80, 160, 220, 255, true, false);
+	render.DrawMenuTextCentered("SFX", { panelX, panelY + 50 + rowH, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
 	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
-	render.DrawText(vol, panelX + panelW / 2 - 15, panelY + 56 + rowH, 0, 0, { 200, 220, 240, 255 });
+	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 50 + rowH, panelW / 2, 25 }, { 200, 220, 240, 255 });
+	SDL_Rect sBarBg = { panelX + 20, panelY + 78 + rowH, panelW - 40, 7 };
+	render.DrawRectangle(sBarBg, 30, 40, 60, 200, true, false);
+	int sFill = static_cast<int>(static_cast<float>(panelW - 40) * sfxVolume_);
+	SDL_Rect sBarFill = { panelX + 20, panelY + 78 + rowH, sFill, 7 };
+	render.DrawRectangle(sBarFill, 80, 160, 220, 255, true, false);
 }
 
 void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
@@ -1315,25 +1455,38 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 		isPaused_ = false;
 		SetPauseMenuVisible(false);
 		break;
-
 	case BTN_PAUSE_OPTIONS:
 		showPauseOptions_ = true;
 		SetPauseOptionsPanelVisible(true);
 		break;
-
+	case BTN_PAUSE_MAP:
+		showMapViewer_ = true;
+		SetPauseMenuVisible(false);
+		{
+			int winW = 0, winH = 0;
+			Engine::GetInstance().window->GetWindowSize(winW, winH);
+			const int viewW = winW - 20;
+			const int viewH = winH - 42 - 30;
+			Vector2D mapSizePx = Engine::GetInstance().map->GetMapSizeInPixels();
+			float zoomX = (float)viewW / mapSizePx.getX();
+			float zoomY = (float)viewH / mapSizePx.getY();
+			mapViewZoom_ = std::min(zoomX, zoomY) * 0.95f;
+			if (mapViewZoom_ < 0.05f) mapViewZoom_ = 0.05f;
+			if (mapViewZoom_ > 2.0f)  mapViewZoom_ = 2.0f;
+			mapViewOffsetX_ = ((float)viewW - mapSizePx.getX() * mapViewZoom_) / 2.0f;
+			mapViewOffsetY_ = ((float)viewH - mapSizePx.getY() * mapViewZoom_) / 2.0f;
+		}
+		break;
 	case BTN_PAUSE_SAVE:
 		Engine::GetInstance().saveSystem->QuickSave();
-		// Brief visual feedback: show saved message (next frame)
 		LOG("Game saved from pause menu");
 		break;
-
 	case BTN_PAUSE_MAINMENU:
 		isPaused_ = false;
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::MAIN_MENU;
 		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 500.0f);
 		break;
-
 	case BTN_PAUSE_QUIT:
 	{
 		SDL_Event quitEvent;
@@ -1341,8 +1494,6 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 		SDL_PushEvent(&quitEvent);
 		break;
 	}
-
-	// ── Options sub-panel ────────────────────────────────────────────────────
 	case BTN_PAUSE_OPT_MUSIC_UP:
 		musicVolume_ = std::min(1.0f, musicVolume_ + 0.1f);
 		Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
@@ -1395,70 +1546,40 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 {
 	srand((unsigned)time(nullptr));
 
-	// Character face exclusion zone — upper center of the child image
-	float faceLeft   = childX + childW * 0.20f;
-	float faceRight  = childX + childW * 0.80f;
-	float faceTop    = 0.0f;
-	float faceBottom = winH * 0.45f;
-
-	// Screen quadrant boundaries
-	float halfW = winW * 0.5f;
-	float halfH = winH * 0.5f;
+	float faceLeft = (float)childX + (float)childW * 0.20f;
+	float faceRight = (float)childX + (float)childW * 0.80f;
+	float faceTop = 0.0f;
+	float faceBottom = (float)winH * 0.45f;
+	float halfW = (float)winW * 0.5f;
+	float halfH = (float)winH * 0.5f;
 
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		auto& f = fragments_[i];
 		if (!f.tex) continue;
 
-		// Query native texture size
 		float tw = 0, th = 0;
 		SDL_GetTextureSize(f.tex, &tw, &th);
 
-		// Size fragments to ~25-30% of screen width as requested
-		float scale = RandF(0.25f, 0.30f);
-		f.w = winW * scale;
+		float sc = RandF(0.25f, 0.30f);
+		f.w = (float)winW * sc;
 		f.h = f.w * (th / tw);
 
-		// Decide front vs back: first 3 front, rest back
 		f.inFront = (i < 3);
 
-		// Distribute uniformly to surround the character in the right half of the screen.
-		// Since they are HUGE, they have strict fixed positions so they frame the character and NEVER overlap.
-		
-		float padX = 10.0f;
-		float padY = 15.0f;
-		
-		if (i == 0) { // FRONT 1 (Bottom-left of the right half)
-			f.x = halfW + padX;
-			f.y = winH - f.h - padY;
-		}
-		else if (i == 1) { // FRONT 2 (Bottom-center of the right half)
-			f.x = halfW + (winW - halfW) / 2.0f - (f.w / 2.0f);
-			// Ensured it stays 100% inside the screen instead of pushing it out
-			f.y = winH - f.h - padY;
-		}
-		else if (i == 2) { // FRONT 3 (Bottom-right of the right half)
-			f.x = winW - f.w - padX;
-			f.y = winH - f.h - padY;
-		}
-		else if (i == 3) { // BACK 1 (Top-left of the right half - Fixed)
-			f.x = halfW + padX;
-			f.y = padY + 10.0f;
-		}
-		else if (i == 4) { // BACK 2 (Top-right of the right half - Fixed)
-			f.x = winW - f.w - padX;
-			f.y = padY + 10.0f;
-		}
+		float padX = 10.0f, padY = 15.0f;
+		if (i == 0) { f.x = halfW + padX;                                  f.y = (float)winH - f.h - padY; }
+		else if (i == 1) { f.x = halfW + ((float)winW - halfW) / 2.0f - (f.w / 2.0f); f.y = (float)winH - f.h - padY; }
+		else if (i == 2) { f.x = (float)winW - f.w - padX;                             f.y = (float)winH - f.h - padY; }
+		else if (i == 3) { f.x = halfW + padX;                                  f.y = padY + 10.0f; }
+		else if (i == 4) { f.x = (float)winW - f.w - padX;                             f.y = padY + 10.0f; }
 
-		// Animation parameters — unique per fragment
-		f.floatSpeed     = RandF(0.4f, 0.9f);     // rad/s (slow, dreamy)
-		f.floatAmplitude = RandF(8.0f, 22.0f);     // px vertical sway
-		f.floatPhase     = RandF(0.0f, 6.2831f);   // random start phase
-		f.driftX         = RandF(0.15f, 0.45f);    // subtle horizontal sway speed
-		f.driftPhase     = RandF(0.0f, 6.2831f);
-		f.rotSpeed       = RandF(-6.0f, 6.0f);     // degrees/sec - very gentle
-		f.rotation       = RandF(0.0f, 360.0f);
-
-		// Alpha: no blur, full opacity
+		f.floatSpeed = RandF(0.4f, 0.9f);
+		f.floatAmplitude = RandF(8.0f, 22.0f);
+		f.floatPhase = RandF(0.0f, 6.2831f);
+		f.driftX = RandF(0.15f, 0.45f);
+		f.driftPhase = RandF(0.0f, 6.2831f);
+		f.rotSpeed = RandF(-6.0f, 6.0f);
+		f.rotation = RandF(0.0f, 360.0f);
 		f.alpha = 255;
 	}
 }
@@ -1466,36 +1587,21 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 void Scene::DrawFragments(bool front, int winW, int winH)
 {
 	auto& render = *Engine::GetInstance().render;
-
-	// Time in seconds (fragmentTime_ is in ms from dt)
 	float t = fragmentTime_ / 1000.0f;
 
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		auto& f = fragments_[i];
 		if (!f.tex || f.inFront != front) continue;
 
-		// Smooth sinusoidal floating
 		float yOff = f.floatAmplitude * sinf(t * f.floatSpeed + f.floatPhase);
 		float xOff = (f.floatAmplitude * 0.3f) * sinf(t * f.driftX + f.driftPhase);
-
-		// Smooth rotation update
 		float angle = f.rotation + f.rotSpeed * t;
 
-		float drawX = f.x + xOff;
-		float drawY = f.y + yOff;
-
-		// Use DrawTextureAlphaF for sub-pixel smooth rendering
-		// For the rotation, we need to use the full DrawTexture with angle
-		// But DrawTextureAlphaF doesn't support rotation, so we'll use SDL directly
 		SDL_SetTextureAlphaMod(f.tex, f.alpha);
 		SDL_SetTextureBlendMode(f.tex, SDL_BLENDMODE_BLEND);
 
 		int scale = Engine::GetInstance().window->GetScale();
-		SDL_FRect dst;
-		dst.x = drawX * static_cast<float>(scale);
-		dst.y = drawY * static_cast<float>(scale);
-		dst.w = f.w * static_cast<float>(scale);
-		dst.h = f.h * static_cast<float>(scale);
+		SDL_FRect dst = { (f.x + xOff) * (float)scale, (f.y + yOff) * (float)scale, f.w * (float)scale, f.h * (float)scale };
 
 		SDL_RenderTextureRotated(render.renderer, f.tex, nullptr, &dst,
 			(double)angle, nullptr, SDL_FLIP_NONE);

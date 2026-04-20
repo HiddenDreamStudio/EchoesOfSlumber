@@ -34,6 +34,10 @@ public:
 	void TakeDamage(int damage) override;
 	void Revive();
 
+	// Map viewer helpers 
+	SDL_Rect GetCurrentAnimationRect() const;
+	bool     IsFacingRight() const;
+
 private:
 
 	void GetPhysicsValues();

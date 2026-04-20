@@ -107,25 +107,21 @@ bool Map::Update(float dt)
 
 TileSet* Map::GetTilesetFromTileId(int gid) const
 {
-    static int cachedGid = -1;
-    static TileSet* cachedSet = nullptr;
-
-    if (gid == cachedGid && cachedSet != nullptr) {
-        return cachedSet;
-    }
-
-    if (cachedSet != nullptr && gid >= cachedSet->firstGid && gid < cachedSet->firstGid + cachedSet->tileCount) {
-        cachedGid = gid;
-        return cachedSet;
-    }
+    TileSet* bestMatch = nullptr;
 
     for (const auto& tileset : mapData.tilesets) {
-        if (gid >= tileset->firstGid && gid < tileset->firstGid + tileset->tileCount) {
-            cachedGid = gid;
-            cachedSet = tileset;
-            return tileset;
+        if (gid >= tileset->firstGid) {
+            if (bestMatch == nullptr || tileset->firstGid > bestMatch->firstGid) {
+                bestMatch = tileset;
+            }
         }
     }
+
+    // Verify if the gid actually belongs to the tileset (within its tile count range)
+    if (bestMatch && gid < bestMatch->firstGid + bestMatch->tileCount) {
+        return bestMatch;
+    }
+
     return nullptr;
 }
 
@@ -579,26 +575,30 @@ void Map::LoadDecorationObjects()
         groupNode != NULL;
         groupNode = groupNode.next_sibling("objectgroup"))
     {
-        if (groupNode.attribute("name").as_string() != std::string("Decoracion"))
+        std::string groupName = groupNode.attribute("name").as_string();
+
+        // Skip non-visual object layers
+        if (groupName == "Entities" || groupName == "Collisions" || groupName == "Navigation" || groupName == "Checkpoints")
             continue;
 
         for (pugi::xml_node objNode = groupNode.child("object");
             objNode != NULL;
             objNode = objNode.next_sibling("object"))
         {
-            int gid = objNode.attribute("gid").as_int(0);
-            if (gid == 0) continue; 
+            unsigned int rawGid = objNode.attribute("gid").as_uint(0);
+            if (rawGid == 0) continue;
 
-          
+            // Mask out flip bits to get the actual tile ID
+            int gid = rawGid & ~(0x80000000 | 0x40000000 | 0x20000000);
+
             TileSet* ts = GetTilesetFromTileId(gid);
             if (ts == nullptr) continue;
 
-            int relativeId = gid - ts->firstGid; 
+            int relativeId = gid - ts->firstGid;
 
-           
+            // Load texture if not already cached in the tileset
             if (ts->tileTextures.find(relativeId) == ts->tileTextures.end())
             {
-             
                 for (pugi::xml_node tsNode = mapFileXML.child("map").child("tileset");
                     tsNode != NULL;
                     tsNode = tsNode.next_sibling("tileset"))
@@ -630,15 +630,14 @@ void Map::LoadDecorationObjects()
             deco->width = objNode.attribute("width").as_float();
             deco->height = objNode.attribute("height").as_float();
             deco->gid = gid;
+            
+            // Note: If we wanted to handle flips/rotation we'd store rawGid/rotation here
+            // But user said "eso viene luego" for general world rendering.
 
             auto it = ts->tileTextures.find(relativeId);
             deco->texture = (it != ts->tileTextures.end()) ? it->second : nullptr;
 
             mapData.decorationObjects.push_back(deco);
         }
-
-        break; 
     }
-
-    // Decoration objects load completion
 }
