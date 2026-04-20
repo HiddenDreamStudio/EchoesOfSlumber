@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="130" height="77" tilewidth="64" tileheight="64" infinite="0" nextlayerid="22" nextobjectid="88">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="130" height="77" tilewidth="64" tileheight="64" infinite="0" nextlayerid="32" nextobjectid="283">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -25,22 +25,30 @@
   </tile>
   <tile id="5">
    <objectgroup draworder="index" id="2">
-    <object id="1" x="6" y="5" width="58" height="54"/>
+    <object id="4" x="11.2727" y="10.2727" width="52.7273" height="44">
+     <polygon points="0,0 52.7273,0 52.7273,44 0,44"/>
+    </object>
    </objectgroup>
   </tile>
   <tile id="6">
    <objectgroup draworder="index" id="2">
-    <object id="1" x="0" y="5" width="64" height="54"/>
+    <object id="1" x="0.543636" y="10.27" width="63.2727" height="43.64">
+     <polygon points="0,0 63.2727,0 63.2727,43.64 0,43.64"/>
+    </object>
    </objectgroup>
   </tile>
   <tile id="7">
    <objectgroup draworder="index" id="2">
-    <object id="1" x="6" y="6" width="53" height="58"/>
+    <object id="1" x="11.8182" y="12.7273" width="41.7273" height="51.2727">
+     <polygon points="0,0 41.7273,0 41.7273,51.2727 0,51.2727"/>
+    </object>
    </objectgroup>
   </tile>
   <tile id="8">
    <objectgroup draworder="index" id="2">
-    <object id="1" x="0" y="5" width="58" height="54"/>
+    <object id="1" x="0" y="10.27" width="51.6364" height="43.64">
+     <polygon points="0,0 51.6364,0 51.6364,43.64 0,43.64"/>
+    </object>
    </objectgroup>
   </tile>
   <tile id="10">
@@ -60,12 +68,26 @@
   </tile>
   <tile id="15">
    <objectgroup draworder="index" id="2">
-    <object id="1" x="4" y="0" width="54" height="64"/>
+    <object id="1" x="11.82" y="-0.363636" width="39.6364" height="64">
+     <polygon points="0,0 39.6364,0 39.6364,64 0,64"/>
+    </object>
    </objectgroup>
   </tile>
   <tile id="17">
    <objectgroup draworder="index" id="2">
-    <object id="1" x="3.27273" y="2.63636" width="59.0909" height="59.0909"/>
+    <object id="1" x="7.27273" y="6.63636" width="50.7273" height="53.0909">
+     <polygon points="0,0 50.7273,0 50.7273,53.0909 0,53.0909"/>
+    </object>
+   </objectgroup>
+  </tile>
+  <tile id="18">
+   <objectgroup draworder="index" id="2">
+    <object id="2" x="0" y="0" width="64" height="64"/>
+   </objectgroup>
+  </tile>
+  <tile id="19">
+   <objectgroup draworder="index" id="2">
+    <object id="2" x="0" y="0" width="64" height="64"/>
    </objectgroup>
   </tile>
   <tile id="20">
@@ -99,7 +121,9 @@
   </tile>
   <tile id="25">
    <objectgroup draworder="index" id="2">
-    <object id="1" x="5" y="0" width="53" height="58"/>
+    <object id="1" x="11.82" y="-0.36" width="41.2773" height="51.4545">
+     <polygon points="0,0 41.2773,0 41.2773,51.4545 0,51.4545"/>
+    </object>
    </objectgroup>
   </tile>
   <tile id="26">
@@ -114,6 +138,16 @@
     <object id="2" x="0" y="0" width="64" height="59">
      <polygon points="0,0 58.0172,0.0930556 57.9622,6.94896 63.9864,6.98681 64,59 0,59"/>
     </object>
+   </objectgroup>
+  </tile>
+  <tile id="28">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="64" height="64"/>
+   </objectgroup>
+  </tile>
+  <tile id="29">
+   <objectgroup draworder="index" id="2">
+    <object id="2" x="0" y="0" width="64" height="64"/>
    </objectgroup>
   </tile>
   <tile id="33">
@@ -140,7 +174,16 @@
   </tile>
   <tile id="38">
    <objectgroup draworder="index" id="3">
-    <object id="2" x="1.875" y="3.875" width="60.25" height="56.25"/>
+    <object id="2" x="5.14773" y="7.51136" width="54.0682" height="49.8864">
+     <polygon points="0,0 54.0682,0 54.0682,49.8864 0,49.8864"/>
+    </object>
+   </objectgroup>
+  </tile>
+  <tile id="39">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="6.81818" y="7.18182" width="49.8182" height="50.7273">
+     <polygon points="0,0 49.8182,0 49.8182,50.7273 0,50.7273"/>
+    </object>
    </objectgroup>
   </tile>
   <tile id="40">
@@ -177,11 +220,23 @@
     <object id="1" x="0" y="5" width="64" height="59"/>
    </objectgroup>
   </tile>
+  <tile id="51">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="56.5455" height="64">
+     <polygon points="0,0 56.5455,0 57.0909,50.5455 64.7273,63.8182 0,64"/>
+    </object>
+   </objectgroup>
+  </tile>
   <tile id="53">
    <objectgroup draworder="index" id="2">
     <object id="1" x="64.1818" y="0.363636" width="64" height="64">
      <polygon points="-64,0 -64,64 0,64"/>
     </object>
+   </objectgroup>
+  </tile>
+  <tile id="55">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="64" height="64"/>
    </objectgroup>
   </tile>
   <tile id="56">
@@ -200,7 +255,7 @@
    </objectgroup>
   </tile>
  </tileset>
- <tileset firstgid="105" name="DecoracionSprites" tilewidth="712" tileheight="537" tilecount="27" columns="0">
+ <tileset firstgid="105" name="DecoracionSprites" tilewidth="1906" tileheight="1975" tilecount="52" columns="0">
   <grid orientation="orthogonal" width="1" height="1"/>
   <tile id="0">
    <image source="AssetsDecoracion/Deco1.png" width="64" height="112"/>
@@ -283,28 +338,199 @@
   <tile id="26">
    <image source="AssetsDecoracion/Deco27.png" width="457" height="537"/>
   </tile>
+  <tile id="47">
+   <image source="AssetsDecoracion/Deco 28.png" width="845" height="668"/>
+  </tile>
+  <tile id="48">
+   <image source="AssetsDecoracion/Deco 29.png" width="455" height="552"/>
+  </tile>
+  <tile id="49">
+   <image source="AssetsDecoracion/Deco 30.png" width="29" height="178"/>
+  </tile>
+  <tile id="50">
+   <image source="AssetsDecoracion/Deco 31.png" width="72" height="170"/>
+  </tile>
+  <tile id="51">
+   <image source="AssetsDecoracion/Deco 32.png" width="542" height="758"/>
+  </tile>
+  <tile id="52">
+   <image source="AssetsDecoracion/Deco 33.png" width="491" height="598"/>
+  </tile>
+  <tile id="53">
+   <image source="AssetsDecoracion/Deco 34.png" width="497" height="475"/>
+  </tile>
+  <tile id="54">
+   <image source="AssetsDecoracion/Deco 35.png" width="251" height="331"/>
+  </tile>
+  <tile id="55">
+   <image source="AssetsDecoracion/Deco 36.png" width="479" height="445"/>
+  </tile>
+  <tile id="56">
+   <image source="AssetsDecoracion/Deco 37.png" width="456" height="217"/>
+  </tile>
+  <tile id="57">
+   <image source="AssetsDecoracion/Deco 38.png" width="519" height="489"/>
+  </tile>
+  <tile id="58">
+   <image source="AssetsDecoracion/Deco 39.png" width="486" height="753"/>
+  </tile>
+  <tile id="59">
+   <image source="AssetsDecoracion/Deco 40.png" width="389" height="528"/>
+  </tile>
+  <tile id="60">
+   <image source="AssetsDecoracion/Deco 41.png" width="510" height="469"/>
+  </tile>
+  <tile id="61">
+   <image source="AssetsDecoracion/Deco 42.png" width="425" height="358"/>
+  </tile>
+  <tile id="62">
+   <image source="AssetsDecoracion/Deco 43.png" width="486" height="402"/>
+  </tile>
+  <tile id="63">
+   <image source="AssetsDecoracion/Deco 44.png" width="483" height="560"/>
+  </tile>
+  <tile id="64">
+   <image source="AssetsDecoracion/Deco 45.png" width="434" height="346"/>
+  </tile>
+  <tile id="65">
+   <image source="AssetsDecoracion/Deco 46.png" width="321" height="568"/>
+  </tile>
+  <tile id="66">
+   <image source="AssetsDecoracion/Deco 47.png" width="281" height="582"/>
+  </tile>
+  <tile id="67">
+   <image source="AssetsDecoracion/Pedrolo 5.png" width="1354" height="1471"/>
+  </tile>
+  <tile id="68">
+   <image source="AssetsDecoracion/Pedrolo 1.png" width="1906" height="1948"/>
+  </tile>
+  <tile id="69">
+   <image source="AssetsDecoracion/Pedrolo 2.png" width="1506" height="1874"/>
+  </tile>
+  <tile id="70">
+   <image source="AssetsDecoracion/Pedrolo 3.png" width="1558" height="1943"/>
+  </tile>
+  <tile id="71">
+   <image source="AssetsDecoracion/Pedrolo 4.png" width="1691" height="1975"/>
+  </tile>
  </tileset>
  <imagelayer id="13" name="ReferenciaMapa" offsetx="-2" offsety="-196">
   <image source="ReferenciaFondo.png" width="8320" height="5782"/>
  </imagelayer>
- <objectgroup id="21" name="Decoracion">
-  <object id="50" gid="105" x="6594" y="4815" width="64" height="112"/>
-  <object id="52" gid="106" x="6304" y="4816" width="128" height="160"/>
-  <object id="53" gid="106" x="7094" y="4846" width="128" height="160"/>
-  <object id="54" gid="106" x="5908" y="4886" width="128" height="160"/>
-  <object id="56" gid="115" x="7283" y="4818.33" width="290" height="178"/>
-  <object id="57" gid="115" x="5387" y="4751" width="290" height="178"/>
-  <object id="58" gid="117" x="3814" y="4873" width="241" height="178"/>
-  <object id="59" gid="118" x="4903" y="4746" width="229" height="177"/>
-  <object id="62" gid="114" x="2988" y="4234" width="89.0722" height="93.574"/>
-  <object id="66" gid="123" x="3620" y="4463" width="712" height="502"/>
-  <object id="67" gid="125" x="3026.15" y="4496.85" width="179" height="223"/>
-  <object id="68" gid="124" x="1419" y="3820" width="157" height="259"/>
-  <object id="69" gid="124" x="2797" y="4122" width="157" height="259"/>
-  <object id="70" gid="124" x="3488" y="4384" width="157" height="259"/>
-  <object id="71" gid="124" x="5840" y="4646" width="157" height="259"/>
-  <object id="72" gid="124" x="6468.67" y="4716.67" width="157" height="259"/>
-  <object id="73" gid="113" x="593" y="3956" width="243" height="291"/>
+ <objectgroup id="31" name="Fondo piedras">
+  <object id="271" gid="173" x="3351" y="5310" width="3002.82" height="2140"/>
+  <object id="272" gid="173" x="4687" y="3198" width="1906" height="1948"/>
+  <object id="273" gid="174" x="1959" y="4801" width="1506" height="1874"/>
+  <object id="274" gid="174" x="3007" y="3281" width="1506" height="1874"/>
+  <object id="276" gid="175" x="13" y="4196" width="1958" height="1943"/>
+  <object id="277" gid="176" x="1403" y="3300" width="1691" height="1975"/>
+  <object id="278" gid="172" x="2091" y="3288" width="1354" height="1471"/>
+  <object id="279" gid="172" x="3579" y="1928" width="1354" height="1471"/>
+  <object id="281" gid="173" x="7855" y="2190" width="802" height="819.673"/>
+  <object id="282" gid="175" x="8390.94" y="1741.47" width="1031.3" height="1343.18" rotation="227.035"/>
+ </objectgroup>
+ <objectgroup id="30" name="Assets 5">
+  <object id="240" gid="162" x="4905.65" y="4346" width="349.184" height="329"/>
+  <object id="241" gid="121" x="4397.12" y="4880" width="65.7143" height="64"/>
+  <object id="242" gid="166" x="3806.39" y="4886" width="199.441" height="168"/>
+  <object id="243" gid="168" x="3259.16" y="4437.67" width="151" height="175.072"/>
+  <object id="244" gid="120" x="3548.16" y="4431" width="80" height="48"/>
+  <object id="245" gid="122" x="3485.48" y="4426.67" width="92.6822" height="49"/>
+  <object id="246" gid="124" x="1288.67" y="3805.76" width="157" height="259"/>
+  <object id="247" gid="154" x="398.121" y="2831.42" width="29" height="178"/>
+  <object id="248" gid="154" x="354" y="2850.33" width="29" height="178"/>
+  <object id="249" gid="154" x="454" y="2909" width="29" height="178"/>
+  <object id="251" gid="155" x="316" y="2757" width="72" height="170"/>
+  <object id="252" gid="123" x="872.26" y="2545.67" width="299.74" height="211.333"/>
+  <object id="253" gid="112" x="2217.52" y="3313.73" width="94" height="224.606"/>
+  <object id="254" gid="116" x="3875" y="2261" width="322" height="162"/>
+  <object id="255" gid="156" x="3838.09" y="1388.09" width="542" height="758"/>
+  <object id="256" gid="156" x="4310.82" y="1433.55" width="542" height="758"/>
+  <object id="257" gid="160" x="5187.48" y="1036.09" width="239" height="222.035"/>
+  <object id="258" gid="163" x="4913.67" y="1365.39" width="134" height="207.617"/>
+  <object id="259" gid="117" x="5231.76" y="1616.74" width="130" height="87.5"/>
+  <object id="263" gid="118" x="5950" y="2003" width="229" height="177"/>
+  <object id="264" gid="121" x="6097" y="2006" width="115" height="112"/>
+  <object id="266" gid="120" x="5770" y="2452" width="80" height="48"/>
+  <object id="267" gid="120" x="5334" y="2324" width="80" height="48"/>
+  <object id="268" gid="119" x="5918" y="2523" width="132" height="98"/>
+ </objectgroup>
+ <objectgroup id="29" name="Assets 4">
+  <object id="213" gid="162" x="8067.81" y="4113.64" width="171.538" height="161.622"/>
+  <object id="215" gid="156" x="6545.2" y="5388.07" width="906.667" height="1268" rotation="331.643"/>
+  <object id="216" gid="156" x="6559.18" y="4789.26" width="789.472" height="1104.1" rotation="25.0411"/>
+  <object id="217" gid="118" x="5272" y="4757" width="229" height="177"/>
+  <object id="219" gid="152" x="1790.34" y="3936" width="604.656" height="478"/>
+  <object id="220" gid="153" x="535.595" y="2215.28" width="455" height="552" rotation="121.763"/>
+  <object id="221" gid="152" x="1134" y="2866" width="1237" height="1000"/>
+  <object id="223" gid="152" x="2640.68" y="2196.67" width="787.655" height="622.667"/>
+  <object id="224" gid="115" x="3371" y="2853" width="290" height="178"/>
+  <object id="225" gid="163" x="4618.33" y="1245" width="218" height="337.765"/>
+  <object id="226" gid="164" x="4303" y="803.273" width="197" height="267.393" rotation="180"/>
+ </objectgroup>
+ <objectgroup id="28" name="Assets 3">
+  <object id="201" gid="160" x="7811.02" y="4125.37" width="190.24" height="176.736"/>
+  <object id="202" gid="163" x="7650.21" y="4816.11" width="77.2005" height="119.613"/>
+  <object id="203" gid="167" x="6322.55" y="4819.41" width="186.059" height="153.901"/>
+  <object id="204" gid="162" x="4561.7" y="4153.6" width="138.291" height="130.297"/>
+  <object id="205" gid="161" x="3996.5" y="4111.78" width="195.491" height="93.0296"/>
+  <object id="207" gid="118" x="2700" y="3859" width="229" height="177"/>
+  <object id="208" gid="153" x="496.768" y="3554" width="191.232" height="232"/>
+  <object id="211" gid="157" x="5628" y="3021.33" width="95.7648" height="116.634"/>
+  <object id="212" gid="116" x="4181" y="1230" width="322" height="162"/>
+ </objectgroup>
+ <objectgroup id="26" name="Assets 2">
+  <object id="157" gid="129" x="8036" y="4815" width="129" height="150"/>
+  <object id="159" gid="166" x="7729.22" y="4817" width="180.447" height="152"/>
+  <object id="160" gid="152" x="5976" y="4834" width="417" height="329.652"/>
+  <object id="161" gid="131" x="4137.81" y="4874" width="118.86" height="139.667"/>
+  <object id="162" gid="170" x="2749.33" y="4372" width="109" height="192.872"/>
+  <object id="163" gid="129" x="3057.33" y="4499" width="129" height="150"/>
+  <object id="164" gid="171" x="2132" y="3867" width="111" height="229.9"/>
+  <object id="165" gid="169" x="2576.82" y="3793" width="198.185" height="158"/>
+  <object id="166" gid="125" x="634" y="3919" width="57" height="71.0112"/>
+  <object id="167" gid="106" x="510.667" y="3800" width="128" height="160"/>
+  <object id="170" gid="107" x="705" y="3658.33" width="63" height="129"/>
+  <object id="171" gid="169" x="1000.33" y="3347.6" width="209.892" height="167.333" rotation="330"/>
+  <object id="172" gid="128" x="756" y="3165.33" width="145" height="208"/>
+  <object id="173" gid="113" x="164.333" y="2770" width="167" height="199.988"/>
+  <object id="175" gid="105" x="1789.33" y="2880" width="64" height="112"/>
+  <object id="176" gid="154" x="3126" y="2717" width="29" height="178"/>
+  <object id="177" gid="154" x="3198" y="2841" width="29" height="178"/>
+  <object id="178" gid="154" x="2912.67" y="2771.67" width="29" height="178"/>
+  <object id="179" gid="155" x="3001.33" y="2717" width="72" height="170"/>
+  <object id="180" gid="118" x="3515.33" y="2257" width="229" height="177"/>
+  <object id="182" gid="122" x="3942.94" y="2826.33" width="97.7261" height="51.6667"/>
+  <object id="183" gid="170" x="4406.79" y="2832.73" width="130.333" height="230.621"/>
+  <object id="184" gid="166" x="3834" y="1241" width="201" height="169.313"/>
+  <object id="189" gid="155" x="5036" y="4759" width="72" height="170"/>
+ </objectgroup>
+ <objectgroup id="25" name="Assets 1">
+  <object id="110" gid="126" x="7044" y="4817" width="53" height="80.3439"/>
+  <object id="112" gid="128" x="6527.47" y="4818" width="65.5288" height="94"/>
+  <object id="113" gid="159" x="7786" y="4661" width="107" height="141.104"/>
+  <object id="115" gid="165" x="5691" y="4016.04" width="212" height="194.957" rotation="180"/>
+  <object id="116" gid="158" x="4218" y="4134" width="123" height="117.555"/>
+  <object id="118" gid="108" x="3608" y="4758" width="208" height="96"/>
+  <object id="119" gid="123" x="3486" y="4237" width="148" height="104.348"/>
+  <object id="120" gid="156" x="2313" y="3861" width="216" height="298.908"/>
+  <object id="121" gid="156" x="1517" y="3883" width="276" height="264"/>
+  <object id="122" gid="130" x="1031" y="3917" width="53" height="89.2194"/>
+  <object id="123" gid="110" x="789.287" y="3984" width="81.7129" height="131"/>
+  <object id="124" gid="108" x="412" y="2984" width="208" height="96"/>
+  <object id="125" gid="107" x="1266" y="2350" width="63" height="129" rotation="180"/>
+  <object id="126" gid="167" x="2154" y="2478" width="172" height="142.272" rotation="180"/>
+  <object id="127" gid="116" x="2350.81" y="2313.25" width="131.185" height="66"/>
+  <object id="128" gid="159" x="3933" y="2096" width="145" height="191.215"/>
+  <object id="129" gid="160" x="4219" y="2111" width="227" height="210.887"/>
+  <object id="130" gid="162" x="4844.33" y="2312.33" width="160.333" height="151.066"/>
+  <object id="131" gid="107" x="5047" y="2443.67" width="41" height="83.9524"/>
+  <object id="132" gid="158" x="6208" y="2368" width="230.68" height="220.469"/>
+  <object id="133" gid="161" x="5059.53" y="2749.67" width="161.806" height="77"/>
+  <object id="134" gid="158" x="5234.67" y="2839.33" width="183" height="174.899"/>
+  <object id="135" gid="124" x="5788.67" y="1384.55" width="157" height="259"/>
+  <object id="140" gid="169" x="6432.35" y="2004.58" width="183.133" height="146"/>
+  <object id="141" gid="131" x="7283.09" y="1999.27" width="83.303" height="97.8856"/>
  </objectgroup>
  <layer id="1" name="Map" width="130" height="77">
   <properties>
@@ -9067,9 +9293,9 @@
    <tile/>
    <tile/>
    <tile/>
-   <tile/>
-   <tile/>
-   <tile/>
+   <tile gid="81"/>
+   <tile gid="81"/>
+   <tile gid="81"/>
    <tile/>
    <tile/>
    <tile/>
@@ -10323,6 +10549,21 @@
    <tile gid="16"/>
   </data>
  </layer>
+ <objectgroup id="27" name="Assets front">
+  <object id="143" gid="108" x="7810" y="4312" width="208" height="96"/>
+  <object id="144" gid="170" x="7151.61" y="4812" width="116.386" height="205.941"/>
+  <object id="145" gid="122" x="6634" y="4812" width="87" height="45.9959"/>
+  <object id="146" gid="109" x="5645" y="4749" width="74" height="74.4181"/>
+  <object id="147" gid="119" x="4046" y="4881" width="78" height="57.9091"/>
+  <object id="148" gid="155" x="3002" y="4232" width="42" height="99.1667"/>
+  <object id="149" gid="126" x="1413" y="4109" width="73" height="110.662"/>
+  <object id="151" gid="110" x="1274" y="2838" width="133" height="213.222"/>
+  <object id="152" gid="113" x="2600.88" y="2827" width="137.784" height="165"/>
+  <object id="153" gid="105" x="3774" y="2838.82" width="64" height="112"/>
+  <object id="154" gid="157" x="5081" y="3031" width="141" height="171.727"/>
+  <object id="155" gid="166" x="5896.63" y="3023" width="150.372" height="126.667"/>
+  <object id="209" gid="1073741938" x="4252.04" y="2826" width="81.6277" height="85.7533"/>
+ </objectgroup>
  <layer id="5" name="Collisions" width="130" height="77" visible="0">
   <properties>
    <property name="Draw" type="bool" value="false"/>
