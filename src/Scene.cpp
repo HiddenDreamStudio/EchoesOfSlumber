@@ -176,11 +176,12 @@ void Scene::LoadMainMenu()
 	musicVolume_ = 0.8f;
 	sfxVolume_ = 0.8f;
 
-	SDL_Texture* rawLogo = Engine::GetInstance().textures->Load("assets/textures/menu/EchoesOfSlumber.png");
+	SDL_Texture* rawLogo = Engine::GetInstance().textures->Load("assets/textures/Menu/EchoesOfSlumber.png");
 	texMenuLogo_ = Engine::GetInstance().render->RecolorTexture(rawLogo, 212, 218, 234);
 	Engine::GetInstance().textures->UnLoad(rawLogo);
-	texMenuChild_ = Engine::GetInstance().textures->Load("assets/textures/menu/IL_NenFront_01.png");
-	texMenuButton_ = Engine::GetInstance().textures->Load("assets/textures/menu/UI_Pause_Menu_button_white.png");
+	texMenuChild_ = Engine::GetInstance().textures->Load("assets/textures/Menu/IL_NenFront_01.png");
+	texMenuButton_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
+	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
 
 	const char* fragPaths[NUM_FRAGMENTS] = {
 		"assets/textures/Menu/UI_Fragment1.png",
@@ -230,6 +231,12 @@ void Scene::LoadMainMenu()
 		btnExit_->SetTexture(texMenuButton_);
 	}
 
+	if (texButtonFragmented_) {
+		btnPlay_->SetHoverTexture(texButtonFragmented_);
+		btnSettings_->SetHoverTexture(texButtonFragmented_);
+		btnExit_->SetHoverTexture(texButtonFragmented_);
+	}
+
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = 60;
@@ -258,6 +265,7 @@ void Scene::UnloadMainMenu()
 	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_);                       texMenuLogo_ = nullptr; }
 	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_);  texMenuChild_ = nullptr; }
 	if (texMenuButton_) { Engine::GetInstance().textures->UnLoad(texMenuButton_); texMenuButton_ = nullptr; }
+	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		if (fragments_[i].tex) { Engine::GetInstance().textures->UnLoad(fragments_[i].tex); fragments_[i].tex = nullptr; }
 	}
@@ -923,6 +931,7 @@ void Scene::UnloadGameplay()
 	if (texPauseBackground_) { Engine::GetInstance().textures->UnLoad(texPauseBackground_);  texPauseBackground_ = nullptr; }
 	if (texPauseButtonWhite_) { Engine::GetInstance().textures->UnLoad(texPauseButtonWhite_); texPauseButtonWhite_ = nullptr; }
 	if (texPauseButtonBlack_) { Engine::GetInstance().textures->UnLoad(texPauseButtonBlack_); texPauseButtonBlack_ = nullptr; }
+	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
 }
 
 void Scene::PostUpdateGameplay()
@@ -1267,9 +1276,10 @@ void Scene::DrawMapViewer(int winW, int winH)
 
 void Scene::LoadPauseMenuButtons()
 {
-	texPauseBackground_ = Engine::GetInstance().textures->Load("assets/textures/menu/UI_Pause_Menu_base+background.png");
-	texPauseButtonWhite_ = Engine::GetInstance().textures->Load("assets/textures/menu/UI_Pause_Menu_button_white.png");
-	texPauseButtonBlack_ = Engine::GetInstance().textures->Load("assets/textures/menu/UI_Pause_Menu_button_black.png");
+	texPauseBackground_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_base+background.png");
+	texPauseButtonWhite_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
+	texPauseButtonBlack_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_black.png");
+	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
 
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
@@ -1298,7 +1308,14 @@ void Scene::LoadPauseMenuButtons()
 		btnMenu->SetTexture(texPauseButtonWhite_);
 		btnCont->SetTexture(texPauseButtonWhite_);
 	}
-	if (texPauseButtonBlack_) {
+
+	if (texButtonFragmented_) {
+		btnOpt->SetHoverTexture(texButtonFragmented_);
+		btnMap->SetHoverTexture(texButtonFragmented_);
+		btnMenu->SetHoverTexture(texButtonFragmented_);
+		btnCont->SetHoverTexture(texButtonFragmented_);
+	}
+	else if (texPauseButtonBlack_) {
 		btnOpt->SetHoverTexture(texPauseButtonBlack_);
 		btnMap->SetHoverTexture(texPauseButtonBlack_);
 		btnMenu->SetHoverTexture(texPauseButtonBlack_);
