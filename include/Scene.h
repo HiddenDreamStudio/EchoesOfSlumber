@@ -124,12 +124,15 @@ private:
     void LoadPauseMenuButtons();
     void SetPauseMenuVisible(bool visible);
     void SetPauseOptionsPanelVisible(bool visible);
-    void SetGameOverVisible(bool visible);
-    void ResetHealthUI(int health);
     void DrawPauseMenu();
     void DrawPauseOptionsPanel(int winW, int winH);
     void HandlePauseMenuUIEvents(UIElement* uiElement);
 
+public:
+    void SetGameOverVisible(bool visible);
+    void ResetHealthUI(int health);
+
+private:
     // Button IDs — pause menu
     static constexpr int BTN_PAUSE_CONTINUE = 20;
     static constexpr int BTN_PAUSE_OPTIONS = 21;
