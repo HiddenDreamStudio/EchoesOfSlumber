@@ -107,8 +107,6 @@ struct DecorationObject
     float width;  
     float height; 
     int   gid;    
-    double rotation = 0.0;
-    bool  isFront = false;
     SDL_Texture* texture = nullptr; 
 };
 
@@ -142,9 +140,6 @@ public:
 
     // Called each loop iteration
     bool Update(float dt);
-
-    // Called after Update, for foreground elements
-    bool PostUpdate();
 
     // Called before quitting
     bool CleanUp();
