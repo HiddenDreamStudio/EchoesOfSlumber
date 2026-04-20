@@ -32,6 +32,7 @@ enum class ColliderType {
     LEDGE,
     CHECKPOINT,
     BOX,
+    PROJECTILE,
     UNKNOWN
     // ..
 };

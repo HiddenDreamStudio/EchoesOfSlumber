@@ -6,6 +6,7 @@
 #include "Physics.h"
 #include "EntityManager.h"
 #include "Enemy.h"
+#include "EnemyC.h"
 #include "Checkpoint.h"
 #include "Box.h"
 #include "Window.h"
@@ -522,6 +523,12 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     enemy->position = Vector2D(x, y);
                     enemy->Start();
                     LOG("Enemy spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "EnemyC") {
+                    auto enemyC = std::dynamic_pointer_cast<EnemyC>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_C));
+                    enemyC->position = Vector2D(x, y);
+                    enemyC->Start();
+                    LOG("EnemyC spawned at: %f, %f", x, y);
                 }
                 else if (entityType == "Checkpoint") {
                     auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
