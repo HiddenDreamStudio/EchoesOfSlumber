@@ -174,6 +174,7 @@ private:
     SDL_Texture* texPauseBackground_ = nullptr;
     SDL_Texture* texPauseButtonWhite_ = nullptr;
     SDL_Texture* texPauseButtonBlack_ = nullptr;
+    SDL_Texture* texButtonFragmented_ = nullptr;
 
     // ── Map viewer ────────────────────────────────────────────────────────────
     bool  showMapViewer_ = false;
