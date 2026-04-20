@@ -6,6 +6,7 @@
 #include "Log.h"
 #include "Item.h"
 #include "Enemy.h"
+#include "EnemyB.h"
 #include "Checkpoint.h"
 #include "Box.h"
 #include "tracy/Tracy.hpp"
@@ -78,6 +79,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::ENEMY:
 		entity = std::make_shared<Enemy>();
+		break;
+	case EntityType::ENEMY_B:
+		entity = std::make_shared<EnemyB>();
 		break;
 	case EntityType::CHECKPOINT:
 		entity = std::make_shared<Checkpoint>();
