@@ -102,14 +102,25 @@ struct ImageLayer
 
 struct DecorationObject
 {
-    float x;      
-    float y;     
-    float width;  
-    float height; 
-    int   gid;    
+    float x;
+    float y;
+    float width;
+    float height;
+    int   gid;
     double rotation = 0.0;
     bool  isFront = false;
-    SDL_Texture* texture = nullptr; 
+    SDL_Texture* texture = nullptr;
+};
+
+struct AnimatedPlantObject
+{
+    float x;
+    float y;
+    float w;
+    float h;
+    std::string tsxPath;        
+    AnimationSet anim;            
+    SDL_Texture* texture = nullptr;
 };
 
 struct MapData
@@ -123,6 +134,8 @@ struct MapData
     std::list<MapLayer*> layers;
     std::list<ImageLayer*> imageLayers;
     std::list<DecorationObject*> decorationObjects;
+    std::list<AnimatedPlantObject*> animatedPlants;
+
 };
 
 class Map : public Module
@@ -181,14 +194,15 @@ public:
 
     void LoadImageLayers();
     void LoadDecorationObjects();
+    void LoadAnimatedPlants();
 
 public:
     std::string mapFileName;
     std::string mapPath;
+    MapData mapData;
 
 private:
     bool mapLoaded;
-    MapData mapData;
     pugi::xml_document mapFileXML;
     //
     std::list<PhysBody*> colliderList;
