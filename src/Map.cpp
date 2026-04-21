@@ -42,6 +42,7 @@ bool Map::Update(float dt)
     ZoneScoped;
 
     bool ret = true;
+    lastDt = dt;
 
     if (mapLoaded) {
 
@@ -81,6 +82,7 @@ bool Map::Update(float dt)
         }
 
         for (const auto& plant : mapData.animatedPlants) {
+            if (plant->isFront) continue;
             plant->anim.Update(dt);
             const SDL_Rect& frame = plant->anim.GetCurrentFrame();
 
@@ -172,6 +174,29 @@ bool Map::PostUpdate()
             SDL_RenderTextureRotated(Engine::GetInstance().render->renderer, deco->texture, nullptr, &dst,
                 deco->rotation, &center, SDL_FLIP_NONE);
         }
+    }
+
+    for (const auto& plant : mapData.animatedPlants) {
+        if (!plant->isFront) continue;
+        plant->anim.Update(lastDt);
+        const SDL_Rect& frame = plant->anim.GetCurrentFrame();
+
+        int scale = Engine::GetInstance().window->GetScale();
+        Render* render = Engine::GetInstance().render.get();
+
+        SDL_FRect dst;
+        dst.x = (float)(render->camera.x + plant->x * scale);
+        dst.y = (float)(render->camera.y + plant->y * scale);
+        dst.w = plant->w * scale;
+        dst.h = plant->h * scale;
+
+        SDL_FRect src;
+        src.x = (float)frame.x;
+        src.y = (float)frame.y;
+        src.w = (float)frame.w;
+        src.h = (float)frame.h;
+
+        SDL_RenderTexture(render->renderer, plant->texture, &src, &dst);
     }
 
     return true;
@@ -763,7 +788,8 @@ void Map::LoadAnimatedPlants()
         groupNode != NULL;
         groupNode = groupNode.next_sibling("objectgroup"))
     {
-        if (groupNode.attribute("name").as_string() != std::string("AnimatedPlants"))
+        std::string layerName = groupNode.attribute("name").as_string();
+        if (layerName != "AnimatedPlants" && layerName != "AnimatedPlants front")
             continue;
 
         for (pugi::xml_node objNode = groupNode.child("object");
@@ -789,6 +815,7 @@ void Map::LoadAnimatedPlants()
             plant->y = objNode.attribute("y").as_float();
             plant->w = objNode.attribute("width").as_float();
             plant->h = objNode.attribute("height").as_float();
+            plant->isFront = (groupNode.attribute("name").as_string() == std::string("AnimatedPlants front")); 
             plant->tsxPath = tsxFile;
 
             std::string fullTsxPath = mapPath + tsxFile;

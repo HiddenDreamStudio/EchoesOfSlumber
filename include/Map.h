@@ -118,6 +118,7 @@ struct AnimatedPlantObject
     float y;
     float w;
     float h;
+    bool  isFront = false;
     std::string tsxPath;        
     AnimationSet anim;            
     SDL_Texture* texture = nullptr;
@@ -164,6 +165,8 @@ public:
 
     // Load new map
     bool Load(std::string path, std::string mapFileName);
+
+    float lastDt = 0.0f;
 
     // Translate between map and world coordinates
     Vector2D MapToWorld(int x, int y) const;
