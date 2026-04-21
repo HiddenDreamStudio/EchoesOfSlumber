@@ -97,7 +97,7 @@ bool Player::Update(float dt)
 			// All other actions are blocked while hiding
 			if (!isHiding_) {
 				Dash(dt);
-				if (!isDashing_) Move();
+				if (!isDashing_ && !isExitingHide_) Move();
 				Jump();
 				CheckLedge();
 				Attack(dt);
@@ -114,7 +114,7 @@ bool Player::Update(float dt)
 	if (iFrameTimer_ <= 0.0f)     isInvincible_ = false;
 
 	// Advance hide alpha pulse timer for visual feedback
-	if (isHiding_) hideAlphaTime_ += dt;
+	if (isHiding_ || isExitingHide_) hideAlphaTime_ += dt;
 	else           hideAlphaTime_ = 0.0f;
 
 	Draw(dt);
@@ -134,7 +134,7 @@ void Player::GetPhysicsValues() {
 }
 
 void Player::Move() {
-	if (isWakingUp || isShowingDamageAnim_ || isHiding_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
 		velocity.x = -speed;
@@ -175,7 +175,7 @@ void Player::Move() {
 }
 
 void Player::Jump() {
-	if (isWakingUp || isDashing_ || isShowingDamageAnim_ || isHiding_) return;
+	if (isWakingUp || isDashing_ || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
 		if (!isJumping) {
@@ -214,34 +214,44 @@ void Player::Hide(float dt)
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_H) == KEY_DOWN)
 	{
-		isHiding_ = !isHiding_;
-
-		if (isHiding_)
+		if (!isHiding_ && !isExitingHide_)
 		{
-			// Freeze horizontal movement
+			isHiding_ = true;
 			velocity.x = 0.0f;
 			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
 			anims.SetCurrent("hide");
-			anims.ResetCurrent(); // Always restart from frame 0 when entering hide
+			anims.ResetCurrent();
 			LOG("Player hiding");
 		}
-		else
+		else if (isHiding_)
 		{
-			anims.SetCurrent("idle");
-			LOG("Player stopped hiding");
+			isHiding_ = false;
+			isExitingHide_ = true;
+			LOG("Player exiting hide");
 		}
 	}
 
-	// While hiding keep velocity zeroed so the player stays still.
-	// Only advance the animation if it hasn't finished yet (play once, freeze on last frame).
 	if (isHiding_)
 	{
 		velocity.x = 0.0f;
 		if (!anims.HasFinishedOnce("hide"))
 			anims.Update(dt);
 	}
-}
 
+	if (isExitingHide_)
+	{
+		velocity.x = 0.0f;
+		anims.UpdateBackwards(dt);
+
+		// Si vuelve al frame 0, ya está completamente visible y levantado
+		if (anims.GetCurrentFrameIndex() == 0)
+		{
+			isExitingHide_ = false;
+			anims.SetCurrent("idle");
+			LOG("Player stopped hiding");
+		}
+	}
+}
 void Player::ApplyPhysics() {
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
@@ -276,7 +286,7 @@ void Player::Draw(float dt) {
 			anims.SetCurrent("idle");
 		}
 	}
-	else if (isHiding_)
+	else if (isHiding_ || isExitingHide_) 
 	{
 		// Hide animation is advanced inside Hide() — just grab the current frame
 		animFrame = &anims.GetCurrentFrame();
@@ -359,7 +369,7 @@ void Player::Draw(float dt) {
 	}
 
 	// ── I-frame flicker (not during hide, dash, or death) ────────────────────
-	bool skipDraw = !isDead_ && !isDashing_ && !isHiding_ && isInvincible_ &&
+	bool skipDraw = !isDead_ && !isDashing_ && !isHiding_ && !isExitingHide_ && isInvincible_ && 
 		(static_cast<int>(iFrameTimer_ / 100.0f) % 2 == 0);
 
 	if (!skipDraw) {
@@ -371,7 +381,7 @@ void Player::Draw(float dt) {
 
 		// While hiding: gentle alpha pulse (80‑180) to signal stealth
 		Uint8 drawAlpha = 255;
-		if (isHiding_) {
+		if (isHiding_ || isExitingHide_) { 
 			float pulse = 0.5f + 0.3f * sinf(hideAlphaTime_ * 0.004f);
 			drawAlpha = static_cast<Uint8>(80.0f + 100.0f * pulse);
 			SDL_SetTextureAlphaMod(activeTex, drawAlpha);
@@ -381,7 +391,7 @@ void Player::Draw(float dt) {
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
 
 		// Restore alpha and color modulation
-		if (isHiding_) {
+		if (isHiding_ || isExitingHide_) { 
 			SDL_SetTextureAlphaMod(activeTex, 255);
 		}
 		if (damageFlashTimer_ > 0.0f) {
@@ -390,7 +400,6 @@ void Player::Draw(float dt) {
 		render->ResetAmbientTint(activeTex);
 	}
 }
-
 void Player::Dash(float dt)
 {
 	auto& input = Engine::GetInstance().input;
@@ -422,7 +431,7 @@ void Player::Dash(float dt)
 
 void Player::Attack(float dt)
 {
-	if (isHiding_) return;
+	if (isHiding_ || isExitingHide_) return;
 
 	auto& input = Engine::GetInstance().input;
 	auto& physics = Engine::GetInstance().physics;
