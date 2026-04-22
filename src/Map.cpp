@@ -6,6 +6,8 @@
 #include "Physics.h"
 #include "EntityManager.h"
 #include "Enemy.h"
+#include "EnemyB.h"
+#include "EnemyC.h"
 #include "Checkpoint.h"
 #include "Box.h"
 #include "Window.h"
@@ -522,6 +524,29 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     enemy->position = Vector2D(x, y);
                     enemy->Start();
                     LOG("Enemy spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "EnemyB") {
+                    auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
+                    enemyB->position = Vector2D(x, y);
+                    float patrolLeft  = x - 200.0f;
+                    float patrolRight = x + 200.0f;
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string propName = prop.attribute("name").as_string();
+                            if (propName == "patrol_left")  patrolLeft  = prop.attribute("value").as_float();
+                            if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
+                        }
+                    }
+                    enemyB->SetPatrolPoints(patrolLeft, patrolRight);
+                    enemyB->Start();
+                    LOG("EnemyB spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
+                }
+                else if (entityType == "EnemyC") {
+                    auto enemyC = std::dynamic_pointer_cast<EnemyC>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_C));
+                    enemyC->position = Vector2D(x, y);
+                    enemyC->Start();
+                    LOG("EnemyC spawned at: %f, %f", x, y);
                 }
                 else if (entityType == "Checkpoint") {
                     auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
