@@ -60,7 +60,7 @@ bool Enemy::Update(float dt)
 {
 	ZoneScoped;
 	
-	if (Engine::GetInstance().scene->isPaused_) {
+	if (Engine::GetInstance().scene->isPaused_ || Engine::GetInstance().scene->isGameOver_) {
 		Draw(0.0f);
 		return true;
 	}
