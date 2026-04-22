@@ -596,9 +596,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		physB->GetPosition(platX, platY);
 		if (playerY < platY) {
 			if (isJumping) {
-				// Spawn landing dust (12 frames of 794x202, centered at feet)
+				// Spawn landing dust (Centered at bottom of capsule)
 				Engine::GetInstance().entityManager->SpawnVFX(
-					Vector2D(position.getX() + (float)texW / 2.0f, position.getY() + (float)texH / 2.0f + 25.0f),
+					Vector2D(position.getX(), position.getY() + 50.0f),
 					"assets/textures/spritesheets/SS_Pols_01.png",
 					12, 794, 202, 0.03f, 0.0f, 0.2f
 				);
