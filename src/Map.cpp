@@ -8,6 +8,7 @@
 #include "Enemy.h"
 #include "Checkpoint.h"
 #include "Box.h"
+#include "Platform.h"
 #include "Window.h"
 #include "tracy/Tracy.hpp"
 
@@ -63,18 +64,15 @@ bool Map::Update(float dt)
         }
         for (const auto& deco : mapData.decorationObjects) {
             if (deco->texture && !deco->isFront) {
-                // Posició en coordenades de món (Tiled usa l'origen a baix-esquerra per objectes gid)
                 float worldX = deco->x;
                 float worldY = deco->y - deco->height;
 
-                // Aplicar la càmera i l'escala de finestra (igual que DrawTexture)
                 SDL_FRect dst;
                 dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
                 dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
                 dst.w = deco->width * scale;
                 dst.h = deco->height * scale;
 
-                // En Tiled, l'origen de rotació dels objectes GID és per defecte a baix-esquerra
                 SDL_FPoint center;
                 center.x = 0.0f;
                 center.y = dst.h;
@@ -83,8 +81,7 @@ bool Map::Update(float dt)
                     deco->rotation, &center, SDL_FLIP_NONE);
             }
         }
-        
-        // Calculate camera bounds in tiles
+
         float camX = -render->camera.x;
         float camY = -render->camera.y;
         float camW = (float)render->camera.w / scale;
@@ -95,24 +92,18 @@ bool Map::Update(float dt)
         int endX = std::min(mapData.width, static_cast<int>((camX + camW) / static_cast<float>(mapData.tileWidth)) + 2);
         int endY = std::min(mapData.height, static_cast<int>((camY + camH) / static_cast<float>(mapData.tileHeight)) + 2);
 
-        // iterate all tiles in a layer that are visible to the camera
         for (const auto& mapLayer : mapData.layers) {
             if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true) {
                 for (int i = startX; i < endX; i++) {
                     for (int j = startY; j < endY; j++) {
 
-                        //Get the gid from tile
                         int gid = mapLayer->Get(i, j);
 
-                        //Check if the gid is different from 0 - some tiles are empty
                         if (gid != 0) {
                             TileSet* tileSet = GetTilesetFromTileId(gid);
                             if (tileSet != nullptr) {
-                                //Get the Rect from the tileSetTexture;
                                 SDL_Rect tileRect = tileSet->GetRect(gid);
-                                //Get the screen coordinates from the tile coordinates
                                 Vector2D mapCoord = MapToWorld(i, j);
-                                //Draw the texture
                                 render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect);
                             }
                         }
@@ -133,7 +124,6 @@ bool Map::PostUpdate()
 
     float scale = (float)Engine::GetInstance().window->GetScale();
 
-    // Dibuixar les decoracions frontals per sobre de les entitats
     for (const auto& deco : mapData.decorationObjects) {
         if (deco->texture && deco->isFront) {
             float worldX = deco->x;
@@ -169,7 +159,6 @@ TileSet* Map::GetTilesetFromTileId(int gid) const
         }
     }
 
-    // Verificar si el gid realment pertany al tileset (dins del seu rang de tileCount)
     if (bestMatch && gid < bestMatch->firstGid + bestMatch->tileCount) {
         return bestMatch;
     }
@@ -196,7 +185,6 @@ bool Map::CleanUp()
     }
     mapData.layers.clear();
 
-    // Clean up collider list
     for (const auto& collider : colliderList) {
         Engine::GetInstance().physics->DeletePhysBody(collider);
     }
@@ -222,7 +210,6 @@ bool Map::Load(std::string path, std::string fileName)
 {
     bool ret = false;
 
-    // Assigns the name of the map file and the path
     mapFileName = fileName;
     mapPath = path;
     std::string mapPathName = mapPath + mapFileName;
@@ -241,10 +228,8 @@ bool Map::Load(std::string path, std::string fileName)
         mapData.tileWidth = mapFileXML.child("map").attribute("tilewidth").as_int();
         mapData.tileHeight = mapFileXML.child("map").attribute("tileheight").as_int();
 
-        //Iterate the Tileset
         for (pugi::xml_node tilesetNode = mapFileXML.child("map").child("tileset"); tilesetNode != NULL; tilesetNode = tilesetNode.next_sibling("tileset"))
         {
-            //Load Tileset attributes
             TileSet* tileSet = new TileSet();
             tileSet->firstGid = tilesetNode.attribute("firstgid").as_int();
             tileSet->name = tilesetNode.attribute("name").as_string();
@@ -255,15 +240,14 @@ bool Map::Load(std::string path, std::string fileName)
             tileSet->tileCount = tilesetNode.attribute("tilecount").as_int();
             tileSet->columns = tilesetNode.attribute("columns").as_int();
 
-            //Load the tileset image (skip if tileset uses per-tile images)
             std::string imgName = tilesetNode.child("image").attribute("source").as_string();
             if (!imgName.empty()) {
                 tileSet->texture = Engine::GetInstance().textures->Load((mapPath + imgName).c_str());
-            } else {
+            }
+            else {
                 tileSet->texture = nullptr;
             }
 
-            // Parse tile object groups for collisions
             for (pugi::xml_node tileNode = tilesetNode.child("tile"); tileNode != NULL; tileNode = tileNode.next_sibling("tile")) {
                 int tileId = tileNode.attribute("id").as_int();
                 pugi::xml_node objectGroupNode = tileNode.child("objectgroup");
@@ -275,17 +259,17 @@ bool Map::Load(std::string path, std::string fileName)
                         col.y = objectNode.attribute("y").as_float(0.0f);
                         col.width = objectNode.attribute("width").as_float(0.0f);
                         col.height = objectNode.attribute("height").as_float(0.0f);
-                        
+
                         pugi::xml_node polyNode = objectNode.child("polygon");
                         if (polyNode != NULL) {
                             std::string pointsStr = polyNode.attribute("points").as_string();
                             std::stringstream ss(pointsStr);
                             std::string pointPair;
-                            while(std::getline(ss, pointPair, ' ')) {
-                                if(pointPair.empty()) continue;
+                            while (std::getline(ss, pointPair, ' ')) {
+                                if (pointPair.empty()) continue;
                                 std::stringstream ssPair(pointPair);
                                 std::string xStr, yStr;
-                                if(std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
+                                if (std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
                                     col.polygonPoints.push_back((int)std::stof(xStr));
                                     col.polygonPoints.push_back((int)std::stof(yStr));
                                 }
@@ -348,7 +332,8 @@ bool Map::Load(std::string path, std::string fileName)
                                     (int*)col.polygonPoints.data(),
                                     (int)col.polygonPoints.size(),
                                     STATIC);
-                            } else if (numVerts >= 3) {
+                            }
+                            else if (numVerts >= 3) {
                                 c1 = Engine::GetInstance().physics.get()->CreateConvexPolygon(
                                     (int)(mapCoord.getX() + col.x),
                                     (int)(mapCoord.getY() + col.y),
@@ -360,7 +345,8 @@ bool Map::Load(std::string path, std::string fileName)
                                 c1->ctype = ColliderType::PLATFORM;
                                 colliderList.push_back(c1);
                             }
-                        } else {
+                        }
+                        else {
                             hasRectCollider[j * mapData.width + i] = true;
                         }
                     }
@@ -535,6 +521,52 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     box->Start();
                     LOG("Box spawned at: %f, %f", x, y);
                 }
+                // Parse MovingPlatform from Tiled polylines
+                else if (entityType == "MovingPlatform") {
+                    auto platform = std::dynamic_pointer_cast<Platform>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));
+
+                    // Read the custom "speed" property if it exists
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            if (std::string(prop.attribute("name").as_string()) == "speed") {
+                                platform->speed = prop.attribute("value").as_float();
+                            }
+                        }
+                    }
+
+                    float baseX = objectNode.attribute("x").as_float();
+                    float baseY = objectNode.attribute("y").as_float();
+
+                    // Extract the polyline points and add them as waypoints
+                    pugi::xml_node polyNode = objectNode.child("polyline");
+                    if (polyNode) {
+                        std::string pointsStr = polyNode.attribute("points").as_string();
+                        std::stringstream ss(pointsStr);
+                        std::string pointPair;
+
+                        while (std::getline(ss, pointPair, ' ')) {
+                            if (pointPair.empty()) continue;
+                            std::stringstream ssPair(pointPair);
+                            std::string xStr, yStr;
+
+                            if (std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
+                                platform->AddWaypoint(Vector2D(baseX + std::stof(xStr), baseY + std::stof(yStr)));
+                            }
+                        }
+                    }
+
+                    // Set the initial position and start the platform
+                    if (!platform->waypoints.empty()) {
+                        platform->position = platform->waypoints[0];
+                    }
+                    else {
+                        platform->position = Vector2D(baseX, baseY);
+                    }
+
+                    platform->Start();
+                    LOG("MovingPlatform spawned at: %f, %f with speed %f", baseX, baseY, platform->speed);
+                }
             }
         }
     }
@@ -607,11 +639,11 @@ void Map::LoadDecorationObjects()
             objNode = objNode.next_sibling("object"))
         {
             unsigned int rawGid = objNode.attribute("gid").as_uint(0);
-            if (rawGid == 0) continue; 
+            if (rawGid == 0) continue;
 
             const unsigned int FLIPPED_HORIZONTALLY_FLAG = 0x80000000;
-            const unsigned int FLIPPED_VERTICALLY_FLAG   = 0x40000000;
-            const unsigned int FLIPPED_DIAGONALLY_FLAG   = 0x20000000;
+            const unsigned int FLIPPED_VERTICALLY_FLAG = 0x40000000;
+            const unsigned int FLIPPED_DIAGONALLY_FLAG = 0x20000000;
 
             int gid = rawGid & ~(FLIPPED_HORIZONTALLY_FLAG | FLIPPED_VERTICALLY_FLAG | FLIPPED_DIAGONALLY_FLAG);
 

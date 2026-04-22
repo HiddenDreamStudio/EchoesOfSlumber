@@ -9,6 +9,7 @@
 #include "Checkpoint.h"
 #include "Box.h"
 #include "tracy/Tracy.hpp"
+#include "Platform.h"
 
 EntityManager::EntityManager() : Module()
 {
@@ -84,6 +85,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::BOX:
 		entity = std::make_shared<Box>();
+		break;
+	case EntityType::PLATFORM:
+		entity = std::make_shared<Platform>();
 		break;
 	default:
 		break;

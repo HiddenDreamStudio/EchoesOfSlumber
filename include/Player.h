@@ -77,6 +77,7 @@ private:
 	bool isWakingUp = true;
 	float drawScale = 1.0f;
 	bool facingRight = true;
+	PhysBody* currentGround = nullptr;
 
 	// Combat - attack
 	static constexpr float ATTACK_DURATION = 300.0f;  // ms hitbox active

@@ -12,10 +12,10 @@
 #include "tracy/Tracy.hpp"
 
 Player::Player() : Entity(EntityType::PLAYER),
-	texW(128), texH(128),
-	pickCoinFxId(-1),
-	pbody(nullptr),
-	damageFlashTimer_(0.0f)
+texW(128), texH(128),
+pickCoinFxId(-1),
+pbody(nullptr),
+damageFlashTimer_(0.0f)
 {
 	velocity.x = 0.0f;
 	velocity.y = 0.0f;
@@ -38,7 +38,7 @@ bool Player::Start() {
 		{28, "run"},
 		{42, "jump"},
 		{56, "hide"},
-		{70, "damage"}, // Index ajustat per l'usuari (anteriorment 81)
+		{70, "damage"},
 		{84, "death"}
 	};
 	anims.LoadFromTSX("assets/textures/animations/protagonistAnimation.xml", aliases);
@@ -49,7 +49,6 @@ bool Player::Start() {
 	anims.SetLoop("damage", false);
 	anims.SetLoop("death", false);
 
-	// Load the spritesheet texture
 	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheet.png");
 
 	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
@@ -60,12 +59,10 @@ bool Player::Start() {
 	wakeUpAnim.SetLoop(false);
 	isWakingUp = true;
 
-	// Load climbing animation (256x256 frames, drawn at 0.5 scale to match 128px visuals)
 	climbAnims.LoadSequentialFromTSX("assets/textures/animations/protagonistClimbing.xml", "climb", 80);
 	climbAnims.SetLoop("climb", false);
 	climbTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/Spritesheet_climb.png");
 
-	// Desired in-game display size for the player sprite.
 	texW = 128;
 	texH = 128;
 
@@ -93,7 +90,6 @@ bool Player::Update(float dt)
 
 	if (!isDead_ && !isWakingUp && !isClimbing_)
 	{
-		// No canviar estat si estem mostrant l'animació de dany
 		if (!isShowingDamageAnim_) {
 			Dash(dt);
 			if (!isDashing_) Move();
@@ -124,7 +120,7 @@ void Player::Teleport() {
 
 void Player::GetPhysicsValues() {
 	velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
-	velocity.x = 0.0f; // Reset horizontal velocity by default
+	velocity.x = 0.0f;
 }
 
 void Player::Move() {
@@ -160,7 +156,7 @@ void Player::Move() {
 	}
 	else if (!isJumping) {
 		if (anims.GetCurrentName() == "jump" && !anims.HasFinishedOnce("jump")) {
-			// Deixar que l'animació d'aterratge finalitzi
+
 		}
 		else {
 			anims.SetCurrent("idle");
@@ -202,13 +198,18 @@ void Player::ApplyPhysics() {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
 	}
 
-	// Dash overrides horizontal velocity and forces zero vertical velocity for a pure horizontal dash
 	if (isDashing_) {
 		velocity.x = dashDirX_ * DASH_SPEED;
 		velocity.y = 0.0f;
 	}
 
-	// Apply velocity via helper
+	// Inherit platform velocity if standing on one
+	if (currentGround != nullptr && !isJumping && !isDashing_) {
+		b2Vec2 groundVel = Engine::GetInstance().physics->GetLinearVelocity(currentGround);
+		velocity.x += groundVel.x;
+		velocity.y += groundVel.y;
+	}
+
 	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
 }
 
@@ -243,13 +244,11 @@ void Player::Draw(float dt) {
 		animFrame = &anims.GetCurrentFrame();
 	}
 
-	// Update render position using your PhysBody helper
 	int xInt, yInt;
 	pbody->GetPosition(xInt, yInt);
 	position.setX(static_cast<float>(xInt));
 	position.setY(static_cast<float>(yInt));
 
-	// Camera System - Issue #21: Smooth camera follow with dead zones
 	auto& render = Engine::GetInstance().render;
 	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();
 
@@ -260,10 +259,9 @@ void Player::Draw(float dt) {
 		render->ClampCameraToMapBounds(mapSize.getX(), mapSize.getY());
 	}
 
-	// Center the sprite on the physics body position.
 	float currentDrawScale = drawScale;
 	if (anims.GetCurrentName() == "jump") {
-		currentDrawScale *= 1.25f; 
+		currentDrawScale *= 1.25f;
 	}
 
 	int drawX = static_cast<int>(position.getX() - (static_cast<float>(texW) * currentDrawScale) / 2.0f);
@@ -278,7 +276,8 @@ void Player::Draw(float dt) {
 	SDL_FlipMode flip;
 	if (spriteNativeRight) {
 		flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-	} else {
+	}
+	else {
 		flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 	}
 
@@ -290,15 +289,13 @@ void Player::Draw(float dt) {
 		else {
 			const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
 			float wakeScale = 0.65f;
-			
+
 			int wakeWidth = (int)(258.0f * wakeScale);
 			int wakeHeight = (int)(258.0f * wakeScale);
 
-			// Center horizontally with an offset to match the sprite's content
-			int wakeDrawX = xInt - (wakeWidth / 2) - 60; 
-			// Align bottom with floor (yInt + 50), with a small overlap for grounding
+			int wakeDrawX = xInt - (wakeWidth / 2) - 60;
 			int wakeDrawY = yInt + 50 - wakeHeight + 15;
-            
+
 			render->ApplyAmbientTint(wakeUpTexture);
 			render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
 			render->ResetAmbientTint(wakeUpTexture);
@@ -318,20 +315,19 @@ void Player::Draw(float dt) {
 		return;
 	}
 
-	// I-frame flicker: skip every other 100ms slice while invincible from damage (not during dash or death)
 	bool skipDraw = !isDead_ && !isDashing_ && isInvincible_ && (static_cast<int>(iFrameTimer_ / 100.0f) % 2 == 0);
-	
+
 	if (!skipDraw) {
 		render->ApplyAmbientTint(activeTex);
-		
+
 		if (damageFlashTimer_ > 0.0f) {
 			SDL_SetTextureColorMod(activeTex, 255, 100, 100);
 		}
 
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
-		
+
 		if (damageFlashTimer_ > 0.0f) {
-			SDL_SetTextureColorMod(activeTex, 255, 255, 255); // Reset color mod
+			SDL_SetTextureColorMod(activeTex, 255, 255, 255);
 		}
 		render->ResetAmbientTint(activeTex);
 	}
@@ -346,13 +342,12 @@ void Player::Dash(float dt)
 	if (!isDashing_ && dashCooldown_ <= 0.0f &&
 		input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_DOWN)
 	{
-		isDashing_   = true;
-		dashTimer_   = DASH_DURATION;
-		dashDirX_    = facingRight ? -1.0f : 1.0f;
+		isDashing_ = true;
+		dashTimer_ = DASH_DURATION;
+		dashDirX_ = facingRight ? -1.0f : 1.0f;
 
-		// Grant i-frames for the dash duration
 		isInvincible_ = true;
-		iFrameTimer_  = DASH_DURATION;
+		iFrameTimer_ = DASH_DURATION;
 
 		LOG("Player dash started");
 	}
@@ -362,7 +357,7 @@ void Player::Dash(float dt)
 		dashTimer_ -= dt;
 		if (dashTimer_ <= 0.0f)
 		{
-			isDashing_    = false;
+			isDashing_ = false;
 			dashCooldown_ = DASH_COOLDOWN;
 			LOG("Player dash ended");
 		}
@@ -426,10 +421,9 @@ void Player::TakeDamage(int damage)
 	LOG("Player took %d damage -> health: %d", damage, health);
 
 	isInvincible_ = true;
-	iFrameTimer_  = IFRAME_DURATION;
+	iFrameTimer_ = IFRAME_DURATION;
 	damageFlashTimer_ = DAMAGE_FLASH_DURATION;
 
-	// Girar el personatge cap a l'enemic que ha causat el dany
 	int playerX, playerY;
 	pbody->GetPosition(playerX, playerY);
 
@@ -447,16 +441,15 @@ void Player::TakeDamage(int damage)
 		}
 	}
 
-	// Si l'enemic és a l'esquerra, mirar a l'esquerra (facingRight=true)
-	// Si l'enemic és a la dreta, mirar a la dreta (facingRight=false)
 	if (enemyDirX < 0) {
-		facingRight = true;  // Enemic a l'esquerra -> mirar esquerra
-	} else if (enemyDirX > 0) {
-		facingRight = false; // Enemic a la dreta -> mirar dreta
+		facingRight = true;
+	}
+	else if (enemyDirX > 0) {
+		facingRight = false;
 	}
 
 	float knockbackForce = 5.0f;
-	float dir = facingRight ? 1.0f : -1.0f; 
+	float dir = facingRight ? 1.0f : -1.0f;
 	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
 
 	if (health <= 0)
@@ -489,7 +482,7 @@ bool Player::CleanUp()
 	Engine::GetInstance().textures->UnLoad(texture);
 	if (wakeUpTexture) Engine::GetInstance().textures->UnLoad(wakeUpTexture);
 	if (climbTexture) Engine::GetInstance().textures->UnLoad(climbTexture);
-	
+
 	if (attackHitbox_ != nullptr)
 	{
 		Engine::GetInstance().physics->DeletePhysBody(attackHitbox_);
@@ -515,15 +508,18 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 	{
 	case ColliderType::PLATFORM:
 	{
-		// Només resetejar el salt quan s'aterra sobre una plataforma, no al col·lidir amb sostre o paret
 		int playerX, playerY, platX, platY;
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(platX, platY);
-		// El centre del jugador ha d'estar per sobre del centre de la plataforma per comptar com aterratge
+
+		// Check if the player lands on top of the platform
 		if (playerY < platY) {
 			isJumping = false;
 			canDoubleJump = false;
 			hasDoubleJumped = false;
+
+			// Save the platform we landed on to inherit its velocity
+			currentGround = physB;
 		}
 		break;
 	}
@@ -540,6 +536,10 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 {
+	// Clear the ground reference when leaving the platform
+	if (physB == currentGround) {
+		currentGround = nullptr;
+	}
 }
 
 Vector2D Player::GetPosition() {
@@ -562,14 +562,14 @@ void Player::CheckLedge() {
 	int dir = facingRight ? -1 : 1;
 
 	int bodyRayStartX = px;
-	int bodyRayStartY = py - LEDGE_RAY_MARGIN; // Usar el marge de la capçalera
-	int bodyRayEndX   = px + dir * LEDGE_RAY_REACH;
-	int bodyRayEndY   = bodyRayStartY;
+	int bodyRayStartY = py - LEDGE_RAY_MARGIN;
+	int bodyRayEndX = px + dir * LEDGE_RAY_REACH;
+	int bodyRayEndY = bodyRayStartY;
 
 	int headRayStartX = px;
 	int headRayStartY = py - LEDGE_HEAD_OFFSET;
-	int headRayEndX   = px + dir * LEDGE_RAY_REACH;
-	int headRayEndY   = headRayStartY;
+	int headRayEndX = px + dir * LEDGE_RAY_REACH;
+	int headRayEndY = headRayStartY;
 
 	float bodyHitX, bodyHitY, headHitX, headHitY;
 	bool bodyHit = physics->RayCastWorld(bodyRayStartX, bodyRayStartY, bodyRayEndX, bodyRayEndY, bodyHitX, bodyHitY);

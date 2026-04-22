@@ -10,6 +10,7 @@ enum class EntityType
 	ENEMY,
 	CHECKPOINT,
 	BOX,
+	PLATFORM,
 	UNKNOWN
 };
 
