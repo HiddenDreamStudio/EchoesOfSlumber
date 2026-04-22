@@ -1576,16 +1576,26 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		float tw = 0, th = 0;
 		SDL_GetTextureSize(f.tex, &tw, &th);
 
-		// Balanced size: larger than original but not as massive as before
 		float sc = RandF(0.30f, 0.42f);
 		f.w = (float)winW * sc;
 		f.h = f.w * (th / tw);
 
 		f.inFront = (i < 3);
 
-		// Distributed across the ENTIRE right half area
-		f.x = RandF(halfW - 50.0f, (float)winW - f.w * 0.7f);
-		f.y = RandF(10.0f, (float)winH - f.h - 10.0f);
+		// Logical distribution to AVOID the face (upper center-right part of the illustration)
+		// We push them towards the edges of the right half or the bottom
+		if (i % 2 == 0) {
+			// Prefer bottom area
+			f.x = RandF(halfW - 50.0f, (float)winW - f.w * 0.5f);
+			f.y = RandF(halfH, (float)winH - f.h - 10.0f);
+		}
+		else {
+			// Prefer side areas (far right or closer to center but not top-center)
+			if (i == 1) f.x = RandF(halfW - 30.0f, halfW + 100.0f);
+			else        f.x = RandF((float)winW - f.w - 20.0f, (float)winW - 10.0f);
+			
+			f.y = RandF(10.0f, halfH);
+		}
 
 		f.floatSpeed = RandF(0.4f, 0.8f);
 		f.floatAmplitude = RandF(10.0f, 25.0f);
