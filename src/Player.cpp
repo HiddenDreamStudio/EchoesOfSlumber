@@ -187,12 +187,28 @@ void Player::Jump() {
 			isJumping = true;
 			canDoubleJump = true;
 			hasDoubleJumped = false;
+
+			// Spawn jump dust
+			Engine::GetInstance().entityManager->SpawnVFX(
+				Vector2D(position.getX() + (float)texW / 2.0f, position.getY() + (float)texH / 2.0f + 50.0f),
+				"assets/textures/spritesheets/SS_Pols_01.png",
+				47, 202, 202, 0.015f
+			);
 		}
 		else if (canDoubleJump && !hasDoubleJumped) {
 			Engine::GetInstance().physics->SetYVelocity(pbody, 0.0f);
 			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -doubleJumpForce, true);
-			if (anims.Has("jump")) anims.ResetCurrent();
+			if (anims.Has("jump")) {
+				anims.ResetCurrent();
+			}
 			hasDoubleJumped = true;
+
+			// Spawn double jump dust
+			Engine::GetInstance().entityManager->SpawnVFX(
+				Vector2D(position.getX() + (float)texW / 2.0f, position.getY() + (float)texH / 2.0f + 30.0f),
+				"assets/textures/spritesheets/SS_Pols_01.png",
+				47, 202, 202, 0.015f
+			);
 		}
 	}
 
@@ -227,7 +243,7 @@ void Player::Hide(float dt)
 				return;
 			}
 
-			isHiding_ = true;
+			isHiding = true;
 			velocity.x = 0.0f;
 			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
 			anims.SetCurrent("hide");
@@ -236,7 +252,7 @@ void Player::Hide(float dt)
 		}
 		else if (isHiding_)
 		{
-			isHiding_ = false;
+			isHiding = false;
 			isExitingHide_ = true;
 			hideCooldown_ = HIDE_COOLDOWN; // cooldown starts on exit
 			LOG("Player exiting hide — cooldown started (%.0f ms)", HIDE_COOLDOWN);
@@ -307,8 +323,11 @@ void Player::Draw(float dt) {
 	else if (!isClimbing_)
 	{
 		bool shouldUpdate = true;
-		if (isJumping && anims.GetCurrentName() == "jump" && anims.GetCurrentFrameIndex() == 7) {
-			shouldUpdate = false;
+		if (isJumping && anims.GetCurrentName() == "jump") {
+			// Freeze on peak frame (tile 49 is the middle-ish frame)
+			if (anims.GetCurrentFrameIndex() >= 7) {
+				shouldUpdate = false;
+			}
 		}
 		if (shouldUpdate) anims.Update(dt);
 		animFrame = &anims.GetCurrentFrame();
@@ -511,7 +530,7 @@ void Player::TakeDamage(int damage)
 	float closestDist = 999999.0f;
 	float enemyDirX = 0.0f;
 	for (const auto& entity : Engine::GetInstance().entityManager->entities) {
-		if (entity->type == EntityType::ENEMY && entity->active) {
+		if ((entity->type == EntityType::ENEMY || entity->type == EntityType::ENEMY_B || entity->type == EntityType::ENEMY_C) && entity->active) {
 			float dx = entity->position.getX() - (float)playerX;
 			float dy = entity->position.getY() - (float)playerY;
 			float dist = dx * dx + dy * dy;
@@ -594,6 +613,20 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(platX, platY);
 		if (playerY < platY) {
+			if (isJumping) {
+				// Spawn landing dust
+				Engine::GetInstance().entityManager->SpawnVFX(
+					Vector2D(position.getX() + (float)texW / 2.0f, position.getY() + (float)texH / 2.0f + 50.0f),
+					"assets/textures/spritesheets/SS_Pols_01.png",
+					47, 202, 202, 0.03f
+				);
+				// Allow jump animation to play the landing frames (after frame 7)
+				if (anims.GetCurrentName() == "jump") {
+					// We don't reset to idle immediately to let landing frames show
+				} else {
+					anims.SetCurrent("idle");
+				}
+			}
 			isJumping = false;
 			canDoubleJump = false;
 			hasDoubleJumped = false;
