@@ -5,7 +5,7 @@
 #include "Log.h"
 #include "Physics.h"
 #include "EntityManager.h"
-#include "Enemy.h"
+#include "EnemyCarmel.h"
 #include "Checkpoint.h"
 #include "Box.h"
 #include "Window.h"
@@ -518,7 +518,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     }
                 }
                 else if (entityType == "Enemy") {
-                    auto enemy = std::dynamic_pointer_cast<Enemy>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
+                    auto enemy = std::dynamic_pointer_cast<EnemyCarmel>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
                     enemy->position = Vector2D(x, y);
 
                     float patrolLeft  = x - 200.0f;
