@@ -35,6 +35,8 @@ public:
 
 	void AddEntity(std::shared_ptr<Entity> entity);
 
+	std::shared_ptr<Entity> SpawnVFX(Vector2D pos, const char* path, int frames, int w, int h, float speed, float angle = 0.0f);
+
 public:
 
 	std::list<std::shared_ptr<Entity>> entities;

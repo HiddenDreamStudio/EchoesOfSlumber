@@ -28,6 +28,11 @@ enum class ColliderType {
     ITEM,
     PLATFORM,
     ENEMY,
+    ATTACK,
+    LEDGE,
+    CHECKPOINT,
+    BOX,
+    PROJECTILE,
     UNKNOWN
     // ..
 };
@@ -69,7 +74,7 @@ public:
     // Create basic physics objects
     PhysBody* CreateRectangle(int x, int y, int width, int height, bodyType type);
     PhysBody* CreateCircle(int x, int y, int radious, bodyType type);
-    PhysBody* CreateCapsule(int x, int y, int width, int height, bodyType type);
+    PhysBody* CreateCapsule(int x, int y, int width, int height, bodyType type, float friction = 0.3f);
     PhysBody* CreateRectangleSensor(int x, int y, int width, int height, bodyType type);
     PhysBody* CreateChain(int x, int y, int* points, int size, bodyType type);
     PhysBody* CreateConvexPolygon(int x, int y, int* points, int size, bodyType type);
@@ -94,6 +99,9 @@ public:
 
     // --- Impulse helper (handy for jumps/dashes)
     void   ApplyLinearImpulseToCenter(PhysBody* p, float ix, float iy, bool wake = true) const;
+
+    // --- World raycast helper (pixel coords, returns true if hit)
+    bool   RayCastWorld(int x1, int y1, int x2, int y2, float& hitX, float& hitY) const;
 
 private:
     // helpers

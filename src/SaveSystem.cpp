@@ -127,6 +127,30 @@ bool SaveSystem::QuickLoad()
 	return true;
 }
 
+bool SaveSystem::HasValidSave() const
+{
+	if (!SaveFileExists(quickSavePath_)) return false;
+
+	pugi::xml_document doc;
+	if (!doc.load_file(quickSavePath_.c_str())) return false;
+
+	pugi::xml_node root = doc.child("savegame");
+	if (!root) return false;
+
+	pugi::xml_node playerNode = root.child("player");
+	if (playerNode)
+	{
+		pugi::xml_node stateNode = playerNode.child("state");
+		if (stateNode)
+		{
+			int health = stateNode.attribute("health").as_int(0);
+			return health > 0;
+		}
+	}
+
+	return false;
+}
+
 bool SaveSystem::SaveFileExists(const std::string& filename) const
 {
 	// Use error_code overload to avoid exceptions on filesystem errors
@@ -181,6 +205,7 @@ void SaveSystem::CollectPlayerState()
 	gameState_.playerSpeed = 4.0f;
 	gameState_.playerJumpForce = 2.5f;
 	gameState_.playerIsJumping = false;
+	gameState_.playerHealth = scene->player->health;
 
 	LOG("SaveSystem: Player position saved (%.1f, %.1f)", 
 		gameState_.playerPosX, gameState_.playerPosY);
@@ -212,9 +237,19 @@ void SaveSystem::ApplyPlayerState()
 {
 	auto& scene = Engine::GetInstance().scene;
 
-	// Set player position
+	// Set player position and health
 	Vector2D newPos(gameState_.playerPosX, gameState_.playerPosY);
 	scene->SetPlayerPosition(newPos);
+
+	// Reset Game Over state and snap camera to player
+	scene->SetGameOverVisible(false);
+	Engine::GetInstance().render->SetCameraPosition(newPos.getX(), newPos.getY());
+
+	if (scene->player) {
+		scene->player->health = gameState_.playerHealth;
+		scene->player->Revive();
+		scene->ResetHealthUI(scene->player->health);
+	}
 
 	LOG("SaveSystem: Player position restored (%.1f, %.1f)", 
 		gameState_.playerPosX, gameState_.playerPosY);
@@ -261,6 +296,7 @@ bool SaveSystem::WriteXML(const std::string& filename)
 	stateNode.append_attribute("speed") = gameState_.playerSpeed;
 	stateNode.append_attribute("jumpForce") = gameState_.playerJumpForce;
 	stateNode.append_attribute("isJumping") = gameState_.playerIsJumping;
+	stateNode.append_attribute("health") = gameState_.playerHealth;
 
 	// Entities node (placeholder for future)
 	pugi::xml_node entitiesNode = root.append_child("entities");
@@ -328,6 +364,7 @@ bool SaveSystem::ReadXML(const std::string& filename)
 			gameState_.playerSpeed = stateNode.attribute("speed").as_float(4.0f);
 			gameState_.playerJumpForce = stateNode.attribute("jumpForce").as_float(2.5f);
 			gameState_.playerIsJumping = stateNode.attribute("isJumping").as_bool(false);
+			gameState_.playerHealth = stateNode.attribute("health").as_int(3);
 		}
 	}
 
