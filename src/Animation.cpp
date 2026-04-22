@@ -206,3 +206,25 @@ bool AnimationSet::LoadSequentialFromTSX(const char* tsxPath, const std::string&
 
     return true;
 }
+
+void Animation::UpdateBackwards(float dt) {
+    if (frames_.empty()) return;
+
+    timeInFrameMs_ += static_cast<int>(dt);
+
+    while (timeInFrameMs_ >= frames_[static_cast<size_t>(currentIndex_)].durationMs) {
+        timeInFrameMs_ -= frames_[static_cast<size_t>(currentIndex_)].durationMs;
+
+        if (currentIndex_ > 0) {
+            --currentIndex_;
+        }
+        else {
+            currentIndex_ = 0;
+            break; 
+        }
+    }
+}
+
+void AnimationSet::UpdateBackwards(float dtSeconds) {
+    if (Has(currentName_)) clips_[currentName_].UpdateBackwards(dtSeconds);
+}
