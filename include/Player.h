@@ -33,8 +33,9 @@ public:
 
 	void TakeDamage(int damage) override;
 	void Revive();
+	bool IsDead() const { return isDead_; }
 
-	// Map viewer helpers 
+	// Map viewer helpers
 	SDL_Rect GetCurrentAnimationRect() const;
 	bool     IsFacingRight() const;
 
