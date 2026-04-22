@@ -188,6 +188,7 @@ private:
     float mapViewDragOriginY_ = 0.0f;
 
     float checkpointSaveTimer_ = 0.0f;
+    SDL_Texture* texCheckpointSaved_ = nullptr;
 
     void DrawMapViewer(int winW, int winH);
 

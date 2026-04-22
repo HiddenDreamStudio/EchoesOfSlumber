@@ -768,6 +768,7 @@ void Scene::LoadGameplay()
 	activeHealthAnim_ = 0;
 	isGameOver_ = false;
 	texGameOver_ = Engine::GetInstance().render->CreateMenuTextTexture("GAME OVER, YOU DIED", { 255, 0, 0, 255 });
+	texCheckpointSaved_ = Engine::GetInstance().render->CreateMenuTextTexture("GAME SAVED", { 255, 255, 255, 255 });
 
 	// Game Over Button
 	int winW = 0, winH = 0;
@@ -953,6 +954,7 @@ void Scene::UnloadGameplay()
 	if (texHealth2_) { Engine::GetInstance().textures->UnLoad(texHealth2_); texHealth2_ = nullptr; }
 	if (texHealth3_) { Engine::GetInstance().textures->UnLoad(texHealth3_); texHealth3_ = nullptr; }
 	if (texGameOver_) { SDL_DestroyTexture(texGameOver_); texGameOver_ = nullptr; }
+	if (texCheckpointSaved_) { SDL_DestroyTexture(texCheckpointSaved_); texCheckpointSaved_ = nullptr; }
 	
 	if (texGameOverBg_) { Engine::GetInstance().textures->UnLoad(texGameOverBg_); texGameOverBg_ = nullptr; }
 	if (texGameOverBtn_) { Engine::GetInstance().textures->UnLoad(texGameOverBtn_); texGameOverBtn_ = nullptr; }
@@ -1034,10 +1036,9 @@ void Scene::PostUpdateGameplay()
 			alpha = (Uint8)((checkpointSaveTimer_ / 500.0f) * 255.0f);
 		}
 		
-		SDL_Texture* tex = Engine::GetInstance().render->CreateMenuTextTexture("GAME SAVED", { 255, 255, 255, alpha });
-		if (tex) {
+		if (texCheckpointSaved_) {
 			float tw, th;
-			SDL_GetTextureSize(tex, &tw, &th);
+			SDL_GetTextureSize(texCheckpointSaved_, &tw, &th);
 			float scale = 0.6f; // Make it smaller
 			float drawW = tw * scale;
 			float drawH = th * scale;
@@ -1045,8 +1046,7 @@ void Scene::PostUpdateGameplay()
 			float drawY = (float)winH - drawH - 30.0f;
 			
 			// Dibujarlo con alpha
-			Engine::GetInstance().render->DrawTextureAlphaF(tex, drawX, drawY, drawW, drawH, alpha);
-			SDL_DestroyTexture(tex);
+			Engine::GetInstance().render->DrawTextureAlphaF(texCheckpointSaved_, drawX, drawY, drawW, drawH, alpha);
 		}
 	}
 
