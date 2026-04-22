@@ -182,11 +182,11 @@ void Player::Jump() {
 			canDoubleJump = true;
 			hasDoubleJumped = false;
 
-			// Spawn jump dust (small and correctly positioned at feet)
+			// Spawn jump dust (12 frames of 794x202, centered at feet)
 			Engine::GetInstance().entityManager->SpawnVFX(
-				Vector2D(position.getX() + (float)texW / 2.0f - 20.0f, position.getY() + (float)texH / 2.0f + 25.0f),
+				Vector2D(position.getX() + (float)texW / 2.0f, position.getY() + (float)texH / 2.0f + 25.0f),
 				"assets/textures/spritesheets/SS_Pols_01.png",
-				47, 202, 202, 0.015f, 0.0f, 0.2f
+				12, 794, 202, 0.015f, 0.0f, 0.2f
 			);
 		}
 		else if (canDoubleJump && !hasDoubleJumped) {
@@ -199,9 +199,9 @@ void Player::Jump() {
 
 			// Spawn double jump dust
 			Engine::GetInstance().entityManager->SpawnVFX(
-				Vector2D(position.getX() + (float)texW / 2.0f - 20.0f, position.getY() + (float)texH / 2.0f + 15.0f),
+				Vector2D(position.getX() + (float)texW / 2.0f, position.getY() + (float)texH / 2.0f + 15.0f),
 				"assets/textures/spritesheets/SS_Pols_01.png",
-				47, 202, 202, 0.015f, 0.0f, 0.2f
+				12, 794, 202, 0.015f, 0.0f, 0.2f
 			);
 		}
 	}
@@ -596,11 +596,11 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		physB->GetPosition(platX, platY);
 		if (playerY < platY) {
 			if (isJumping) {
-				// Spawn landing dust (small and at feet)
+				// Spawn landing dust (12 frames of 794x202, centered at feet)
 				Engine::GetInstance().entityManager->SpawnVFX(
-					Vector2D(position.getX() + (float)texW / 2.0f - 20.0f, position.getY() + (float)texH / 2.0f + 25.0f),
+					Vector2D(position.getX() + (float)texW / 2.0f, position.getY() + (float)texH / 2.0f + 25.0f),
 					"assets/textures/spritesheets/SS_Pols_01.png",
-					47, 202, 202, 0.03f, 0.0f, 0.2f
+					12, 794, 202, 0.03f, 0.0f, 0.2f
 				);
 				// Allow jump animation to play the landing frames (after frame 7)
 				if (anims.GetCurrentName() == "jump") {
