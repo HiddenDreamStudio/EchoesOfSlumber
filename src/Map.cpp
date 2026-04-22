@@ -484,11 +484,14 @@ MapLayer* Map::GetNavigationLayer() {
 void Map::LoadEntities(std::shared_ptr<Player>& player) {
 
     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
-        if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
+        if (objectGroupNode.attribute("name").as_string() == std::string("MovingPlatform")) {
 
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
 
                 std::string entityType = objectNode.attribute("type").as_string();
+                if (entityType.empty()) {
+                    entityType = objectNode.attribute("class").as_string();
+                }
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
 

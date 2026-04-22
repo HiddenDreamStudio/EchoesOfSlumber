@@ -16,7 +16,7 @@ bool Platform::Awake() {
 
 bool Platform::Start() {
     // Load the platform texture
-    texture = Engine::GetInstance().textures->Load("assets/textures/AS_environment/AS_interactius_01.PNG");
+    texture = Engine::GetInstance().textures->Load("assets/textures/TL_environment/plat_4tiles.png");
     
     // Create a kinematic body so it can move and carry other objects
     pbody = Engine::GetInstance().physics->CreateRectangle((int)position.getX(), (int)position.getY(), texW, texH, bodyType::KINEMATIC);

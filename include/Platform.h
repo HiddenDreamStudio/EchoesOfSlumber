@@ -20,8 +20,8 @@ public:
 
     std::vector<Vector2D> waypoints;
 
-    std::string texturePath = "assets/textures/TL_environment/plat_4tiles.png";
-    int texW = 256;
+    std::string texturePath = "EchoesOfSlumber/assets/textures/TL_environment/plat_4tiles.png";
+    int texW = 192;
     int texH = 64;
 
 private:
