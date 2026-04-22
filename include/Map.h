@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include "Player.h"
+#include "Animation.h"
 
 struct ObjectCollision {
     float x;
@@ -116,14 +117,16 @@ struct DecorationObject
     SDL_Texture* texture = nullptr; 
 };
 
-struct DecorationObject
+struct AnimatedPlantObject
 {
-    float x;      
-    float y;     
-    float width;  
-    float height; 
-    int   gid;    
-    SDL_Texture* texture = nullptr; 
+    float x;
+    float y;
+    float w;
+    float h;
+    bool  isFront = false;
+    std::string tsxPath;        
+    AnimationSet anim;            
+    SDL_Texture* texture = nullptr;
 };
 
 struct MapData
@@ -137,6 +140,7 @@ struct MapData
     std::list<MapLayer*> layers;
     std::list<ImageLayer*> imageLayers;
     std::list<DecorationObject*> decorationObjects;
+    std::list<AnimatedPlantObject*> animatedPlants;
 };
 
 class Map : public Module
@@ -190,11 +194,9 @@ public:
     void LoadEntities(std::shared_ptr<Player>& player);
     void SaveEntities(std::shared_ptr<Player> player);
 
-    Vector2D GetCameraPositionInTiles();
-    Vector2D GetCameraLimitsInTiles(Vector2D camPosTile);
-
     void LoadImageLayers();
     void LoadDecorationObjects();
+    void LoadAnimatedPlants();
 
 public:
     std::string mapFileName;

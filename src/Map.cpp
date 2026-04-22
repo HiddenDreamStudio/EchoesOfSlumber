@@ -85,6 +85,26 @@ bool Map::Update(float dt)
                     deco->rotation, &center, SDL_FLIP_NONE);
             }
         }
+
+        for (const auto& plant : mapData.animatedPlants) {
+            if (plant->isFront) continue;
+            plant->anim.Update(dt);
+            const SDL_Rect& frame = plant->anim.GetCurrentFrame();
+
+            SDL_FRect dst;
+            dst.x = (float)(render->camera.x + plant->x * scale);
+            dst.y = (float)(render->camera.y + plant->y * scale);           
+            dst.w = plant->w * scale;
+            dst.h = plant->h * scale;
+
+            SDL_FRect src;
+            src.x = (float)frame.x;
+            src.y = (float)frame.y;
+            src.w = (float)frame.w;
+            src.h = (float)frame.h;
+
+            SDL_RenderTexture(render->renderer, plant->texture, &src, &dst);
+        }
         
         // Calculate camera bounds in tiles
         float camX = -render->camera.x;
@@ -134,6 +154,7 @@ bool Map::PostUpdate()
         return true;
 
     float scale = (float)Engine::GetInstance().window->GetScale();
+    Render* render = Engine::GetInstance().render.get();
 
     // Dibuixar les decoracions frontals per sobre de les entitats
     for (const auto& deco : mapData.decorationObjects) {
@@ -142,8 +163,8 @@ bool Map::PostUpdate()
             float worldY = deco->y - deco->height;
 
             SDL_FRect dst;
-            dst.x = (float)((int)(Engine::GetInstance().render->camera.x) + (int)worldX * scale);
-            dst.y = (float)((int)(Engine::GetInstance().render->camera.y) + (int)worldY * scale);
+            dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
+            dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
             dst.w = deco->width * scale;
             dst.h = deco->height * scale;
 
@@ -151,9 +172,28 @@ bool Map::PostUpdate()
             center.x = 0.0f;
             center.y = dst.h;
 
-            SDL_RenderTextureRotated(Engine::GetInstance().render->renderer, deco->texture, nullptr, &dst,
+            SDL_RenderTextureRotated(render->renderer, deco->texture, nullptr, &dst,
                 deco->rotation, &center, SDL_FLIP_NONE);
         }
+    }
+
+    for (const auto& plant : mapData.animatedPlants) {
+        if (!plant->isFront) continue;
+        const SDL_Rect& frame = plant->anim.GetCurrentFrame();
+
+        SDL_FRect dst;
+        dst.x = (float)(render->camera.x + plant->x * scale);
+        dst.y = (float)(render->camera.y + plant->y * scale);
+        dst.w = plant->w * scale;
+        dst.h = plant->h * scale;
+
+        SDL_FRect src;
+        src.x = (float)frame.x;
+        src.y = (float)frame.y;
+        src.w = (float)frame.w;
+        src.h = (float)frame.h;
+
+        SDL_RenderTexture(render->renderer, plant->texture, &src, &dst);
     }
 
     return true;
@@ -215,6 +255,13 @@ bool Map::CleanUp()
         delete deco;
     }
     mapData.decorationObjects.clear();
+
+    for (const auto& plant : mapData.animatedPlants) {
+        if (plant->texture)
+            Engine::GetInstance().textures->UnLoad(plant->texture);
+        delete plant;
+    }
+    mapData.animatedPlants.clear();
 
     return true;
 }
@@ -424,6 +471,7 @@ bool Map::Load(std::string path, std::string fileName)
 
         LoadImageLayers();
         LoadDecorationObjects();
+        LoadAnimatedPlants();
 
         ret = true;
 
@@ -614,7 +662,7 @@ void Map::LoadImageLayers()
 
 void Map::LoadDecorationObjects()
 {
-    const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoints" };
+    const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoints", "AnimatedPlants", "AnimatedPlants front" };
 
     for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
         groupNode != NULL;
@@ -697,6 +745,64 @@ void Map::LoadDecorationObjects()
 
         for (auto* deco : layerDecos) {
             mapData.decorationObjects.push_back(deco);
+        }
+    }
+}
+
+void Map::LoadAnimatedPlants()
+{
+    for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
+        groupNode != NULL;
+        groupNode = groupNode.next_sibling("objectgroup"))
+    {
+        std::string layerName = groupNode.attribute("name").as_string();
+        if (layerName != "AnimatedPlants" && layerName != "AnimatedPlants front")
+            continue;
+
+        for (pugi::xml_node objNode = groupNode.child("object");
+            objNode != NULL;
+            objNode = objNode.next_sibling("object"))
+        {
+            std::string type = objNode.attribute("class").as_string();
+            if (type.empty()) type = objNode.attribute("type").as_string();
+            if (type != "AnimatedPlant") continue;
+
+            std::string tsxFile = "";
+            for (pugi::xml_node propNode = objNode.child("properties").child("property");
+                propNode != NULL;
+                propNode = propNode.next_sibling("property"))
+            {
+                if (std::string(propNode.attribute("name").as_string()) == "tsx") {
+                    tsxFile = propNode.attribute("value").as_string();
+                }
+            }
+            if (tsxFile.empty()) continue;
+
+            AnimatedPlantObject* plant = new AnimatedPlantObject();
+            plant->x = objNode.attribute("x").as_float();
+            plant->y = objNode.attribute("y").as_float();
+            plant->w = objNode.attribute("width").as_float();
+            plant->h = objNode.attribute("height").as_float();
+            plant->isFront = (layerName == "AnimatedPlants front"); 
+            plant->tsxPath = tsxFile;
+
+            std::string fullTsxPath = mapPath + tsxFile;
+            std::unordered_map<int, std::string> aliases = { {0, "idle"} };
+            bool loaded = plant->anim.LoadFromTSX(fullTsxPath.c_str(), aliases);
+
+            if (!loaded) {
+                delete plant;
+                continue;
+            }
+
+            plant->anim.SetCurrent("idle");
+            pugi::xml_document tsxDoc;
+            if (tsxDoc.load_file(fullTsxPath.c_str())) {
+                std::string imgSource = tsxDoc.child("tileset").child("image").attribute("source").as_string();
+                std::string pngPath = mapPath + tsxFile.substr(0, tsxFile.find_last_of("/\\") + 1) + imgSource;
+                plant->texture = Engine::GetInstance().textures->Load(pngPath.c_str());
+            }
+            mapData.animatedPlants.push_back(plant);
         }
     }
 }
