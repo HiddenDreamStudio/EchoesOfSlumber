@@ -9,8 +9,11 @@ enum class EntityType
 	ITEM,
 	ENEMY,
 	ENEMY_B,
+	ENEMY_C,
+	PROJECTILE,
 	CHECKPOINT,
 	BOX,
+	VFX,
 	UNKNOWN
 };
 

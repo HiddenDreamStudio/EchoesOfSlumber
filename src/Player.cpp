@@ -531,6 +531,11 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		Engine::GetInstance().audio->PlayFx(pickCoinFxId);
 		physB->listener->Destroy();
 		break;
+	case ColliderType::PROJECTILE:
+		TakeDamage(1);
+		if (physB->listener != nullptr)
+			physB->listener->Destroy();
+		break;
 	case ColliderType::UNKNOWN:
 		break;
 	default:
