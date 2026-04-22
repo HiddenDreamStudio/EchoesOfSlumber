@@ -190,6 +190,7 @@ void Engine::FinishUpdate()
 
     // dt in milliseconds
     dt = (float)frameTime.ReadMs();
+	if (dt > 33.0f) dt = 33.0f; // Prevent huge dt spikes (like map loading) from instantly blowing through animations and physics routines
 
     // FPS tracking
     lastSecFrameCount++;

@@ -55,6 +55,8 @@ struct MapLayer
     int height;
     std::vector<int> tiles;
     Properties properties;
+    float parallaxFactorX = 1.0f;
+    float parallaxFactorY = 1.0f;
 
     unsigned int Get(int i, int j) const
     {
@@ -98,6 +100,20 @@ struct ImageLayer
     float offsetY;
     std::string source;
     SDL_Texture* texture = nullptr;
+    float parallaxFactorX = 1.0f;
+    float parallaxFactorY = 1.0f;
+};
+
+struct DecorationObject
+{
+    float x;      
+    float y;     
+    float width;  
+    float height; 
+    int   gid;    
+    double rotation = 0.0;
+    bool  isFront = false;
+    SDL_Texture* texture = nullptr; 
 };
 
 struct DecorationObject
@@ -141,6 +157,9 @@ public:
     // Called each loop iteration
     bool Update(float dt);
 
+    // Called after Update, for foreground elements
+    bool PostUpdate();
+
     // Called before quitting
     bool CleanUp();
 
@@ -180,10 +199,10 @@ public:
 public:
     std::string mapFileName;
     std::string mapPath;
+    MapData mapData;
 
 private:
     bool mapLoaded;
-    MapData mapData;
     pugi::xml_document mapFileXML;
     //
     std::list<PhysBody*> colliderList;
