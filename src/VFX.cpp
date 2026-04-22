@@ -16,11 +16,12 @@ bool VFX::Start() {
     return true;
 }
 
-void VFX::SetTexture(const char* path, int frames, int w, int h, float speed, float angle) {
+void VFX::SetTexture(const char* path, int frames, int w, int h, float speed, float angle, float scale) {
     texture = Engine::GetInstance().textures->Load(path);
     frameW = w;
     frameH = h;
     this->angle = angle;
+    this->drawScale = scale;
     
     for (int i = 0; i < frames; ++i) {
         anim.AddFrame({ i * frameW, 0, frameW, frameH }, (int)(speed * 1000));
@@ -40,9 +41,9 @@ bool VFX::Update(float dt) {
     const SDL_Rect& rect = anim.GetCurrentFrame();
     
     Engine::GetInstance().render->DrawTexture(texture, 
-        (int)position.getX() - frameW / 2, 
-        (int)position.getY() - frameH / 2, 
-        &rect, 1.0f, (double)angle);
+        (int)position.getX(), 
+        (int)position.getY(), 
+        &rect, 1.0f, (double)angle, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
 
     return true;
 }
