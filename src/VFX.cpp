@@ -16,11 +16,12 @@ bool VFX::Start() {
     return true;
 }
 
-void VFX::SetTexture(const char* path, int frames, int w, int h, float speed, float angle) {
+void VFX::SetTexture(const char* path, int frames, int w, int h, float speed, float angle, float scale) {
     texture = Engine::GetInstance().textures->Load(path);
     frameW = w;
     frameH = h;
     this->angle = angle;
+    this->drawScale = scale;
     
     for (int i = 0; i < frames; ++i) {
         anim.AddFrame({ i * frameW, 0, frameW, frameH }, (int)(speed * 1000));
@@ -39,10 +40,13 @@ bool VFX::Update(float dt) {
 
     const SDL_Rect& rect = anim.GetCurrentFrame();
     
+    // Center the effect based on the scaled dimensions
+    int drawX = (int)(position.getX() - (float)frameW * drawScale / 2.0f);
+    int drawY = (int)(position.getY() - (float)frameH * drawScale / 2.0f);
+
     Engine::GetInstance().render->DrawTexture(texture, 
-        (int)position.getX() - frameW / 2, 
-        (int)position.getY() - frameH / 2, 
-        &rect, 1.0f, (double)angle);
+        drawX, drawY, 
+        &rect, 1.0f, (double)angle, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
 
     return true;
 }
