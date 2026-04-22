@@ -1576,23 +1576,23 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		float tw = 0, th = 0;
 		SDL_GetTextureSize(f.tex, &tw, &th);
 
-		// Even larger fragments as requested
-		float sc = RandF(0.40f, 0.55f);
+		// Balanced size: larger than original but not as massive as before
+		float sc = RandF(0.30f, 0.42f);
 		f.w = (float)winW * sc;
 		f.h = f.w * (th / tw);
 
 		f.inFront = (i < 3);
 
-		// Random position within the right half of the screen (area where the kid is)
-		f.x = RandF(halfW, (float)winW - f.w * 0.5f);
-		f.y = RandF(0.0f, (float)winH - f.h * 0.5f);
+		// Distributed across the ENTIRE right half area
+		f.x = RandF(halfW - 50.0f, (float)winW - f.w * 0.7f);
+		f.y = RandF(10.0f, (float)winH - f.h - 10.0f);
 
-		f.floatSpeed = RandF(0.4f, 0.9f);
-		f.floatAmplitude = RandF(15.0f, 35.0f); // More movement for bigger fragments
+		f.floatSpeed = RandF(0.4f, 0.8f);
+		f.floatAmplitude = RandF(10.0f, 25.0f);
 		f.floatPhase = RandF(0.0f, 6.2831f);
-		f.driftX = RandF(0.15f, 0.45f);
+		f.driftX = RandF(0.15f, 0.40f);
 		f.driftPhase = RandF(0.0f, 6.2831f);
-		f.rotSpeed = RandF(-8.0f, 8.0f);
+		f.rotSpeed = RandF(-6.0f, 6.0f);
 		f.rotation = RandF(0.0f, 360.0f);
 		f.alpha = 255;
 	}
