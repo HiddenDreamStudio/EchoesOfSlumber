@@ -44,6 +44,10 @@ bool Enemy::Start() {
 	Vector2D tilePos = Engine::GetInstance().map->WorldToMap((int)pos.getX(), (int)pos.getY() + 1);
 	pathfinding->ResetPath(tilePos);
 
+	// Guardar posición de origen para volver cuando el jugador se esconde
+	originPosition_ = pos;
+	originTilePos_ = tilePos;
+
 	return true;
 }
 
@@ -76,37 +80,36 @@ bool Enemy::Update(float dt)
 
 void Enemy::PerformPathfinding() {
 
-	// ?? Check if the player is currently hiding ???????????????????????????????
-	// When hiding the enemy loses sight of the player completely:
-	//   • The path is cleared so the enemy stops and stands still.
-	//   • When the player comes back out of hiding, pathfinding is fully reset
-	//     from the enemy's current tile so it can re-acquire the target cleanly.
-
 	auto playerShared = Engine::GetInstance().scene->player;
 	bool playerIsHiding = playerShared && playerShared->IsHiding();
 
 	if (playerIsHiding)
 	{
-		// First frame of losing sight: clear the path and stop moving
-		if (!wasPlayerHiding_)
+		wasPlayerHiding_ = true;
+
+		Vector2D pos = GetPosition();
+		Vector2D tilePos = Engine::GetInstance().map->WorldToMap((int)pos.getX(), (int)pos.getY());
+
+		// Si ya estamos en el tile de origen, limpiar path y parar
+		int distToOrigin = std::abs((int)tilePos.getX() - (int)originTilePos_.getX()) +
+			std::abs((int)tilePos.getY() - (int)originTilePos_.getY());
+		if (distToOrigin <= 1)
 		{
 			pathfinding->pathTiles.clear();
-
-			// Also clear internal frontier/visited so the enemy doesn't wander
-			Vector2D pos = GetPosition();
-			Vector2D tilePos = Engine::GetInstance().map->WorldToMap((int)pos.getX(), (int)pos.getY());
-			pathfinding->ResetPath(tilePos);
-
-			LOG("Enemy lost sight of player (player is hiding)");
+			return;
 		}
-		wasPlayerHiding_ = true;
+
+		// Pathfinding normal pero con destino = origen
+		pathfinding->ResetPath(tilePos);
+		while (pathfinding->CanPropagateAStar(originTilePos_))
+			pathfinding->PropagateAStar(SQUARED);
+
 		return;
 	}
 
 	if (wasPlayerHiding_)
 	{
 		// Player just stopped hiding — fully reset pathfinding from current tile
-		// so the enemy starts hunting again from scratch.
 		Vector2D pos = GetPosition();
 		Vector2D tilePos = Engine::GetInstance().map->WorldToMap((int)pos.getX(), (int)pos.getY());
 		pathfinding->ResetPath(tilePos);
@@ -114,7 +117,7 @@ void Enemy::PerformPathfinding() {
 		LOG("Enemy re-acquired player (player stopped hiding) — pathfinding reset");
 	}
 
-	// ?? Normal pathfinding (player is visible) ????????????????????????????????
+	// Normal pathfinding (player is visible)
 
 	Vector2D pos = GetPosition();
 	Vector2D tilePos = Engine::GetInstance().map.get()->WorldToMap((int)pos.getX(), (int)pos.getY());
@@ -144,11 +147,26 @@ void Enemy::GetPhysicsValues() {
 
 void Enemy::Move() {
 
-	// Don't move if we have no path or the player is hidden
+	// Don't move if we have no path
 	if (pathfinding->pathTiles.size() < 2) return;
 
 	auto playerShared = Engine::GetInstance().scene->player;
-	if (playerShared && playerShared->IsHiding()) return;
+	bool playerIsHiding = playerShared && playerShared->IsHiding();
+
+	// Si el jugador se está escondiendo, moverse hacia la posición de origen
+	if (playerIsHiding)
+	{
+		int bodyX, bodyY;
+		pbody->GetPosition(bodyX, bodyY);
+
+		float originCenterX = originPosition_.getX() + texW * 0.5f;
+		const float TOLERANCE = 2.0f;
+
+		if (originCenterX > bodyX + TOLERANCE) velocity.x = speed;
+		else if (originCenterX < bodyX - TOLERANCE) velocity.x = -speed;
+		else                                         velocity.x = 0.0f;
+		return;
+	}
 
 	Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
 

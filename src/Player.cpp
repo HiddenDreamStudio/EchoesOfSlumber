@@ -88,6 +88,9 @@ bool Player::Update(float dt)
 
 	GetPhysicsValues();
 
+	// Tick hide cooldown
+	if (hideCooldown_ > 0.0f) hideCooldown_ -= dt;
+
 	if (!isDead_ && !isWakingUp && !isClimbing_)
 	{
 		if (!isShowingDamageAnim_) {
@@ -203,10 +206,11 @@ void Player::Jump() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Hide mechanic
-//   • Pressing H toggles the hiding state.
+//   • Pressing H toggles the hiding state (subject to 15-second cooldown).
 //   • While hiding the player stands still and plays the "hide" animation once,
 //     then freezes on the last frame.
 //   • Enemies query IsHiding() and skip pathfinding entirely.
+//   • Cooldown of HIDE_COOLDOWN ms starts when the player exits hiding.
 // ─────────────────────────────────────────────────────────────────────────────
 void Player::Hide(float dt)
 {
@@ -216,6 +220,13 @@ void Player::Hide(float dt)
 	{
 		if (!isHiding_ && !isExitingHide_)
 		{
+			// Blocked while on cooldown
+			if (hideCooldown_ > 0.0f)
+			{
+				LOG("Hide on cooldown: %.0f ms remaining", hideCooldown_);
+				return;
+			}
+
 			isHiding_ = true;
 			velocity.x = 0.0f;
 			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
@@ -227,7 +238,8 @@ void Player::Hide(float dt)
 		{
 			isHiding_ = false;
 			isExitingHide_ = true;
-			LOG("Player exiting hide");
+			hideCooldown_ = HIDE_COOLDOWN; // cooldown starts on exit
+			LOG("Player exiting hide — cooldown started (%.0f ms)", HIDE_COOLDOWN);
 		}
 	}
 
@@ -252,6 +264,7 @@ void Player::Hide(float dt)
 		}
 	}
 }
+
 void Player::ApplyPhysics() {
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
@@ -286,7 +299,7 @@ void Player::Draw(float dt) {
 			anims.SetCurrent("idle");
 		}
 	}
-	else if (isHiding_ || isExitingHide_) 
+	else if (isHiding_ || isExitingHide_)
 	{
 		// Hide animation is advanced inside Hide() — just grab the current frame
 		animFrame = &anims.GetCurrentFrame();
@@ -369,7 +382,7 @@ void Player::Draw(float dt) {
 	}
 
 	// ── I-frame flicker (not during hide, dash, or death) ────────────────────
-	bool skipDraw = !isDead_ && !isDashing_ && !isHiding_ && !isExitingHide_ && isInvincible_ && 
+	bool skipDraw = !isDead_ && !isDashing_ && !isHiding_ && !isExitingHide_ && isInvincible_ &&
 		(static_cast<int>(iFrameTimer_ / 100.0f) % 2 == 0);
 
 	if (!skipDraw) {
@@ -379,9 +392,9 @@ void Player::Draw(float dt) {
 			SDL_SetTextureColorMod(activeTex, 255, 100, 100);
 		}
 
-		// While hiding: gentle alpha pulse (80‑180) to signal stealth
+		// While hiding: gentle alpha pulse (80-180) to signal stealth
 		Uint8 drawAlpha = 255;
-		if (isHiding_ || isExitingHide_) { 
+		if (isHiding_ || isExitingHide_) {
 			float pulse = 0.5f + 0.3f * sinf(hideAlphaTime_ * 0.004f);
 			drawAlpha = static_cast<Uint8>(80.0f + 100.0f * pulse);
 			SDL_SetTextureAlphaMod(activeTex, drawAlpha);
@@ -391,7 +404,7 @@ void Player::Draw(float dt) {
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
 
 		// Restore alpha and color modulation
-		if (isHiding_ || isExitingHide_) { 
+		if (isHiding_ || isExitingHide_) {
 			SDL_SetTextureAlphaMod(activeTex, 255);
 		}
 		if (damageFlashTimer_ > 0.0f) {
@@ -400,6 +413,7 @@ void Player::Draw(float dt) {
 		render->ResetAmbientTint(activeTex);
 	}
 }
+
 void Player::Dash(float dt)
 {
 	auto& input = Engine::GetInstance().input;
@@ -539,6 +553,7 @@ void Player::Revive()
 	isInvincible_ = false;
 	isShowingDamageAnim_ = false;
 	hideAlphaTime_ = 0.0f;
+	hideCooldown_ = 0.0f; // reset cooldown on revive
 	anims.SetCurrent("idle");
 	damageFlashTimer_ = 0.0f;
 }

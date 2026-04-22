@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Entity.h"
 #include "Animation.h"
 #include <box2d/box2d.h>
@@ -11,7 +10,6 @@ struct SDL_Texture;
 class Enemy : public Entity
 {
 public:
-
 	Enemy();
 	virtual ~Enemy();
 	bool Awake();
@@ -33,7 +31,6 @@ private:
 	void Draw(float dt);
 
 public:
-
 	float speed = 2.5f;
 	SDL_Texture* texture = NULL;
 	int texW, texH;
@@ -51,6 +48,9 @@ private:
 	Entity* playerListener_ = nullptr;
 
 	// Tracks whether the player was hiding on the previous frame.
-	// Used to detect the hide?visible transition and trigger a pathfinding reset.
 	bool wasPlayerHiding_ = false;
+
+	// ?? Return-to-origin ?????????????????????????????????????????????????????
+	Vector2D originPosition_;
+	Vector2D originTilePos_;
 };

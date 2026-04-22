@@ -80,7 +80,9 @@ private:
 	bool isWakingUp = true;
 	float drawScale = 1.0f;
 	bool facingRight = true;
-
+	// ?? Hide cooldown 
+	static constexpr float HIDE_COOLDOWN = 15000.0f; // ms
+	float hideCooldown_ = 0.0f;
 	// Combat - attack
 	static constexpr float ATTACK_DURATION = 300.0f;
 	static constexpr float ATTACK_COOLDOWN = 600.0f;
