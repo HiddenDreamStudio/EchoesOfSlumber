@@ -17,26 +17,29 @@ UIButton::~UIButton() {}
 
 bool UIButton::Update(float dt)
 {
-	if (state == UIElementState::DISABLED) return false;
+	if (!isVisible) return false;
 
-	Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
-
-	bool hovered = (mousePos.getX() > bounds.x &&
-		mousePos.getX() < bounds.x + bounds.w &&
-		mousePos.getY() > bounds.y &&
-		mousePos.getY() < bounds.y + bounds.h);
-
-	if (hovered)
+	if (state != UIElementState::DISABLED)
 	{
-		state = UIElementState::FOCUSED;
-		if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT)
-			state = UIElementState::PRESSED;
-		if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_UP)
-			NotifyObserver();
-	}
-	else
-	{
-		state = UIElementState::NORMAL;
+		Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
+
+		bool hovered = (mousePos.getX() > (float)bounds.x &&
+			mousePos.getX() < (float)bounds.x + (float)bounds.w &&
+			mousePos.getY() > (float)bounds.y &&
+			mousePos.getY() < (float)bounds.y + (float)bounds.h);
+
+		if (hovered)
+		{
+			state = UIElementState::FOCUSED;
+			if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT)
+				state = UIElementState::PRESSED;
+			if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_UP)
+				NotifyObserver();
+		}
+		else
+		{
+			state = UIElementState::NORMAL;
+		}
 	}
 
 	// Vertical centre: font is 25px tall
@@ -44,69 +47,73 @@ bool UIButton::Update(float dt)
 	int textX = bounds.x + 16;
 
 	if (texture) {
-		// Texture-backed button (stone buttons, etc.)
 		auto& render = *Engine::GetInstance().render;
-		Uint8 alpha = 230;
+
+		bool isHovered = (state == UIElementState::FOCUSED || state == UIElementState::PRESSED);
 
 		float targetT = 0.0f;
 		switch (state) {
-		case UIElementState::FOCUSED:
-			alpha = 255;
-			targetT = 1.0f;
-			break;
-		case UIElementState::PRESSED:
-			alpha = 255;
-			targetT = 0.5f; // Pressed is halfway between normal and focused
-			break;
-		case UIElementState::DISABLED:
-			alpha = 120;
-			targetT = 0.0f;
-			break;
-		default:
-			alpha = 230;
-			targetT = 0.0f;
-			break;
+		case UIElementState::FOCUSED: targetT = 1.0f;  break;
+		case UIElementState::PRESSED: targetT = 0.5f;  break;
+		default:                      targetT = 0.0f;  break;
 		}
 
-		// Smooth transition
-		float lerpAmount = 0.02f * dt;
+		float lerpAmount = 0.01f * dt; // Slower transition (from 0.02f)
 		if (lerpAmount > 1.0f) lerpAmount = 1.0f;
 		animT += (targetT - animT) * lerpAmount;
 
-		// Expand button scale based on animT (0.0 = 1.0x scale, 1.0 = 1.06x scale)
-		float scaleW = 1.0f + (0.06f * animT);
-		float scaleH = 1.0f + (0.06f * animT);
+		float scaleAnim = 1.0f + (0.06f * animT);
+
+		// ── Determine Texture & Measurements ─────────────────────────────────
+		SDL_Texture* activeTex = (isHovered && hoverTexture) ? hoverTexture : texture;
+
+		float tw, th, baseW, baseH;
+		SDL_GetTextureSize(activeTex, &tw, &th);
+		SDL_GetTextureSize(texture, &baseW, &baseH);
+
+		// Calculate UI scale based on the original texture vs logical bounds
+		float uiScaleX = (float)bounds.w / baseW;
+		float uiScaleY = (float)bounds.h / baseH;
 
 		SDL_Rect renderBounds;
-		renderBounds.w = (int)(bounds.w * scaleW);
-		renderBounds.h = (int)(bounds.h * scaleH);
-		renderBounds.x = bounds.x - (renderBounds.w - bounds.w) / 2;
-		renderBounds.y = bounds.y - (renderBounds.h - bounds.h) / 2;
+		renderBounds.w = (int)(tw * uiScaleX * scaleAnim);
+		renderBounds.h = (int)(th * uiScaleY * scaleAnim);
+		renderBounds.x = bounds.x + bounds.w / 2 - renderBounds.w / 2;
+		renderBounds.y = bounds.y + bounds.h / 2 - renderBounds.h / 2;
 
-		// Interpolate Colors
-		// TEXT COLOR: Normally { 50, 45, 40 } -> FOCUSED { 240, 240, 240 }
+		Uint8 alpha = (state == UIElementState::DISABLED)
+			? (Uint8)(120 * alphaMod)
+			: (Uint8)((isHovered ? 255 : 230) * alphaMod);
+
+		// ── Restore Original Functionality (Color Animation) ─────────────────
+		// Transition: Dark (Normal) -> Pure White (Hover)
 		SDL_Color textColor;
-		textColor.r = (Uint8)(50 + (240 - 50) * animT);
-		textColor.g = (Uint8)(45 + (240 - 45) * animT);
-		textColor.b = (Uint8)(40 + (240 - 40) * animT);
+		textColor.r = (Uint8)(40 + (255 - 40) * animT);
+		textColor.g = (Uint8)(35 + (255 - 35) * animT);
+		textColor.b = (Uint8)(30 + (255 - 30) * animT);
 		textColor.a = (Uint8)(255 * alphaMod);
 
-		// TEXTURE COLOR: Normally { 255, 255, 255 } -> FOCUSED { 50, 45, 40 }
-		Uint8 texR = (Uint8)(255 + (50 - 255) * animT);
-		Uint8 texG = (Uint8)(255 + (45 - 255) * animT);
-		Uint8 texB = (Uint8)(255 + (40 - 255) * animT);
+		// Transition: Pure White (Normal) -> Slightly Dark Grey (Hover)
+		// Request: "no canvii a negre, algo mes fosc" (e.g. 160-180 range)
+		Uint8 texR = (Uint8)(255 + (170 - 255) * animT);
+		Uint8 texG = (Uint8)(255 + (165 - 255) * animT);
+		Uint8 texB = (Uint8)(255 + (160 - 255) * animT);
 
-		SDL_SetTextureColorMod(texture, texR, texG, texB);
-		render.DrawTextureAlpha(texture, renderBounds.x, renderBounds.y, renderBounds.w, renderBounds.h, (Uint8)(alpha * alphaMod));
-		SDL_SetTextureColorMod(texture, 255, 255, 255); // Reset
+		SDL_SetTextureColorMod(activeTex, texR, texG, texB);
+		render.DrawTextureAlpha(activeTex,
+			renderBounds.x, renderBounds.y,
+			renderBounds.w, renderBounds.h,
+			alpha);
+		SDL_SetTextureColorMod(activeTex, 255, 255, 255); // Reset
 
-		// Shift text slightly downwards for visual centering on the stone texture
+		// Draw text centered on the LOGICAL area (to keep it stable)
+		// but matching the animation scale
 		SDL_Rect textBounds = renderBounds;
-		textBounds.y += (int)(5 * scaleH);
+		textBounds.y += (int)(5 * scaleAnim);
 		render.DrawMenuTextCentered(text.c_str(), textBounds, textColor);
 	}
 	else {
-		// Original rectangle-based rendering
+		// ── Renderizado por defecto con rectángulos (sin textura) ──────────────
 		SDL_Rect shadow = { bounds.x + 3, bounds.y + 3, bounds.w, bounds.h };
 
 		switch (state)

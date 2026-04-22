@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include "Player.h"
+#include "Animation.h"
 
 struct ObjectCollision {
     float x;
@@ -55,6 +56,8 @@ struct MapLayer
     int height;
     std::vector<int> tiles;
     Properties properties;
+    float parallaxFactorX = 1.0f;
+    float parallaxFactorY = 1.0f;
 
     unsigned int Get(int i, int j) const
     {
@@ -98,18 +101,20 @@ struct ImageLayer
     float offsetY;
     std::string source;
     SDL_Texture* texture = nullptr;
+    float parallaxFactorX = 1.0f;
+    float parallaxFactorY = 1.0f;
 };
 
 struct DecorationObject
 {
-    float x;
-    float y;
-    float width;
-    float height;
-    int   gid;
+    float x;      
+    float y;     
+    float width;  
+    float height; 
+    int   gid;    
     double rotation = 0.0;
     bool  isFront = false;
-    SDL_Texture* texture = nullptr;
+    SDL_Texture* texture = nullptr; 
 };
 
 struct AnimatedPlantObject
@@ -136,7 +141,6 @@ struct MapData
     std::list<ImageLayer*> imageLayers;
     std::list<DecorationObject*> decorationObjects;
     std::list<AnimatedPlantObject*> animatedPlants;
-
 };
 
 class Map : public Module
@@ -166,8 +170,6 @@ public:
     // Load new map
     bool Load(std::string path, std::string mapFileName);
 
-    float lastDt = 0.0f;
-
     // Translate between map and world coordinates
     Vector2D MapToWorld(int x, int y) const;
     Vector2D WorldToMap(int x, int y);
@@ -191,9 +193,6 @@ public:
 
     void LoadEntities(std::shared_ptr<Player>& player);
     void SaveEntities(std::shared_ptr<Player> player);
-
-    Vector2D GetCameraPositionInTiles();
-    Vector2D GetCameraLimitsInTiles(Vector2D camPosTile);
 
     void LoadImageLayers();
     void LoadDecorationObjects();

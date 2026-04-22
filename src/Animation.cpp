@@ -27,8 +27,8 @@ void Animation::Update(float dt) {
 
     timeInFrameMs_ += static_cast<int>(dt);
 
-    while (timeInFrameMs_ >= frames_[currentIndex_].durationMs) {
-        timeInFrameMs_ -= frames_[currentIndex_].durationMs;
+    while (timeInFrameMs_ >= frames_[static_cast<size_t>(currentIndex_)].durationMs) {
+        timeInFrameMs_ -= frames_[static_cast<size_t>(currentIndex_)].durationMs;
 
         if (currentIndex_ + 1 < static_cast<int>(frames_.size())) {
             ++currentIndex_;
@@ -48,10 +48,14 @@ void Animation::Update(float dt) {
 
 const SDL_Rect& Animation::GetCurrentFrame() const {
     if (frames_.empty()) return kEmpty_;
-    return frames_[currentIndex_].rect;
+    return frames_[static_cast<size_t>(currentIndex_)].rect;
 }
 
 int Animation::GetFrameCount() const { return static_cast<int>(frames_.size()); }
+
+int Animation::GetCurrentFrameIndex() const {
+    return currentIndex_;
+}
 
 // ---------- AnimationSet ----------
 
@@ -160,4 +164,67 @@ bool AnimationSet::HasFinishedOnce(const std::string& name) const {
         return clips_.at(name).HasFinishedOnce();
     }
     return false;
+}
+
+int AnimationSet::GetCurrentFrameIndex() const {
+    if (Has(currentName_)) return clips_.at(currentName_).GetCurrentFrameIndex();
+    return 0;
+}
+
+bool AnimationSet::LoadSequentialFromTSX(const char* tsxPath, const std::string& clipName, int frameDurationMs)
+{
+    pugi::xml_document doc;
+    pugi::xml_parse_result ok = doc.load_file(tsxPath);
+    if (!ok) {
+        std::fprintf(stderr, "TSX sequential load failed (%s): %s\n", tsxPath, ok.description());
+        return false;
+    }
+
+    pugi::xml_node tileset = doc.child("tileset");
+    if (!tileset) {
+        std::fprintf(stderr, "TSX error: <tileset> missing (%s)\n", tsxPath);
+        return false;
+    }
+
+    tileW_ = tileset.attribute("tilewidth").as_int();
+    tileH_ = tileset.attribute("tileheight").as_int();
+    columns_ = tileset.attribute("columns").as_int();
+    int tileCount = tileset.attribute("tilecount").as_int();
+
+    Animation clip;
+    clip.SetLoop(false);
+
+    for (int i = 0; i < tileCount; ++i) {
+        SDL_Rect r = TileIdToRect(i, columns_, tileW_, tileH_);
+        clip.AddFrame(r, frameDurationMs);
+    }
+
+    clip.Reset();
+    clips_.emplace(clipName, std::move(clip));
+
+    if (currentName_.empty()) currentName_ = clipName;
+
+    return true;
+}
+
+void Animation::UpdateBackwards(float dt) {
+    if (frames_.empty()) return;
+
+    timeInFrameMs_ += static_cast<int>(dt);
+
+    while (timeInFrameMs_ >= frames_[static_cast<size_t>(currentIndex_)].durationMs) {
+        timeInFrameMs_ -= frames_[static_cast<size_t>(currentIndex_)].durationMs;
+
+        if (currentIndex_ > 0) {
+            --currentIndex_;
+        }
+        else {
+            currentIndex_ = 0;
+            break; 
+        }
+    }
+}
+
+void AnimationSet::UpdateBackwards(float dtSeconds) {
+    if (Has(currentName_)) clips_[currentName_].UpdateBackwards(dtSeconds);
 }

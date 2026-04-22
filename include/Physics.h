@@ -29,6 +29,10 @@ enum class ColliderType {
     PLATFORM,
     ENEMY,
     ATTACK,
+    LEDGE,
+    CHECKPOINT,
+    BOX,
+    PROJECTILE,
     UNKNOWN
     // ..
 };
@@ -95,6 +99,9 @@ public:
 
     // --- Impulse helper (handy for jumps/dashes)
     void   ApplyLinearImpulseToCenter(PhysBody* p, float ix, float iy, bool wake = true) const;
+
+    // --- World raycast helper (pixel coords, returns true if hit)
+    bool   RayCastWorld(int x1, int y1, int x2, int y2, float& hitX, float& hitY) const;
 
 private:
     // helpers
