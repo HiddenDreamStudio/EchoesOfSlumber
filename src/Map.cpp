@@ -396,16 +396,14 @@ bool Map::Load(std::string path, std::string fileName)
                                     (int)(mapCoord.getY() + col.y),
                                     (int*)col.polygonPoints.data(),
                                     (int)col.polygonPoints.size(),
-                                    STATIC,
-                                    0.0f); // Force 0 friction
+                                    STATIC);
                             } else if (numVerts >= 3) {
                                 c1 = Engine::GetInstance().physics.get()->CreateConvexPolygon(
                                     (int)(mapCoord.getX() + col.x),
                                     (int)(mapCoord.getY() + col.y),
                                     (int*)col.polygonPoints.data(),
                                     (int)col.polygonPoints.size(),
-                                    STATIC,
-                                    0.0f); // Force 0 friction
+                                    STATIC);
                             }
                             if (c1 != nullptr) {
                                 c1->ctype = ColliderType::PLATFORM;
@@ -461,8 +459,7 @@ bool Map::Load(std::string path, std::string fileName)
                         (int)(py + totalH / 2.0f),
                         (int)totalW,
                         (int)totalH,
-                        STATIC,
-                        0.0f); // Force 0 friction
+                        STATIC);
                     c1->ctype = ColliderType::PLATFORM;
                     colliderList.push_back(c1);
                 }

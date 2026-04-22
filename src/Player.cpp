@@ -243,7 +243,7 @@ void Player::Hide(float dt)
 				return;
 			}
 
-			isHiding = true;
+			isHiding_ = true;
 			velocity.x = 0.0f;
 			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
 			anims.SetCurrent("hide");
@@ -252,7 +252,7 @@ void Player::Hide(float dt)
 		}
 		else if (isHiding_)
 		{
-			isHiding = false;
+			isHiding_ = false;
 			isExitingHide_ = true;
 			hideCooldown_ = HIDE_COOLDOWN; // cooldown starts on exit
 			LOG("Player exiting hide — cooldown started (%.0f ms)", HIDE_COOLDOWN);
