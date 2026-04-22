@@ -1110,16 +1110,6 @@
 
  <objectgroup id="26" name="Assets 2">
 
-  <object id="159" gid="166" x="7729.22" y="4817" width="180.447" height="152"/>
-
-  <object id="160" gid="152" x="5976" y="4834" width="417" height="329.652"/>
-
-  <object id="166" gid="125" x="634" y="3919" width="57" height="71.0112"/>
-
-  <object id="170" gid="107" x="705" y="3658.33" width="63" height="129"/>
-
- <objectgroup id="26" name="Assets 2">
-
   <object id="157" gid="129" x="8036" y="4815" width="129" height="150"/>
 
   <object id="159" gid="166" x="7729.22" y="4817" width="180.447" height="152"/>
@@ -21474,7 +21464,6 @@
 
  </objectgroup>
 
- <layer id="5" name="Collisions" width="130" height="77">
 
  <objectgroup id="27" name="Assets front">
 
