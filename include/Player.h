@@ -39,7 +39,7 @@ public:
 	SDL_Rect GetCurrentAnimationRect() const;
 	bool     IsFacingRight() const;
 
-	// Hiding state — queried by enemies to disable detection
+	// Hiding state ï¿½ queried by enemies to disable detection
 	bool IsHiding() const { return isHiding_; }
 
 private:
@@ -53,7 +53,6 @@ private:
 	void Teleport();
 	void ApplyPhysics();
 	void Draw(float dt);
-	void UpdateClimb(float dt);
 
 public:
 
@@ -111,19 +110,6 @@ private:
 	static constexpr float DAMAGE_FLASH_DURATION = 150.0f;
 	float damageFlashTimer_ = 0.0f;
 
-	// Ledge climb
-	AnimationSet climbAnims;
-	SDL_Texture* climbTexture = nullptr;
-	static constexpr float CLIMB_DRAW_SCALE = 0.5f;
-	bool isClimbing_ = false;
-	float climbTargetX_ = 0.0f;
-	float climbTargetY_ = 0.0f;
-
-	void CheckLedge();
-	static constexpr int LEDGE_RAY_REACH = 30;
-	static constexpr int LEDGE_HEAD_OFFSET = 40;
-	static constexpr int LEDGE_RAY_MARGIN = 10;
-
 	// Dash
 	static constexpr float DASH_SPEED = 15.0f;
 	static constexpr float DASH_DURATION = 200.0f;
@@ -133,9 +119,9 @@ private:
 	float dashCooldown_ = 0.0f;
 	float dashDirX_ = 1.0f;
 
-	// Hide (press H to crouch behind rocks — enemies lose sight of player)
+	// Hide (press H to crouch behind rocks  enemies lose sight of player)
 	bool  isHiding_ = false;
 	bool  isExitingHide_ = false;
 	// Visual: gentle alpha pulse while hidden to signal stealth state
 	float hideAlphaTime_ = 0.0f;
-};
+	};
