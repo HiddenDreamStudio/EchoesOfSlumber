@@ -121,11 +121,11 @@ void EntityManager::AddEntity(std::shared_ptr<Entity> entity)
 	if ( entity != nullptr) entities.push_back(entity);
 }
 
-std::shared_ptr<Entity> EntityManager::SpawnVFX(Vector2D pos, const char* path, int frames, int w, int h, float speed, float angle)
+std::shared_ptr<Entity> EntityManager::SpawnVFX(Vector2D pos, const char* path, int frames, int w, int h, float speed, float angle, float scale)
 {
 	auto vfx = std::dynamic_pointer_cast<VFX>(CreateEntity(EntityType::VFX));
 	vfx->position = pos;
-	vfx->SetTexture(path, frames, w, h, speed, angle);
+	vfx->SetTexture(path, frames, w, h, speed, angle, scale);
 	return vfx;
 }
 
