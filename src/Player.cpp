@@ -182,9 +182,9 @@ void Player::Jump() {
 			canDoubleJump = true;
 			hasDoubleJumped = false;
 
-			// Spawn jump dust (12 frames of 794x202, centered at feet)
+			// Spawn jump dust (Centered at bottom of 100px capsule)
 			Engine::GetInstance().entityManager->SpawnVFX(
-				Vector2D(position.getX() + (float)texW / 2.0f, position.getY() + (float)texH / 2.0f + 25.0f),
+				Vector2D(position.getX(), position.getY() + 50.0f),
 				"assets/textures/spritesheets/SS_Pols_01.png",
 				12, 794, 202, 0.015f, 0.0f, 0.2f
 			);
@@ -199,7 +199,7 @@ void Player::Jump() {
 
 			// Spawn double jump dust
 			Engine::GetInstance().entityManager->SpawnVFX(
-				Vector2D(position.getX() + (float)texW / 2.0f, position.getY() + (float)texH / 2.0f + 15.0f),
+				Vector2D(position.getX(), position.getY() + 40.0f),
 				"assets/textures/spritesheets/SS_Pols_01.png",
 				12, 794, 202, 0.015f, 0.0f, 0.2f
 			);
