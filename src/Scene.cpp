@@ -806,7 +806,7 @@ void Scene::LoadGameplay()
 	}
 
 	// ── Blanket ability HUD icons ─────────────────────────────────────────────
-	texBlanketActive_   = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability.png");
+	texBlanketActive_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability.png");
 	texBlanketInactive_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability_low_opacity.png");
 
 	// ── Cape collectible (AS_capa.png) ────────────────────────────────────────
@@ -927,28 +927,28 @@ void Scene::UpdateGameplay(float dt)
 				}
 			}
 		}
-	}
 
-	// ── Cape collectible pickup (proximity check) ─────────────────────────────
-	if (!capaCollected_ && player)
-	{
-		capaFloatTimer_ += dt;
-
-		float dx = player->position.getX() - capaX_;
-		float dy = player->position.getY() - (capaY_ - 50.0f); // Adjust for the fact that the player's center is higher
-		float distSq = dx * dx + dy * dy;
-		float pickupRadius = 50.0f;
-
-		if (distSq < pickupRadius * pickupRadius)
+		// ── Cape collectible pickup (proximity check) ─────────────────────────
+		if (!capaCollected_ && player)
 		{
-			capaCollected_ = true;
-			player->SetHasBlanket(true);
-			Engine::GetInstance().audio->PlayFx(player->pickCoinFxId);
-			LOG("Cape collected — blanket ability unlocked!");
+			capaFloatTimer_ += dt;
+
+			float dx = player->position.getX() - capaX_;
+			float dy = player->position.getY() - (capaY_ - 50.0f); // Adjust for player's center
+			float distSq = dx * dx + dy * dy;
+			float pickupRadius = 50.0f;
+
+			if (distSq < pickupRadius * pickupRadius)
+			{
+				capaCollected_ = true;
+				player->SetHasBlanket(true);
+				Engine::GetInstance().audio->PlayFx(player->pickCoinFxId);
+				LOG("Cape collected — blanket ability unlocked!");
+			}
 		}
 	}
 
-	// ── Draw cape collectible in-world ────────────────────────────────────────
+	// ── Draw cape collectible in-world ────────────────────────────────────
 	if (!capaCollected_ && texCapaCollectible_)
 	{
 		int capaTexW = 0, capaTexH = 0;
@@ -956,7 +956,7 @@ void Scene::UpdateGameplay(float dt)
 		float floatOffset = 6.0f * sinf(capaFloatTimer_ * 0.003f);
 		int drawX = (int)(capaX_ - (float)capaTexW * 0.5f / 2.0f);
 		int drawY = (int)(capaY_ - (float)capaTexH * 0.5f / 2.0f + floatOffset);
-		
+
 		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
 		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
 	}
@@ -1057,11 +1057,8 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Blanket Ability HUD Icon ---
-	if (player)
+	if (player && player->HasBlanket())
 	{
-		int winW = 0, winH = 0;
-		Engine::GetInstance().window->GetWindowSize(winW, winH);
-
 		SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
 		if (blanketTex)
 		{
@@ -1642,6 +1639,10 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 {
 	srand((unsigned)time(nullptr));
 
+	float faceLeft = (float)childX + (float)childW * 0.20f;
+	float faceRight = (float)childX + (float)childW * 0.80f;
+	float faceTop = 0.0f;
+	float faceBottom = (float)winH * 0.45f;
 	float halfW = (float)winW * 0.5f;
 	float halfH = (float)winH * 0.5f;
 
@@ -1652,32 +1653,23 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		float tw = 0, th = 0;
 		SDL_GetTextureSize(f.tex, &tw, &th);
 
-		// Logical size between original and massive
-		float sc = RandF(0.30f, 0.42f);
+		float sc = RandF(0.25f, 0.30f);
 		f.w = (float)winW * sc;
 		f.h = f.w * (th / tw);
 
 		f.inFront = (i < 3);
 
-		// Logical distribution to AVOID the face (upper center-right part of the illustration)
-		// We push them towards the edges of the right half or the bottom
-		if (i % 2 == 0) {
-			// Prefer bottom area
-			f.x = RandF(halfW - 50.0f, (float)winW - f.w * 0.5f);
-			f.y = RandF(halfH, (float)winH - f.h - 10.0f);
-		}
-		else {
-			// Prefer side areas (far right or closer to center but not top-center)
-			if (i == 1) f.x = RandF(halfW - 30.0f, halfW + 100.0f);
-			else        f.x = RandF((float)winW - f.w - 20.0f, (float)winW - 10.0f);
-			
-			f.y = RandF(10.0f, halfH);
-		}
+		float padX = 10.0f, padY = 15.0f;
+		if (i == 0) { f.x = halfW + padX;                                  f.y = (float)winH - f.h - padY; }
+		else if (i == 1) { f.x = halfW + ((float)winW - halfW) / 2.0f - (f.w / 2.0f); f.y = (float)winH - f.h - padY; }
+		else if (i == 2) { f.x = (float)winW - f.w - padX;                             f.y = (float)winH - f.h - padY; }
+		else if (i == 3) { f.x = halfW + padX;                                  f.y = padY + 10.0f; }
+		else if (i == 4) { f.x = (float)winW - f.w - padX;                             f.y = padY + 10.0f; }
 
-		f.floatSpeed = RandF(0.4f, 0.8f);
-		f.floatAmplitude = RandF(10.0f, 25.0f);
+		f.floatSpeed = RandF(0.4f, 0.9f);
+		f.floatAmplitude = RandF(8.0f, 22.0f);
 		f.floatPhase = RandF(0.0f, 6.2831f);
-		f.driftX = RandF(0.15f, 0.40f);
+		f.driftX = RandF(0.15f, 0.45f);
 		f.driftPhase = RandF(0.0f, 6.2831f);
 		f.rotSpeed = RandF(-6.0f, 6.0f);
 		f.rotation = RandF(0.0f, 360.0f);
