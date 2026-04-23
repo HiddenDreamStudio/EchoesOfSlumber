@@ -36,15 +36,18 @@ bool EnemyB::Start()
 		20, 50, bodyType::DYNAMIC);
 
 	pbody->listener = this;
-	pbody->ctype    = ColliderType::ENEMY;
+	pbody->ctype = ColliderType::ENEMY;
 
 	int bodyX, bodyY;
 	pbody->GetPosition(bodyX, bodyY);
 	if (patrolLeftX_ == 0.0f && patrolRightX_ == 0.0f)
 	{
-		patrolLeftX_  = (float)bodyX - 200.0f;
+		patrolLeftX_ = (float)bodyX - 200.0f;
 		patrolRightX_ = (float)bodyX + 200.0f;
 	}
+
+	// Save origin position to return when player hides
+	originPosition_ = Vector2D((float)bodyX, (float)bodyY);
 
 	TransitionTo(EnemyBState::IDLE);
 	return true;
@@ -60,6 +63,38 @@ bool EnemyB::Update(float dt)
 	}
 
 	GetPhysicsValues();
+
+	// ?? Hide behaviour: return to origin while player is hiding ??????????????
+	auto playerShared = Engine::GetInstance().scene->player;
+	bool playerIsHiding = playerShared && playerShared->IsHiding();
+
+	if (playerIsHiding)
+	{
+		wasPlayerHiding_ = true;
+
+		int bodyX, bodyY;
+		pbody->GetPosition(bodyX, bodyY);
+		float dx = originPosition_.getX() - (float)bodyX;
+
+		if (std::abs(dx) > 2.0f)
+			velocity.x = (dx > 0.0f) ? speed : -speed;
+		else
+			velocity.x = 0.0f;
+
+		facingRight_ = (dx < 0.0f);
+		ApplyPhysics();
+		Draw(dt);
+		return true;
+	}
+
+	if (wasPlayerHiding_)
+	{
+		wasPlayerHiding_ = false;
+		TransitionTo(EnemyBState::PATROL);
+		LOG("EnemyB re-acquired player — returning to patrol");
+	}
+	// ?????????????????????????????????????????????????????????????????????????
+
 	UpdateFSM(dt);
 	ApplyPhysics();
 
@@ -90,8 +125,8 @@ void EnemyB::UpdateFSM(float dt)
 
 	int playerBodyX, playerBodyY;
 	Engine::GetInstance().scene->player->pbody->GetPosition(playerBodyX, playerBodyY);
-	float dx           = (float)playerBodyX - (float)bodyX;
-	float dy           = (float)playerBodyY - (float)bodyY;
+	float dx = (float)playerBodyX - (float)bodyX;
+	float dy = (float)playerBodyY - (float)bodyY;
 	float distToPlayer = std::abs(dx);
 
 	switch (state_)
@@ -121,7 +156,7 @@ void EnemyB::UpdateFSM(float dt)
 			TransitionTo(EnemyBState::TURNING);
 			break;
 		}
-		velocity.x   = patrolDirX_ * speed;
+		velocity.x = patrolDirX_ * speed;
 		facingRight_ = (patrolDirX_ < 0.0f);
 		break;
 
@@ -129,7 +164,7 @@ void EnemyB::UpdateFSM(float dt)
 		velocity.x = 0.0f;
 		if (turnAnims_.HasFinishedOnce("turn"))
 		{
-			patrolDirX_  = -patrolDirX_;
+			patrolDirX_ = -patrolDirX_;
 			facingRight_ = (patrolDirX_ < 0.0f);
 			TransitionTo(EnemyBState::PATROL);
 		}
@@ -146,7 +181,7 @@ void EnemyB::UpdateFSM(float dt)
 			TransitionTo(EnemyBState::ATTACK);
 			break;
 		}
-		velocity.x   = (dx > 0.0f) ? speed : -speed;
+		velocity.x = (dx > 0.0f) ? speed : -speed;
 		facingRight_ = (dx < 0.0f);
 		break;
 
@@ -203,7 +238,7 @@ void EnemyB::TransitionTo(EnemyBState newState)
 
 	case EnemyBState::STUNNED:
 		stateTimer_ = STUN_DURATION;
-		velocity.x  = 0.0f;
+		velocity.x = 0.0f;
 		break;
 
 	case EnemyBState::DEATH:
@@ -218,7 +253,7 @@ void EnemyB::TransitionTo(EnemyBState newState)
 
 void EnemyB::GetPhysicsValues()
 {
-	velocity   = Engine::GetInstance().physics->GetLinearVelocity(pbody);
+	velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
 	velocity.x = 0.0f;
 }
 
@@ -237,7 +272,7 @@ void EnemyB::Draw(float dt)
 	if (Engine::GetInstance().physics->IsDebug())
 	{
 		auto& render = Engine::GetInstance().render;
-		int scale    = Engine::GetInstance().window->GetScale();
+		int scale = Engine::GetInstance().window->GetScale();
 		int cx = render->camera.x + x * scale;
 		int cy = render->camera.y + y * scale;
 
@@ -247,7 +282,7 @@ void EnemyB::Draw(float dt)
 		SDL_SetRenderDrawColor(render->renderer, 255, 255, 0, 180);
 		for (int i = 0; i < SEGMENTS; i++)
 		{
-			float a0 = (float)i       / SEGMENTS * 6.2832f;
+			float a0 = (float)i / SEGMENTS * 6.2832f;
 			float a1 = (float)(i + 1) / SEGMENTS * 6.2832f;
 			SDL_RenderLine(render->renderer,
 				cx + (int)(SDL_cosf(a0) * r), cy + (int)(SDL_sinf(a0) * r),
@@ -312,7 +347,7 @@ Vector2D EnemyB::GetPosition()
 
 void EnemyB::SetPatrolPoints(float leftX, float rightX)
 {
-	patrolLeftX_  = leftX;
+	patrolLeftX_ = leftX;
 	patrolRightX_ = rightX;
 }
 
@@ -325,7 +360,7 @@ void EnemyB::OnCollision(PhysBody* physA, PhysBody* physB)
 	else if (physB->ctype == ColliderType::PLAYER)
 	{
 		isContactWithPlayer_ = true;
-		playerListener_      = physB->listener;
+		playerListener_ = physB->listener;
 		if (contactDamageCooldown_ <= 0.0f)
 		{
 			playerListener_->TakeDamage(1);
@@ -339,7 +374,7 @@ void EnemyB::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 	if (physB->ctype == ColliderType::PLAYER)
 	{
 		isContactWithPlayer_ = false;
-		playerListener_      = nullptr;
+		playerListener_ = nullptr;
 	}
 }
 
