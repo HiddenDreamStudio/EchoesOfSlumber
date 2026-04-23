@@ -494,8 +494,8 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 	case BTN_PLAY:
 		LOG("Main Menu: Play");
 		waitingForFade_ = true;
-		fadeTargetScene_ = SceneID::INTRO_CINEMATIC;
-		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1000.0f);
+		fadeTargetScene_ = SceneID::GAMEPLAY;
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 800.0f);
 		break;
 	case BTN_SETTINGS:
 		showSettings_ = !showSettings_;
@@ -818,8 +818,13 @@ void Scene::LoadGameplay()
 	}
 	capaCollected_ = false;
 	capaFloatTimer_ = 0.0f;
-	capaX_ = 7000.0f;
-	capaY_ = 4780.0f;
+
+	// Read cape position from TMX Entities layer instead of hardcoding
+	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
+		LOG("WARNING: No Cape entity found in TMX Entities layer, cape will not spawn");
+		capaCollected_ = true; // Mark as collected so it won't render
+	}
+
 	capaBody_ = nullptr; // Sensor removed to prevent physics crashes during deletion
 }
 
@@ -1010,62 +1015,70 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Draw Health HUD ---
-	SDL_Rect r;
-	const SDL_Rect* frame = nullptr;
-	SDL_Texture* texToDraw = nullptr;
+	if (player && !player->isWakingUp) {
+		SDL_Rect r;
+		const SDL_Rect* frame = nullptr;
+		SDL_Texture* texToDraw = nullptr;
 
-	if (activeHealthAnim_ == 1) {
-		texToDraw = texHealth1_;
-		frame = &animHealth1_.GetCurrentFrame();
-	} else if (activeHealthAnim_ == 2) {
-		texToDraw = texHealth2_;
-		frame = &animHealth2_.GetCurrentFrame();
-	} else if (activeHealthAnim_ == 3) {
-		texToDraw = texHealth3_;
-		frame = &animHealth3_.GetCurrentFrame();
-	} else {
-		// Draw static frame based on health
-		if (currentHealthUI_ == 3) {
+		if (activeHealthAnim_ == 1) {
 			texToDraw = texHealth1_;
-			if (texHealth1_) {
-				r = animHealth1_.GetCurrentFrame(); // Use frame 0 (Reset ensures it's at 0)
-				frame = &r;
-			}
-		} else if (currentHealthUI_ == 2) {
+			frame = &animHealth1_.GetCurrentFrame();
+		}
+		else if (activeHealthAnim_ == 2) {
 			texToDraw = texHealth2_;
-			if (texHealth2_) {
-				r = animHealth2_.GetCurrentFrame();
-				frame = &r;
-			}
-		} else if (currentHealthUI_ == 1) {
+			frame = &animHealth2_.GetCurrentFrame();
+		}
+		else if (activeHealthAnim_ == 3) {
 			texToDraw = texHealth3_;
-			if (texHealth3_) {
-				r = animHealth3_.GetCurrentFrame();
-				frame = &r;
+			frame = &animHealth3_.GetCurrentFrame();
+		}
+		else {
+			// Draw static frame based on health
+			if (currentHealthUI_ == 3) {
+				texToDraw = texHealth1_;
+				if (texHealth1_) {
+					r = animHealth1_.GetCurrentFrame(); // Use frame 0 (Reset ensures it's at 0)
+					frame = &r;
+				}
 			}
-		} else if (currentHealthUI_ <= 0) {
-			texToDraw = texHealth3_;
-			if (texHealth3_) {
-				r = animHealth3_.GetCurrentFrame();
-				frame = &r;
+			else if (currentHealthUI_ == 2) {
+				texToDraw = texHealth2_;
+				if (texHealth2_) {
+					r = animHealth2_.GetCurrentFrame();
+					frame = &r;
+				}
+			}
+			else if (currentHealthUI_ == 1) {
+				texToDraw = texHealth3_;
+				if (texHealth3_) {
+					r = animHealth3_.GetCurrentFrame();
+					frame = &r;
+				}
+			}
+			else if (currentHealthUI_ <= 0) {
+				texToDraw = texHealth3_;
+				if (texHealth3_) {
+					r = animHealth3_.GetCurrentFrame();
+					frame = &r;
+				}
 			}
 		}
-	}
 
-	if (texToDraw && frame) {
-		// Draw HUD at top left. Using speed = 0.0f makes it static to camera
-		// Scale reduced to 0.5f as requested
-		Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
-	}
+		if (texToDraw && frame) {
+			// Draw HUD at top left. Using speed = 0.0f makes it static to camera
+			// Scale reduced to 0.5f as requested
+			Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+		}
 
-	// --- Blanket Ability HUD Icon ---
-	if (player && player->HasBlanket())
-	{
-		SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
-		if (blanketTex)
+		// --- Blanket Ability HUD Icon ---
+		if (player->HasBlanket())
 		{
-			// Aligned with the center of the health bar vertically
-			Engine::GetInstance().render->DrawTextureAlpha(blanketTex, 220, 72, 64, 64, 255);
+			SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
+			if (blanketTex)
+			{
+				// Aligned with the center of the health bar vertically
+				Engine::GetInstance().render->DrawTextureAlpha(blanketTex, 220, 72, 64, 64, 255);
+			}
 		}
 	}
 
@@ -1123,7 +1136,7 @@ void Scene::PostUpdateGameplay()
 
 	// --- Checkpoint Save Notification ---
 	if (checkpointSaveTimer_ > 0.0f) {
-		checkpointSaveTimer_ -= Engine::GetInstance().GetDeltaTime();
+		checkpointSaveTimer_ -= Engine::GetInstance().GetDt();
 		if (texCheckpointSaved_) {
 			float tw, th;
 			SDL_GetTextureSize(texCheckpointSaved_, &tw, &th);

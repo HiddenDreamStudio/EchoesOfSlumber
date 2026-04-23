@@ -534,6 +534,16 @@ Vector2D Map::GetMapSizeInTiles()
     return Vector2D((float)mapData.width, (float)mapData.height);
 }
 
+bool Map::GetCapePosition(float& outX, float& outY) const
+{
+    if (mapData.capeFound) {
+        outX = mapData.capeX;
+        outY = mapData.capeY;
+        return true;
+    }
+    return false;
+}
+
 MapLayer* Map::GetNavigationLayer() {
     for (const auto& layer : mapData.layers) {
         if (layer->properties.GetProperty("Navigation") != NULL &&
@@ -619,6 +629,12 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     box->position = Vector2D(x, y);
                     box->Start();
                     LOG("Box spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "Cape") {
+                    mapData.capeFound = true;
+                    mapData.capeX = x;
+                    mapData.capeY = y;
+                    LOG("Cape position loaded from TMX at: %f, %f", x, y);
                 }
             }
         }

@@ -147,6 +147,11 @@ struct MapData
     std::list<DecorationObject*> decorationObjects;
     std::list<AnimatedPlantObject*> animatedPlants;
     std::vector<CheckpointObject*> checkpoints;
+
+    // Cape collectible spawn position (read from Entities layer)
+    bool  capeFound = false;
+    float capeX = 0.0f;
+    float capeY = 0.0f;
 };
 
 class Map : public Module
@@ -186,6 +191,9 @@ public:
 
     Vector2D GetMapSizeInPixels();
     Vector2D GetMapSizeInTiles();
+
+    // Cape position read from TMX Entities layer
+    bool  GetCapePosition(float& outX, float& outY) const;
 
     MapLayer* GetNavigationLayer();
 

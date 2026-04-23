@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="130" height="77" tilewidth="64" tileheight="64" infinite="0" nextlayerid="36" nextobjectid="397">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="130" height="77" tilewidth="64" tileheight="64" infinite="0" nextlayerid="36" nextobjectid="398">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
  <tileset firstgid="3" name="MapMetadata1" tilewidth="64" tileheight="64" tilecount="2" columns="2">
   <image source="MapMetadata1.png" width="128" height="64"/>
  </tileset>
- <tileset firstgid="111" name="Tileset.png" tilewidth="64" tileheight="64" tilecount="100" columns="10">
+ <tileset firstgid="5" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Tileset.png" width="640" height="640"/>
- </tileset>
- <tileset firstgid="211" source="Checkpoint.tsx"/>
+  <tile id="0">
    <objectgroup draworder="index" id="2">
     <object id="1" x="5" y="6" width="59" height="58"/>
    </objectgroup>
@@ -541,7 +540,7 @@
     <property name="tsx" value="../textures/spritesheets/SS_environment/tsx/planta_04.tsx"/>
    </properties>
   </object>
-  <object id="393" name="Planta_07" type="AnimatedPlant" x="1785.83" y="2709.5" width="71.3333" height="107">
+  <object id="393" name="Planta_07" type="AnimatedPlant" x="1785.83" y="2751.5" width="71.3333" height="107">
    <properties>
     <property name="tsx" value="../textures/spritesheets/SS_environment/tsx/planta_07.tsx"/>
    </properties>
@@ -10621,16 +10620,13 @@
  <objectgroup id="9" name="Entities">
   <object id="11" name="Player" type="Player" x="6841" y="4702.67" width="96" height="96"/>
   <object id="12" name="Enemy" type="Enemy" x="4750" y="4661" width="32" height="32"/>
-  <object id="13" name="EnemyB" type="EnemyB" x="2414.67" y="2692.58" width="32" height="32">
+  <object id="13" name="EnemyB" type="EnemyB" x="3440" y="2739" width="32" height="32">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="14" name="EnemyC" type="EnemyC" x="3912.7" y="2749.91" width="32" height="32"/>
- </objectgroup>
- <objectgroup id="32" name="Checkpoint">
-  <object id="283" type="Checkpoint" gid="211" x="6327" y="4810.5" width="51.9204" height="63"/>
-  <object id="284" type="Checkpoint" gid="211" x="3648.54" y="4426" width="51.9204" height="63"/>
+  <object id="14" name="EnemyC" type="EnemyC" x="4211" y="2747" width="32" height="32"/>
+  <object id="397" name="Cape" type="Cape" x="7874" y="4732"/>
  </objectgroup>
 </map>

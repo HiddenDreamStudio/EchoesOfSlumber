@@ -79,12 +79,13 @@ public:
 	bool canDoubleJump = false;
 	bool hasDoubleJumped = false;
 
+	bool isWakingUp = true;
+
 private:
 	b2Vec2 velocity = { 0.0f, 0.0f };
 	AnimationSet anims;
 	Animation wakeUpAnim;
 	SDL_Texture* wakeUpTexture = nullptr;
-	bool isWakingUp = true;
 	float drawScale = 1.0f;
 	bool facingRight = true;
 	// ?? Hide cooldown 

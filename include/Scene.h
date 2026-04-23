@@ -132,6 +132,7 @@ private:
 public:
     void SetGameOverVisible(bool visible);
     void ResetHealthUI(int health);
+    float checkpointSaveTimer_ = 0.0f;
 
 private:
     // Button IDs — pause menu
@@ -185,7 +186,6 @@ private:
 
     // Checkpoint notification
     SDL_Texture* texCheckpointSaved_ = nullptr;
-    float checkpointSaveTimer_ = 0.0f;
 
     // Pause menu textures
     SDL_Texture* texPauseBackground_ = nullptr;

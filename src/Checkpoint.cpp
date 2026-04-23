@@ -5,6 +5,7 @@
 #include "Physics.h"
 #include "SaveSystem.h"
 #include "Log.h"
+#include "Scene.h"
 
 Checkpoint::Checkpoint() : Entity(EntityType::CHECKPOINT)
 {
@@ -65,9 +66,8 @@ void Checkpoint::OnCollision(PhysBody* physA, PhysBody* physB) {
         Engine::GetInstance().saveSystem->QuickSave();
         
         // Trigger UI notification
-        auto scene = std::dynamic_pointer_cast<Scene>(Engine::GetInstance().GetModule("scene"));
-        if (scene) {
-            scene->checkpointSaveTimer_ = 3000.0f; 
+        if (Engine::GetInstance().scene) {
+            Engine::GetInstance().scene->checkpointSaveTimer_ = 3000.0f; 
         }
     }
 }
