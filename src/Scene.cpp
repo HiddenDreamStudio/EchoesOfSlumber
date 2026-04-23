@@ -290,7 +290,7 @@ void Scene::UpdateMainMenu(float dt)
 			if (btnPlay_) { btnPlay_->alphaMod = 1.0f; btnPlay_->isVisible = true; }
 			if (btnSettings_) { btnSettings_->alphaMod = 1.0f; btnSettings_->isVisible = true; }
 			if (btnExit_) { btnExit_->alphaMod = 1.0f; btnExit_->isVisible = true; }
-		};
+			};
 
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
 			Engine::GetInstance().input->GetKey(SDL_SCANCODE_RETURN) == KEY_DOWN ||
@@ -740,12 +740,13 @@ void Scene::LoadGameplay()
 		int count = tileset.attribute("tilecount").as_int();
 		int columns = tileset.attribute("columns").as_int();
 		std::string imgPath = tileset.child("image").attribute("source").as_string();
-		
+
 		std::string finalPath = "assets/textures/spritesheets/SS Healthbar/";
 		size_t lastSlash = imgPath.find_last_of('/');
 		if (lastSlash != std::string::npos) {
 			finalPath += imgPath.substr(lastSlash + 1);
-		} else {
+		}
+		else {
 			finalPath += imgPath;
 		}
 
@@ -763,7 +764,7 @@ void Scene::LoadGameplay()
 			anim.AddFrame(r, 100);
 		}
 		anim.SetLoop(false);
-	};
+		};
 
 	setupAnimFromTSX("assets/textures/animations/HealthAnimations/SS_Healthbar-1.tsx", animHealth1_, texHealth1_);
 	setupAnimFromTSX("assets/textures/animations/HealthAnimations/SS_Healthbar-2.tsx", animHealth2_, texHealth2_);
@@ -779,7 +780,7 @@ void Scene::LoadGameplay()
 	// Game Over Button
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
-	
+
 	// Load Game Over textures
 	texGameOverBg_ = nullptr;
 	texGameOverBtn_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
@@ -791,7 +792,7 @@ void Scene::LoadGameplay()
 
 	SDL_Rect contBtnPos = { winW / 2 - 230, winH / 2 - 20, 460, 84 };
 	SDL_Rect mainBtnPos = { winW / 2 - 230, winH / 2 + 84, 460, 84 };
-	
+
 	auto contBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_GAMEOVER_CONTINUE, "CONTINUE", contBtnPos, this);
 	auto goBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_GAMEOVER_MAINMENU, "MAIN MENU", mainBtnPos, this);
 
@@ -807,14 +808,14 @@ void Scene::LoadGameplay()
 		goBtn->state = UIElementState::DISABLED;
 	}
 
-	// ── Blanket ability HUD icons ─────────────────────────────────────────────
+	// Blanket ability HUD icons
 	texBlanketActive_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability.png");
 	texBlanketInactive_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability_low_opacity.png");
 
-	// ── Cape collectible (AS_capa.png) ────────────────────────────────────────
+	// Cape collectible (AS_capa.png)
 	texCapaCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/AS_capa.png");
 	if (texCapaCollectible_) {
-		SDL_SetTextureColorMod(texCapaCollectible_, 100, 100, 120); // Darker blueish tint
+		SDL_SetTextureColorMod(texCapaCollectible_, 100, 100, 120);
 	}
 	capaCollected_ = false;
 	capaFloatTimer_ = 0.0f;
@@ -822,10 +823,10 @@ void Scene::LoadGameplay()
 	// Read cape position from TMX Entities layer instead of hardcoding
 	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
 		LOG("WARNING: No Cape entity found in TMX Entities layer, cape will not spawn");
-		capaCollected_ = true; // Mark as collected so it won't render
+		capaCollected_ = true;
 	}
 
-	capaBody_ = nullptr; // Sensor removed to prevent physics crashes during deletion
+	capaBody_ = nullptr;
 }
 
 void Scene::UpdateGameplay(float dt)
@@ -883,6 +884,11 @@ void Scene::UpdateGameplay(float dt)
 	if (isPaused_) return;
 
 	if (player) {
+		// Wake-up notification trigger
+		if (!player->isWakingUp && wakeUpNotifTimer_ == 0.0f) {
+			wakeUpNotifTimer_ = WAKEUP_NOTIF_DURATION;
+		}
+
 		// Fall death check
 		Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();
 		if (player->position.getY() > mapSize.getY() + 100.0f && player->health > 0) {
@@ -897,10 +903,12 @@ void Scene::UpdateGameplay(float dt)
 			if (currentHealthUI_ == 3) {
 				activeHealthAnim_ = 1;
 				animHealth1_.Reset();
-			} else if (currentHealthUI_ == 2) {
+			}
+			else if (currentHealthUI_ == 2) {
 				activeHealthAnim_ = 2;
 				animHealth2_.Reset();
-			} else if (currentHealthUI_ == 1) {
+			}
+			else if (currentHealthUI_ == 1) {
 				activeHealthAnim_ = 3;
 				animHealth3_.Reset();
 			}
@@ -910,24 +918,25 @@ void Scene::UpdateGameplay(float dt)
 		if (activeHealthAnim_ == 1) {
 			animHealth1_.Update(dt);
 			if (animHealth1_.HasFinishedOnce()) activeHealthAnim_ = 0;
-		} else if (activeHealthAnim_ == 2) {
+		}
+		else if (activeHealthAnim_ == 2) {
 			animHealth2_.Update(dt);
 			if (animHealth2_.HasFinishedOnce()) activeHealthAnim_ = 0;
-		} else if (activeHealthAnim_ == 3) {
+		}
+		else if (activeHealthAnim_ == 3) {
 			animHealth3_.Update(dt);
 			if (animHealth3_.HasFinishedOnce()) activeHealthAnim_ = 0;
 		}
 
 		if (player->health <= 0 && activeHealthAnim_ == 0 && !isGameOver_) {
 			isGameOver_ = true;
-			// Enable Game Over buttons
 			auto& list = Engine::GetInstance().uiManager->UIElementsList;
 			for (auto& el : list) {
 				if (el->id == BTN_GAMEOVER_MAINMENU || el->id == BTN_GAMEOVER_CONTINUE) {
 					el->isVisible = true;
 					el->state = UIElementState::NORMAL;
 				}
-				
+
 				if (el->id == BTN_GAMEOVER_CONTINUE) {
 					if (!Engine::GetInstance().saveSystem->HasValidSave())
 						el->state = UIElementState::DISABLED;
@@ -935,13 +944,13 @@ void Scene::UpdateGameplay(float dt)
 			}
 		}
 
-		// ── Cape collectible pickup (proximity check) ─────────────────────────
+		// Cape collectible pickup (proximity check)
 		if (!capaCollected_ && player)
 		{
 			capaFloatTimer_ += dt;
 
 			float dx = player->position.getX() - capaX_;
-			float dy = player->position.getY() - (capaY_ - 50.0f); // Adjust for player's center
+			float dy = player->position.getY() - (capaY_ - 50.0f);
 			float distSq = dx * dx + dy * dy;
 			float pickupRadius = 50.0f;
 
@@ -950,12 +959,12 @@ void Scene::UpdateGameplay(float dt)
 				capaCollected_ = true;
 				player->SetHasBlanket(true);
 				Engine::GetInstance().audio->PlayFx(player->pickCoinFxId);
-				LOG("Cape collected — blanket ability unlocked!");
+				LOG("Cape collected - blanket ability unlocked!");
 			}
 		}
 	}
 
-	// ── Draw cape collectible in-world ────────────────────────────────────
+	// Draw cape collectible in-world
 	if (!capaCollected_ && texCapaCollectible_)
 	{
 		int capaTexW = 0, capaTexH = 0;
@@ -983,7 +992,7 @@ void Scene::UnloadGameplay()
 	if (texHealth2_) { Engine::GetInstance().textures->UnLoad(texHealth2_); texHealth2_ = nullptr; }
 	if (texHealth3_) { Engine::GetInstance().textures->UnLoad(texHealth3_); texHealth3_ = nullptr; }
 	if (texGameOver_) { SDL_DestroyTexture(texGameOver_); texGameOver_ = nullptr; }
-	
+
 	if (texGameOverBg_) { Engine::GetInstance().textures->UnLoad(texGameOverBg_); texGameOverBg_ = nullptr; }
 	if (texGameOverBtn_) { Engine::GetInstance().textures->UnLoad(texGameOverBtn_); texGameOverBtn_ = nullptr; }
 	if (texGameOverKid_) { Engine::GetInstance().textures->UnLoad(texGameOverKid_); texGameOverKid_ = nullptr; }
@@ -996,8 +1005,7 @@ void Scene::UnloadGameplay()
 	if (texPauseButtonBlack_) { Engine::GetInstance().textures->UnLoad(texPauseButtonBlack_); texPauseButtonBlack_ = nullptr; }
 	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
 
-	// Blanket ability HUD + Cape collectible cleanup
-	if (texBlanketActive_)   { Engine::GetInstance().textures->UnLoad(texBlanketActive_);   texBlanketActive_ = nullptr; }
+	if (texBlanketActive_) { Engine::GetInstance().textures->UnLoad(texBlanketActive_);   texBlanketActive_ = nullptr; }
 	if (texBlanketInactive_) { Engine::GetInstance().textures->UnLoad(texBlanketInactive_); texBlanketInactive_ = nullptr; }
 	if (texCapaCollectible_) { Engine::GetInstance().textures->UnLoad(texCapaCollectible_); texCapaCollectible_ = nullptr; }
 	if (capaBody_) { Engine::GetInstance().physics->DeletePhysBody(capaBody_); capaBody_ = nullptr; }
@@ -1033,11 +1041,10 @@ void Scene::PostUpdateGameplay()
 			frame = &animHealth3_.GetCurrentFrame();
 		}
 		else {
-			// Draw static frame based on health
 			if (currentHealthUI_ == 3) {
 				texToDraw = texHealth1_;
 				if (texHealth1_) {
-					r = animHealth1_.GetCurrentFrame(); // Use frame 0 (Reset ensures it's at 0)
+					r = animHealth1_.GetCurrentFrame();
 					frame = &r;
 				}
 			}
@@ -1065,8 +1072,6 @@ void Scene::PostUpdateGameplay()
 		}
 
 		if (texToDraw && frame) {
-			// Draw HUD at top left. Using speed = 0.0f makes it static to camera
-			// Scale reduced to 0.5f as requested
 			Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
 		}
 
@@ -1076,7 +1081,6 @@ void Scene::PostUpdateGameplay()
 			SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
 			if (blanketTex)
 			{
-				// Aligned with the center of the health bar vertically
 				Engine::GetInstance().render->DrawTextureAlpha(blanketTex, 220, 72, 64, 64, 255);
 			}
 		}
@@ -1087,50 +1091,39 @@ void Scene::PostUpdateGameplay()
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-		// Dark overlay removed as requested
-
-		// "GAME OVER" Text
 		if (texGameOver_) {
 			float tw, th;
 			SDL_GetTextureSize(texGameOver_, &tw, &th);
 			float drawX = ((float)winW - tw) / 2.0f;
-			float drawY = ((float)winH - th) / 2.0f - 200.0f; 
-			
+			float drawY = ((float)winH - th) / 2.0f - 200.0f;
+
 			float scale = 1.5f;
 			float sw = tw * scale;
 			float sh = th * scale;
 			float sx = ((float)winW - sw) / 2.0f;
 			float sy = drawY - (sh - th) / 2.0f;
 
-			// Enable linear filtering for smoother scaling
 			SDL_SetTextureScaleMode(texGameOver_, SDL_SCALEMODE_LINEAR);
 
-			// Directional Shadow: Draw once with a fixed offset and low alpha
 			float shadowOffset = 6.0f;
-			SDL_SetTextureColorMod(texGameOver_, 255, 100, 100); // Shadow color (light red)
+			SDL_SetTextureColorMod(texGameOver_, 255, 100, 100);
 			Engine::GetInstance().render->DrawTextureAlphaF(texGameOver_, sx + shadowOffset, sy + shadowOffset, sw, sh, (Uint8)130);
-			
-			SDL_SetTextureColorMod(texGameOver_, 255, 255, 255); // Reset color mod
 
-			// Main text draw
+			SDL_SetTextureColorMod(texGameOver_, 255, 255, 255);
 			Engine::GetInstance().render->DrawTextureAlphaF(texGameOver_, sx, sy, sw, sh, (Uint8)255);
 		}
 
-		// Draw Fragments and Kid
 		if (texGameOverKid_) {
 			float kw, kh;
 			SDL_GetTextureSize(texGameOverKid_, &kw, &kh);
-			float kScale = 0.22f; // Reduced size as requested
+			float kScale = 0.22f;
 			Engine::GetInstance().render->DrawTextureAlphaF(texGameOverKid_, (float)winW - kw * kScale - 20.0f, (float)winH - kh * kScale - 20.0f, kw * kScale, kh * kScale, (Uint8)255);
 		}
-		
-		// Distributed fragments
+
 		if (texGameOverFrag1_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag1_, 100.0f, 150.0f, 160.0f, 160.0f, 180);
 		if (texGameOverFrag3_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag3_, (float)winW - 350.0f, 80.0f, 200.0f, 200.0f, 150);
 		if (texGameOverFrag5_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag5_, 200.0f, (float)winH - 300.0f, 140.0f, 140.0f, 160);
 		if (texGameOverFrag1_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag1_, (float)winW / 2.0f + 250.0f, (float)winH / 2.0f + 120.0f, 120.0f, 120.0f, 130);
-		
-		// New Fragment 4 in bottom-left
 		if (texGameOverFrag4_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag4_, 50.0f, (float)winH - 220.0f, 180.0f, 180.0f, 200);
 	}
 
@@ -1153,6 +1146,42 @@ void Scene::PostUpdateGameplay()
 
 			Engine::GetInstance().render->DrawTextureAlphaF(texCheckpointSaved_, drawX, drawY, tw, th, alpha);
 		}
+	}
+
+	// --- Wake-up notification ---
+	if (wakeUpNotifTimer_ > 0.0f) {
+		wakeUpNotifTimer_ -= Engine::GetInstance().GetDt();
+
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		auto& render = *Engine::GetInstance().render;
+
+		// Fade out during last 800ms
+		Uint8 alpha = 255;
+		if (wakeUpNotifTimer_ < 800.0f)
+			alpha = (Uint8)(255.0f * (wakeUpNotifTimer_ / 800.0f));
+
+		// Panel dimensions — smaller to keep text compact
+		const int panelW = 300;
+		const int panelH = 50;
+		const int panelX = (winW - panelW) / 2;
+		const int panelY = 40;
+
+		// Black filled panel
+		SDL_Rect panel = { panelX, panelY, panelW, panelH };
+		render.DrawRectangle(panel, 0, 0, 0, alpha, true, false);
+
+		// White border (outline) — 2px
+		SDL_Rect border = { panelX - 2, panelY - 2, panelW + 4, panelH + 4 };
+		render.DrawRectangle(border, 255, 255, 255, alpha, false, false);
+
+		// Text centered inside the panel — no accents or special punctuation
+		SDL_Color textColor = { 255, 255, 255, alpha };
+		render.DrawMenuTextCentered(
+			"Que es esto... Donde estoy...",
+			{ panelX, panelY, panelW, panelH },
+			textColor
+		);
 	}
 }
 
@@ -1222,7 +1251,7 @@ void Scene::DrawMapViewer(int winW, int winH)
 	int endTileX = std::min((int)map.GetMapSizeInTiles().getX(), (int)(camRight / (float)tileW) + 2);
 	int endTileY = std::min((int)map.GetMapSizeInTiles().getY(), (int)(camBottom / (float)tileH) + 2);
 
-	// ── Step 1: Image Layers ─────────────────────────────────────────────────
+	// Step 1: Image Layers
 	for (const auto& imgLayer : map.mapData.imageLayers)
 	{
 		if (!imgLayer->texture) continue;
@@ -1232,15 +1261,15 @@ void Scene::DrawMapViewer(int winW, int winH)
 		float screenY = (float)viewY + mapViewOffsetY_ + imgLayer->offsetY * mapViewZoom_;
 		float screenW = tw * mapViewZoom_;
 		float screenH = th * mapViewZoom_;
-		if (screenX + screenW < (float)viewX || screenX > (float)viewX + (float)viewW) continue;
-		if (screenY + screenH < (float)viewY || screenY > (float)viewY + (float)viewH) continue;
+		if (screenX + screenW < (float)viewX || screenX >(float)viewX + (float)viewW) continue;
+		if (screenY + screenH < (float)viewY || screenY >(float)viewY + (float)viewH) continue;
 		SDL_FRect dst = { screenX * (float)scale, screenY * (float)scale, screenW * (float)scale, screenH * (float)scale };
 		SDL_SetTextureColorMod(imgLayer->texture, 255, 255, 255);
 		SDL_SetTextureAlphaMod(imgLayer->texture, 255);
 		SDL_RenderTexture(render.renderer, imgLayer->texture, nullptr, &dst);
 	}
 
-	// ── Step 2: Decoration Objects ───────────────────────────────────────────
+	// Step 2: Decoration Objects
 	for (const auto& deco : map.mapData.decorationObjects)
 	{
 		if (!deco->texture) continue;
@@ -1250,15 +1279,15 @@ void Scene::DrawMapViewer(int winW, int winH)
 		float screenY = (float)viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
 		float screenW = deco->width * mapViewZoom_;
 		float screenH = deco->height * mapViewZoom_;
-		if (screenX + screenW < (float)viewX || screenX > (float)viewX + (float)viewW) continue;
-		if (screenY + screenH < (float)viewY || screenY > (float)viewY + (float)viewH) continue;
+		if (screenX + screenW < (float)viewX || screenX >(float)viewX + (float)viewW) continue;
+		if (screenY + screenH < (float)viewY || screenY >(float)viewY + (float)viewH) continue;
 		SDL_FRect dst = { screenX * (float)scale, screenY * (float)scale, screenW * (float)scale, screenH * (float)scale };
 		SDL_SetTextureColorMod(deco->texture, 255, 255, 255);
 		SDL_SetTextureAlphaMod(deco->texture, 255);
 		SDL_RenderTexture(render.renderer, deco->texture, nullptr, &dst);
 	}
 
-	// ── Step 3: Tile Layers ──────────────────────────────────────────────────
+	// Step 3: Tile Layers
 	for (const auto& layer : map.mapData.layers)
 	{
 		auto* drawProp = layer->properties.GetProperty("Draw");
@@ -1279,8 +1308,8 @@ void Scene::DrawMapViewer(int winW, int winH)
 				float screenY = (float)viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
 				float screenW = (float)tileW * mapViewZoom_;
 				float screenH = (float)tileH * mapViewZoom_;
-				if (screenX + screenW < (float)viewX || screenX > (float)viewX + (float)viewW) continue;
-				if (screenY + screenH < (float)viewY || screenY > (float)viewY + (float)viewH) continue;
+				if (screenX + screenW < (float)viewX || screenX >(float)viewX + (float)viewW) continue;
+				if (screenY + screenH < (float)viewY || screenY >(float)viewY + (float)viewH) continue;
 				SDL_FRect dst = { screenX * (float)scale, screenY * (float)scale, screenW * (float)scale, screenH * (float)scale };
 				SDL_FRect srcF = { (float)src.x, (float)src.y, (float)src.w, (float)src.h };
 				SDL_SetTextureColorMod(ts->texture, 255, 255, 255);
@@ -1290,19 +1319,16 @@ void Scene::DrawMapViewer(int winW, int winH)
 		}
 	}
 
-	// ── Step 4: Player sprite + marcador de posicion ─────────────────────────
+	// Step 4: Player sprite + position marker
 	if (player && player->texture)
 	{
-		// Centro del player en coordenadas mundo
 		Vector2D playerPos = player->GetPosition();
 		float worldX = playerPos.getX() + (float)player->texW / 2.0f;
 		float worldY = playerPos.getY() + (float)player->texH / 2.0f;
 
-		// Centro del player en pantalla (espacio de la ventana, sin escala SDL)
 		float screenX = (float)viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
 		float screenY = (float)viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
 
-		// ── Sprite del player ────────────────────────────────────────────────
 		SDL_Rect src = player->GetCurrentAnimationRect();
 		SDL_FRect srcF = { (float)src.x, (float)src.y, (float)src.w, (float)src.h };
 
@@ -1329,16 +1355,12 @@ void Scene::DrawMapViewer(int winW, int winH)
 		SDL_RenderTextureRotated(render.renderer, player->texture, &srcF, &dst, 0, nullptr, flip);
 		SDL_SetTextureAlphaMod(player->texture, 255);
 
-		// ── Marcador "YOU ARE HERE" encima del player ────────────────────────
-		// Radio del circulo escalado con el zoom (minimo 4px, maximo razonable)
 		int r = (int)(9.0f * mapViewZoom_ * (float)scale);
 		if (r < 4) r = 4;
 
-		// Posicion del marcador: encima del sprite
 		int markerCX = (int)(screenX * (float)scale);
 		int markerCY = (int)((screenY - drawH / 2.0f - 6.0f) * (float)scale);
 
-		// Sombra negra (cuadrado ligeramente mas grande)
 		SDL_Rect shadowRect = {
 			markerCX - r - 2,
 			markerCY - r - 2,
@@ -1347,7 +1369,6 @@ void Scene::DrawMapViewer(int winW, int winH)
 		};
 		render.DrawRectangle(shadowRect, 0, 0, 0, 180, true, false);
 
-		// Circulo amarillo solido (representado como rect; si tu render tiene DrawCircle, usalo)
 		SDL_Rect dotRect = {
 			markerCX - r,
 			markerCY - r,
@@ -1356,7 +1377,6 @@ void Scene::DrawMapViewer(int winW, int winH)
 		};
 		render.DrawRectangle(dotRect, 255, 215, 0, 255, true, false);
 
-		// Punto blanco interior para contraste
 		int innerR = std::max(2, r / 3);
 		SDL_Rect innerDot = {
 			markerCX - innerR,
@@ -1366,7 +1386,6 @@ void Scene::DrawMapViewer(int winW, int winH)
 		};
 		render.DrawRectangle(innerDot, 255, 255, 255, 255, true, false);
 
-		// Etiqueta "YOU" encima del marcador (coordenadas sin escala SDL para DrawText)
 		int labelX = (int)(screenX)-10;
 		int labelY = (int)(screenY - drawH / 2.0f - 6.0f) - (int)((float)r / (float)scale) - 14;
 		render.DrawText("YOU", labelX, labelY, 0, 0, { 255, 215, 0, 255 });
@@ -1462,7 +1481,7 @@ void Scene::SetPauseMenuVisible(bool visible)
 			el->isVisible = visible;
 			el->state = visible ? UIElementState::NORMAL : UIElementState::DISABLED;
 		}
-		
+
 		bool isOpt = (el->id >= BTN_PAUSE_OPT_MUSIC_UP && el->id <= BTN_PAUSE_OPT_BACK);
 		if (isOpt) {
 			el->state = UIElementState::DISABLED;
@@ -1643,14 +1662,14 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 		showPauseOptions_ = false;
 		SetPauseOptionsPanelVisible(false);
 		break;
-	
+
 	case BTN_GAMEOVER_MAINMENU:
 		isGameOver_ = false;
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::MAIN_MENU;
 		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 500.0f);
 		break;
-	
+
 	case BTN_GAMEOVER_CONTINUE:
 	{
 		SetGameOverVisible(false);

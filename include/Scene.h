@@ -132,6 +132,8 @@ private:
 public:
     void SetGameOverVisible(bool visible);
     void ResetHealthUI(int health);
+    float wakeUpNotifTimer_ = 0.0f;
+    static constexpr float WAKEUP_NOTIF_DURATION = 4000.0f;
     float checkpointSaveTimer_ = 0.0f;
 
 private:
@@ -174,7 +176,7 @@ private:
     float capaY_ = 600.0f;
     bool  capaCollected_ = false;
     float capaFloatTimer_ = 0.0f; // floating animation timer
-    
+
     // Game Over Menu Assets
     SDL_Texture* texGameOverBg_ = nullptr;
     SDL_Texture* texGameOverBtn_ = nullptr;
