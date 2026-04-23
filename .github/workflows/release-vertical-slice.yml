@@ -19,6 +19,11 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
 
+    - name: Generate Solution with Premake
+      run: |
+        cd build
+        ./premake5.exe vs2022
+
     - name: Build Solution
       run: |
         msbuild EchoesOfSlumber.sln /p:Configuration=Release /p:Platform=x64
