@@ -42,6 +42,10 @@ public:
 	// Hiding state � queried by enemies to disable detection
 	bool IsHiding() const { return isHiding_; }
 
+	// Blanket (cape) collectible – must be collected before hiding is available
+	bool HasBlanket() const { return hasBlanket_; }
+	void SetHasBlanket(bool v) { hasBlanket_ = v; }
+
 private:
 
 	void GetPhysicsValues();
@@ -129,4 +133,7 @@ private:
 	bool  isExitingHide_ = false;
 	// Visual: gentle alpha pulse while hidden to signal stealth state
 	float hideAlphaTime_ = 0.0f;
+
+	// Blanket (cape) collectible flag
+	bool hasBlanket_ = false;
 	};

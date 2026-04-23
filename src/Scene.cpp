@@ -804,6 +804,21 @@ void Scene::LoadGameplay()
 	if (goBtn) {
 		goBtn->state = UIElementState::DISABLED;
 	}
+
+	// ── Blanket ability HUD icons ─────────────────────────────────────────────
+	texBlanketActive_   = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability.png");
+	texBlanketInactive_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability_low_opacity.png");
+
+	// ── Cape collectible (AS_capa.png) ────────────────────────────────────────
+	texCapaCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/AS_capa.png");
+	if (texCapaCollectible_) {
+		SDL_SetTextureColorMod(texCapaCollectible_, 100, 100, 120); // Darker blueish tint
+	}
+	capaCollected_ = false;
+	capaFloatTimer_ = 0.0f;
+	capaX_ = 7000.0f;
+	capaY_ = 4780.0f;
+	capaBody_ = nullptr; // Sensor removed to prevent physics crashes during deletion
 }
 
 void Scene::UpdateGameplay(float dt)
@@ -913,6 +928,38 @@ void Scene::UpdateGameplay(float dt)
 			}
 		}
 	}
+
+	// ── Cape collectible pickup (proximity check) ─────────────────────────────
+	if (!capaCollected_ && player)
+	{
+		capaFloatTimer_ += dt;
+
+		float dx = player->position.getX() - capaX_;
+		float dy = player->position.getY() - (capaY_ - 50.0f); // Adjust for the fact that the player's center is higher
+		float distSq = dx * dx + dy * dy;
+		float pickupRadius = 50.0f;
+
+		if (distSq < pickupRadius * pickupRadius)
+		{
+			capaCollected_ = true;
+			player->SetHasBlanket(true);
+			Engine::GetInstance().audio->PlayFx(player->pickCoinFxId);
+			LOG("Cape collected — blanket ability unlocked!");
+		}
+	}
+
+	// ── Draw cape collectible in-world ────────────────────────────────────────
+	if (!capaCollected_ && texCapaCollectible_)
+	{
+		int capaTexW = 0, capaTexH = 0;
+		Engine::GetInstance().textures->GetSize(texCapaCollectible_, capaTexW, capaTexH);
+		float floatOffset = 6.0f * sinf(capaFloatTimer_ * 0.003f);
+		int drawX = (int)(capaX_ - (float)capaTexW * 0.5f / 2.0f);
+		int drawY = (int)(capaY_ - (float)capaTexH * 0.5f / 2.0f + floatOffset);
+		
+		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
+		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+	}
 }
 
 void Scene::UnloadGameplay()
@@ -941,6 +988,13 @@ void Scene::UnloadGameplay()
 	if (texPauseButtonWhite_) { Engine::GetInstance().textures->UnLoad(texPauseButtonWhite_); texPauseButtonWhite_ = nullptr; }
 	if (texPauseButtonBlack_) { Engine::GetInstance().textures->UnLoad(texPauseButtonBlack_); texPauseButtonBlack_ = nullptr; }
 	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
+
+	// Blanket ability HUD + Cape collectible cleanup
+	if (texBlanketActive_)   { Engine::GetInstance().textures->UnLoad(texBlanketActive_);   texBlanketActive_ = nullptr; }
+	if (texBlanketInactive_) { Engine::GetInstance().textures->UnLoad(texBlanketInactive_); texBlanketInactive_ = nullptr; }
+	if (texCapaCollectible_) { Engine::GetInstance().textures->UnLoad(texCapaCollectible_); texCapaCollectible_ = nullptr; }
+	if (capaBody_) { Engine::GetInstance().physics->DeletePhysBody(capaBody_); capaBody_ = nullptr; }
+	capaCollected_ = false;
 }
 
 void Scene::PostUpdateGameplay()
@@ -1000,6 +1054,20 @@ void Scene::PostUpdateGameplay()
 		// Draw HUD at top left. Using speed = 0.0f makes it static to camera
 		// Scale reduced to 0.5f as requested
 		Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+	}
+
+	// --- Blanket Ability HUD Icon ---
+	if (player)
+	{
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+
+		SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
+		if (blanketTex)
+		{
+			// Aligned with the center of the health bar vertically
+			Engine::GetInstance().render->DrawTextureAlpha(blanketTex, 220, 72, 64, 64, 255);
+		}
 	}
 
 	// --- Game Over Screen ---
