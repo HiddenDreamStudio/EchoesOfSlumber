@@ -164,6 +164,10 @@ bool Audio::PlayMusic(const char* path, float fadeTime) {
     }
     FreeSound(music_data_);
 
+    if (path == nullptr) {
+        return true;
+    }
+
     // Load WAV into memory
     if (!LoadWavFile(path, music_data_)) {
         LOG("Audio: cannot load music %s: %s", path, SDL_GetError());
@@ -212,6 +216,8 @@ bool Audio::PlayFx(int id, int repeat) {
         LOG("Audio: SDL_SetAudioStreamFormat(sfx) failed: %s", SDL_GetError());
         return false;
     }
+
+    SDL_ClearAudioStream(sfx_stream_);
 
     // Queue sound 'repeat+1' times
     for (int i = 0; i <= repeat; ++i) {

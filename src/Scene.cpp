@@ -176,7 +176,7 @@ void Scene::LoadMainMenu()
 	musicVolume_ = 0.8f;
 	sfxVolume_ = 0.8f;
 
-	Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);
+	/*Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);*/
 
 	SDL_Texture* rawLogo = Engine::GetInstance().textures->Load("assets/textures/Menu/EchoesOfSlumber.png");
 	texMenuLogo_ = Engine::GetInstance().render->RecolorTexture(rawLogo, 212, 218, 234);
@@ -704,7 +704,7 @@ void Scene::LoadGameplay()
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
 
-	Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);
+	Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 1.0f);
 
 	Engine::GetInstance().map->Load("assets/maps/", "MapTemplate.tmx");
 	Engine::GetInstance().map->LoadEntities(player);

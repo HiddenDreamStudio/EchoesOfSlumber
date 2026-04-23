@@ -70,6 +70,10 @@ bool Player::Start() {
 	pbody->ctype = ColliderType::PLAYER;
 
 	pickCoinFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/coin-collision-sound-342335.wav");
+	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump.wav");
+	stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");
+	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
+
 	return true;
 }
 
@@ -105,6 +109,20 @@ bool Player::Update(float dt)
 	}
 
 	ApplyPhysics();
+
+	if (velocity.x != 0.0f && !isJumping && !isDashing_ && !isDead_ && !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isWakingUp) {
+		stepTimer_ -= dt;
+
+		
+		if (stepTimer_ <= 0.0f) {
+			Engine::GetInstance().audio->PlayFx(stepsFxId);
+			stepTimer_ = STEP_COOLDOWN;
+		}
+	}
+	else {
+		
+		stepTimer_ = 0.0f;
+	}
 
 	if (damageFlashTimer_ > 0.0f) damageFlashTimer_ -= dt;
 	if (iFrameTimer_ > 0.0f)      iFrameTimer_ -= dt;
@@ -182,6 +200,8 @@ void Player::Jump() {
 			canDoubleJump = true;
 			hasDoubleJumped = false;
 
+			Engine::GetInstance().audio->PlayFx(jumpFxId);
+
 			// Spawn jump dust (Centered at bottom of 100px capsule)
 			Engine::GetInstance().entityManager->SpawnVFX(
 				Vector2D(position.getX(), position.getY() + 50.0f),
@@ -196,6 +216,8 @@ void Player::Jump() {
 				anims.ResetCurrent();
 			}
 			hasDoubleJumped = true;
+
+			Engine::GetInstance().audio->PlayFx(jumpFxId);
 
 			// Spawn double jump dust
 			Engine::GetInstance().entityManager->SpawnVFX(
@@ -537,6 +559,8 @@ void Player::TakeDamage(int damage)
 		isDead_ = true;
 		isHiding_ = false;
 		anims.SetCurrent("death");
+		Engine::GetInstance().audio->PlayMusic(nullptr);
+		Engine::GetInstance().audio->PlayFx(gameOverFxId);
 		LOG("Player is dead");
 	}
 	else
