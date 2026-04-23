@@ -365,9 +365,9 @@ void Player::Draw(float dt) {
 	}
 
 	float currentDrawScale = drawScale;
-	if (anims.GetCurrentName() == "jump") {
+	/*if (anims.GetCurrentName() == "jump") {
 		currentDrawScale *= 1.25f;
-	}
+	}*/
 
 	int drawX = static_cast<int>(position.getX() - (static_cast<float>(texW) * currentDrawScale) / 2.0f);
 	int drawY = static_cast<int>(position.getY() - (static_cast<float>(texH) * currentDrawScale) / 2.0f);

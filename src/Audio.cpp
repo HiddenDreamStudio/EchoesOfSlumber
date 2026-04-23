@@ -113,6 +113,15 @@ bool Audio::Awake() {
     return true;
 }
 
+bool Audio::Update(float dt) {
+    if (active && music_stream_ && music_data_.buf != nullptr) {
+        if (SDL_GetAudioStreamAvailable(music_stream_) < (int)music_data_.len) {
+            SDL_PutAudioStreamData(music_stream_, music_data_.buf, music_data_.len);
+        }
+    }
+    return true;
+}
+
 bool Audio::CleanUp() {
     // If audio is inactive or already quit elsewhere, don't touch SDL objects.
     if (!active || !SDL_WasInit(SDL_INIT_AUDIO)) {

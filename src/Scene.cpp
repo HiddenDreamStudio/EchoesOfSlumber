@@ -42,6 +42,7 @@ Scene::~Scene() {}
 bool Scene::Awake()
 {
 	LOG("Loading Scene");
+	menuClickFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Menu-Selection-Click.wav");
 	hasPendingSceneChange = true;
 	pendingScene = currentScene;
 	return true;
@@ -173,8 +174,10 @@ void Scene::LoadMainMenu()
 {
 	showSettings_ = false;
 	settingsCooldown_ = 0;
-	musicVolume_ = 0.8f;
-	sfxVolume_ = 0.8f;
+	musicVolume_ = 1.0f;
+	sfxVolume_ = 1.0f;
+
+	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Game-Menu.wav", 1.0f);
 
 	/*Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);*/
 
@@ -485,6 +488,8 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 	if (waitingForFade_)      return;
 	if (settingsCooldown_ > 0) return;
 
+	Engine::GetInstance().audio->PlayFx(menuClickFxId);
+
 	switch (uiElement->id)
 	{
 	case BTN_PLAY:
@@ -667,6 +672,7 @@ void Scene::DrawIntro()
 void Scene::LoadIntroCinematic()
 {
 	LOG("Playing intro cinematic...");
+	Engine::GetInstance().audio->PlayMusic(nullptr);
 	Engine::GetInstance().cinematics->PlayVideo("assets/video/test.mp4");
 }
 
@@ -1470,6 +1476,8 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 {
 	if (waitingForFade_) return;
 
+	Engine::GetInstance().audio->PlayFx(menuClickFxId);
+
 	switch (uiElement->id)
 	{
 	case BTN_PAUSE_CONTINUE:
@@ -1568,6 +1576,7 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 	srand((unsigned)time(nullptr));
 
 	float halfW = (float)winW * 0.5f;
+	float halfH = (float)winH * 0.5f;
 
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		auto& f = fragments_[i];
