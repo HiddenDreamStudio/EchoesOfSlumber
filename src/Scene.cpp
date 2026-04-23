@@ -42,6 +42,7 @@ Scene::~Scene() {}
 bool Scene::Awake()
 {
 	LOG("Loading Scene");
+	menuClickFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Menu-Selection-Click.wav");
 	hasPendingSceneChange = true;
 	pendingScene = currentScene;
 	return true;
@@ -173,10 +174,12 @@ void Scene::LoadMainMenu()
 {
 	showSettings_ = false;
 	settingsCooldown_ = 0;
-	musicVolume_ = 0.8f;
-	sfxVolume_ = 0.8f;
+	musicVolume_ = 1.0f;
+	sfxVolume_ = 1.0f;
 
-	Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);
+	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Game-Menu.wav", 1.0f);
+
+	/*Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);*/
 
 	SDL_Texture* rawLogo = Engine::GetInstance().textures->Load("assets/textures/Menu/EchoesOfSlumber.png");
 	texMenuLogo_ = Engine::GetInstance().render->RecolorTexture(rawLogo, 212, 218, 234);
@@ -485,6 +488,8 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 	if (waitingForFade_)      return;
 	if (settingsCooldown_ > 0) return;
 
+	Engine::GetInstance().audio->PlayFx(menuClickFxId);
+
 	switch (uiElement->id)
 	{
 	case BTN_PLAY:
@@ -667,6 +672,7 @@ void Scene::DrawIntro()
 void Scene::LoadIntroCinematic()
 {
 	LOG("Playing intro cinematic...");
+	Engine::GetInstance().audio->PlayMusic(nullptr);
 	Engine::GetInstance().cinematics->PlayVideo("assets/video/test.mp4");
 }
 
@@ -704,7 +710,7 @@ void Scene::LoadGameplay()
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
 
-	Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);
+	Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 1.0f);
 
 	Engine::GetInstance().map->Load("assets/maps/", "MapTemplate.tmx");
 	Engine::GetInstance().map->LoadEntities(player);
@@ -1469,6 +1475,8 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 {
 	if (waitingForFade_) return;
+
+	Engine::GetInstance().audio->PlayFx(menuClickFxId);
 
 	switch (uiElement->id)
 	{
