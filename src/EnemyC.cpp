@@ -51,6 +51,10 @@ bool EnemyC::Start() {
 	// Remember patrol origin
 	patrolOriginX_ = position.getX();
 
+	// Save origin position to return when player hides
+	originPosition_ = pos;
+	originTilePos_ = tilePos;
+
 	// Start in IDLE
 	currentState_ = State::IDLE;
 	idleTimer_ = 0.0f;
@@ -77,6 +81,55 @@ bool EnemyC::Update(float dt)
 		playerListener_->TakeDamage(1);
 		attackCooldown_ = ATTACK_INTERVAL;
 	}
+
+	// ?? Hide behaviour: return to origin while player is hiding ??????????????
+	auto playerShared = Engine::GetInstance().scene->player;
+	bool playerIsHiding = playerShared && playerShared->IsHiding();
+
+	if (playerIsHiding)
+	{
+		wasPlayerHiding_ = true;
+
+		int bodyX, bodyY;
+		pbody->GetPosition(bodyX, bodyY);
+		Vector2D tilePos = Engine::GetInstance().map->WorldToMap(bodyX, bodyY);
+
+		int distToOrigin = std::abs((int)tilePos.getX() - (int)originTilePos_.getX()) +
+			std::abs((int)tilePos.getY() - (int)originTilePos_.getY());
+
+		if (distToOrigin <= 1)
+		{
+			pathfinding->pathTiles.clear();
+			GetPhysicsValues();
+			velocity.x = 0.0f;
+			ApplyPhysics();
+		}
+		else
+		{
+			pathfinding->ResetPath(tilePos);
+			while (pathfinding->CanPropagateAStar(originTilePos_))
+				pathfinding->PropagateAStar(SQUARED);
+
+			GetPhysicsValues();
+			MoveToward(originPosition_.getX());
+			ApplyPhysics();
+		}
+
+		Draw(dt);
+		return true;
+	}
+
+	if (wasPlayerHiding_)
+	{
+		wasPlayerHiding_ = false;
+		EnterState(State::IDLE);
+		int bodyX, bodyY;
+		pbody->GetPosition(bodyX, bodyY);
+		Vector2D tilePos = Engine::GetInstance().map->WorldToMap(bodyX, bodyY);
+		pathfinding->ResetPath(tilePos);
+		LOG("EnemyC re-acquired player — pathfinding reset");
+	}
+	// ?????????????????????????????????????????????????????????????????????????
 
 	// FSM
 	UpdateFSM(dt);
