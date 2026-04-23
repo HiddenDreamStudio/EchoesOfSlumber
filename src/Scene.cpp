@@ -12,7 +12,6 @@
 #include "Player.h"
 #include "Map.h"
 #include "Item.h"
-#include "Enemy.h"
 #include "UIManager.h"
 #include "SaveSystem.h"
 #include "Physics.h"
@@ -1585,6 +1584,7 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		float tw = 0, th = 0;
 		SDL_GetTextureSize(f.tex, &tw, &th);
 
+		// Logical size between original and massive
 		float sc = RandF(0.30f, 0.42f);
 		f.w = (float)winW * sc;
 		f.h = f.w * (th / tw);
