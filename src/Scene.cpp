@@ -1568,6 +1568,7 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 	srand((unsigned)time(nullptr));
 
 	float halfW = (float)winW * 0.5f;
+	float halfH = (float)winH * 0.5f;  
 
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		auto& f = fragments_[i];
