@@ -622,6 +622,17 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                 }
             }
         }
+        else if (objectGroupNode.attribute("name").as_string() == std::string("Checkpoint")) {
+            for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+                float x = objectNode.attribute("x").as_float();
+                float y = objectNode.attribute("y").as_float();
+                
+                auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
+                checkpoint->position = Vector2D(x, y);
+                checkpoint->Start();
+                LOG("Checkpoint from specialized layer spawned at: %f, %f", x, y);
+            }
+        }
     }
 }
 

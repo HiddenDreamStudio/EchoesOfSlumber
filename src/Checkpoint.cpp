@@ -63,5 +63,11 @@ void Checkpoint::OnCollision(PhysBody* physA, PhysBody* physB) {
         activated = true;
         LOG("Checkpoint activated! Saving game...");
         Engine::GetInstance().saveSystem->QuickSave();
+        
+        // Trigger UI notification
+        auto scene = std::dynamic_pointer_cast<Scene>(Engine::GetInstance().GetModule("scene"));
+        if (scene) {
+            scene->checkpointSaveTimer_ = 3000.0f; 
+        }
     }
 }

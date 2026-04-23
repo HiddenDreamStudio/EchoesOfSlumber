@@ -183,6 +183,10 @@ private:
     SDL_Texture* texGameOverFrag4_ = nullptr;
     SDL_Texture* texGameOverFrag5_ = nullptr;
 
+    // Checkpoint notification
+    SDL_Texture* texCheckpointSaved_ = nullptr;
+    float checkpointSaveTimer_ = 0.0f;
+
     // Pause menu textures
     SDL_Texture* texPauseBackground_ = nullptr;
     SDL_Texture* texPauseButtonWhite_ = nullptr;

@@ -773,6 +773,8 @@ void Scene::LoadGameplay()
 	activeHealthAnim_ = 0;
 	isGameOver_ = false;
 	texGameOver_ = Engine::GetInstance().render->CreateMenuTextTexture("GAME OVER, YOU DIED", { 255, 0, 0, 255 });
+	texCheckpointSaved_ = Engine::GetInstance().render->CreateMenuTextTexture("GAME SAVED", { 255, 255, 255, 255 });
+	checkpointSaveTimer_ = 0.0f;
 
 	// Game Over Button
 	int winW = 0, winH = 0;
@@ -1117,6 +1119,27 @@ void Scene::PostUpdateGameplay()
 		
 		// New Fragment 4 in bottom-left
 		if (texGameOverFrag4_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag4_, 50.0f, (float)winH - 220.0f, 180.0f, 180.0f, 200);
+	}
+
+	// --- Checkpoint Save Notification ---
+	if (checkpointSaveTimer_ > 0.0f) {
+		checkpointSaveTimer_ -= Engine::GetInstance().GetDeltaTime();
+		if (texCheckpointSaved_) {
+			float tw, th;
+			SDL_GetTextureSize(texCheckpointSaved_, &tw, &th);
+			int winW = 0, winH = 0;
+			Engine::GetInstance().window->GetWindowSize(winW, winH);
+
+			float drawX = (float)winW - tw - 40.0f;
+			float drawY = (float)winH - th - 40.0f;
+
+			Uint8 alpha = 255;
+			if (checkpointSaveTimer_ < 1000.0f) {
+				alpha = (Uint8)(255.0f * (checkpointSaveTimer_ / 1000.0f));
+			}
+
+			Engine::GetInstance().render->DrawTextureAlphaF(texCheckpointSaved_, drawX, drawY, tw, th, alpha);
+		}
 	}
 }
 

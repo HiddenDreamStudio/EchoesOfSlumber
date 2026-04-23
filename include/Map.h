@@ -129,6 +129,11 @@ struct AnimatedPlantObject
     SDL_Texture* texture = nullptr;
 };
 
+struct CheckpointObject {
+    float x, y, width, height;
+    bool visited = false;
+};
+
 struct MapData
 {
     int width;
@@ -141,6 +146,7 @@ struct MapData
     std::list<ImageLayer*> imageLayers;
     std::list<DecorationObject*> decorationObjects;
     std::list<AnimatedPlantObject*> animatedPlants;
+    std::vector<CheckpointObject*> checkpoints;
 };
 
 class Map : public Module
