@@ -959,6 +959,7 @@ void Scene::UpdateGameplay(float dt)
 				capaCollected_ = true;
 				player->SetHasBlanket(true);
 				Engine::GetInstance().audio->PlayFx(player->pickCoinFxId);
+				capaNotifTimer_ = CAPA_NOTIF_DURATION;
 				LOG("Cape collected - blanket ability unlocked!");
 			}
 		}
@@ -1161,9 +1162,9 @@ void Scene::PostUpdateGameplay()
 		if (wakeUpNotifTimer_ < 800.0f)
 			alpha = (Uint8)(255.0f * (wakeUpNotifTimer_ / 800.0f));
 
-		// Panel dimensions — smaller to keep text compact
-		const int panelW = 300;
-		const int panelH = 50;
+		// Panel dimensions — slightly larger to give the text more padding
+		const int panelW = 270;
+		const int panelH = 36;
 		const int panelX = (winW - panelW) / 2;
 		const int panelY = 40;
 
@@ -1175,12 +1176,50 @@ void Scene::PostUpdateGameplay()
 		SDL_Rect border = { panelX - 2, panelY - 2, panelW + 4, panelH + 4 };
 		render.DrawRectangle(border, 255, 255, 255, alpha, false, false);
 
-		// Text centered inside the panel — no accents or special punctuation
+		// Text centered inside the panel — no accents or special punctuation (scaled down)
 		SDL_Color textColor = { 255, 255, 255, alpha };
 		render.DrawMenuTextCentered(
-			"Que es esto... Donde estoy...",
+			"What is this... Where am I...",
 			{ panelX, panelY, panelW, panelH },
-			textColor
+			textColor,
+			0.35f
+		);
+	}
+
+	// --- Cape pickup notification ---
+	if (capaNotifTimer_ > 0.0f) {
+		capaNotifTimer_ -= Engine::GetInstance().GetDt();
+
+		int winW2 = 0, winH2 = 0;
+		Engine::GetInstance().window->GetWindowSize(winW2, winH2);
+		auto& render2 = *Engine::GetInstance().render;
+
+		// Fade out during last 800ms
+		Uint8 alpha2 = 255;
+		if (capaNotifTimer_ < 800.0f)
+			alpha2 = (Uint8)(255.0f * (capaNotifTimer_ / 800.0f));
+
+		// Panel dimensions
+		const int cpW = 280;
+		const int cpH = 36;
+		const int cpX = (winW2 - cpW) / 2;
+		const int cpY = 40;
+
+		// Black filled panel
+		SDL_Rect cpPanel = { cpX, cpY, cpW, cpH };
+		render2.DrawRectangle(cpPanel, 0, 0, 0, alpha2, true, false);
+
+		// White border (outline) — 2px
+		SDL_Rect cpBorder = { cpX - 2, cpY - 2, cpW + 4, cpH + 4 };
+		render2.DrawRectangle(cpBorder, 255, 255, 255, alpha2, false, false);
+
+		// Text centered inside the panel (scaled down)
+		SDL_Color cpColor = { 255, 255, 255, alpha2 };
+		render2.DrawMenuTextCentered(
+			"Cape collected! Press H to hide",
+			{ cpX, cpY, cpW, cpH },
+			cpColor,
+			0.35f
 		);
 	}
 }

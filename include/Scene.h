@@ -176,6 +176,8 @@ private:
     float capaY_ = 600.0f;
     bool  capaCollected_ = false;
     float capaFloatTimer_ = 0.0f; // floating animation timer
+    float capaNotifTimer_ = 0.0f; // cape pickup notification timer
+    static constexpr float CAPA_NOTIF_DURATION = 4000.0f;
 
     // Game Over Menu Assets
     SDL_Texture* texGameOverBg_ = nullptr;
