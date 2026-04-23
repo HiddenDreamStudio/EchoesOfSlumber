@@ -64,6 +64,9 @@ public:
 
 	//Audio fx
 	int pickCoinFxId = -1;
+	int jumpFxId = -1;
+	int stepsFxId = -1;
+	int gameOverFxId = -1;
 
 	PhysBody* pbody = nullptr;
 	float jumpForce = 10.0f;
@@ -118,6 +121,8 @@ private:
 	float dashTimer_ = 0.0f;
 	float dashCooldown_ = 0.0f;
 	float dashDirX_ = 1.0f;
+	float stepTimer_ = 0.0f;
+	static constexpr float STEP_COOLDOWN = 350.0f;
 
 	// Hide (press H to crouch behind rocks  enemies lose sight of player)
 	bool  isHiding_ = false;
