@@ -161,6 +161,18 @@ private:
     int currentHealthUI_ = 3;
     int activeHealthAnim_ = 0; // 0=None, 1=animHealth1_, 2=animHealth2_, 3=animHealth3_
     SDL_Texture* texGameOver_ = nullptr;
+
+    // Blanket ability HUD icon
+    SDL_Texture* texBlanketActive_ = nullptr;   // full opacity — shown while hiding
+    SDL_Texture* texBlanketInactive_ = nullptr;  // low opacity — shown when not hiding
+
+    // Cape collectible (AS_capa.png)
+    SDL_Texture* texCapaCollectible_ = nullptr;
+    PhysBody* capaBody_ = nullptr;
+    float capaX_ = 300.0f;
+    float capaY_ = 600.0f;
+    bool  capaCollected_ = false;
+    float capaFloatTimer_ = 0.0f; // floating animation timer
     
     // Game Over Menu Assets
     SDL_Texture* texGameOverBg_ = nullptr;
