@@ -90,4 +90,9 @@ private:
 
 	// Facing
 	bool facingRight_ = false;
+
+	// Return-to-origin when player hides
+	Vector2D originPosition_;
+	Vector2D originTilePos_;
+	bool wasPlayerHiding_ = false;
 };

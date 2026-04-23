@@ -46,6 +46,7 @@ private:
     // ── Shared volume state (main menu + pause) ───────────────────────────────
     float musicVolume_ = 0.8f;
     float sfxVolume_ = 0.8f;
+    int menuClickFxId = -1;
 
     // =========================================================================
     //  MAIN MENU
