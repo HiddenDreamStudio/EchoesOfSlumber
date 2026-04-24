@@ -211,8 +211,8 @@ void Scene::LoadMainMenu()
 	const int btnW = 315;
 	const int btnH = static_cast<int>(static_cast<float>(btnW) * (130.0f / 456.0f));
 	const int btnX = (leftHalf - btnW) / 2;
-	const int startY = logoY + logoH + 50;
-	const int gap = btnH + 15;
+	const int startY = logoY + logoH + 20;
+	const int gap = btnH + 10;
 
 	menuAnimState_ = MenuAnimState::LOGO_FADE_IN;
 	menuAnimTimer_ = 0.0f;
@@ -244,21 +244,13 @@ void Scene::LoadMainMenu()
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = 60;
-	const int smallBtnW = 40;
-	const int smallBtnH = 34;
 	const int rowH = 52;
 
-	SDL_Rect musicUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60,                  smallBtnW, smallBtnH };
-	SDL_Rect musicDownPos = { panelX + 12,                       panelY + 60,                  smallBtnW, smallBtnH };
-	SDL_Rect sfxUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,           smallBtnW, smallBtnH };
-	SDL_Rect sfxDownPos = { panelX + 12,                       panelY + 60 + rowH,           smallBtnW, smallBtnH };
 	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120,       btnH };
 
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_MUSIC_UP, "+", musicUpPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_MUSIC_DOWN, "-", musicDownPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_UP, "+", sfxUpPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SFX_DOWN, "-", sfxDownPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS_BACK, "back", backPos, this);
+	auto btnBack = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS_BACK, "back", backPos, this);
+	if (texMenuButton_) btnBack->SetTexture(texMenuButton_);
+	if (texButtonFragmented_) btnBack->SetHoverTexture(texButtonFragmented_);
 
 	SetSettingsPanelVisible(false);
 }
@@ -451,36 +443,55 @@ void Scene::DrawSettingsPanel(int winW, int winH)
 	const int panelY = 60;
 	const int rowH = 52;
 
+	HandleVolumeSliderInput(panelX, panelY, panelW, rowH);
+
 	SDL_Rect overlay = { 0, 0, winW, winH };
 	render.DrawRectangle(overlay, 0, 0, 0, 160, true, false);
 
+	// Prettier panel background with a modern gradient-like style (using alpha blending)
+	SDL_Rect shadow = { panelX + 4, panelY + 4, panelW, panelH };
+	render.DrawRectangle(shadow, 0, 0, 0, 150, true, false);
 	SDL_Rect panel = { panelX, panelY, panelW, panelH };
-	render.DrawRectangle(panel, 8, 12, 22, 250, true, false);
-	render.DrawRectangle(panel, 60, 90, 150, 200, false, false);
-	SDL_Rect topBar = { panelX, panelY, panelW, 4 };
-	render.DrawRectangle(topBar, 80, 140, 200, 255, true, false);
+	render.DrawRectangle(panel, 15, 20, 35, 245, true, false); // Dark teal base
+	SDL_Rect innerPanel = { panelX + 2, panelY + 2, panelW - 4, panelH - 4 };
+	render.DrawRectangle(innerPanel, 25, 32, 50, 250, false, false); // subtle inner border
+	
+	SDL_Rect topBar = { panelX, panelY, panelW, 36 };
+	render.DrawRectangle(topBar, 35, 45, 75, 255, true, false);
+	render.DrawMenuTextCentered("OPTIONS", { panelX, panelY + 4, panelW, 28 }, { 220, 240, 255, 255 });
 
-	render.DrawMenuTextCentered("SETTINGS", { panelX, panelY + 8, panelW, 30 }, { 180, 210, 240, 255 });
+	// Music slider
+	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 45, panelW / 2 - 10, 20 }, { 180, 200, 220, 255 });
+	char vol[8];
+	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
+	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45, panelW / 2, 20 }, { 255, 255, 255, 255 });
+	
+	SDL_Rect mBarBg = { panelX + 20, panelY + 74, panelW - 40, 8 };
+	render.DrawRectangle(mBarBg, 10, 15, 25, 255, true, false); // Track background
+	int mFill = static_cast<int>(static_cast<float>(panelW - 40) * musicVolume_);
+	SDL_Rect mBarFill = { panelX + 20, panelY + 74, mFill, 8 };
+	render.DrawRectangle(mBarFill, 100, 180, 255, 255, true, false); // vibrant cyan fill
+	
+	// Knob
+	SDL_Rect mKnob = { panelX + 20 + mFill - 5, panelY + 70, 10, 16 };
+	render.DrawRectangle(mKnob, 200, 220, 255, 255, true, false);
 
-	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 50, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
-	char volText[8];
-	snprintf(volText, sizeof(volText), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
-	render.DrawMenuTextCentered(volText, { panelX + panelW / 2, panelY + 50, panelW / 2, 25 }, { 200, 220, 240, 255 });
-	SDL_Rect barBg = { panelX + 20, panelY + 78, panelW - 40, 7 };
-	render.DrawRectangle(barBg, 30, 40, 60, 200, true, false);
-	int musicFill = static_cast<int>(static_cast<float>(panelW - 40) * musicVolume_);
-	SDL_Rect barFill = { panelX + 20, panelY + 78, musicFill, 7 };
-	render.DrawRectangle(barFill, 80, 160, 220, 255, true, false);
+	// SFX slider
+	render.DrawMenuTextCentered("SFX", { panelX, panelY + 45 + rowH, panelW / 2 - 10, 20 }, { 180, 200, 220, 255 });
+	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
+	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45 + rowH, panelW / 2, 20 }, { 255, 255, 255, 255 });
+	
+	SDL_Rect sBarBg = { panelX + 20, panelY + 74 + rowH, panelW - 40, 8 };
+	render.DrawRectangle(sBarBg, 10, 15, 25, 255, true, false);
+	int sFill = static_cast<int>(static_cast<float>(panelW - 40) * sfxVolume_);
+	SDL_Rect sBarFill = { panelX + 20, panelY + 74 + rowH, sFill, 8 };
+	render.DrawRectangle(sBarFill, 100, 180, 255, 255, true, false);
 
-	render.DrawMenuTextCentered("SFX", { panelX, panelY + 50 + rowH, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
-	snprintf(volText, sizeof(volText), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
-	render.DrawMenuTextCentered(volText, { panelX + panelW / 2, panelY + 50 + rowH, panelW / 2, 25 }, { 200, 220, 240, 255 });
-	SDL_Rect sfxBarBg = { panelX + 20, panelY + 78 + rowH, panelW - 40, 7 };
-	render.DrawRectangle(sfxBarBg, 30, 40, 60, 200, true, false);
-	int sfxFill = static_cast<int>(static_cast<float>(panelW - 40) * sfxVolume_);
-	SDL_Rect sfxBarFill = { panelX + 20, panelY + 78 + rowH, sfxFill, 7 };
-	render.DrawRectangle(sfxBarFill, 80, 160, 220, 255, true, false);
+	// Knob
+	SDL_Rect sKnob = { panelX + 20 + sFill - 5, panelY + 70 + rowH, 10, 16 };
+	render.DrawRectangle(sKnob, 200, 220, 255, 255, true, false);
 }
+
 
 void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 {
@@ -899,6 +910,7 @@ void Scene::UpdateGameplay(float dt)
 		}
 
 		// HUD Logic
+
 		if (player->health < currentHealthUI_) {
 			if (currentHealthUI_ == 3) {
 				activeHealthAnim_ = 1;
@@ -1076,9 +1088,9 @@ void Scene::PostUpdateGameplay()
 			Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
 		}
 
-		// --- Blanket Ability HUD Icon ---
 		if (player->HasBlanket())
 		{
+			// --- Blanket Ability HUD Icon ---
 			SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
 			if (blanketTex)
 			{
@@ -1157,7 +1169,6 @@ void Scene::PostUpdateGameplay()
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
 		auto& render = *Engine::GetInstance().render;
 
-		// Fade out during last 800ms
 		Uint8 alpha = 255;
 		if (wakeUpNotifTimer_ < 800.0f)
 			alpha = (Uint8)(255.0f * (wakeUpNotifTimer_ / 800.0f));
@@ -1194,7 +1205,6 @@ void Scene::PostUpdateGameplay()
 		Engine::GetInstance().window->GetWindowSize(winW2, winH2);
 		auto& render2 = *Engine::GetInstance().render;
 
-		// Fade out during last 800ms
 		Uint8 alpha2 = 255;
 		if (capaNotifTimer_ < 800.0f)
 			alpha2 = (Uint8)(255.0f * (capaNotifTimer_ / 800.0f));
@@ -1222,10 +1232,45 @@ void Scene::PostUpdateGameplay()
 			0.35f
 		);
 	}
+
+	// --- No cape notification ---
+	if (noCapeNotifTimer_ > 0.0f) {
+		noCapeNotifTimer_ -= Engine::GetInstance().GetDt();
+
+		int winW3 = 0, winH3 = 0;
+		Engine::GetInstance().window->GetWindowSize(winW3, winH3);
+		auto& render3 = *Engine::GetInstance().render;
+
+		Uint8 alpha3 = 255;
+		if (noCapeNotifTimer_ < 800.0f)
+			alpha3 = (Uint8)(255.0f * (noCapeNotifTimer_ / 800.0f));
+
+		// Panel dimensions
+		const int ncpW = 340;
+		const int ncpH = 36;
+		const int ncpX = (winW3 - ncpW) / 2;
+		const int ncpY = 40;
+
+		// Black filled panel
+		SDL_Rect ncpPanel = { ncpX, ncpY, ncpW, ncpH };
+		render3.DrawRectangle(ncpPanel, 0, 0, 0, alpha3, true, false);
+
+		// White border (outline) — 2px
+		SDL_Rect ncpBorder = { ncpX - 2, ncpY - 2, ncpW + 4, ncpH + 4 };
+		render3.DrawRectangle(ncpBorder, 255, 255, 255, alpha3, false, false);
+
+		// Text centered inside the panel (scaled down)
+		SDL_Color ncpColor = { 255, 255, 255, alpha3 };
+		render3.DrawMenuTextCentered(
+			"You cant do this you need an object",
+			{ ncpX, ncpY, ncpW, ncpH },
+			ncpColor,
+			0.35f
+		);
+	}
 }
 
 // ── Map viewer ────────────────────────────────────────────────────────────────
-
 void Scene::DrawMapViewer(int winW, int winH)
 {
 	auto& render = *Engine::GetInstance().render;
@@ -1483,31 +1528,15 @@ void Scene::LoadPauseMenuButtons()
 		btnMenu->SetHoverTexture(texButtonFragmented_);
 		btnCont->SetHoverTexture(texButtonFragmented_);
 	}
-	else if (texPauseButtonBlack_) {
-		btnOpt->SetHoverTexture(texPauseButtonBlack_);
-		btnMap->SetHoverTexture(texPauseButtonBlack_);
-		btnMenu->SetHoverTexture(texPauseButtonBlack_);
-		btnCont->SetHoverTexture(texPauseButtonBlack_);
-	}
-
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = winH / 2 - 100;
-	const int smallBtnW = 40;
-	const int smallBtnH = 34;
 	const int rowH = 52;
-
-	SDL_Rect mUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60,                  smallBtnW, smallBtnH };
-	SDL_Rect mDownPos = { panelX + 12,                       panelY + 60,                  smallBtnW, smallBtnH };
-	SDL_Rect sUpPos = { panelX + panelW - smallBtnW - 12, panelY + 60 + rowH,           smallBtnW, smallBtnH };
-	SDL_Rect sDownPos = { panelX + 12,                       panelY + 60 + rowH,           smallBtnW, smallBtnH };
 	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120,       btnH };
 
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_MUSIC_UP, "+", mUpPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_MUSIC_DOWN, "-", mDownPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_SFX_UP, "+", sUpPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_SFX_DOWN, "-", sDownPos, this);
-	Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_BACK, "back", backPos, this);
+	auto btnBack = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_BACK, "back", backPos, this);
+	if (texPauseButtonWhite_) btnBack->SetTexture(texPauseButtonWhite_);
+	if (texButtonFragmented_) btnBack->SetHoverTexture(texButtonFragmented_);
 
 	SetPauseMenuVisible(false);
 }
@@ -1570,6 +1599,11 @@ void Scene::ResetHealthUI(int health)
 	animHealth3_.Reset();
 }
 
+void Scene::ShowNoCapeNotification()
+{
+	noCapeNotifTimer_ = 3000.0f;
+}
+
 void Scene::DrawPauseMenu()
 {
 	auto& render = *Engine::GetInstance().render;
@@ -1602,33 +1636,52 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	const int panelY = winH / 2 - 100;
 	const int rowH = 52;
 
+	HandleVolumeSliderInput(panelX, panelY, panelW, rowH);
+
+	// Prettier panel background with a modern gradient-like style
+	SDL_Rect shadow = { panelX + 4, panelY + 4, panelW, panelH };
+	render.DrawRectangle(shadow, 0, 0, 0, 150, true, false);
 	SDL_Rect panel = { panelX, panelY, panelW, panelH };
-	render.DrawRectangle(panel, 8, 12, 22, 250, true, false);
-	render.DrawRectangle(panel, 60, 90, 150, 200, false, false);
-	SDL_Rect topBar = { panelX, panelY, panelW, 4 };
-	render.DrawRectangle(topBar, 80, 140, 200, 255, true, false);
+	render.DrawRectangle(panel, 15, 20, 35, 245, true, false); // Dark teal base
+	SDL_Rect innerPanel = { panelX + 2, panelY + 2, panelW - 4, panelH - 4 };
+	render.DrawRectangle(innerPanel, 25, 32, 50, 250, false, false); // subtle inner border
+	
+	SDL_Rect topBar = { panelX, panelY, panelW, 36 };
+	render.DrawRectangle(topBar, 35, 45, 75, 255, true, false);
+	render.DrawMenuTextCentered("OPTIONS", { panelX, panelY + 4, panelW, 28 }, { 220, 240, 255, 255 });
 
-	render.DrawMenuTextCentered("OPTIONS", { panelX, panelY + 8, panelW, 30 }, { 180, 210, 240, 255 });
-
-	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 50, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
+	// Music slider
+	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 45, panelW / 2 - 10, 20 }, { 180, 200, 220, 255 });
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 50, panelW / 2, 25 }, { 200, 220, 240, 255 });
-	SDL_Rect mBarBg = { panelX + 20, panelY + 78, panelW - 40, 7 };
-	render.DrawRectangle(mBarBg, 30, 40, 60, 200, true, false);
+	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45, panelW / 2, 20 }, { 255, 255, 255, 255 });
+	
+	SDL_Rect mBarBg = { panelX + 20, panelY + 74, panelW - 40, 8 };
+	render.DrawRectangle(mBarBg, 10, 15, 25, 255, true, false); // Track background
 	int mFill = static_cast<int>(static_cast<float>(panelW - 40) * musicVolume_);
-	SDL_Rect mBarFill = { panelX + 20, panelY + 78, mFill, 7 };
-	render.DrawRectangle(mBarFill, 80, 160, 220, 255, true, false);
+	SDL_Rect mBarFill = { panelX + 20, panelY + 74, mFill, 8 };
+	render.DrawRectangle(mBarFill, 100, 180, 255, 255, true, false); // vibrant cyan fill
+	
+	// Knob
+	SDL_Rect mKnob = { panelX + 20 + mFill - 5, panelY + 70, 10, 16 };
+	render.DrawRectangle(mKnob, 200, 220, 255, 255, true, false);
 
-	render.DrawMenuTextCentered("SFX", { panelX, panelY + 50 + rowH, panelW / 2 - 10, 25 }, { 150, 180, 210, 220 });
+	// SFX slider
+	render.DrawMenuTextCentered("SFX", { panelX, panelY + 45 + rowH, panelW / 2 - 10, 20 }, { 180, 200, 220, 255 });
 	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 50 + rowH, panelW / 2, 25 }, { 200, 220, 240, 255 });
-	SDL_Rect sBarBg = { panelX + 20, panelY + 78 + rowH, panelW - 40, 7 };
-	render.DrawRectangle(sBarBg, 30, 40, 60, 200, true, false);
+	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45 + rowH, panelW / 2, 20 }, { 255, 255, 255, 255 });
+	
+	SDL_Rect sBarBg = { panelX + 20, panelY + 74 + rowH, panelW - 40, 8 };
+	render.DrawRectangle(sBarBg, 10, 15, 25, 255, true, false);
 	int sFill = static_cast<int>(static_cast<float>(panelW - 40) * sfxVolume_);
-	SDL_Rect sBarFill = { panelX + 20, panelY + 78 + rowH, sFill, 7 };
-	render.DrawRectangle(sBarFill, 80, 160, 220, 255, true, false);
+	SDL_Rect sBarFill = { panelX + 20, panelY + 74 + rowH, sFill, 8 };
+	render.DrawRectangle(sBarFill, 100, 180, 255, 255, true, false);
+
+	// Knob
+	SDL_Rect sKnob = { panelX + 20 + sFill - 5, panelY + 70 + rowH, 10, 16 };
+	render.DrawRectangle(sKnob, 200, 220, 255, 255, true, false);
 }
+
 
 void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 {
@@ -1647,23 +1700,24 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 		SetPauseOptionsPanelVisible(true);
 		break;
 	case BTN_PAUSE_MAP:
+	{
 		showMapViewer_ = true;
 		SetPauseMenuVisible(false);
-		{
-			int winW = 0, winH = 0;
-			Engine::GetInstance().window->GetWindowSize(winW, winH);
-			const int viewW = winW - 20;
-			const int viewH = winH - 42 - 30;
-			Vector2D mapSizePx = Engine::GetInstance().map->GetMapSizeInPixels();
-			float zoomX = (float)viewW / mapSizePx.getX();
-			float zoomY = (float)viewH / mapSizePx.getY();
-			mapViewZoom_ = std::min(zoomX, zoomY) * 0.95f;
-			if (mapViewZoom_ < 0.05f) mapViewZoom_ = 0.05f;
-			if (mapViewZoom_ > 2.0f)  mapViewZoom_ = 2.0f;
-			mapViewOffsetX_ = ((float)viewW - mapSizePx.getX() * mapViewZoom_) / 2.0f;
-			mapViewOffsetY_ = ((float)viewH - mapSizePx.getY() * mapViewZoom_) / 2.0f;
-		}
+
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();
+
+		const int viewW = winW - 20;
+		const int viewH = winH - 42 - 30;
+
+		mapViewZoom_ = 1.0f;
+		
+		Vector2D playerPos = player ? player->GetPosition() : Vector2D(0, 0);
+		mapViewOffsetX_ = (float)viewW / 2.0f - (playerPos.getX() * mapViewZoom_);
+		mapViewOffsetY_ = (float)viewH / 2.0f - (playerPos.getY() * mapViewZoom_);
 		break;
+	}
 	case BTN_PAUSE_SAVE:
 		Engine::GetInstance().saveSystem->QuickSave();
 		LOG("Game saved from pause menu");
@@ -1701,14 +1755,12 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 		showPauseOptions_ = false;
 		SetPauseOptionsPanelVisible(false);
 		break;
-
 	case BTN_GAMEOVER_MAINMENU:
 		isGameOver_ = false;
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::MAIN_MENU;
 		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 500.0f);
 		break;
-
 	case BTN_GAMEOVER_CONTINUE:
 	{
 		SetGameOverVisible(false);
@@ -1720,6 +1772,10 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 		break;
 	}
 }
+
+// ============================================================================
+//  FLOATING FRAGMENTS  (Main Menu Decoration)
+// ============================================================================
 
 // ============================================================================
 //  FLOATING FRAGMENTS  (Main Menu Decoration)
@@ -1794,5 +1850,43 @@ void Scene::DrawFragments(bool front, int winW, int winH)
 			(double)angle, nullptr, SDL_FLIP_NONE);
 
 		SDL_SetTextureAlphaMod(f.tex, 255);
+	}
+}
+
+void Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH)
+{
+	auto& input = *Engine::GetInstance().input;
+	
+	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN || 
+		input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT) 
+	{
+		Vector2D mousePos = input.GetMousePosition();
+		int mouseX = (int)mousePos.getX();
+		int mouseY = (int)mousePos.getY();
+		
+		int trackX = panelX + 20;
+		int trackW = panelW - 40;
+
+		// Music slider hit box
+		SDL_Rect mSliderHit = { trackX - 10, panelY + 60, trackW + 20, 30 };
+		if (mouseX >= mSliderHit.x && mouseX <= mSliderHit.x + mSliderHit.w &&
+			mouseY >= mSliderHit.y && mouseY <= mSliderHit.y + mSliderHit.h) {
+			
+			musicVolume_ = (float)(mouseX - trackX) / (float)trackW;
+			if (musicVolume_ < 0.0f) musicVolume_ = 0.0f;
+			if (musicVolume_ > 1.0f) musicVolume_ = 1.0f;
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
+		}
+
+		// SFX slider hit box
+		SDL_Rect sSliderHit = { trackX - 10, panelY + 60 + rowH, trackW + 20, 30 };
+		if (mouseX >= sSliderHit.x && mouseX <= sSliderHit.x + sSliderHit.w &&
+			mouseY >= sSliderHit.y && mouseY <= sSliderHit.y + sSliderHit.h) {
+			
+			sfxVolume_ = (float)(mouseX - trackX) / (float)trackW;
+			if (sfxVolume_ < 0.0f) sfxVolume_ = 0.0f;
+			if (sfxVolume_ > 1.0f) sfxVolume_ = 1.0f;
+			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
+		}
 	}
 }

@@ -47,6 +47,7 @@ private:
     float musicVolume_ = 0.8f;
     float sfxVolume_ = 0.8f;
     int menuClickFxId = -1;
+    bool isFullscreen_ = false;
 
     // =========================================================================
     //  MAIN MENU
@@ -82,6 +83,7 @@ private:
     static constexpr int BTN_MUSIC_DOWN = 12;
     static constexpr int BTN_SFX_UP = 13;
     static constexpr int BTN_SFX_DOWN = 14;
+    static constexpr int BTN_FULLSCREEN = 15;
 
     // =========================================================================
     //  INTRO (Splash Logos)
@@ -128,6 +130,7 @@ private:
     void DrawPauseMenu();
     void DrawPauseOptionsPanel(int winW, int winH);
     void HandlePauseMenuUIEvents(UIElement* uiElement);
+    void HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH);
 
 public:
     void SetGameOverVisible(bool visible);
@@ -135,6 +138,8 @@ public:
     float wakeUpNotifTimer_ = 0.0f;
     static constexpr float WAKEUP_NOTIF_DURATION = 4000.0f;
     float checkpointSaveTimer_ = 0.0f;
+    float noCapeNotifTimer_ = 0.0f;
+    void ShowNoCapeNotification();
 
 private:
     // Button IDs — pause menu
@@ -148,6 +153,7 @@ private:
     static constexpr int BTN_PAUSE_OPT_SFX_UP = 27;
     static constexpr int BTN_PAUSE_OPT_SFX_DOWN = 28;
     static constexpr int BTN_PAUSE_OPT_BACK = 29;
+    static constexpr int BTN_PAUSE_OPT_FULLSCREEN = 33;
     static constexpr int BTN_PAUSE_MAP = 32;
     static constexpr int BTN_GAMEOVER_MAINMENU = 30;
     static constexpr int BTN_GAMEOVER_CONTINUE = 31;

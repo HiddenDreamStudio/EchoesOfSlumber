@@ -249,7 +249,12 @@ void Player::Hide(float dt)
 	if (isWakingUp || isDashing_ || isShowingDamageAnim_ || isDead_) return;
 
 	// Cannot hide without the blanket (cape collectible)
-	if (!hasBlanket_) return;
+	if (!hasBlanket_) {
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_H) == KEY_DOWN) {
+			Engine::GetInstance().scene->ShowNoCapeNotification();
+		}
+		return;
+	}
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_H) == KEY_DOWN)
 	{
