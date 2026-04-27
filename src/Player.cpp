@@ -99,8 +99,7 @@ bool Player::Update(float dt)
 
 			// All other actions are blocked while hiding
 			if (!isHiding_) {
-				Dash(dt);
-				if (!isDashing_ && !isExitingHide_) Move();
+				if (!isExitingHide_) Move();
 				Jump();
 				Attack(dt);
 				Teleport();
@@ -110,7 +109,7 @@ bool Player::Update(float dt)
 
 	ApplyPhysics();
 
-	if (velocity.x != 0.0f && !isJumping && !isDashing_ && !isDead_ && !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isWakingUp) {
+	if (velocity.x != 0.0f && !isJumping && !isDead_ && !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isWakingUp) {
 		stepTimer_ -= dt;
 
 		
@@ -190,38 +189,19 @@ void Player::Move() {
 }
 
 void Player::Jump() {
-	if (isWakingUp || isDashing_ || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
 		if (!isJumping) {
 			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -jumpForce, true);
 			if (anims.Has("jump")) anims.SetCurrent("jump");
 			isJumping = true;
-			canDoubleJump = true;
-			hasDoubleJumped = false;
 
 			Engine::GetInstance().audio->PlayFx(jumpFxId);
 
 			// Spawn jump dust (Centered at bottom of 100px capsule)
 			Engine::GetInstance().entityManager->SpawnVFX(
 				Vector2D(position.getX(), position.getY() + 50.0f),
-				"assets/textures/spritesheets/SS_Pols_01.png",
-				12, 794, 202, 0.015f, 0.0f, 0.2f
-			);
-		}
-		else if (canDoubleJump && !hasDoubleJumped) {
-			Engine::GetInstance().physics->SetYVelocity(pbody, 0.0f);
-			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -doubleJumpForce, true);
-			if (anims.Has("jump")) {
-				anims.ResetCurrent();
-			}
-			hasDoubleJumped = true;
-
-			Engine::GetInstance().audio->PlayFx(jumpFxId);
-
-			// Spawn double jump dust
-			Engine::GetInstance().entityManager->SpawnVFX(
-				Vector2D(position.getX(), position.getY() + 40.0f),
 				"assets/textures/spritesheets/SS_Pols_01.png",
 				12, 794, 202, 0.015f, 0.0f, 0.2f
 			);
@@ -246,7 +226,7 @@ void Player::Jump() {
 // ─────────────────────────────────────────────────────────────────────────────
 void Player::Hide(float dt)
 {
-	if (isWakingUp || isDashing_ || isShowingDamageAnim_ || isDead_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isDead_) return;
 
 	// Cannot hide without the blanket (cape collectible)
 	if (!hasBlanket_) return;
@@ -303,11 +283,6 @@ void Player::Hide(float dt)
 void Player::ApplyPhysics() {
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
-	}
-
-	if (isDashing_) {
-		velocity.x = dashDirX_ * DASH_SPEED;
-		velocity.y = 0.0f;
 	}
 
 	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
@@ -408,8 +383,8 @@ void Player::Draw(float dt) {
 		}
 	}
 
-	// ── I-frame flicker (not during hide, dash, or death) ────────────────────
-	bool skipDraw = !isDead_ && !isDashing_ && !isHiding_ && !isExitingHide_ && isInvincible_ &&
+	// ── I-frame flicker (not during hide or death) ────────────────────
+	bool skipDraw = !isDead_ && !isHiding_ && !isExitingHide_ && isInvincible_ &&
 		(static_cast<int>(iFrameTimer_ / 100.0f) % 2 == 0);
 
 	if (!skipDraw) {
@@ -438,35 +413,6 @@ void Player::Draw(float dt) {
 			SDL_SetTextureColorMod(activeTex, 255, 255, 255);
 		}
 		render->ResetAmbientTint(activeTex);
-	}
-}
-
-void Player::Dash(float dt)
-{
-	auto& input = Engine::GetInstance().input;
-
-	if (dashCooldown_ > 0.0f) dashCooldown_ -= dt;
-
-	if (!isDashing_ && dashCooldown_ <= 0.0f &&
-		input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_DOWN)
-	{
-		isDashing_ = true;
-		dashTimer_ = DASH_DURATION;
-		dashDirX_ = facingRight ? -1.0f : 1.0f;
-		isInvincible_ = true;
-		iFrameTimer_ = DASH_DURATION;
-		LOG("Player dash started");
-	}
-
-	if (isDashing_)
-	{
-		dashTimer_ -= dt;
-		if (dashTimer_ <= 0.0f)
-		{
-			isDashing_ = false;
-			dashCooldown_ = DASH_COOLDOWN;
-			LOG("Player dash ended");
-		}
 	}
 }
 
@@ -637,8 +583,6 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 				}
 			}
 			isJumping = false;
-			canDoubleJump = false;
-			hasDoubleJumped = false;
 		}
 		break;
 	}
