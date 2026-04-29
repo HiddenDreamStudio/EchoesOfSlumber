@@ -64,6 +64,14 @@ bool Player::Start() {
 	texH = 128;
 	drawScale = 1.0f;
 
+	// Load push animation spritesheet (256x256 tiles, 5 columns, 20 frames)
+	pushTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/spritesheetempujarcaja.png");
+	for (int i = 0; i < 20; ++i) {
+		SDL_Rect r = { (i % 5) * 256, (i / 5) * 256, 256, 256 };
+		pushAnim_.AddFrame(r, 120);  // slow frame rate for effortful feel
+	}
+	pushAnim_.SetLoop(true);
+
 	pbody = Engine::GetInstance().physics->CreateCapsule((int)position.getX(), (int)position.getY(), 40, 100, bodyType::DYNAMIC, 0.0f);
 
 	pbody->listener = this;
@@ -102,7 +110,7 @@ bool Player::Update(float dt)
 				Dash(dt);
 				if (!isDashing_ && !isExitingHide_) Move();
 				Jump();
-				Attack(dt);
+				if (!isPushing_) Attack(dt);
 				Teleport();
 			}
 		}
@@ -151,14 +159,20 @@ void Player::GetPhysicsValues() {
 void Player::Move() {
 	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
 
+	// Determine effective speed (slower while pushing)
+	float effectiveSpeed = speed;
+	if (isPushing_) {
+		effectiveSpeed = speed * PUSH_SPEED_FACTOR;
+	}
+
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
-		velocity.x = -speed;
+		velocity.x = -effectiveSpeed;
 		if (!facingRight) {
 			facingRight = true;
-			if (!isJumping) anims.SetCurrent("turnaround");
+			if (!isJumping && !isPushing_) anims.SetCurrent("turnaround");
 		}
 
-		if (!isJumping) {
+		if (!isJumping && !isPushing_) {
 			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
 				if (anims.Has("run")) anims.SetCurrent("run");
 				else anims.SetCurrent("idle");
@@ -166,25 +180,32 @@ void Player::Move() {
 		}
 	}
 	else if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT) {
-		velocity.x = speed;
+		velocity.x = effectiveSpeed;
 		if (facingRight) {
 			facingRight = false;
-			if (!isJumping) anims.SetCurrent("turnaround");
+			if (!isJumping && !isPushing_) anims.SetCurrent("turnaround");
 		}
 
-		if (!isJumping) {
+		if (!isJumping && !isPushing_) {
 			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
 				if (anims.Has("run")) anims.SetCurrent("run");
 				else anims.SetCurrent("idle");
 			}
 		}
 	}
-	else if (!isJumping) {
-		if (anims.GetCurrentName() == "jump" && !anims.HasFinishedOnce("jump")) {
-			// let landing animation finish
+	else {
+		// Player released keys — not pushing anymore
+		if (isPushing_) {
+			// Keep isPushing_ true only while actively pressing toward the rock
+			// The collision contact may still exist but we're not pushing
 		}
-		else {
-			anims.SetCurrent("idle");
+		if (!isJumping) {
+			if (anims.GetCurrentName() == "jump" && !anims.HasFinishedOnce("jump")) {
+				// let landing animation finish
+			}
+			else {
+				anims.SetCurrent("idle");
+			}
 		}
 	}
 }
@@ -311,12 +332,23 @@ void Player::ApplyPhysics() {
 	}
 
 	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
+
+	// Synchronize rock velocity to avoid jitter and clipping
+	if (isPushing_ && pushedRockBody_ != nullptr) {
+		// Only synchronize when pushing towards the rock or stopping
+		if ((pushDir_ == 1.0f && velocity.x > 0.0f) || 
+		    (pushDir_ == -1.0f && velocity.x < 0.0f) || 
+		    velocity.x == 0.0f) {
+			Engine::GetInstance().physics->SetXVelocity(pushedRockBody_, velocity.x);
+		}
+	}
 }
 
 void Player::Draw(float dt) {
 
 	SDL_Texture* activeTex = texture;
 	const SDL_Rect* animFrame = nullptr;
+	float currentDrawScale = drawScale;
 
 	if (isDead_)
 	{
@@ -338,6 +370,16 @@ void Player::Draw(float dt) {
 	{
 		// Hide animation is advanced inside Hide() — just grab the current frame
 		animFrame = &anims.GetCurrentFrame();
+	}
+	else if (isPushing_ && velocity.x != 0.0f && !isJumping)
+	{
+		// Push animation — use dedicated spritesheet
+		pushAnim_.Update(dt);
+		activeTex = pushTexture_;
+		animFrame = &pushAnim_.GetCurrentFrame();
+		// The push frame is 256x256, we want it to appear the same size as
+		// the normal 128x128 walk animation, so we halve the draw scale.
+		currentDrawScale = 0.5f;
 	}
 	else 
 	{
@@ -367,13 +409,16 @@ void Player::Draw(float dt) {
 		render->ClampCameraToMapBounds(mapSize.getX(), mapSize.getY());
 	}
 
-	float currentDrawScale = drawScale;
-	/*if (anims.GetCurrentName() == "jump") {
-		currentDrawScale *= 1.25f;
-	}*/
 
-	int drawX = static_cast<int>(position.getX() - (static_cast<float>(texW) * currentDrawScale) / 2.0f);
-	int drawY = static_cast<int>(position.getY() - (static_cast<float>(texH) * currentDrawScale) / 2.0f);
+	int currentFrameW = animFrame ? animFrame->w : texW;
+	int currentFrameH = animFrame ? animFrame->h : texH;
+	int drawX = static_cast<int>(position.getX() - (static_cast<float>(currentFrameW) * currentDrawScale) / 2.0f);
+	int drawY = static_cast<int>(position.getY() - (static_cast<float>(currentFrameH) * currentDrawScale) / 2.0f);
+
+	// Adjust drawing position when pushing so hands align with the edge of the rock visually
+	if (isPushing_ && velocity.x != 0.0f && !isJumping) {
+		drawX -= static_cast<int>(pushDir_ * 35.0f);
+	}
 
 	bool spriteNativeRight = false;
 	const std::string& animName = anims.GetCurrentName();
@@ -382,7 +427,12 @@ void Player::Draw(float dt) {
 	}
 
 	SDL_FlipMode flip;
-	if (spriteNativeRight) {
+	if (isPushing_ && velocity.x != 0.0f && !isJumping) {
+		// Push spritesheet character faces LEFT natively
+		// When pushing right (velocity.x > 0), flip horizontally
+		flip = (velocity.x > 0.0f) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+	}
+	else if (spriteNativeRight) {
 		flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
 	}
 	else {
@@ -599,6 +649,10 @@ bool Player::CleanUp()
 		attackHitbox_ = nullptr;
 	}
 	Engine::GetInstance().physics->DeletePhysBody(pbody);
+	if (pushTexture_) {
+		Engine::GetInstance().textures->UnLoad(pushTexture_);
+		pushTexture_ = nullptr;
+	}
 	return true;
 }
 
@@ -653,6 +707,37 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		break;
 	case ColliderType::UNKNOWN:
 		break;
+	case ColliderType::PUSH_ROCK:
+	{
+		// Detect lateral push — only if player is roughly beside the rock, not on top
+		int playerX, playerY, rockX, rockY;
+		physA->GetPosition(playerX, playerY);
+		physB->GetPosition(rockX, rockY);
+
+		int vertDiff = abs(playerY - rockY);
+		// Only count as push if the player is at roughly the same height (not landing on top)
+		if (vertDiff < 50) {
+			pushContactCount_++;
+			isPushing_ = true;
+			pushDir_ = (playerX < rockX) ? 1.0f : -1.0f;
+			pushAnim_.Reset();
+			pushedRockBody_ = physB;
+		}
+		else {
+			// Player is above the rock — treat as platform for landing
+			if (playerY < rockY) {
+				if (isJumping) {
+					if (anims.GetCurrentName() != "jump") {
+						anims.SetCurrent("idle");
+					}
+				}
+				isJumping = false;
+				canDoubleJump = false;
+				hasDoubleJumped = false;
+			}
+		}
+		break;
+	}
 	default:
 		break;
 	}
@@ -660,6 +745,14 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 {
+	if (physB->ctype == ColliderType::PUSH_ROCK) {
+		pushContactCount_--;
+		if (pushContactCount_ <= 0) {
+			pushContactCount_ = 0;
+			isPushing_ = false;
+			pushedRockBody_ = nullptr;
+		}
+	}
 }
 
 Vector2D Player::GetPosition() {

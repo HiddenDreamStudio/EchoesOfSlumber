@@ -46,6 +46,9 @@ public:
 	bool HasBlanket() const { return hasBlanket_; }
 	void SetHasBlanket(bool v) { hasBlanket_ = v; }
 
+	// Push rock state — queried externally if needed
+	bool IsPushing() const { return isPushing_; }
+
 private:
 
 	void GetPhysicsValues();
@@ -137,4 +140,13 @@ private:
 
 	// Blanket (cape) collectible flag
 	bool hasBlanket_ = false;
+
+	// Push rock state
+	bool  isPushing_ = false;
+	int   pushContactCount_ = 0;   // track overlapping push_rock contacts
+	float pushDir_ = 0.0f;         // -1 = left, +1 = right
+	PhysBody* pushedRockBody_ = nullptr;
+	SDL_Texture* pushTexture_ = nullptr;
+	Animation    pushAnim_;
+	static constexpr float PUSH_SPEED_FACTOR = 0.35f; // 35% of normal speed
 	};

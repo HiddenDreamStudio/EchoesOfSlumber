@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="130" height="77" tilewidth="64" tileheight="64" infinite="0" nextlayerid="36" nextobjectid="398">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="130" height="77" tilewidth="64" tileheight="64" infinite="0" nextlayerid="37" nextobjectid="402">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -599,6 +599,9 @@
   <object id="135" gid="124" x="5788.67" y="1384.55" width="157" height="259"/>
   <object id="140" gid="169" x="6432.35" y="2004.58" width="183.133" height="146"/>
   <object id="141" gid="131" x="7283.09" y="1999.27" width="83.303" height="97.8856"/>
+ </objectgroup>
+ <objectgroup id="36" name="InteractiveAssets">
+  <object id="401" type="Push_Rock" x="4554" y="4656.67" width="85.3333" height="85.3333"/>
  </objectgroup>
  <layer id="1" name="Map" width="130" height="77">
   <properties>
@@ -10619,7 +10622,7 @@
  </layer>
  <objectgroup id="9" name="Entities">
   <object id="11" name="Player" type="Player" x="6841" y="4702.67" width="96" height="96"/>
-  <object id="12" name="Enemy" type="Enemy" x="4750" y="4661" width="32" height="32"/>
+  <object id="12" name="Enemy" type="Enemy" x="5906" y="4235" width="32" height="32"/>
   <object id="13" name="EnemyB" type="EnemyB" x="3440" y="2739" width="32" height="32">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
