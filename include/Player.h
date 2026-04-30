@@ -42,6 +42,10 @@ public:
 	// Hiding state � queried by enemies to disable detection
 	bool IsHiding() const { return isHiding_; }
 
+	// Blanket (cape) collectible – must be collected before hiding is available
+	bool HasBlanket() const { return hasBlanket_; }
+	void SetHasBlanket(bool v) { hasBlanket_ = v; }
+
 private:
 
 	void GetPhysicsValues();
@@ -75,12 +79,13 @@ public:
 	bool canDoubleJump = false;
 	bool hasDoubleJumped = false;
 
+	bool isWakingUp = true;
+
 private:
 	b2Vec2 velocity = { 0.0f, 0.0f };
 	AnimationSet anims;
 	Animation wakeUpAnim;
 	SDL_Texture* wakeUpTexture = nullptr;
-	bool isWakingUp = true;
 	float drawScale = 1.0f;
 	bool facingRight = true;
 	// ?? Hide cooldown 
@@ -129,4 +134,7 @@ private:
 	bool  isExitingHide_ = false;
 	// Visual: gentle alpha pulse while hidden to signal stealth state
 	float hideAlphaTime_ = 0.0f;
+
+	// Blanket (cape) collectible flag
+	bool hasBlanket_ = false;
 	};

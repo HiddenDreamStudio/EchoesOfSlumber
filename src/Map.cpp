@@ -5,7 +5,7 @@
 #include "Log.h"
 #include "Physics.h"
 #include "EntityManager.h"
-#include "Enemy.h"
+#include "EnemyCarmel.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
 #include "Checkpoint.h"
@@ -396,16 +396,14 @@ bool Map::Load(std::string path, std::string fileName)
                                     (int)(mapCoord.getY() + col.y),
                                     (int*)col.polygonPoints.data(),
                                     (int)col.polygonPoints.size(),
-                                    STATIC,
-                                    0.0f); // Force 0 friction
+                                    STATIC);
                             } else if (numVerts >= 3) {
                                 c1 = Engine::GetInstance().physics.get()->CreateConvexPolygon(
                                     (int)(mapCoord.getX() + col.x),
                                     (int)(mapCoord.getY() + col.y),
                                     (int*)col.polygonPoints.data(),
                                     (int)col.polygonPoints.size(),
-                                    STATIC,
-                                    0.0f); // Force 0 friction
+                                    STATIC);
                             }
                             if (c1 != nullptr) {
                                 c1->ctype = ColliderType::PLATFORM;
@@ -461,8 +459,7 @@ bool Map::Load(std::string path, std::string fileName)
                         (int)(py + totalH / 2.0f),
                         (int)totalW,
                         (int)totalH,
-                        STATIC,
-                        0.0f); // Force 0 friction
+                        STATIC);
                     c1->ctype = ColliderType::PLATFORM;
                     colliderList.push_back(c1);
                 }
@@ -537,6 +534,16 @@ Vector2D Map::GetMapSizeInTiles()
     return Vector2D((float)mapData.width, (float)mapData.height);
 }
 
+bool Map::GetCapePosition(float& outX, float& outY) const
+{
+    if (mapData.capeFound) {
+        outX = mapData.capeX;
+        outY = mapData.capeY;
+        return true;
+    }
+    return false;
+}
+
 MapLayer* Map::GetNavigationLayer() {
     for (const auto& layer : mapData.layers) {
         if (layer->properties.GetProperty("Navigation") != NULL &&
@@ -571,10 +578,22 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     }
                 }
                 else if (entityType == "Enemy") {
-                    auto enemy = std::dynamic_pointer_cast<Enemy>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
+                    auto enemy = std::dynamic_pointer_cast<EnemyCarmel>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
                     enemy->position = Vector2D(x, y);
+
+                    float patrolLeft  = x - 200.0f;
+                    float patrolRight = x + 200.0f;
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string propName = prop.attribute("name").as_string();
+                            if (propName == "patrol_left")  patrolLeft  = prop.attribute("value").as_float();
+                            if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
+                        }
+                    }
+                    enemy->SetPatrolPoints(patrolLeft, patrolRight);
                     enemy->Start();
-                    LOG("Enemy spawned at: %f, %f", x, y);
+                    LOG("Enemy spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
                 }
                 else if (entityType == "EnemyB") {
                     auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
@@ -611,6 +630,23 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     box->Start();
                     LOG("Box spawned at: %f, %f", x, y);
                 }
+                else if (entityType == "Cape") {
+                    mapData.capeFound = true;
+                    mapData.capeX = x;
+                    mapData.capeY = y;
+                    LOG("Cape position loaded from TMX at: %f, %f", x, y);
+                }
+            }
+        }
+        else if (objectGroupNode.attribute("name").as_string() == std::string("Checkpoint")) {
+            for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+                float x = objectNode.attribute("x").as_float();
+                float y = objectNode.attribute("y").as_float();
+                
+                auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
+                checkpoint->position = Vector2D(x, y);
+                checkpoint->Start();
+                LOG("Checkpoint from specialized layer spawned at: %f, %f", x, y);
             }
         }
     }
