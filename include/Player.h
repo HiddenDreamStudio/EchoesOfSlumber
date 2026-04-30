@@ -54,7 +54,6 @@ private:
 	void GetPhysicsValues();
 	void Move();
 	void Jump();
-	void Dash(float dt);
 	void Attack(float dt);
 	void Hide(float dt);
 	void Teleport();
@@ -77,10 +76,7 @@ public:
 
 	PhysBody* pbody = nullptr;
 	float jumpForce = 10.0f;
-	float doubleJumpForce = 11.0f;
 	bool isJumping = false;
-	bool canDoubleJump = false;
-	bool hasDoubleJumped = false;
 
 	bool isWakingUp = true;
 
@@ -121,14 +117,6 @@ private:
 	static constexpr float DAMAGE_FLASH_DURATION = 150.0f;
 	float damageFlashTimer_ = 0.0f;
 
-	// Dash
-	static constexpr float DASH_SPEED = 15.0f;
-	static constexpr float DASH_DURATION = 200.0f;
-	static constexpr float DASH_COOLDOWN = 800.0f;
-	bool  isDashing_ = false;
-	float dashTimer_ = 0.0f;
-	float dashCooldown_ = 0.0f;
-	float dashDirX_ = 1.0f;
 	float stepTimer_ = 0.0f;
 	static constexpr float STEP_COOLDOWN = 350.0f;
 
