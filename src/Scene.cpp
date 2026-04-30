@@ -284,9 +284,12 @@ void Scene::UpdateMainMenu(float dt)
 			if (btnExit_) { btnExit_->alphaMod = 1.0f; btnExit_->isVisible = true; }
 			};
 
-		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
-			Engine::GetInstance().input->GetKey(SDL_SCANCODE_RETURN) == KEY_DOWN ||
-			Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
+		auto& inp = *Engine::GetInstance().input;
+		if (inp.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+			inp.GetKey(SDL_SCANCODE_RETURN) == KEY_DOWN ||
+			inp.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+			inp.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+			inp.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN)
 		{
 			finishCinematic();
 			return;
@@ -300,7 +303,9 @@ void Scene::UpdateMainMenu(float dt)
 	}
 	else
 	{
-		if (showSettings_ && Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
+		auto& inp2 = *Engine::GetInstance().input;
+		if (showSettings_ && (inp2.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+			inp2.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN))
 		{
 			showSettings_ = false;
 			SetSettingsPanelVisible(false);
@@ -592,7 +597,10 @@ void Scene::UnloadIntro()
 
 void Scene::UpdateIntro(float dt)
 {
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
+	auto& introInput = *Engine::GetInstance().input;
+	if (introInput.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+		introInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+		introInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN) {
 		if (!waitingForFade_) {
 			waitingForFade_ = true;
 			fadeTargetScene_ = SceneID::MAIN_MENU;
@@ -695,8 +703,11 @@ void Scene::UpdateIntroCinematic(float dt)
 {
 	if (waitingForFade_) return;
 
-	bool skipRequested = Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
-		Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN;
+	auto& cinInput = *Engine::GetInstance().input;
+	bool skipRequested = cinInput.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+		cinInput.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+		cinInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+		cinInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN;
 
 	if (skipRequested) {
 		waitingForFade_ = true;
@@ -843,7 +854,12 @@ void Scene::LoadGameplay()
 void Scene::UpdateGameplay(float dt)
 {
 	// Toggle pause with ESC
-	if (!isGameOver_ && Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
+	auto& gpInput = *Engine::GetInstance().input;
+	bool pauseToggle = gpInput.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+	                   gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN;
+	bool backBtn = gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN;
+
+	if (!isGameOver_ && (pauseToggle || (backBtn && (showMapViewer_ || showPauseOptions_ || isPaused_))))
 	{
 		if (showMapViewer_) {
 			showMapViewer_ = false;
@@ -856,6 +872,7 @@ void Scene::UpdateGameplay(float dt)
 		else {
 			isPaused_ = !isPaused_;
 			SetPauseMenuVisible(isPaused_);
+			Engine::GetInstance().uiManager->ResetFocus();
 		}
 	}
 
