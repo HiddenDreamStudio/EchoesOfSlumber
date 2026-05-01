@@ -676,8 +676,7 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 					}
 				}
 				isJumping = false;
-				canDoubleJump = false;
-				hasDoubleJumped = false;
+				
 			}
 		}
 		break;
