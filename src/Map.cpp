@@ -10,6 +10,7 @@
 #include "EnemyC.h"
 #include "Checkpoint.h"
 #include "Box.h"
+#include "PushRock.h"
 #include "Window.h"
 #include "tracy/Tracy.hpp"
 
@@ -649,6 +650,27 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                 LOG("Checkpoint from specialized layer spawned at: %f, %f", x, y);
             }
         }
+        else if (objectGroupNode.attribute("name").as_string() == std::string("InteractiveAssets")) {
+            for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+                std::string objClass = objectNode.attribute("class").as_string();
+                if (objClass.empty()) objClass = objectNode.attribute("type").as_string();
+
+                if (objClass == "Push_Rock") {
+                    float x = objectNode.attribute("x").as_float();
+                    float y = objectNode.attribute("y").as_float();
+                    float w = objectNode.attribute("width").as_float(64.0f);
+                    float h = objectNode.attribute("height").as_float(64.0f);
+
+                    auto rock = std::dynamic_pointer_cast<PushRock>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PUSH_ROCK));
+                    // Tiled objects with GID have origin at bottom-left, otherwise top-left
+                    rock->position = Vector2D(x + w / 2.0f, y + h / 2.0f);
+                    rock->rockWidth = w;
+                    rock->rockHeight = h;
+                    rock->Start();
+                    LOG("PushRock spawned at: %f, %f (size: %.0fx%.0f)", x, y, w, h);
+                }
+            }
+        }
     }
 }
 
@@ -698,7 +720,7 @@ void Map::LoadImageLayers()
 
 void Map::LoadDecorationObjects()
 {
-    const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoints", "AnimatedPlants", "AnimatedPlants front" };
+    const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoints", "AnimatedPlants", "AnimatedPlants front", "InteractiveAssets" };
 
     for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
         groupNode != NULL;
