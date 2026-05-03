@@ -1,0 +1,54 @@
+name: Build and Release Vertical Slice
+
+on:
+  workflow_dispatch: # Allows manual trigger from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-2025 # Using latest Windows runner with VS 2022
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Generate Solution with Premake
+      run: |
+        cd build
+        ./premake5.exe vs2022
+
+    - name: Build Solution
+      run: |
+        msbuild EchoesOfSlumber.sln /p:Configuration=Release /p:Platform=x64
+
+    - name: Prepare Artifacts
+      run: |
+        mkdir release_build
+        copy bin\Release\EchoesOfSlumber.exe release_build\
+        # Copy necessary DLLs if any (SDL3, etc. are usually static but check your config)
+        if (Test-Path "bin\Release\*.dll") { copy bin\Release\*.dll release_build\ }
+        # Copy assets
+        xcopy /E /I assets release_build\assets
+        # Create ZIP
+        Compress-Archive -Path release_build\* -DestinationPath EchoesOfSlumber_VerticalSlice.zip
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: vertical-slice-${{ github.run_number }}
+        name: Vertical Slice Release
+        body: |
+          Automatic build of the Vertical Slice.
+          Generated from commit: ${{ github.sha }}
+        draft: false
+        prerelease: false
+        files: EchoesOfSlumber_VerticalSlice.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
