@@ -1679,6 +1679,7 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 	float faceRight = (float)childX + (float)childW * 0.80f;
 	float faceTop = 0.0f;
 	float faceBottom = (float)winH * 0.45f;
+	float halfW = (float)winW * 0.5f;
 	float halfH = (float)winH * 0.5f;
 
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
