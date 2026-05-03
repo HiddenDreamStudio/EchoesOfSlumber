@@ -7,6 +7,7 @@
 #include "Render.h"
 #include "Player.h"
 #include "Window.h"
+#include "Scene.h"
 #include <vector>
 #include <box2d/box2d.h>
 
@@ -19,14 +20,12 @@ Physics::Physics() : Module()
 // Destructor
 Physics::~Physics()
 {
-    // You should do some memory cleaning here, if required
 }
 
 bool Physics::Start()
 {
     LOG("Creating Physics 2D environment");
 
-    // Create a new World (3.x uses world defs)
     b2WorldDef wdef = b2DefaultWorldDef();
     wdef.gravity.x = GRAVITY_X;
     wdef.gravity.y = -GRAVITY_Y;
@@ -35,17 +34,15 @@ bool Physics::Start()
     return true;
 }
 
-// 
 bool Physics::PreUpdate()
 {
     bool ret = true;
 
-    // Step (update) the World
-    // Get the dt from the engine. Note that dt is in milliseconds and Box2D steps in seconds
+    if (Engine::GetInstance().scene->isPaused_) return true;
+
     float dt = Engine::GetInstance().GetDt() / 1000.0f;
     b2World_Step(world, dt, 4);
 
-    // --- Sensor overlaps 
     const b2SensorEvents sensorEvents = b2World_GetSensorEvents(world);
     for (int i = 0; i < sensorEvents.beginCount; ++i)
     {
@@ -60,7 +57,6 @@ bool Physics::PreUpdate()
         EndContact(e.sensorShapeId, e.visitorShapeId);
     }
 
-    // --- Contacts (non-sensor) ---
     const b2ContactEvents contactEvents = b2World_GetContactEvents(world);
     for (int i = 0; i < contactEvents.beginCount; ++i)
     {
@@ -77,7 +73,7 @@ bool Physics::PreUpdate()
     return ret;
 }
 
-PhysBody* Physics::CreateRectangle(int x, int y, int width, int height, bodyType type)
+PhysBody* Physics::CreateRectangle(int x, int y, int width, int height, bodyType type, float friction)
 {
     b2BodyDef def = b2DefaultBodyDef();
     def.type = ToB2Type(type);
@@ -88,8 +84,9 @@ PhysBody* Physics::CreateRectangle(int x, int y, int width, int height, bodyType
     b2Polygon box = b2MakeBox(PIXEL_TO_METERS(width) * 0.5f, PIXEL_TO_METERS(height) * 0.5f);
     b2ShapeDef sdef = b2DefaultShapeDef();
     sdef.density = 1.0f;
-    sdef.enableContactEvents = true;   // contact begin/end for this shape
-    sdef.enableSensorEvents = true;   // so it can participate in sensor overlaps
+    sdef.material.friction = friction;
+    sdef.enableContactEvents = true;   
+    sdef.enableSensorEvents = true;   
 
     b2CreatePolygonShape(b, &sdef, &box);
 
@@ -124,6 +121,39 @@ PhysBody* Physics::CreateCircle(int x, int y, int radious, bodyType type)
     return pbody;
 }
 
+PhysBody* Physics::CreateCapsule(int x, int y, int width, int height, bodyType type, float friction)
+{
+    b2BodyDef def = b2DefaultBodyDef();
+    def.type = ToB2Type(type);
+    def.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
+    def.fixedRotation = true;
+
+    b2BodyId b = b2CreateBody(world, &def);
+
+    float radius = PIXEL_TO_METERS(width) * 0.5f;
+    float halfHeight = PIXEL_TO_METERS(height) * 0.5f;
+    float segmentHalf = halfHeight - radius;
+    if (segmentHalf < 0.0f) segmentHalf = 0.0f;
+
+    b2Capsule capsule;
+    capsule.center1 = { 0.0f, -segmentHalf };
+    capsule.center2 = { 0.0f,  segmentHalf };
+    capsule.radius = radius;
+
+    b2ShapeDef sdef = b2DefaultShapeDef();
+    sdef.density = 1.0f;
+    sdef.material.friction = friction;
+    sdef.enableContactEvents = true;
+    sdef.enableSensorEvents = true;
+
+    b2CreateCapsuleShape(b, &sdef, &capsule);
+
+    PhysBody* pbody = new PhysBody();
+    pbody->body = b;
+    b2Body_SetUserData(b, ToUserData(pbody));
+    return pbody;
+}
+
 PhysBody* Physics::CreateRectangleSensor(int x, int y, int width, int height, bodyType type)
 {
     b2BodyDef def = b2DefaultBodyDef();
@@ -135,7 +165,7 @@ PhysBody* Physics::CreateRectangleSensor(int x, int y, int width, int height, bo
     b2Polygon box = b2MakeBox(PIXEL_TO_METERS(width) * 0.5f, PIXEL_TO_METERS(height) * 0.5f);
     b2ShapeDef sdef = b2DefaultShapeDef();
     sdef.density = 1.0f;
-    sdef.isSensor = true; // 3.x sensor flag is on the shape def
+    sdef.isSensor = true;
     sdef.enableContactEvents = true;
     sdef.enableSensorEvents = true;
 
@@ -147,7 +177,7 @@ PhysBody* Physics::CreateRectangleSensor(int x, int y, int width, int height, bo
     return pbody;
 }
 
-PhysBody* Physics::CreateChain(int x, int y, int* points, int size, bodyType type)
+PhysBody* Physics::CreateChain(int x, int y, int* points, int size, bodyType type, float friction)
 {
     b2BodyDef def = b2DefaultBodyDef();
     def.type = ToB2Type(type);
@@ -155,7 +185,6 @@ PhysBody* Physics::CreateChain(int x, int y, int* points, int size, bodyType typ
 
     b2BodyId b = b2CreateBody(world, &def);
 
-    // Build CCW loop from pixel points
     const int count = size / 2;
     std::vector<b2Vec2> verts(count);
     for (int i = 0; i < count; ++i)
@@ -167,9 +196,9 @@ PhysBody* Physics::CreateChain(int x, int y, int* points, int size, bodyType typ
     b2ChainDef cdef = b2DefaultChainDef();
     cdef.points = verts.data();
     cdef.count = count;
-    cdef.isLoop = true; // mirrors old CreateLoop
+    cdef.isLoop = true;
     cdef.enableSensorEvents = true;
-    b2CreateChain(b, &cdef); // creates internal chain segment shapes
+    b2CreateChain(b, &cdef);
 
     PhysBody* pbody = new PhysBody();
     pbody->body = b;
@@ -177,66 +206,84 @@ PhysBody* Physics::CreateChain(int x, int y, int* points, int size, bodyType typ
     return pbody;
 }
 
-// 
+PhysBody* Physics::CreateConvexPolygon(int x, int y, int* points, int size, bodyType type, float friction)
+{
+    b2BodyDef def = b2DefaultBodyDef();
+    def.type = ToB2Type(type);
+    def.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
+
+    b2BodyId b = b2CreateBody(world, &def);
+
+    const int count = size / 2;
+    std::vector<b2Vec2> verts(count);
+    for (int i = 0; i < count; ++i)
+    {
+        verts[i].x = PIXEL_TO_METERS(points[i * 2 + 0]);
+        verts[i].y = PIXEL_TO_METERS(points[i * 2 + 1]);
+    }
+
+    b2Hull hull = b2ComputeHull(verts.data(), count);
+    if (hull.count > 0) {
+        b2Polygon poly = b2MakePolygon(&hull, 0.0f);
+        b2ShapeDef sdef = b2DefaultShapeDef();
+        sdef.density = 1.0f;
+        sdef.material.friction = friction;
+        sdef.enableContactEvents = true;
+        sdef.enableSensorEvents = true;
+        b2CreatePolygonShape(b, &sdef, &poly);
+    }
+
+    PhysBody* pbody = new PhysBody();
+    pbody->body = b;
+    b2Body_SetUserData(b, ToUserData(pbody));
+    return pbody;
+}
+
 bool Physics::PostUpdate()
 {
     bool ret = true;
 
-    // Activate or deactivate debug mode
     if (Engine::GetInstance().input.get()->GetKey(SDL_SCANCODE_F9) == KEY_DOWN)
         debug = !debug;
 
-    // Debug draw via Box2D 3.x callbacks
     if (debug)
     {
         if (B2_IS_NULL(world) == false)
         {
             b2DebugDraw dd = {};
             dd.context = this;
-
-            // Enable only what you support (3.1 field names)
             dd.drawShapes = true;
-            //dd.drawJoints = true;   // enable if you want joints drawn
-            //dd.drawBounds = true;   // AABBs
-            dd.drawContacts = true;   // contact points
-
-            // Implemented callbacks
+            dd.drawContacts = true;
             dd.DrawSegmentFcn = &Physics::DrawSegmentCb;
             dd.DrawPolygonFcn = &Physics::DrawPolygonCb;
             dd.DrawSolidPolygonFcn = &Physics::DrawSolidPolygonCb;
             dd.DrawCircleFcn = &Physics::DrawCircleCb;
             dd.DrawSolidCircleFcn = &Physics::DrawSolidCircleCb;
-
-            // Defensive stubs (prevent nullptr calls inside Box2D)
-            dd.DrawSolidCapsuleFcn = &Physics::DrawSolidCapsuleStub; // correct 3.1 signature (p1,p2,radius,...) :contentReference[oaicite:1]{index=1}
+            dd.DrawSolidCapsuleFcn = &Physics::DrawSolidCapsuleStub; 
             dd.DrawPointFcn = &Physics::DrawPointStub;
             dd.DrawStringFcn = &Physics::DrawStringStub;
             dd.DrawTransformFcn = &Physics::DrawTransformStub;
-
             b2World_Draw(world, &dd);
         }
     }
 
-    // Process bodies to delete after the world step
     for (PhysBody* physBody : bodiesToDelete) {
-        b2DestroyBody(physBody->body);
+        if (b2Body_IsValid(physBody->body))
+            b2DestroyBody(physBody->body);
     }
     bodiesToDelete.clear();
 
     return ret;
 }
 
-// Called before quitting
 bool Physics::CleanUp()
 {
     LOG("Destroying physics world");
-
     if (!B2_IS_NULL(world))
     {
         b2DestroyWorld(world);
         world = b2_nullWorldId;
     }
-
     return true;
 }
 
@@ -250,7 +297,7 @@ void Physics::BeginContact(b2ShapeId shapeA, b2ShapeId shapeB)
 
     PhysBody* physA = BodyToPhys(bodyA);
     PhysBody* physB = BodyToPhys(bodyB);
-    if (!physA || !physB) return;                  // user data cleared
+    if (!physA || !physB) return;
 
     if (physA->listener && !IsPendingToDelete(physA)) physA->listener->OnCollision(physA, physB);
     if (physB->listener && !IsPendingToDelete(physB)) physB->listener->OnCollision(physB, physA);
@@ -273,21 +320,15 @@ void Physics::EndContact(b2ShapeId shapeA, b2ShapeId shapeB)
     if (physB->listener && !IsPendingToDelete(physB)) physB->listener->OnCollisionEnd(physB, physA);
 }
 
-
-
 void Physics::DeletePhysBody(PhysBody* physBody)
 {
-	if (B2_IS_NULL(world)) return; // world already destroyed
+	if (B2_IS_NULL(world)) return;
     if (physBody && !B2_IS_NULL(physBody->body) && physBody->listener && physBody->listener->active)
     {
-        // Don’t change contact/sensor flags here (can mismatch event buffers).
-        // Just clear user data so late events won’t dereference a dangling PhysBody*.
         b2Body_SetUserData(physBody->body, nullptr);
     }
     bodiesToDelete.push_back(physBody);
 }
-
-
 
 bool Physics::IsPendingToDelete(PhysBody* physBody) {
     bool pendingToDelete = false;
@@ -300,7 +341,6 @@ bool Physics::IsPendingToDelete(PhysBody* physBody) {
     return pendingToDelete;
 }
 
-// --- Velocity helpers
 b2Vec2 Physics::GetLinearVelocity(const PhysBody* p) const
 {
     return b2Body_GetLinearVelocity(p->body);
@@ -341,16 +381,24 @@ void Physics::SetYVelocity(PhysBody* p, float vy) const
     b2Body_SetLinearVelocity(p->body, v);
 }
 
-// --- Impulse helper
 void Physics::ApplyLinearImpulseToCenter(PhysBody* p, float ix, float iy, bool wake) const
 {
     b2Vec2 imp = { ix, iy };
     b2Body_ApplyLinearImpulseToCenter(p->body, imp, wake);
 }
 
-//
-//--------------- PhysBody --------------------
-//
+bool Physics::RayCastWorld(int x1, int y1, int x2, int y2, float& hitX, float& hitY) const
+{
+    const b2Vec2 origin = { PIXEL_TO_METERS(x1), PIXEL_TO_METERS(y1) };
+    const b2Vec2 target = { PIXEL_TO_METERS(x2), PIXEL_TO_METERS(y2) };
+    const b2Vec2 translation = { target.x - origin.x, target.y - origin.y };
+    b2QueryFilter qf = b2DefaultQueryFilter();
+    const b2RayResult res = b2World_CastRayClosest(world, origin, translation, qf);
+    if (!res.hit) return false;
+    hitX = (float)METERS_TO_PIXELS(origin.x + translation.x * res.fraction);
+    hitY = (float)METERS_TO_PIXELS(origin.y + translation.y * res.fraction);
+    return true;
+}
 
 void PhysBody::GetPosition(int& x, int& y) const
 {
@@ -374,17 +422,11 @@ float PhysBody::GetRotation() const
 
 bool PhysBody::Contains(int x, int y) const
 {
-    // World-space point in meters
     const b2Vec2 p = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
-
-    // Get all shapes attached to this body
     const int shapeCount = b2Body_GetShapeCount(body);
     if (shapeCount == 0) return false;
-
     std::vector<b2ShapeId> shapes(shapeCount);
     b2Body_GetShapes(body, shapes.data(), shapeCount);
-
-    // Test point against each shape
     for (int i = 0; i < shapeCount; ++i)
     {
         if (b2Shape_TestPoint(shapes[i], p))
@@ -396,25 +438,18 @@ bool PhysBody::Contains(int x, int y) const
 int PhysBody::RayCast(int x1, int y1, int x2, int y2, float& normal_x, float& normal_y) const
 {
     const b2Vec2 p1 = { PIXEL_TO_METERS(x1), PIXEL_TO_METERS(y1) };
-    const b2Vec2 p2 = { PIXEL_TO_METERS(x2), PIXEL_TO_METERS(y2) };
-    const b2Vec2 d = { p2.x - p1.x, p2.y - p1.y };
-
+    const b2Vec2 d = { PIXEL_TO_METERS(x2 - x1), PIXEL_TO_METERS(y2 - y1) };
     b2WorldId world = b2Body_GetWorld(body);
     b2QueryFilter qf = b2DefaultQueryFilter();
-
     const b2RayResult res = b2World_CastRayClosest(world, p1, d, qf);
     if (!res.hit) return -1;
-
     normal_x = res.normal.x;
     normal_y = res.normal.y;
-
     const float fx = float(x2 - x1);
     const float fy = float(y2 - y1);
     const float distPixels = sqrtf(fx * fx + fy * fy);
     return int(floorf(res.fraction * distPixels));
 }
-
-// --- helpers
 
 b2BodyType Physics::ToB2Type(bodyType t)
 {
@@ -427,17 +462,14 @@ b2BodyType Physics::ToB2Type(bodyType t)
     }
 }
 
-// --- Debug draw callbacks (map to your Render)
-
-void Physics::DrawSegmentCb(b2Vec2 p1, b2Vec2 p2, b2HexColor /*color*/, void* /*ctx*/)
+void Physics::DrawSegmentCb(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* ctx)
 {
     auto& r = *Engine::GetInstance().render.get();
     r.DrawLine(METERS_TO_PIXELS(p1.x), METERS_TO_PIXELS(p1.y),
-        METERS_TO_PIXELS(p2.x), METERS_TO_PIXELS(p2.y),
-        255, 255, 255);
+        METERS_TO_PIXELS(p2.x), METERS_TO_PIXELS(p2.y), 255, 255, 255);
 }
 
-void Physics::DrawPolygonCb(const b2Vec2* v, int n, b2HexColor /*color*/, void* /*ctx*/)
+void Physics::DrawPolygonCb(const b2Vec2* v, int n, b2HexColor color, void* ctx)
 {
     auto& r = *Engine::GetInstance().render.get();
     for (int i = 0; i < n; ++i)
@@ -445,36 +477,44 @@ void Physics::DrawPolygonCb(const b2Vec2* v, int n, b2HexColor /*color*/, void* 
         const b2Vec2 a = v[i];
         const b2Vec2 b = v[(i + 1) % n];
         r.DrawLine(METERS_TO_PIXELS(a.x), METERS_TO_PIXELS(a.y),
-            METERS_TO_PIXELS(b.x), METERS_TO_PIXELS(b.y),
-            255, 255, 100);
+            METERS_TO_PIXELS(b.x), METERS_TO_PIXELS(b.y), 255, 255, 100);
     }
 }
 
-void Physics::DrawSolidPolygonCb(b2Transform xf, const b2Vec2* v, int n,
-    float /*radius*/, b2HexColor color, void* ctx)
+void Physics::DrawSolidPolygonCb(b2Transform xf, const b2Vec2* v, int n, float radius, b2HexColor color, void* ctx)
 {
-    // Transform local verts to world and reuse wireframe draw
     std::vector<b2Vec2> world(n);
     for (int i = 0; i < n; ++i) world[i] = b2TransformPoint(xf, v[i]);
     DrawPolygonCb(world.data(), n, color, ctx);
 }
 
-void Physics::DrawCircleCb(b2Vec2 center, float radius, b2HexColor /*color*/, void* /*ctx*/)
+void Physics::DrawCircleCb(b2Vec2 center, float radius, b2HexColor color, void* ctx)
 {
     auto& r = *Engine::GetInstance().render.get();
     r.DrawCircle(METERS_TO_PIXELS(center.x), METERS_TO_PIXELS(center.y),
-        METERS_TO_PIXELS(radius) * Engine::GetInstance().window.get()->GetScale(),
-        255, 255, 255);
+        METERS_TO_PIXELS(radius) * Engine::GetInstance().window.get()->GetScale(), 255, 255, 255);
 }
 
 void Physics::DrawSolidCircleCb(b2Transform xf, float radius, b2HexColor color, void* ctx)
 {
-    // Center is xf.p; outline is fine for now
     DrawCircleCb(xf.p, radius, color, ctx);
 }
 
-// ---- No-op stubs to avoid null calls -----------------------
-void Physics::DrawSolidCapsuleStub(b2Vec2, b2Vec2, float, b2HexColor, void*) {}
+void Physics::DrawSolidCapsuleStub(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* ctx)
+{
+    auto& r = *Engine::GetInstance().render.get();
+    int scale = Engine::GetInstance().window.get()->GetScale();
+    int radiusPx = METERS_TO_PIXELS(radius) * scale;
+    r.DrawCircle(METERS_TO_PIXELS(p1.x), METERS_TO_PIXELS(p1.y), radiusPx, 0, 255, 0);
+    r.DrawCircle(METERS_TO_PIXELS(p2.x), METERS_TO_PIXELS(p2.y), radiusPx, 0, 255, 0);
+    float segX = p2.x - p1.x;
+    float segY = p2.y - p1.y;
+    float len = sqrtf(segX * segX + segY * segY);
+    float dx = (len > 0.0001f) ? (-segY / len) * radius : radius;
+    float dy = (len > 0.0001f) ? (segX / len) * radius : 0.0f;
+    r.DrawLine(METERS_TO_PIXELS(p1.x + dx), METERS_TO_PIXELS(p1.y + dy), METERS_TO_PIXELS(p2.x + dx), METERS_TO_PIXELS(p2.y + dy), 0, 255, 0);
+    r.DrawLine(METERS_TO_PIXELS(p1.x - dx), METERS_TO_PIXELS(p1.y - dy), METERS_TO_PIXELS(p2.x - dx), METERS_TO_PIXELS(p2.y - dy), 0, 255, 0);
+}
 void Physics::DrawPointStub(b2Vec2, float, b2HexColor, void*) {}
 void Physics::DrawStringStub(b2Vec2, const char*, b2HexColor, void*) {}
 void Physics::DrawTransformStub(b2Transform, void*) {}

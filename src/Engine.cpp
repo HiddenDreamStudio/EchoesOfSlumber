@@ -15,6 +15,7 @@
 #include "Log.h"
 #include "UIManager.h"
 #include "Cinematics.h"
+#include "SaveSystem.h"
 #include "tracy/Tracy.hpp"
 
 // Constructor
@@ -40,6 +41,7 @@ Engine::Engine() {
     entityManager = std::make_shared<EntityManager>();
 	uiManager = std::make_shared<UIManager>(); 
 	cinematics = std::make_shared<Cinematics>();
+	saveSystem = std::make_shared<SaveSystem>();
 
     // Ordered for awake / Start / Update
     // Reverse order of CleanUp
@@ -49,10 +51,11 @@ Engine::Engine() {
     AddModule(std::static_pointer_cast<Module>(audio));
     AddModule(std::static_pointer_cast<Module>(physics));
     AddModule(std::static_pointer_cast<Module>(map));
-    AddModule(std::static_pointer_cast<Module>(scene));
     AddModule(std::static_pointer_cast<Module>(entityManager));
+    AddModule(std::static_pointer_cast<Module>(scene));
 	AddModule(std::static_pointer_cast<Module>(uiManager)); 
 	AddModule(std::static_pointer_cast<Module>(cinematics));
+	AddModule(std::static_pointer_cast<Module>(saveSystem));
 
     // Render last 
     AddModule(std::static_pointer_cast<Module>(render));
@@ -187,6 +190,7 @@ void Engine::FinishUpdate()
 
     // dt in milliseconds
     dt = (float)frameTime.ReadMs();
+	if (dt > 33.0f) dt = 33.0f; // Prevent huge dt spikes (like map loading) from instantly blowing through animations and physics routines
 
     // FPS tracking
     lastSecFrameCount++;

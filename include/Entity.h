@@ -8,6 +8,13 @@ enum class EntityType
 	PLAYER,
 	ITEM,
 	ENEMY,
+	ENEMY_B,
+	ENEMY_C,
+	PROJECTILE,
+	CHECKPOINT,
+	BOX,
+	PUSH_ROCK,
+	VFX,
 	UNKNOWN
 };
 
@@ -16,8 +23,7 @@ class PhysBody;
 class Entity : public std::enable_shared_from_this<Entity>
 {
 public:
-
-	Entity() {}
+	Entity() : type(EntityType::UNKNOWN) {}
 	Entity(EntityType type) : type(type), active(true) {}
 
 	virtual bool Awake()
@@ -80,6 +86,12 @@ public:
 
 	// Possible properties, it depends on how generic we
 	// want our Entity class, maybe it's not renderable...
-	Vector2D position;       
+	Vector2D position;
 	bool renderable = true;
+
+	// Health system
+	int health = 3;
+	int maxHealth = 3;
+
+	virtual void TakeDamage(int damage) { health -= damage; }
 };

@@ -3,7 +3,17 @@
 #include "Module.h"
 #include <list>
 #include <vector>
+#include <map>
 #include "Player.h"
+#include "Animation.h"
+
+struct ObjectCollision {
+    float x;
+    float y;
+    float width;
+    float height;
+    std::vector<int> polygonPoints;
+};
 
 struct Properties
 {
@@ -46,6 +56,8 @@ struct MapLayer
     int height;
     std::vector<int> tiles;
     Properties properties;
+    float parallaxFactorX = 1.0f;
+    float parallaxFactorY = 1.0f;
 
     unsigned int Get(int i, int j) const
     {
@@ -64,7 +76,9 @@ struct TileSet
     int tileCount;
     int columns;
     SDL_Texture* texture;
+    std::map<int, std::vector<ObjectCollision>> tileCollisions;
 
+    std::map<int, SDL_Texture*> tileTextures;
     // Get the source rect for a tile gid
     SDL_Rect GetRect(unsigned int gid) {
         SDL_Rect rect = { 0 };
@@ -80,15 +94,64 @@ struct TileSet
 
 };
 
+struct ImageLayer
+{
+    std::string name;
+    float offsetX;
+    float offsetY;
+    std::string source;
+    SDL_Texture* texture = nullptr;
+    float parallaxFactorX = 1.0f;
+    float parallaxFactorY = 1.0f;
+};
+
+struct DecorationObject
+{
+    float x;      
+    float y;     
+    float width;  
+    float height; 
+    int   gid;    
+    double rotation = 0.0;
+    bool  isFront = false;
+    SDL_Texture* texture = nullptr; 
+};
+
+struct AnimatedPlantObject
+{
+    float x;
+    float y;
+    float w;
+    float h;
+    bool  isFront = false;
+    std::string tsxPath;        
+    AnimationSet anim;            
+    SDL_Texture* texture = nullptr;
+};
+
+struct CheckpointObject {
+    float x, y, width, height;
+    bool visited = false;
+};
+
 struct MapData
 {
-	int width;
-	int height;
-	int tileWidth;
-	int tileHeight;
+    int width;
+    int height;
+    int tileWidth;
+    int tileHeight;
     std::list<TileSet*> tilesets;
     // L07: TODO 2: Add the info to the MapLayer Struct
     std::list<MapLayer*> layers;
+    std::list<ImageLayer*> imageLayers;
+    std::list<DecorationObject*> decorationObjects;
+    std::list<AnimatedPlantObject*> animatedPlants;
+    std::vector<CheckpointObject*> checkpoints;
+
+    // Cape collectible spawn position (read from Entities layer)
+    bool  capeFound = false;
+    float capeX = 0.0f;
+    float capeY = 0.0f;
 };
 
 class Map : public Module
@@ -109,6 +172,9 @@ public:
     // Called each loop iteration
     bool Update(float dt);
 
+    // Called after Update, for foreground elements
+    bool PostUpdate();
+
     // Called before quitting
     bool CleanUp();
 
@@ -126,6 +192,9 @@ public:
     Vector2D GetMapSizeInPixels();
     Vector2D GetMapSizeInTiles();
 
+    // Cape position read from TMX Entities layer
+    bool  GetCapePosition(float& outX, float& outY) const;
+
     MapLayer* GetNavigationLayer();
 
     int GetTileWidth() {
@@ -139,17 +208,18 @@ public:
     void LoadEntities(std::shared_ptr<Player>& player);
     void SaveEntities(std::shared_ptr<Player> player);
 
-	Vector2D GetCameraPositionInTiles();
-	Vector2D GetCameraLimitsInTiles(Vector2D camPosTile);
+    void LoadImageLayers();
+    void LoadDecorationObjects();
+    void LoadAnimatedPlants();
 
-public: 
+public:
     std::string mapFileName;
     std::string mapPath;
+    MapData mapData;
 
 private:
     bool mapLoaded;
-    MapData mapData;
     pugi::xml_document mapFileXML;
     //
-	std::list<PhysBody*> colliderList;
+    std::list<PhysBody*> colliderList;
 };
