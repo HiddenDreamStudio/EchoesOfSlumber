@@ -42,31 +42,35 @@ private:
 	void ApplyPhysics();
 	void Draw(float dt);
 
-	b2Vec2 velocity    = { 0.0f, 0.0f };
+	b2Vec2 velocity = { 0.0f, 0.0f };
 	bool   facingRight_ = false;
 
 	AnimationSet walkAnims_;
 	AnimationSet turnAnims_;
 
-	EnemyBState state_      = EnemyBState::IDLE;
+	EnemyBState state_ = EnemyBState::IDLE;
 	float       stateTimer_ = 0.0f;
 
 	// Tunable constants
-	static constexpr float DETECTION_RADIUS      = 250.0f;
-	static constexpr float ATTACK_RANGE          = 75.0f;
-	static constexpr float ATTACK_RANGE_Y        = 60.0f;
-	static constexpr float IDLE_DURATION         = 1000.0f;
-	static constexpr float ATTACK_DURATION       = 400.0f;
-	static constexpr float STUN_DURATION         = 1800.0f;
+	static constexpr float DETECTION_RADIUS = 250.0f;
+	static constexpr float ATTACK_RANGE = 75.0f;
+	static constexpr float ATTACK_RANGE_Y = 60.0f;
+	static constexpr float IDLE_DURATION = 1000.0f;
+	static constexpr float ATTACK_DURATION = 400.0f;
+	static constexpr float STUN_DURATION = 1800.0f;
 
 	// Patrol
-	float patrolLeftX_  = 0.0f;
+	float patrolLeftX_ = 0.0f;
 	float patrolRightX_ = 0.0f;
-	float patrolDirX_   = 1.0f;
+	float patrolDirX_ = 1.0f;
 
 	// Contact damage
 	static constexpr float CONTACT_DAMAGE_INTERVAL = 1000.0f;
-	bool    isContactWithPlayer_   = false;
+	bool    isContactWithPlayer_ = false;
 	float   contactDamageCooldown_ = 0.0f;
-	Entity* playerListener_        = nullptr;
+	Entity* playerListener_ = nullptr;
+
+	// Return-to-origin when player hides
+	Vector2D originPosition_;
+	bool wasPlayerHiding_ = false;
 };

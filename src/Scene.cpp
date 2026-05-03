@@ -12,7 +12,6 @@
 #include "Player.h"
 #include "Map.h"
 #include "Item.h"
-#include "Enemy.h"
 #include "UIManager.h"
 #include "SaveSystem.h"
 #include "Physics.h"
@@ -42,6 +41,7 @@ Scene::~Scene() {}
 bool Scene::Awake()
 {
 	LOG("Loading Scene");
+	menuClickFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Menu-Selection-Click.wav");
 	hasPendingSceneChange = true;
 	pendingScene = currentScene;
 	return true;
@@ -173,10 +173,12 @@ void Scene::LoadMainMenu()
 {
 	showSettings_ = false;
 	settingsCooldown_ = 0;
-	musicVolume_ = 0.8f;
-	sfxVolume_ = 0.8f;
+	musicVolume_ = 1.0f;
+	sfxVolume_ = 1.0f;
 
-	Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);
+	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Game-Menu.wav", 1.0f);
+
+	/*Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);*/
 
 	SDL_Texture* rawLogo = Engine::GetInstance().textures->Load("assets/textures/Menu/EchoesOfSlumber.png");
 	texMenuLogo_ = Engine::GetInstance().render->RecolorTexture(rawLogo, 212, 218, 234);
@@ -485,13 +487,15 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 	if (waitingForFade_)      return;
 	if (settingsCooldown_ > 0) return;
 
+	Engine::GetInstance().audio->PlayFx(menuClickFxId);
+
 	switch (uiElement->id)
 	{
 	case BTN_PLAY:
 		LOG("Main Menu: Play");
 		waitingForFade_ = true;
-		fadeTargetScene_ = SceneID::INTRO_CINEMATIC;
-		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1000.0f);
+		fadeTargetScene_ = SceneID::GAMEPLAY;
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 800.0f);
 		break;
 	case BTN_SETTINGS:
 		showSettings_ = !showSettings_;
@@ -667,6 +671,7 @@ void Scene::DrawIntro()
 void Scene::LoadIntroCinematic()
 {
 	LOG("Playing intro cinematic...");
+	Engine::GetInstance().audio->PlayMusic(nullptr);
 	Engine::GetInstance().cinematics->PlayVideo("assets/video/test.mp4");
 }
 
@@ -704,7 +709,7 @@ void Scene::LoadGameplay()
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
 
-	Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);
+	Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 1.0f);
 
 	Engine::GetInstance().map->Load("assets/maps/", "MapTemplate.tmx");
 	Engine::GetInstance().map->LoadEntities(player);
@@ -768,6 +773,8 @@ void Scene::LoadGameplay()
 	activeHealthAnim_ = 0;
 	isGameOver_ = false;
 	texGameOver_ = Engine::GetInstance().render->CreateMenuTextTexture("GAME OVER, YOU DIED", { 255, 0, 0, 255 });
+	texCheckpointSaved_ = Engine::GetInstance().render->CreateMenuTextTexture("GAME SAVED", { 255, 255, 255, 255 });
+	checkpointSaveTimer_ = 0.0f;
 
 	// Game Over Button
 	int winW = 0, winH = 0;
@@ -799,6 +806,26 @@ void Scene::LoadGameplay()
 	if (goBtn) {
 		goBtn->state = UIElementState::DISABLED;
 	}
+
+	// ── Blanket ability HUD icons ─────────────────────────────────────────────
+	texBlanketActive_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability.png");
+	texBlanketInactive_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability_low_opacity.png");
+
+	// ── Cape collectible (AS_capa.png) ────────────────────────────────────────
+	texCapaCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/AS_capa.png");
+	if (texCapaCollectible_) {
+		SDL_SetTextureColorMod(texCapaCollectible_, 100, 100, 120); // Darker blueish tint
+	}
+	capaCollected_ = false;
+	capaFloatTimer_ = 0.0f;
+
+	// Read cape position from TMX Entities layer instead of hardcoding
+	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
+		LOG("WARNING: No Cape entity found in TMX Entities layer, cape will not spawn");
+		capaCollected_ = true; // Mark as collected so it won't render
+	}
+
+	capaBody_ = nullptr; // Sensor removed to prevent physics crashes during deletion
 }
 
 void Scene::UpdateGameplay(float dt)
@@ -907,6 +934,38 @@ void Scene::UpdateGameplay(float dt)
 				}
 			}
 		}
+
+		// ── Cape collectible pickup (proximity check) ─────────────────────────
+		if (!capaCollected_ && player)
+		{
+			capaFloatTimer_ += dt;
+
+			float dx = player->position.getX() - capaX_;
+			float dy = player->position.getY() - (capaY_ - 50.0f); // Adjust for player's center
+			float distSq = dx * dx + dy * dy;
+			float pickupRadius = 50.0f;
+
+			if (distSq < pickupRadius * pickupRadius)
+			{
+				capaCollected_ = true;
+				player->SetHasBlanket(true);
+				Engine::GetInstance().audio->PlayFx(player->pickCoinFxId);
+				LOG("Cape collected — blanket ability unlocked!");
+			}
+		}
+	}
+
+	// ── Draw cape collectible in-world ────────────────────────────────────
+	if (!capaCollected_ && texCapaCollectible_)
+	{
+		int capaTexW = 0, capaTexH = 0;
+		Engine::GetInstance().textures->GetSize(texCapaCollectible_, capaTexW, capaTexH);
+		float floatOffset = 6.0f * sinf(capaFloatTimer_ * 0.003f);
+		int drawX = (int)(capaX_ - (float)capaTexW * 0.5f / 2.0f);
+		int drawY = (int)(capaY_ - (float)capaTexH * 0.5f / 2.0f + floatOffset);
+
+		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
+		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
 	}
 }
 
@@ -936,6 +995,13 @@ void Scene::UnloadGameplay()
 	if (texPauseButtonWhite_) { Engine::GetInstance().textures->UnLoad(texPauseButtonWhite_); texPauseButtonWhite_ = nullptr; }
 	if (texPauseButtonBlack_) { Engine::GetInstance().textures->UnLoad(texPauseButtonBlack_); texPauseButtonBlack_ = nullptr; }
 	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
+
+	// Blanket ability HUD + Cape collectible cleanup
+	if (texBlanketActive_)   { Engine::GetInstance().textures->UnLoad(texBlanketActive_);   texBlanketActive_ = nullptr; }
+	if (texBlanketInactive_) { Engine::GetInstance().textures->UnLoad(texBlanketInactive_); texBlanketInactive_ = nullptr; }
+	if (texCapaCollectible_) { Engine::GetInstance().textures->UnLoad(texCapaCollectible_); texCapaCollectible_ = nullptr; }
+	if (capaBody_) { Engine::GetInstance().physics->DeletePhysBody(capaBody_); capaBody_ = nullptr; }
+	capaCollected_ = false;
 }
 
 void Scene::PostUpdateGameplay()
@@ -949,52 +1015,71 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Draw Health HUD ---
-	SDL_Rect r;
-	const SDL_Rect* frame = nullptr;
-	SDL_Texture* texToDraw = nullptr;
+	if (player && !player->isWakingUp) {
+		SDL_Rect r;
+		const SDL_Rect* frame = nullptr;
+		SDL_Texture* texToDraw = nullptr;
 
-	if (activeHealthAnim_ == 1) {
-		texToDraw = texHealth1_;
-		frame = &animHealth1_.GetCurrentFrame();
-	} else if (activeHealthAnim_ == 2) {
-		texToDraw = texHealth2_;
-		frame = &animHealth2_.GetCurrentFrame();
-	} else if (activeHealthAnim_ == 3) {
-		texToDraw = texHealth3_;
-		frame = &animHealth3_.GetCurrentFrame();
-	} else {
-		// Draw static frame based on health
-		if (currentHealthUI_ == 3) {
+		if (activeHealthAnim_ == 1) {
 			texToDraw = texHealth1_;
-			if (texHealth1_) {
-				r = animHealth1_.GetCurrentFrame(); // Use frame 0 (Reset ensures it's at 0)
-				frame = &r;
-			}
-		} else if (currentHealthUI_ == 2) {
+			frame = &animHealth1_.GetCurrentFrame();
+		}
+		else if (activeHealthAnim_ == 2) {
 			texToDraw = texHealth2_;
-			if (texHealth2_) {
-				r = animHealth2_.GetCurrentFrame();
-				frame = &r;
-			}
-		} else if (currentHealthUI_ == 1) {
+			frame = &animHealth2_.GetCurrentFrame();
+		}
+		else if (activeHealthAnim_ == 3) {
 			texToDraw = texHealth3_;
-			if (texHealth3_) {
-				r = animHealth3_.GetCurrentFrame();
-				frame = &r;
+			frame = &animHealth3_.GetCurrentFrame();
+		}
+		else {
+			// Draw static frame based on health
+			if (currentHealthUI_ == 3) {
+				texToDraw = texHealth1_;
+				if (texHealth1_) {
+					r = animHealth1_.GetCurrentFrame(); // Use frame 0 (Reset ensures it's at 0)
+					frame = &r;
+				}
 			}
-		} else if (currentHealthUI_ <= 0) {
-			texToDraw = texHealth3_;
-			if (texHealth3_) {
-				r = animHealth3_.GetCurrentFrame();
-				frame = &r;
+			else if (currentHealthUI_ == 2) {
+				texToDraw = texHealth2_;
+				if (texHealth2_) {
+					r = animHealth2_.GetCurrentFrame();
+					frame = &r;
+				}
+			}
+			else if (currentHealthUI_ == 1) {
+				texToDraw = texHealth3_;
+				if (texHealth3_) {
+					r = animHealth3_.GetCurrentFrame();
+					frame = &r;
+				}
+			}
+			else if (currentHealthUI_ <= 0) {
+				texToDraw = texHealth3_;
+				if (texHealth3_) {
+					r = animHealth3_.GetCurrentFrame();
+					frame = &r;
+				}
 			}
 		}
-	}
 
-	if (texToDraw && frame) {
-		// Draw HUD at top left. Using speed = 0.0f makes it static to camera
-		// Scale reduced to 0.5f as requested
-		Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+		if (texToDraw && frame) {
+			// Draw HUD at top left. Using speed = 0.0f makes it static to camera
+			// Scale reduced to 0.5f as requested
+			Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+		}
+
+		// --- Blanket Ability HUD Icon ---
+		if (player->HasBlanket())
+		{
+			SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
+			if (blanketTex)
+			{
+				// Aligned with the center of the health bar vertically
+				Engine::GetInstance().render->DrawTextureAlpha(blanketTex, 220, 72, 64, 64, 255);
+			}
+		}
 	}
 
 	// --- Game Over Screen ---
@@ -1047,6 +1132,27 @@ void Scene::PostUpdateGameplay()
 		
 		// New Fragment 4 in bottom-left
 		if (texGameOverFrag4_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag4_, 50.0f, (float)winH - 220.0f, 180.0f, 180.0f, 200);
+	}
+
+	// --- Checkpoint Save Notification ---
+	if (checkpointSaveTimer_ > 0.0f) {
+		checkpointSaveTimer_ -= Engine::GetInstance().GetDt();
+		if (texCheckpointSaved_) {
+			float tw, th;
+			SDL_GetTextureSize(texCheckpointSaved_, &tw, &th);
+			int winW = 0, winH = 0;
+			Engine::GetInstance().window->GetWindowSize(winW, winH);
+
+			float drawX = (float)winW - tw - 40.0f;
+			float drawY = (float)winH - th - 40.0f;
+
+			Uint8 alpha = 255;
+			if (checkpointSaveTimer_ < 1000.0f) {
+				alpha = (Uint8)(255.0f * (checkpointSaveTimer_ / 1000.0f));
+			}
+
+			Engine::GetInstance().render->DrawTextureAlphaF(texCheckpointSaved_, drawX, drawY, tw, th, alpha);
+		}
 	}
 }
 
@@ -1469,6 +1575,8 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 {
 	if (waitingForFade_) return;
+
+	Engine::GetInstance().audio->PlayFx(menuClickFxId);
 
 	switch (uiElement->id)
 	{
