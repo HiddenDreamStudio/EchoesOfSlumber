@@ -42,12 +42,18 @@ public:
 	// Hiding state � queried by enemies to disable detection
 	bool IsHiding() const { return isHiding_; }
 
+	// Blanket (cape) collectible – must be collected before hiding is available
+	bool HasBlanket() const { return hasBlanket_; }
+	void SetHasBlanket(bool v) { hasBlanket_ = v; }
+
+	// Push rock state — queried externally if needed
+	bool IsPushing() const { return isPushing_; }
+
 private:
 
 	void GetPhysicsValues();
 	void Move();
 	void Jump();
-	void Dash(float dt);
 	void Attack(float dt);
 	void Hide(float dt);
 	void Teleport();
@@ -70,17 +76,15 @@ public:
 
 	PhysBody* pbody = nullptr;
 	float jumpForce = 10.0f;
-	float doubleJumpForce = 11.0f;
 	bool isJumping = false;
-	bool canDoubleJump = false;
-	bool hasDoubleJumped = false;
+
+	bool isWakingUp = true;
 
 private:
 	b2Vec2 velocity = { 0.0f, 0.0f };
 	AnimationSet anims;
 	Animation wakeUpAnim;
 	SDL_Texture* wakeUpTexture = nullptr;
-	bool isWakingUp = true;
 	float drawScale = 1.0f;
 	bool facingRight = true;
 	// ?? Hide cooldown 
@@ -113,14 +117,6 @@ private:
 	static constexpr float DAMAGE_FLASH_DURATION = 150.0f;
 	float damageFlashTimer_ = 0.0f;
 
-	// Dash
-	static constexpr float DASH_SPEED = 15.0f;
-	static constexpr float DASH_DURATION = 200.0f;
-	static constexpr float DASH_COOLDOWN = 800.0f;
-	bool  isDashing_ = false;
-	float dashTimer_ = 0.0f;
-	float dashCooldown_ = 0.0f;
-	float dashDirX_ = 1.0f;
 	float stepTimer_ = 0.0f;
 	static constexpr float STEP_COOLDOWN = 350.0f;
 
@@ -129,4 +125,16 @@ private:
 	bool  isExitingHide_ = false;
 	// Visual: gentle alpha pulse while hidden to signal stealth state
 	float hideAlphaTime_ = 0.0f;
+
+	// Blanket (cape) collectible flag
+	bool hasBlanket_ = false;
+
+	// Push rock state
+	bool  isPushing_ = false;
+	int   pushContactCount_ = 0;   // track overlapping push_rock contacts
+	float pushDir_ = 0.0f;         // -1 = left, +1 = right
+	PhysBody* pushedRockBody_ = nullptr;
+	SDL_Texture* pushTexture_ = nullptr;
+	Animation    pushAnim_;
+	static constexpr float PUSH_SPEED_FACTOR = 0.35f; // 35% of normal speed
 	};
