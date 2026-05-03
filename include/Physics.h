@@ -32,6 +32,7 @@ enum class ColliderType {
     LEDGE,
     CHECKPOINT,
     BOX,
+    PUSH_ROCK,
     PROJECTILE,
     UNKNOWN
     // ..
@@ -97,7 +98,7 @@ public:
     void   SetXVelocity(PhysBody* p, float vx) const;
     void   SetYVelocity(PhysBody* p, float vy) const;
 
-    // --- Impulse helper (handy for jumps/dashes)
+    // --- Impulse helper (handy for jumps)
     void   ApplyLinearImpulseToCenter(PhysBody* p, float ix, float iy, bool wake = true) const;
 
     // --- World raycast helper (pixel coords, returns true if hit)
