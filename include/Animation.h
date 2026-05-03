@@ -17,8 +17,10 @@ public:
     void Reset();
     bool HasFinishedOnce() const;
     void Update(float dt);
+    void UpdateBackwards(float dt);
     const SDL_Rect& GetCurrentFrame() const;
     int GetFrameCount() const;
+    int GetCurrentFrameIndex() const;
 
 private:
     std::vector<AnimFrame> frames_;
@@ -45,6 +47,7 @@ public:
     void SetCurrent(const std::string& name);
     void ResetCurrent(); // Reset current animation to frame 0
     void Update(float dtSeconds);
+    void UpdateBackwards(float dtSeconds);
     const SDL_Rect& GetCurrentFrame() const;
     const std::string& GetCurrentName() const;
 
@@ -52,6 +55,10 @@ public:
 
     void SetLoop(const std::string& name, bool loop);
     bool HasFinishedOnce(const std::string& name) const;
+    int GetCurrentFrameIndex() const;
+
+    int GetTileWidth() const { return tileW_; }
+    int GetTileHeight() const { return tileH_; }
 
     int GetTileWidth() const { return tileW_; }
     int GetTileHeight() const { return tileH_; }

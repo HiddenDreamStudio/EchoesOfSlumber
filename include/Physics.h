@@ -30,6 +30,13 @@ enum class ColliderType {
     ENEMY,
     ATTACK,
     LEDGE,
+<<<<<<< HEAD
+=======
+    CHECKPOINT,
+    BOX,
+    PUSH_ROCK,
+    PROJECTILE,
+>>>>>>> main
     UNKNOWN
     // ..
 };
@@ -69,12 +76,12 @@ public:
     bool CleanUp();
 
     // Create basic physics objects
-    PhysBody* CreateRectangle(int x, int y, int width, int height, bodyType type);
+    PhysBody* CreateRectangle(int x, int y, int width, int height, bodyType type, float friction = 0.6f);
     PhysBody* CreateCircle(int x, int y, int radious, bodyType type);
-    PhysBody* CreateCapsule(int x, int y, int width, int height, bodyType type, float friction = 0.3f);
+    PhysBody* CreateCapsule(int x, int y, int width, int height, bodyType type, float friction = 0.6f);
     PhysBody* CreateRectangleSensor(int x, int y, int width, int height, bodyType type);
-    PhysBody* CreateChain(int x, int y, int* points, int size, bodyType type);
-    PhysBody* CreateConvexPolygon(int x, int y, int* points, int size, bodyType type);
+    PhysBody* CreateChain(int x, int y, int* points, int size, bodyType type, float friction = 0.6f);
+    PhysBody* CreateConvexPolygon(int x, int y, int* points, int size, bodyType type, float friction = 0.6f);
 
     // Invoked from our event processing
     void BeginContact(b2ShapeId shapeA, b2ShapeId shapeB);
@@ -94,7 +101,7 @@ public:
     void   SetXVelocity(PhysBody* p, float vx) const;
     void   SetYVelocity(PhysBody* p, float vy) const;
 
-    // --- Impulse helper (handy for jumps/dashes)
+    // --- Impulse helper (handy for jumps)
     void   ApplyLinearImpulseToCenter(PhysBody* p, float ix, float iy, bool wake = true) const;
 
     // --- World raycast helper (pixel coords, returns true if hit)

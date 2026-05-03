@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include "Player.h"
+#include "Animation.h"
 
 struct ObjectCollision {
     float x;
@@ -55,6 +56,8 @@ struct MapLayer
     int height;
     std::vector<int> tiles;
     Properties properties;
+    float parallaxFactorX = 1.0f;
+    float parallaxFactorY = 1.0f;
 
     unsigned int Get(int i, int j) const
     {
@@ -98,6 +101,8 @@ struct ImageLayer
     float offsetY;
     std::string source;
     SDL_Texture* texture = nullptr;
+    float parallaxFactorX = 1.0f;
+    float parallaxFactorY = 1.0f;
 };
 
 struct DecorationObject
@@ -107,7 +112,26 @@ struct DecorationObject
     float width;  
     float height; 
     int   gid;    
+    double rotation = 0.0;
+    bool  isFront = false;
     SDL_Texture* texture = nullptr; 
+};
+
+struct AnimatedPlantObject
+{
+    float x;
+    float y;
+    float w;
+    float h;
+    bool  isFront = false;
+    std::string tsxPath;        
+    AnimationSet anim;            
+    SDL_Texture* texture = nullptr;
+};
+
+struct CheckpointObject {
+    float x, y, width, height;
+    bool visited = false;
 };
 
 struct MapData
@@ -121,6 +145,13 @@ struct MapData
     std::list<MapLayer*> layers;
     std::list<ImageLayer*> imageLayers;
     std::list<DecorationObject*> decorationObjects;
+    std::list<AnimatedPlantObject*> animatedPlants;
+    std::vector<CheckpointObject*> checkpoints;
+
+    // Cape collectible spawn position (read from Entities layer)
+    bool  capeFound = false;
+    float capeX = 0.0f;
+    float capeY = 0.0f;
 };
 
 class Map : public Module
@@ -141,6 +172,9 @@ public:
     // Called each loop iteration
     bool Update(float dt);
 
+    // Called after Update, for foreground elements
+    bool PostUpdate();
+
     // Called before quitting
     bool CleanUp();
 
@@ -158,6 +192,9 @@ public:
     Vector2D GetMapSizeInPixels();
     Vector2D GetMapSizeInTiles();
 
+    // Cape position read from TMX Entities layer
+    bool  GetCapePosition(float& outX, float& outY) const;
+
     MapLayer* GetNavigationLayer();
 
     int GetTileWidth() {
@@ -171,19 +208,17 @@ public:
     void LoadEntities(std::shared_ptr<Player>& player);
     void SaveEntities(std::shared_ptr<Player> player);
 
-    Vector2D GetCameraPositionInTiles();
-    Vector2D GetCameraLimitsInTiles(Vector2D camPosTile);
-
     void LoadImageLayers();
     void LoadDecorationObjects();
+    void LoadAnimatedPlants();
 
 public:
     std::string mapFileName;
     std::string mapPath;
+    MapData mapData;
 
 private:
     bool mapLoaded;
-    MapData mapData;
     pugi::xml_document mapFileXML;
     //
     std::list<PhysBody*> colliderList;

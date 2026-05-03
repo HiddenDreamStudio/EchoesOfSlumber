@@ -11,8 +11,14 @@
 #include "Map.h"
 #include "tracy/Tracy.hpp"
 
-Player::Player() : Entity(EntityType::PLAYER)
+Player::Player() : Entity(EntityType::PLAYER),
+texW(128), texH(128),
+pickCoinFxId(-1),
+pbody(nullptr),
+damageFlashTimer_(0.0f)
 {
+	velocity.x = 0.0f;
+	velocity.y = 0.0f;
 	name = "Player";
 }
 
@@ -32,7 +38,7 @@ bool Player::Start() {
 		{28, "run"},
 		{42, "jump"},
 		{56, "hide"},
-		{81, "damage"},
+		{70, "damage"},
 		{84, "death"}
 	};
 	anims.LoadFromTSX("assets/textures/animations/protagonistAnimation.xml", aliases);
@@ -42,52 +48,63 @@ bool Player::Start() {
 	anims.SetLoop("jump", false);
 	anims.SetLoop("damage", false);
 	anims.SetLoop("death", false);
+	anims.SetLoop("hide", false); // Play once and freeze on last frame
 
-	// Load the spritesheet texture
 	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheet.png");
 
 	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
-	for (int i = 0; i < 58; ++i) {
+	for (int i = 0; i < 51; ++i) {
 		SDL_Rect r = { i * 258, 0, 258, 258 };
-		wakeUpAnim.AddFrame(r, 120); // 120ms per frame matching main
+		wakeUpAnim.AddFrame(r, 120);
 	}
 	wakeUpAnim.SetLoop(false);
 	isWakingUp = true;
 
+<<<<<<< HEAD
 	// Load climbing animation (256x256 frames, drawn at 0.5 scale to match 128px visuals)
 	climbAnims.LoadSequentialFromTSX("assets/textures/animations/protagonistClimbing.xml", "climb", 80);
 	climbAnims.SetLoop("climb", false);
 	climbTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/Spritesheet_climb.png");
 
 	// Desired in-game display size for the player sprite.
+=======
+>>>>>>> main
 	texW = 128;
 	texH = 128;
-
-	// Compute the draw scale.
 	drawScale = 1.0f;
 
-	// Create a capsule collider to match the tall player sprite.
-	// Width 40px (body width), height 100px (body height) - vertical capsule.
+	// Load push animation spritesheet (256x256 tiles, 5 columns, 20 frames)
+	pushTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/spritesheetempujarcaja.png");
+	for (int i = 0; i < 20; ++i) {
+		SDL_Rect r = { (i % 5) * 256, (i / 5) * 256, 256, 256 };
+		pushAnim_.AddFrame(r, 120);  // slow frame rate for effortful feel
+	}
+	pushAnim_.SetLoop(true);
+
 	pbody = Engine::GetInstance().physics->CreateCapsule((int)position.getX(), (int)position.getY(), 40, 100, bodyType::DYNAMIC, 0.0f);
-	
+
 	pbody->listener = this;
 	pbody->ctype = ColliderType::PLAYER;
 
-	//initialize audio effect
 	pickCoinFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/coin-collision-sound-342335.wav");
+	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump.wav");
+	stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");
+	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
+
 	return true;
 }
 
 bool Player::Update(float dt)
 {
 	ZoneScoped;
-	
+
 	if (Engine::GetInstance().scene->isPaused_) {
 		Draw(0.0f);
 		return true;
 	}
 
 	GetPhysicsValues();
+<<<<<<< HEAD
 	if (!isDead_ && !isWakingUp && !isClimbing_)
 	{
 		Dash(dt);
@@ -99,36 +116,85 @@ bool Player::Update(float dt)
 	}
 	if (isClimbing_) UpdateClimb(dt);
 	if (!isClimbing_) ApplyPhysics();
+=======
+
+	// Tick hide cooldown
+	if (hideCooldown_ > 0.0f) hideCooldown_ -= dt;
+
+	if (!isDead_ && !isWakingUp)
+	{
+		if (!isShowingDamageAnim_) {
+			// Hide must be evaluated first so it can block other actions
+			Hide(dt);
+
+			// All other actions are blocked while hiding
+			if (!isHiding_) {
+				if (!isExitingHide_) Move();
+				Jump();
+				if (!isPushing_) Attack(dt);
+				Teleport();
+			}
+		}
+	}
+
+	ApplyPhysics();
+
+	if (velocity.x != 0.0f && !isJumping && !isDead_ && !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isWakingUp) {
+		stepTimer_ -= dt;
+
+		
+		if (stepTimer_ <= 0.0f) {
+			Engine::GetInstance().audio->PlayFx(stepsFxId);
+			stepTimer_ = STEP_COOLDOWN;
+		}
+	}
+	else {
+		
+		stepTimer_ = 0.0f;
+	}
+
+	if (damageFlashTimer_ > 0.0f) damageFlashTimer_ -= dt;
+	if (iFrameTimer_ > 0.0f)      iFrameTimer_ -= dt;
+	if (iFrameTimer_ <= 0.0f)     isInvincible_ = false;
+
+	// Advance hide alpha pulse timer for visual feedback
+	if (isHiding_ || isExitingHide_) hideAlphaTime_ += dt;
+	else           hideAlphaTime_ = 0.0f;
+
+>>>>>>> main
 	Draw(dt);
 
 	return true;
 }
 
 void Player::Teleport() {
-	// Teleport the player to a specific position for testing purposes
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_T) == KEY_DOWN) {
 		pbody->SetPosition(96, 96);
 	}
 }
 
 void Player::GetPhysicsValues() {
-	// Read current velocity
 	velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
-	velocity = { 0, velocity.y }; // Reset horizontal velocity by default, this way the player stops when no key is pressed
+	velocity.x = 0.0f;
 }
 
 void Player::Move() {
-	if (isWakingUp) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
+
+	// Determine effective speed (slower while pushing)
+	float effectiveSpeed = speed;
+	if (isPushing_) {
+		effectiveSpeed = speed * PUSH_SPEED_FACTOR;
+	}
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
-		velocity.x = -speed;
-		// If we were going right (facingRight == false) and now go left
+		velocity.x = -effectiveSpeed;
 		if (!facingRight) {
 			facingRight = true;
-			if (!isJumping) anims.SetCurrent("turnaround");
+			if (!isJumping && !isPushing_) anims.SetCurrent("turnaround");
 		}
-		
-		if (!isJumping) {
+
+		if (!isJumping && !isPushing_) {
 			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
 				if (anims.Has("run")) anims.SetCurrent("run");
 				else anims.SetCurrent("idle");
@@ -136,80 +202,151 @@ void Player::Move() {
 		}
 	}
 	else if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT) {
-		velocity.x = speed;
-		// If we were going left (facingRight == true) and now go right
+		velocity.x = effectiveSpeed;
 		if (facingRight) {
 			facingRight = false;
-			if (!isJumping) anims.SetCurrent("turnaround");
+			if (!isJumping && !isPushing_) anims.SetCurrent("turnaround");
 		}
-		
-		if (!isJumping) {
+
+		if (!isJumping && !isPushing_) {
 			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
 				if (anims.Has("run")) anims.SetCurrent("run");
 				else anims.SetCurrent("idle");
 			}
 		}
 	}
-	else if (!isJumping) {
-		anims.SetCurrent("idle");
+	else {
+		// Player released keys — not pushing anymore
+		if (isPushing_) {
+			// Keep isPushing_ true only while actively pressing toward the rock
+			// The collision contact may still exist but we're not pushing
+		}
+		if (!isJumping) {
+			if (anims.GetCurrentName() == "jump" && !anims.HasFinishedOnce("jump")) {
+				// let landing animation finish
+			}
+			else {
+				anims.SetCurrent("idle");
+			}
+		}
 	}
 }
 
 void Player::Jump() {
-	if (isWakingUp || isDashing_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
 		if (!isJumping) {
-			// First jump from the ground
 			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -jumpForce, true);
 			if (anims.Has("jump")) anims.SetCurrent("jump");
 			isJumping = true;
-			canDoubleJump = true;
-			hasDoubleJumped = false;
-		}
-		else if (canDoubleJump && !hasDoubleJumped) {
-			// Double jump in the air
-			// Reset vertical velocity before applying the second impulse for a clean second jump
-			Engine::GetInstance().physics->SetYVelocity(pbody, 0.0f);
-			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -doubleJumpForce, true);
-			// Reset the jump animation so it replays from the start
-			if (anims.Has("jump")) {
-				anims.ResetCurrent();
-			}
-			hasDoubleJumped = true;
+
+			Engine::GetInstance().audio->PlayFx(jumpFxId);
+
+			// Spawn jump dust (Centered at bottom of 100px capsule)
+			Engine::GetInstance().entityManager->SpawnVFX(
+				Vector2D(position.getX(), position.getY() + 50.0f),
+				"assets/textures/spritesheets/SS_Pols_01.png",
+				12, 794, 202, 0.015f, 0.0f, 0.2f
+			);
 		}
 	}
 
-	// Parametric jump: cut vertical velocity when space is released early
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_UP && isJumping) {
 		float vy = Engine::GetInstance().physics->GetYVelocity(pbody);
-		if (vy < 0) {
+		if (vy < 0.0f) {
 			Engine::GetInstance().physics->SetYVelocity(pbody, vy * 0.5f);
 		}
 	}
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Hide mechanic
+//   • Pressing H toggles the hiding state (subject to 15-second cooldown).
+//   • While hiding the player stands still and plays the "hide" animation once,
+//     then freezes on the last frame.
+//   • Enemies query IsHiding() and skip pathfinding entirely.
+//   • Cooldown of HIDE_COOLDOWN ms starts when the player exits hiding.
+// ─────────────────────────────────────────────────────────────────────────────
+void Player::Hide(float dt)
+{
+	if (isWakingUp || isShowingDamageAnim_ || isDead_) return;
+
+	// Cannot hide without the blanket (cape collectible)
+	if (!hasBlanket_) return;
+
+	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_H) == KEY_DOWN)
+	{
+		if (!isHiding_ && !isExitingHide_)
+		{
+			// Blocked while on cooldown
+			if (hideCooldown_ > 0.0f)
+			{
+				LOG("Hide on cooldown: %.0f ms remaining", hideCooldown_);
+				return;
+			}
+
+			isHiding_ = true;
+			velocity.x = 0.0f;
+			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
+			anims.SetCurrent("hide");
+			anims.ResetCurrent();
+			LOG("Player hiding");
+		}
+		else if (isHiding_)
+		{
+			isHiding_ = false;
+			isExitingHide_ = true;
+			hideCooldown_ = HIDE_COOLDOWN; // cooldown starts on exit
+			LOG("Player exiting hide — cooldown started (%.0f ms)", HIDE_COOLDOWN);
+		}
+	}
+
+	if (isHiding_)
+	{
+		velocity.x = 0.0f;
+		if (!anims.HasFinishedOnce("hide"))
+			anims.Update(dt);
+	}
+
+	if (isExitingHide_)
+	{
+		velocity.x = 0.0f;
+		anims.UpdateBackwards(dt);
+
+		// Si vuelve al frame 0, ya está completamente visible y levantado
+		if (anims.GetCurrentFrameIndex() == 0)
+		{
+			isExitingHide_ = false;
+			anims.SetCurrent("idle");
+			LOG("Player stopped hiding");
+		}
+	}
+}
+
 void Player::ApplyPhysics() {
-	// Preserve vertical speed while jumping
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
 	}
 
-	// Dash overrides horizontal velocity and forces zero vertical velocity for a pure horizontal dash
-	if (isDashing_) {
-		velocity.x = dashDirX_ * DASH_SPEED;
-		velocity.y = 0.0f;
-	}
-
-	// Apply velocity via helper
 	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
+
+	// Synchronize rock velocity to avoid jitter and clipping
+	if (isPushing_ && pushedRockBody_ != nullptr) {
+		// Only synchronize when pushing towards the rock or stopping
+		if ((pushDir_ == 1.0f && velocity.x > 0.0f) || 
+		    (pushDir_ == -1.0f && velocity.x < 0.0f) || 
+		    velocity.x == 0.0f) {
+			Engine::GetInstance().physics->SetXVelocity(pushedRockBody_, velocity.x);
+		}
+	}
 }
 
 void Player::Draw(float dt) {
 
-	// Choose active texture and animation based on state
 	SDL_Texture* activeTex = texture;
 	const SDL_Rect* animFrame = nullptr;
+	float currentDrawScale = drawScale;
 
 	if (isDead_)
 	{
@@ -227,26 +364,46 @@ void Player::Draw(float dt) {
 			anims.SetCurrent("idle");
 		}
 	}
+<<<<<<< HEAD
 	else if (!isClimbing_)
+=======
+	else if (isHiding_ || isExitingHide_)
+>>>>>>> main
 	{
-		anims.Update(dt);
+		// Hide animation is advanced inside Hide() — just grab the current frame
+		animFrame = &anims.GetCurrentFrame();
+	}
+	else if (isPushing_ && velocity.x != 0.0f && !isJumping)
+	{
+		// Push animation — use dedicated spritesheet
+		pushAnim_.Update(dt);
+		activeTex = pushTexture_;
+		animFrame = &pushAnim_.GetCurrentFrame();
+		// The push frame is 256x256, we want it to appear the same size as
+		// the normal 128x128 walk animation, so we halve the draw scale.
+		currentDrawScale = 0.5f;
+	}
+	else 
+	{
+		bool shouldUpdate = true;
+		if (isJumping && anims.GetCurrentName() == "jump") {
+			// Freeze on peak frame (tile 49 is the middle-ish frame)
+			if (anims.GetCurrentFrameIndex() >= 7) {
+				shouldUpdate = false;
+			}
+		}
+		if (shouldUpdate) anims.Update(dt);
 		animFrame = &anims.GetCurrentFrame();
 	}
 
-	// Update render position using your PhysBody helper
-	int x, y;
-	pbody->GetPosition(x, y);
-	position.setX((float)x);
-	position.setY((float)y);
+	int xInt, yInt;
+	pbody->GetPosition(xInt, yInt);
+	position.setX(static_cast<float>(xInt));
+	position.setY(static_cast<float>(yInt));
 
-	// Camera System - Issue #21: Smooth camera follow with dead zones
-	// NOTE: Camera update in Player::Draw causes 1-frame jitter with Map tiles.
-	// TODO (#21): For proper fix, move world rendering to PostUpdate or add a Camera module
-	// that updates after Physics but before Map (requires module order refactoring).
 	auto& render = Engine::GetInstance().render;
-	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();  
-	
-	// Camera stops following when player is dead
+	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();
+
 	if (!isDead_)
 	{
 		render->SetCameraTarget(position.getX(), position.getY());
@@ -254,35 +411,33 @@ void Player::Draw(float dt) {
 		render->ClampCameraToMapBounds(mapSize.getX(), mapSize.getY());
 	}
 
-	// Center the sprite on the physics body position.
-	// Determine current draw scale. The jump animation is drawn smaller in the spritesheet,
-	// so we slightly scale it up to match the "on the ground" size throughout the jump.
-	float currentDrawScale = drawScale;
-	if (anims.GetCurrentName() == "jump") {
-		currentDrawScale *= 1.25f; // Scale up factor to match the original size
+
+	int currentFrameW = animFrame ? animFrame->w : texW;
+	int currentFrameH = animFrame ? animFrame->h : texH;
+	int drawX = static_cast<int>(position.getX() - (static_cast<float>(currentFrameW) * currentDrawScale) / 2.0f);
+	int drawY = static_cast<int>(position.getY() - (static_cast<float>(currentFrameH) * currentDrawScale) / 2.0f);
+
+	// Adjust drawing position when pushing so hands align with the edge of the rock visually
+	if (isPushing_ && velocity.x != 0.0f && !isJumping) {
+		drawX -= static_cast<int>(pushDir_ * 35.0f);
 	}
 
-	// Center the sprite on the physics body position based on the current scale.
-	int drawX = x - (int)(texW * currentDrawScale) / 2;
-	int drawY = y - (int)(texH * currentDrawScale) / 2;
-
-	// Flip logic: The idle sprite faces LEFT in the spritesheet.
-	// Some animations (run, jump, turnaround) face RIGHT in the spritesheet.
-	// We need to invert the flip for those animations.
 	bool spriteNativeRight = false;
 	const std::string& animName = anims.GetCurrentName();
 	if (animName == "jump" || animName == "turnaround") {
 		spriteNativeRight = true;
 	}
 
-	// facingRight == true means we want the character facing left (A key)
-	// facingRight == false means we want the character facing right (D key)
 	SDL_FlipMode flip;
-	if (spriteNativeRight) {
-		// Sprite already faces right → flip when we want left (facingRight == true)
+	if (isPushing_ && velocity.x != 0.0f && !isJumping) {
+		// Push spritesheet character faces LEFT natively
+		// When pushing right (velocity.x > 0), flip horizontally
+		flip = (velocity.x > 0.0f) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+	}
+	else if (spriteNativeRight) {
 		flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-	} else {
-		// Sprite already faces left → flip when we want right (facingRight == false)
+	}
+	else {
 		flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 	}
 
@@ -290,21 +445,22 @@ void Player::Draw(float dt) {
 		wakeUpAnim.Update(dt);
 		if (wakeUpAnim.HasFinishedOnce()) {
 			isWakingUp = false;
-		} else {
+		}
+		else {
 			const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
-			float wakeScale = 128.0f / 258.0f;
-			
-			int wakeOffsetX = 20;
-            int drawX = x - 64 - wakeOffsetX; 
-			int drawY = y - 64;
-            
+			float wakeScale = 0.65f;
+			int wakeWidth = (int)(258.0f * wakeScale);
+			int wakeHeight = (int)(258.0f * wakeScale);
+			int wakeDrawX = xInt - (wakeWidth / 2) - 60;
+			int wakeDrawY = yInt + 50 - wakeHeight + 15;
 			render->ApplyAmbientTint(wakeUpTexture);
-			render->DrawTexture(wakeUpTexture, drawX, drawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
+			render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
 			render->ResetAmbientTint(wakeUpTexture);
-			return; 
+			return;
 		}
 	}
 
+<<<<<<< HEAD
 	// Climb animation: render from the separate climb spritesheet at half scale
 	if (isClimbing_) {
 		const SDL_Rect& climbFrame = climbAnims.GetCurrentFrame();
@@ -338,82 +494,78 @@ void Player::Draw(float dt) {
 		}
 	}
 }
+=======
+	// ── I-frame flicker (not during hide or death) ────────────────────
+	bool skipDraw = !isDead_ && !isHiding_ && !isExitingHide_ && isInvincible_ &&
+		(static_cast<int>(iFrameTimer_ / 100.0f) % 2 == 0);
 
-void Player::Dash(float dt)
-{
-	auto& input = Engine::GetInstance().input;
+	if (!skipDraw) {
+		render->ApplyAmbientTint(activeTex);
+>>>>>>> main
 
-	if (dashCooldown_ > 0.0f) dashCooldown_ -= dt;
-
-	if (!isDashing_ && dashCooldown_ <= 0.0f &&
-		input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_DOWN)
-	{
-		isDashing_   = true;
-		dashTimer_   = DASH_DURATION;
-		dashDirX_    = facingRight ? -1.0f : 1.0f;
-
-		// Grant i-frames for the dash duration
-		isInvincible_ = true;
-		iFrameTimer_  = DASH_DURATION;
-
-		LOG("Player dash started");
-	}
-
-	if (isDashing_)
-	{
-		dashTimer_ -= dt;
-		if (dashTimer_ <= 0.0f)
-		{
-			isDashing_    = false;
-			dashCooldown_ = DASH_COOLDOWN;
-			LOG("Player dash ended");
+		if (damageFlashTimer_ > 0.0f) {
+			SDL_SetTextureColorMod(activeTex, 255, 100, 100);
 		}
+
+		// While hiding: gentle alpha pulse (80-180) to signal stealth
+		Uint8 drawAlpha = 255;
+		if (isHiding_ || isExitingHide_) {
+			float pulse = 0.5f + 0.3f * sinf(hideAlphaTime_ * 0.004f);
+			drawAlpha = static_cast<Uint8>(80.0f + 100.0f * pulse);
+			SDL_SetTextureAlphaMod(activeTex, drawAlpha);
+			SDL_SetTextureBlendMode(activeTex, SDL_BLENDMODE_BLEND);
+		}
+
+		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+
+		// Restore alpha and color modulation
+		if (isHiding_ || isExitingHide_) {
+			SDL_SetTextureAlphaMod(activeTex, 255);
+		}
+		if (damageFlashTimer_ > 0.0f) {
+			SDL_SetTextureColorMod(activeTex, 255, 255, 255);
+		}
+		render->ResetAmbientTint(activeTex);
 	}
 }
 
 void Player::Attack(float dt)
 {
-	auto& input   = Engine::GetInstance().input;
+	if (isHiding_ || isExitingHide_) return;
+
+	auto& input = Engine::GetInstance().input;
 	auto& physics = Engine::GetInstance().physics;
 
-	// Tick attack cooldown
 	if (attackCooldown_ > 0.0f) attackCooldown_ -= dt;
 
-	// Start a new attack on J press
 	if (input->GetKey(SDL_SCANCODE_J) == KEY_DOWN && !isAttacking_ && attackCooldown_ <= 0.0f)
 	{
-		isAttacking_    = true;
-		attackTimer_    = ATTACK_DURATION;
+		isAttacking_ = true;
+		attackTimer_ = ATTACK_DURATION;
 		attackCooldown_ = ATTACK_COOLDOWN;
 
 		int bodyX, bodyY;
 		pbody->GetPosition(bodyX, bodyY);
 
-		// Place hitbox in front of the player based on facing direction
-		// facingRight = true → sprite faces left; facingRight = false → sprite faces right
-		int hitboxX = facingRight ? bodyX - HITBOX_OFFSET : bodyX + HITBOX_OFFSET;
-		attackHitbox_ = physics->CreateRectangleSensor(hitboxX, bodyY, HITBOX_W, HITBOX_H, bodyType::STATIC);
+		int hitboxX = facingRight ? bodyX - (int)HITBOX_OFFSET : bodyX + (int)HITBOX_OFFSET;
+		attackHitbox_ = physics->CreateRectangleSensor(hitboxX, bodyY, (int)HITBOX_W, (int)HITBOX_H, bodyType::STATIC);
 		attackHitbox_->listener = this;
-		attackHitbox_->ctype    = ColliderType::ATTACK;
-
+		attackHitbox_->ctype = ColliderType::ATTACK;
 		LOG("Player attack started");
 	}
 
-	// While attacking: track timer and keep hitbox glued to the player
 	if (isAttacking_)
 	{
 		attackTimer_ -= dt;
 
-		// Update hitbox position to follow the player
 		if (attackHitbox_ != nullptr)
 		{
 			int bodyX, bodyY;
 			pbody->GetPosition(bodyX, bodyY);
-			int hitboxX = facingRight ? bodyX - HITBOX_OFFSET : bodyX + HITBOX_OFFSET;
+			int hitboxX = facingRight ? bodyX - (int)HITBOX_OFFSET : bodyX + (int)HITBOX_OFFSET;
 			attackHitbox_->SetPosition(hitboxX, bodyY);
 		}
 
-		// Attack window expired — destroy hitbox
 		if (attackTimer_ <= 0.0f)
 		{
 			isAttacking_ = false;
@@ -425,41 +577,73 @@ void Player::Attack(float dt)
 			LOG("Player attack ended");
 		}
 	}
-
-	// Tick i-frame timer
-	if (isInvincible_)
-	{
-		iFrameTimer_ -= dt;
-		if (iFrameTimer_ <= 0.0f)
-		{
-			isInvincible_ = false;
-		}
-	}
 }
 
 void Player::TakeDamage(int damage)
 {
-	if (isInvincible_) return;
+	// Cannot take damage while hiding
+	if (isInvincible_ || isHiding_) return;
 
 	health -= damage;
-	LOG("Player took %d damage -> health: %d/%d", damage, health, maxHealth);
+	LOG("Player took %d damage -> health: %d", damage, health);
 
 	isInvincible_ = true;
-	iFrameTimer_  = IFRAME_DURATION;
+	iFrameTimer_ = IFRAME_DURATION;
+	damageFlashTimer_ = DAMAGE_FLASH_DURATION;
+
+	int playerX, playerY;
+	pbody->GetPosition(playerX, playerY);
+
+	float closestDist = 999999.0f;
+	float enemyDirX = 0.0f;
+	for (const auto& entity : Engine::GetInstance().entityManager->entities) {
+		if ((entity->type == EntityType::ENEMY || entity->type == EntityType::ENEMY_B || entity->type == EntityType::ENEMY_C) && entity->active) {
+			float dx = entity->position.getX() - (float)playerX;
+			float dy = entity->position.getY() - (float)playerY;
+			float dist = dx * dx + dy * dy;
+			if (dist < closestDist) {
+				closestDist = dist;
+				enemyDirX = dx;
+			}
+		}
+	}
+
+	if (enemyDirX < 0)      facingRight = true;
+	else if (enemyDirX > 0) facingRight = false;
+
+	float knockbackForce = 5.0f;
+	float dir = facingRight ? 1.0f : -1.0f;
+	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
 
 	if (health <= 0)
 	{
 		health = 0;
 		isDead_ = true;
+		isHiding_ = false;
 		anims.SetCurrent("death");
+		Engine::GetInstance().audio->PlayMusic(nullptr);
+		Engine::GetInstance().audio->PlayFx(gameOverFxId);
 		LOG("Player is dead");
 	}
 	else
 	{
+		isHiding_ = false;
 		isShowingDamageAnim_ = true;
 		anims.SetCurrent("damage");
 		anims.ResetCurrent();
 	}
+}
+
+void Player::Revive()
+{
+	isDead_ = false;
+	isHiding_ = false;
+	isInvincible_ = false;
+	isShowingDamageAnim_ = false;
+	hideAlphaTime_ = 0.0f;
+	hideCooldown_ = 0.0f; // reset cooldown on revive
+	anims.SetCurrent("idle");
+	damageFlashTimer_ = 0.0f;
 }
 
 bool Player::CleanUp()
@@ -467,15 +651,34 @@ bool Player::CleanUp()
 	LOG("Cleanup player");
 	Engine::GetInstance().textures->UnLoad(texture);
 	if (wakeUpTexture) Engine::GetInstance().textures->UnLoad(wakeUpTexture);
+<<<<<<< HEAD
 	if (climbTexture) Engine::GetInstance().textures->UnLoad(climbTexture);
 	
+=======
+
+>>>>>>> main
 	if (attackHitbox_ != nullptr)
 	{
 		Engine::GetInstance().physics->DeletePhysBody(attackHitbox_);
 		attackHitbox_ = nullptr;
 	}
 	Engine::GetInstance().physics->DeletePhysBody(pbody);
+	if (pushTexture_) {
+		Engine::GetInstance().textures->UnLoad(pushTexture_);
+		pushTexture_ = nullptr;
+	}
 	return true;
+}
+
+SDL_Rect Player::GetCurrentAnimationRect() const
+{
+	if (isWakingUp) return wakeUpAnim.GetCurrentFrame();
+	return anims.GetCurrentFrame();
+}
+
+bool Player::IsFacingRight() const
+{
+	return facingRight;
 }
 
 void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
@@ -483,15 +686,25 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 	{
 	case ColliderType::PLATFORM:
 	{
-		// Only reset jump when landing on top of a platform, not when hitting a ceiling or wall
 		int playerX, playerY, platX, platY;
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(platX, platY);
-		// Player center must be above the platform center to count as landing
 		if (playerY < platY) {
+			if (isJumping) {
+				// Spawn landing dust (Centered at bottom of capsule)
+				Engine::GetInstance().entityManager->SpawnVFX(
+					Vector2D(position.getX(), position.getY() + 50.0f),
+					"assets/textures/spritesheets/SS_Pols_01.png",
+					12, 794, 202, 0.03f, 0.0f, 0.2f
+				);
+				// Allow jump animation to play the landing frames (after frame 7)
+				if (anims.GetCurrentName() == "jump") {
+					// We don't reset to idle immediately to let landing frames show
+				} else {
+					anims.SetCurrent("idle");
+				}
+			}
 			isJumping = false;
-			canDoubleJump = false;
-			hasDoubleJumped = false;
 		}
 		break;
 	}
@@ -499,8 +712,43 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		Engine::GetInstance().audio->PlayFx(pickCoinFxId);
 		physB->listener->Destroy();
 		break;
+	case ColliderType::PROJECTILE:
+		TakeDamage(1);
+		if (physB->listener != nullptr)
+			physB->listener->Destroy();
+		break;
 	case ColliderType::UNKNOWN:
 		break;
+	case ColliderType::PUSH_ROCK:
+	{
+		// Detect lateral push — only if player is roughly beside the rock, not on top
+		int playerX, playerY, rockX, rockY;
+		physA->GetPosition(playerX, playerY);
+		physB->GetPosition(rockX, rockY);
+
+		int vertDiff = abs(playerY - rockY);
+		// Only count as push if the player is at roughly the same height (not landing on top)
+		if (vertDiff < 50) {
+			pushContactCount_++;
+			isPushing_ = true;
+			pushDir_ = (playerX < rockX) ? 1.0f : -1.0f;
+			pushAnim_.Reset();
+			pushedRockBody_ = physB;
+		}
+		else {
+			// Player is above the rock — treat as platform for landing
+			if (playerY < rockY) {
+				if (isJumping) {
+					if (anims.GetCurrentName() != "jump") {
+						anims.SetCurrent("idle");
+					}
+				}
+				isJumping = false;
+				
+			}
+		}
+		break;
+	}
 	default:
 		break;
 	}
@@ -508,28 +756,24 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 {
-	switch (physB->ctype)
-	{
-	case ColliderType::PLATFORM:
-		break;
-	case ColliderType::ITEM:
-		break;
-	case ColliderType::UNKNOWN:
-		break;
-	default:
-		break;
+	if (physB->ctype == ColliderType::PUSH_ROCK) {
+		pushContactCount_--;
+		if (pushContactCount_ <= 0) {
+			pushContactCount_ = 0;
+			isPushing_ = false;
+			pushedRockBody_ = nullptr;
+		}
 	}
 }
 
 Vector2D Player::GetPosition() {
 	int x, y;
 	pbody->GetPosition(x, y);
-	// Adjust for center
-	return Vector2D((float)x - texW / 2, (float)y - texH / 2);
+	return Vector2D(static_cast<float>(x) - texW / 2.0f, static_cast<float>(y) - texH / 2.0f);
 }
 
 void Player::SetPosition(Vector2D pos) {
-	pbody->SetPosition((int)(pos.getX() + texW / 2), (int)(pos.getY() + texH / 2));
+	pbody->SetPosition(static_cast<int>(pos.getX() + texW / 2.0f), static_cast<int>(pos.getY() + texH / 2.0f));
 }
 
 void Player::CheckLedge() {

@@ -27,8 +27,8 @@ void Animation::Update(float dt) {
 
     timeInFrameMs_ += static_cast<int>(dt);
 
-    while (timeInFrameMs_ >= frames_[currentIndex_].durationMs) {
-        timeInFrameMs_ -= frames_[currentIndex_].durationMs;
+    while (timeInFrameMs_ >= frames_[static_cast<size_t>(currentIndex_)].durationMs) {
+        timeInFrameMs_ -= frames_[static_cast<size_t>(currentIndex_)].durationMs;
 
         if (currentIndex_ + 1 < static_cast<int>(frames_.size())) {
             ++currentIndex_;
@@ -48,10 +48,14 @@ void Animation::Update(float dt) {
 
 const SDL_Rect& Animation::GetCurrentFrame() const {
     if (frames_.empty()) return kEmpty_;
-    return frames_[currentIndex_].rect;
+    return frames_[static_cast<size_t>(currentIndex_)].rect;
 }
 
 int Animation::GetFrameCount() const { return static_cast<int>(frames_.size()); }
+
+int Animation::GetCurrentFrameIndex() const {
+    return currentIndex_;
+}
 
 // ---------- AnimationSet ----------
 
@@ -162,6 +166,14 @@ bool AnimationSet::HasFinishedOnce(const std::string& name) const {
     return false;
 }
 
+<<<<<<< HEAD
+=======
+int AnimationSet::GetCurrentFrameIndex() const {
+    if (Has(currentName_)) return clips_.at(currentName_).GetCurrentFrameIndex();
+    return 0;
+}
+
+>>>>>>> main
 bool AnimationSet::LoadSequentialFromTSX(const char* tsxPath, const std::string& clipName, int frameDurationMs)
 {
     pugi::xml_document doc;
@@ -197,3 +209,28 @@ bool AnimationSet::LoadSequentialFromTSX(const char* tsxPath, const std::string&
 
     return true;
 }
+<<<<<<< HEAD
+=======
+
+void Animation::UpdateBackwards(float dt) {
+    if (frames_.empty()) return;
+
+    timeInFrameMs_ += static_cast<int>(dt);
+
+    while (timeInFrameMs_ >= frames_[static_cast<size_t>(currentIndex_)].durationMs) {
+        timeInFrameMs_ -= frames_[static_cast<size_t>(currentIndex_)].durationMs;
+
+        if (currentIndex_ > 0) {
+            --currentIndex_;
+        }
+        else {
+            currentIndex_ = 0;
+            break; 
+        }
+    }
+}
+
+void AnimationSet::UpdateBackwards(float dtSeconds) {
+    if (Has(currentName_)) clips_[currentName_].UpdateBackwards(dtSeconds);
+}
+>>>>>>> main

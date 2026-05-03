@@ -8,6 +8,13 @@ enum class EntityType
 	PLAYER,
 	ITEM,
 	ENEMY,
+	ENEMY_B,
+	ENEMY_C,
+	PROJECTILE,
+	CHECKPOINT,
+	BOX,
+	PUSH_ROCK,
+	VFX,
 	UNKNOWN
 };
 
@@ -16,7 +23,10 @@ class PhysBody;
 class Entity : public std::enable_shared_from_this<Entity>
 {
 public:
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
 	Entity() : type(EntityType::UNKNOWN) {}
 	Entity(EntityType type) : type(type), active(true) {}
 
