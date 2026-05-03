@@ -5,6 +5,7 @@
 #include "Physics.h"
 #include "SaveSystem.h"
 #include "Log.h"
+#include "Scene.h"
 
 Checkpoint::Checkpoint() : Entity(EntityType::CHECKPOINT)
 {
@@ -63,5 +64,10 @@ void Checkpoint::OnCollision(PhysBody* physA, PhysBody* physB) {
         activated = true;
         LOG("Checkpoint activated! Saving game...");
         Engine::GetInstance().saveSystem->QuickSave();
+        
+        // Trigger UI notification
+        if (Engine::GetInstance().scene) {
+            Engine::GetInstance().scene->checkpointSaveTimer_ = 3000.0f; 
+        }
     }
 }
