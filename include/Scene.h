@@ -130,7 +130,11 @@ private:
     void DrawPauseMenu();
     void DrawPauseOptionsPanel(int winW, int winH);
     void HandlePauseMenuUIEvents(UIElement* uiElement);
-    void HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH);
+    bool HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH);
+
+    // Gamepad slider navigation (0 = music, 1 = sfx)
+    int   optionsSliderSel_ = 0;
+    float sliderRepeatTimer_ = 0.0f;
 
 public:
     void SetGameOverVisible(bool visible);

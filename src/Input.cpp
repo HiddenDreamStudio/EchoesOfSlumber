@@ -149,12 +149,40 @@ bool Input::PreUpdate()
 		leftStickY  = readAxis(SDL_GAMEPAD_AXIS_LEFTY);
 		rightStickX = readAxis(SDL_GAMEPAD_AXIS_RIGHTX);
 		rightStickY = readAxis(SDL_GAMEPAD_AXIS_RIGHTY);
+
+		// Triggers (0..32767, normalize to 0..1)
+		auto readTrigger = [&](SDL_GamepadAxis axis) -> float {
+			Sint16 raw = SDL_GetGamepadAxis(gamepad, axis);
+			float normalized = (float)raw / 32767.0f;
+			if (normalized < 0.05f) return 0.0f;
+			return normalized;
+		};
+		leftTrigger  = readTrigger(SDL_GAMEPAD_AXIS_LEFT_TRIGGER);
+		rightTrigger = readTrigger(SDL_GAMEPAD_AXIS_RIGHT_TRIGGER);
 	}
 	else
 	{
 		// No gamepad — zero everything
 		memset(padButtons, KEY_IDLE, sizeof(KeyState) * NUM_GAMEPAD_BUTTONS);
 		leftStickX = leftStickY = rightStickX = rightStickY = 0.0f;
+		leftTrigger = rightTrigger = 0.0f;
+		touchpadRaw = false;
+	}
+
+	// ── Touchpad logic (poll) ──────────────────────────────────────────────
+	if (touchpadRaw)
+	{
+		if (touchpadState == KEY_IDLE)
+			touchpadState = KEY_DOWN;
+		else
+			touchpadState = KEY_REPEAT;
+	}
+	else
+	{
+		if (touchpadState == KEY_REPEAT || touchpadState == KEY_DOWN)
+			touchpadState = KEY_UP;
+		else
+			touchpadState = KEY_IDLE;
 	}
 
 	while (SDL_PollEvent(&event))
@@ -223,11 +251,21 @@ bool Input::PreUpdate()
 					gamepad = nullptr;
 					memset(padButtons, KEY_IDLE, sizeof(KeyState) * NUM_GAMEPAD_BUTTONS);
 					leftStickX = leftStickY = rightStickX = rightStickY = 0.0f;
+					leftTrigger = rightTrigger = 0.0f;
+					touchpadRaw = false;
 
 					// Try to open another gamepad if available
 					OpenFirstGamepad();
 				}
 			}
+			break;
+
+		// ── Touchpad events ──────────────────────────────────────────────
+		case SDL_EVENT_GAMEPAD_TOUCHPAD_DOWN:
+			touchpadRaw = true;
+			break;
+		case SDL_EVENT_GAMEPAD_TOUCHPAD_UP:
+			touchpadRaw = false;
 			break;
 		}
 	}

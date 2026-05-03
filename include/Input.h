@@ -69,6 +69,9 @@ public:
 	float GetLeftStickY()  const { return leftStickY; }
 	float GetRightStickX() const { return rightStickX; }
 	float GetRightStickY() const { return rightStickY; }
+	float GetLeftTrigger()  const { return leftTrigger; }
+	float GetRightTrigger() const { return rightTrigger; }
+	KeyState GetTouchpadPressed() const { return touchpadState; }
 	bool  IsGamepadConnected() const { return gamepad != nullptr; }
 
 	// Check if a certain window event happened
@@ -94,6 +97,12 @@ private:
 	float leftStickY  = 0.0f;
 	float rightStickX = 0.0f;
 	float rightStickY = 0.0f;
+	float leftTrigger  = 0.0f;
+	float rightTrigger = 0.0f;
+
+	// Touchpad state (event-driven for PS5 compatibility)
+	KeyState touchpadState = KEY_IDLE;
+	bool     touchpadRaw   = false;
 
 	void OpenFirstGamepad();
 };
