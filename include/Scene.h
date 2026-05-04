@@ -28,6 +28,8 @@ public:
 
     Vector2D GetPlayerPosition();
     void     SetPlayerPosition(Vector2D pos);
+    void     SetGameOverVisible(bool visible);
+    void     ResetHealthUI(int health);
     SceneID  GetCurrentScene() const { return currentScene; }
     std::string GetTilePosDebug() const { return ""; }
 
