@@ -8,19 +8,18 @@
 #include "Animation.h"
 
 struct ObjectCollision {
-    float x;
-    float y;
-    float width;
-    float height;
+    float x = 0.0f;
+    float y = 0.0f;
+    float width = 0.0f;
+    float height = 0.0f;
     std::vector<int> polygonPoints;
 };
 
-struct Properties
-{
+struct Properties {
     struct Property
     {
         std::string name;
-        bool value;
+        bool value = false;
     };
 
     std::list<Property*> propertyList;
@@ -31,7 +30,6 @@ struct Properties
         {
             delete property;
         }
-
         propertyList.clear();
     }
 
@@ -42,18 +40,15 @@ struct Properties
                 return property;
             }
         }
-
         return nullptr;
     }
-
 };
 
-struct MapLayer
-{
-    int id;
+struct MapLayer {
+    int id = 0;
     std::string name;
-    int width;
-    int height;
+    int width = 0;
+    int height = 0;
     std::vector<int> tiles;
     Properties properties;
     float parallaxFactorX = 1.0f;
@@ -65,82 +60,75 @@ struct MapLayer
     }
 };
 
-struct TileSet
-{
-    int firstGid;
+struct TileSet {
+    int firstGid = 0;
     std::string name;
-    int tileWidth;
-    int tileHeight;
-    int spacing;
-    int margin;
-    int tileCount;
-    int columns;
-    SDL_Texture* texture;
+    int tileWidth = 0;
+    int tileHeight = 0;
+    int spacing = 0;
+    int margin = 0;
+    int tileCount = 0;
+    int columns = 0;
+    SDL_Texture* texture = nullptr;
     std::map<int, std::vector<ObjectCollision>> tileCollisions;
-
     std::map<int, SDL_Texture*> tileTextures;
+
     // Get the source rect for a tile gid
     SDL_Rect GetRect(unsigned int gid) {
         SDL_Rect rect = { 0 };
-
         int relativeIndex = gid - firstGid;
         rect.w = tileWidth;
         rect.h = tileHeight;
         rect.x = margin + (tileWidth + spacing) * (relativeIndex % columns);
         rect.y = margin + (tileHeight + spacing) * (relativeIndex / columns);
-
         return rect;
     }
-
 };
 
-struct ImageLayer
-{
+struct ImageLayer {
     std::string name;
-    float offsetX;
-    float offsetY;
+    float offsetX = 0.0f;
+    float offsetY = 0.0f;
     std::string source;
     SDL_Texture* texture = nullptr;
     float parallaxFactorX = 1.0f;
     float parallaxFactorY = 1.0f;
 };
 
-struct DecorationObject
-{
-    float x;      
-    float y;     
-    float width;  
-    float height; 
-    int   gid;    
+struct DecorationObject {
+    float x = 0.0f;
+    float y = 0.0f;
+    float width = 0.0f;
+    float height = 0.0f;
+    int   gid = 0;
     double rotation = 0.0;
     bool  isFront = false;
-    SDL_Texture* texture = nullptr; 
+    SDL_Texture* texture = nullptr;
 };
 
-struct AnimatedPlantObject
-{
-    float x;
-    float y;
-    float w;
-    float h;
+struct AnimatedPlantObject {
+    float x = 0.0f;
+    float y = 0.0f;
+    float w = 0.0f;
+    float h = 0.0f;
     bool  isFront = false;
-    std::string tsxPath;        
-    AnimationSet anim;            
+    std::string tsxPath;
+    AnimationSet anim;
     SDL_Texture* texture = nullptr;
 };
 
 struct CheckpointObject {
-    float x, y, width, height;
+    float x = 0.0f, y = 0.0f, width = 0.0f, height = 0.0f;
     bool visited = false;
 };
 
-struct MapData
-{
-    int width;
-    int height;
-    int tileWidth;
-    int tileHeight;
+struct MapData {
+    int width = 0;
+    int height = 0;
+    int tileWidth = 0;
+    int tileHeight = 0;
     std::list<TileSet*> tilesets;
+
     // L07: TODO 2: Add the info to the MapLayer Struct
     std::list<MapLayer*> layers;
     std::list<ImageLayer*> imageLayers;
@@ -154,12 +142,9 @@ struct MapData
     float capeY = 0.0f;
 };
 
-class Map : public Module
-{
+class Map : public Module {
 public:
-
     Map();
-
     // Destructor
     virtual ~Map();
 
@@ -200,14 +185,12 @@ public:
     int GetTileWidth() {
         return mapData.tileWidth;
     }
-
     int GetTileHeight() {
         return mapData.tileHeight;
     }
 
     void LoadEntities(std::shared_ptr<Player>& player);
     void SaveEntities(std::shared_ptr<Player> player);
-
     void LoadImageLayers();
     void LoadDecorationObjects();
     void LoadAnimatedPlants();
@@ -220,6 +203,5 @@ public:
 private:
     bool mapLoaded;
     pugi::xml_document mapFileXML;
-    //
     std::list<PhysBody*> colliderList;
 };

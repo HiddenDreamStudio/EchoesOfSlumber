@@ -11,45 +11,36 @@
 #include "Checkpoint.h"
 #include "Box.h"
 #include "PushRock.h"
+#include "Platform.h"
 #include "Window.h"
 #include "tracy/Tracy.hpp"
-
 #include <math.h>
 #include <algorithm>
 #include <sstream>
 
-Map::Map() : Module(), mapLoaded(false)
-{
+Map::Map() : Module(), mapLoaded(false) {
     name = "map";
 }
 
 // Destructor
-Map::~Map()
-{
-}
+Map::~Map() {}
 
 // Called before render is available
-bool Map::Awake()
-{
+bool Map::Awake() {
     name = "map";
     LOG("Loading Map Parser");
-
     return true;
 }
 
 bool Map::Start() {
-
     return true;
 }
 
-bool Map::Update(float dt)
-{
+bool Map::Update(float dt) {
     ZoneScoped;
-
     bool ret = true;
 
     if (mapLoaded) {
-
         Render* render = Engine::GetInstance().render.get();
         int scale = Engine::GetInstance().window->GetScale();
 
@@ -64,20 +55,21 @@ bool Map::Update(float dt)
                 );
             }
         }
+
         for (const auto& deco : mapData.decorationObjects) {
             if (deco->texture && !deco->isFront) {
-                // Posició en coordenades de món (Tiled usa l'origen a baix-esquerra per objectes gid)
+                // Posicio en coordenades de mon (Tiled usa l'origen a baix-esquerra per objectes gid)
                 float worldX = deco->x;
                 float worldY = deco->y - deco->height;
 
-                // Aplicar la càmera i l'escala de finestra (igual que DrawTexture)
+                // Aplicar la camera i l'escala de finestra (igual que DrawTexture)
                 SDL_FRect dst;
                 dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
                 dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
                 dst.w = deco->width * scale;
                 dst.h = deco->height * scale;
 
-                // En Tiled, l'origen de rotació dels objectes GID és per defecte a baix-esquerra
+                // En Tiled, l'origen de rotacio dels objectes GID es per defecte a baix-esquerra
                 SDL_FPoint center;
                 center.x = 0.0f;
                 center.y = dst.h;
@@ -89,12 +81,13 @@ bool Map::Update(float dt)
 
         for (const auto& plant : mapData.animatedPlants) {
             if (plant->isFront) continue;
+
             plant->anim.Update(dt);
             const SDL_Rect& frame = plant->anim.GetCurrentFrame();
 
             SDL_FRect dst;
             dst.x = (float)(render->camera.x + plant->x * scale);
-            dst.y = (float)(render->camera.y + plant->y * scale);           
+            dst.y = (float)(render->camera.y + plant->y * scale);
             dst.w = plant->w * scale;
             dst.h = plant->h * scale;
 
@@ -106,7 +99,7 @@ bool Map::Update(float dt)
 
             SDL_RenderTexture(render->renderer, plant->texture, &src, &dst);
         }
-        
+
         // Calculate camera bounds in tiles
         float camX = -render->camera.x;
         float camY = -render->camera.y;
@@ -123,10 +116,8 @@ bool Map::Update(float dt)
             if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true) {
                 for (int i = startX; i < endX; i++) {
                     for (int j = startY; j < endY; j++) {
-
                         //Get the gid from tile
                         int gid = mapLayer->Get(i, j);
-
                         //Check if the gid is different from 0 - some tiles are empty
                         if (gid != 0) {
                             TileSet* tileSet = GetTilesetFromTileId(gid);
@@ -149,8 +140,7 @@ bool Map::Update(float dt)
 }
 
 // Called after Update, for foreground elements
-bool Map::PostUpdate()
-{
+bool Map::PostUpdate() {
     if (mapLoaded == false)
         return true;
 
@@ -180,6 +170,7 @@ bool Map::PostUpdate()
 
     for (const auto& plant : mapData.animatedPlants) {
         if (!plant->isFront) continue;
+
         const SDL_Rect& frame = plant->anim.GetCurrentFrame();
 
         SDL_FRect dst;
@@ -200,10 +191,8 @@ bool Map::PostUpdate()
     return true;
 }
 
-TileSet* Map::GetTilesetFromTileId(int gid) const
-{
+TileSet* Map::GetTilesetFromTileId(int gid) const {
     TileSet* bestMatch = nullptr;
-
     for (const auto& tileset : mapData.tilesets) {
         if (gid >= tileset->firstGid) {
             if (bestMatch == nullptr || tileset->firstGid > bestMatch->firstGid) {
@@ -211,18 +200,15 @@ TileSet* Map::GetTilesetFromTileId(int gid) const
             }
         }
     }
-
     // Verificar si el gid realment pertany al tileset (dins del seu rang de tileCount)
     if (bestMatch && gid < bestMatch->firstGid + bestMatch->tileCount) {
         return bestMatch;
     }
-
     return nullptr;
 }
 
 // Called before quitting
-bool Map::CleanUp()
-{
+bool Map::CleanUp() {
     LOG("Unloading map");
 
     for (const auto& tileset : mapData.tilesets) {
@@ -268,8 +254,7 @@ bool Map::CleanUp()
 }
 
 // Load new map
-bool Map::Load(std::string path, std::string fileName)
-{
+bool Map::Load(std::string path, std::string fileName) {
     bool ret = false;
 
     // Assigns the name of the map file and the path
@@ -285,7 +270,6 @@ bool Map::Load(std::string path, std::string fileName)
         ret = false;
     }
     else {
-
         mapData.width = mapFileXML.child("map").attribute("width").as_int();
         mapData.height = mapFileXML.child("map").attribute("height").as_int();
         mapData.tileWidth = mapFileXML.child("map").attribute("tilewidth").as_int();
@@ -353,19 +337,15 @@ bool Map::Load(std::string path, std::string fileName)
         }
 
         for (pugi::xml_node layerNode = mapFileXML.child("map").child("layer"); layerNode != NULL; layerNode = layerNode.next_sibling("layer")) {
-
             MapLayer* mapLayer = new MapLayer();
             mapLayer->id = layerNode.attribute("id").as_int();
             mapLayer->name = layerNode.attribute("name").as_string();
             mapLayer->width = layerNode.attribute("width").as_int();
             mapLayer->height = layerNode.attribute("height").as_int();
-
             LoadProperties(layerNode, mapLayer->properties);
-
             for (pugi::xml_node tileNode = layerNode.child("data").child("tile"); tileNode != NULL; tileNode = tileNode.next_sibling("tile")) {
                 mapLayer->tiles.push_back(tileNode.attribute("gid").as_int());
             }
-
             mapData.layers.push_back(mapLayer);
         }
 
@@ -391,6 +371,7 @@ bool Map::Load(std::string path, std::string fileName)
                             Vector2D mapCoord = MapToWorld(i, j);
                             int numVerts = (int)col.polygonPoints.size() / 2;
                             PhysBody* c1 = nullptr;
+
                             if (numVerts >= 4) {
                                 c1 = Engine::GetInstance().physics.get()->CreateChain(
                                     (int)(mapCoord.getX() + col.x),
@@ -406,6 +387,7 @@ bool Map::Load(std::string path, std::string fileName)
                                     (int)col.polygonPoints.size(),
                                     STATIC);
                             }
+
                             if (c1 != nullptr) {
                                 c1->ctype = ColliderType::PLATFORM;
                                 colliderList.push_back(c1);
@@ -418,7 +400,6 @@ bool Map::Load(std::string path, std::string fileName)
             }
 
             std::vector<bool> visited(mapData.width * mapData.height, false);
-
             for (int j = 0; j < mapData.height; j++) {
                 for (int i = 0; i < mapData.width; i++) {
                     if (!hasRectCollider[j * mapData.width + i]) continue;
@@ -470,7 +451,6 @@ bool Map::Load(std::string path, std::string fileName)
         LoadImageLayers();
         LoadDecorationObjects();
         LoadAnimatedPlants();
-
         ret = true;
 
         if (ret == true)
@@ -480,63 +460,50 @@ bool Map::Load(std::string path, std::string fileName)
         else {
             LOG("Error while parsing map file: %s", mapPathName.c_str());
         }
-
     }
 
     mapLoaded = ret;
     return ret;
 }
 
-Vector2D Map::MapToWorld(int x, int y) const
-{
+Vector2D Map::MapToWorld(int x, int y) const {
     Vector2D ret;
-
     ret.setX((float)(x * mapData.tileWidth));
     ret.setY((float)(y * mapData.tileHeight));
-
     return ret;
 }
 
 Vector2D Map::WorldToMap(int x, int y) {
-
     Vector2D ret(0, 0);
     ret.setX((float)(x / mapData.tileWidth));
     ret.setY((float)(y / mapData.tileHeight));
-
     return ret;
 }
 
-bool Map::LoadProperties(pugi::xml_node& node, Properties& properties)
-{
+bool Map::LoadProperties(pugi::xml_node& node, Properties& properties) {
     bool ret = false;
-
     for (pugi::xml_node propertieNode = node.child("properties").child("property"); propertieNode; propertieNode = propertieNode.next_sibling("property"))
     {
         Properties::Property* p = new Properties::Property();
         p->name = propertieNode.attribute("name").as_string();
         p->value = propertieNode.attribute("value").as_bool(); // (!!) I'm assuming that all values are bool !!
-
         properties.propertyList.push_back(p);
     }
-
     return ret;
 }
 
-Vector2D Map::GetMapSizeInPixels()
-{
+Vector2D Map::GetMapSizeInPixels() {
     Vector2D sizeInPixels;
     sizeInPixels.setX((float)(mapData.width * mapData.tileWidth));
     sizeInPixels.setY((float)(mapData.height * mapData.tileHeight));
     return sizeInPixels;
 }
 
-Vector2D Map::GetMapSizeInTiles()
-{
+Vector2D Map::GetMapSizeInTiles() {
     return Vector2D((float)mapData.width, (float)mapData.height);
 }
 
-bool Map::GetCapePosition(float& outX, float& outY) const
-{
+bool Map::GetCapePosition(float& outX, float& outY) const {
     if (mapData.capeFound) {
         outX = mapData.capeX;
         outY = mapData.capeY;
@@ -552,18 +519,15 @@ MapLayer* Map::GetNavigationLayer() {
             return layer;
         }
     }
-
     return nullptr;
 }
 
 void Map::LoadEntities(std::shared_ptr<Player>& player) {
-
     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
         if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
-
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
-
                 std::string entityType = objectNode.attribute("type").as_string();
+
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
 
@@ -584,6 +548,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
 
                     float patrolLeft  = x - 200.0f;
                     float patrolRight = x + 200.0f;
+
                     pugi::xml_node props = objectNode.child("properties");
                     if (props) {
                         for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
@@ -592,6 +557,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                             if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
                         }
                     }
+
                     enemy->SetPatrolPoints(patrolLeft, patrolRight);
                     enemy->Start();
                     LOG("Enemy spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
@@ -599,8 +565,10 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                 else if (entityType == "EnemyB") {
                     auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
                     enemyB->position = Vector2D(x, y);
+
                     float patrolLeft  = x - 200.0f;
                     float patrolRight = x + 200.0f;
+
                     pugi::xml_node props = objectNode.child("properties");
                     if (props) {
                         for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
@@ -609,6 +577,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                             if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
                         }
                     }
+
                     enemyB->SetPatrolPoints(patrolLeft, patrolRight);
                     enemyB->Start();
                     LOG("EnemyB spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
@@ -636,6 +605,30 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     mapData.capeX = x;
                     mapData.capeY = y;
                     LOG("Cape position loaded from TMX at: %f, %f", x, y);
+                }
+                else if (entityType == "Platform") {
+                    auto platform = std::dynamic_pointer_cast<Platform>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));
+                    
+                    platform->position = Vector2D(x, y);
+                    platform->width = objectNode.attribute("width").as_int(64);
+                    platform->height = objectNode.attribute("height").as_int(16);
+
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string propName = prop.attribute("name").as_string();
+                            
+                            if (propName == "speed") {
+                                platform->SetSpeed(prop.attribute("value").as_float(2.0f));
+                            }
+                            if (propName == "path") {
+                                platform->ParsePath(prop.attribute("value").as_string());
+                            }
+                        }
+                    }
+                    
+                    platform->Start();
+                    LOG("Platform spawned at: %f, %f", x, y);
                 }
             }
         }
@@ -667,6 +660,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     rock->rockWidth = w;
                     rock->rockHeight = h;
                     rock->Start();
+
                     LOG("PushRock spawned at: %f, %f (size: %.0fx%.0f)", x, y, w, h);
                 }
             }
@@ -675,13 +669,11 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
 }
 
 void Map::SaveEntities(std::shared_ptr<Player> player) {
-
     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
-
         if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
-
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
                 std::string entityType = objectNode.attribute("type").as_string();
+
                 if (entityType == "Player") {
                     Vector2D playerPos = player->GetPosition();
                     objectNode.attribute("x").set_value(playerPos.getX());
@@ -693,11 +685,9 @@ void Map::SaveEntities(std::shared_ptr<Player> player) {
 
     std::string mapPathName = mapPath + mapFileName;
     mapFileXML.save_file(mapPathName.c_str());
-
 }
 
-void Map::LoadImageLayers()
-{
+void Map::LoadImageLayers() {
     for (pugi::xml_node imgNode = mapFileXML.child("map").child("imagelayer");
         imgNode != NULL;
         imgNode = imgNode.next_sibling("imagelayer"))
@@ -717,9 +707,7 @@ void Map::LoadImageLayers()
     }
 }
 
-
-void Map::LoadDecorationObjects()
-{
+void Map::LoadDecorationObjects() {
     const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoints", "AnimatedPlants", "AnimatedPlants front", "InteractiveAssets" };
 
     for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
@@ -727,7 +715,6 @@ void Map::LoadDecorationObjects()
         groupNode = groupNode.next_sibling("objectgroup"))
     {
         std::string groupName = groupNode.attribute("name").as_string();
-
         bool skip = false;
         for (const auto& excluded : excludedNames) {
             if (groupName == excluded) { skip = true; break; }
@@ -807,8 +794,7 @@ void Map::LoadDecorationObjects()
     }
 }
 
-void Map::LoadAnimatedPlants()
-{
+void Map::LoadAnimatedPlants() {
     for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
         groupNode != NULL;
         groupNode = groupNode.next_sibling("objectgroup"))
@@ -823,6 +809,7 @@ void Map::LoadAnimatedPlants()
         {
             std::string type = objNode.attribute("class").as_string();
             if (type.empty()) type = objNode.attribute("type").as_string();
+
             if (type != "AnimatedPlant") continue;
 
             std::string tsxFile = "";
@@ -834,6 +821,7 @@ void Map::LoadAnimatedPlants()
                     tsxFile = propNode.attribute("value").as_string();
                 }
             }
+
             if (tsxFile.empty()) continue;
 
             AnimatedPlantObject* plant = new AnimatedPlantObject();
@@ -842,24 +830,26 @@ void Map::LoadAnimatedPlants()
             plant->w = objNode.attribute("width").as_float();
             plant->h = objNode.attribute("height").as_float();
             plant->isFront = (layerName == "AnimatedPlants front"); 
-            plant->tsxPath = tsxFile;
 
+            plant->tsxPath = tsxFile;
             std::string fullTsxPath = mapPath + tsxFile;
+
             std::unordered_map<int, std::string> aliases = { {0, "idle"} };
             bool loaded = plant->anim.LoadFromTSX(fullTsxPath.c_str(), aliases);
-
             if (!loaded) {
                 delete plant;
                 continue;
             }
 
             plant->anim.SetCurrent("idle");
+
             pugi::xml_document tsxDoc;
             if (tsxDoc.load_file(fullTsxPath.c_str())) {
                 std::string imgSource = tsxDoc.child("tileset").child("image").attribute("source").as_string();
                 std::string pngPath = mapPath + tsxFile.substr(0, tsxFile.find_last_of("/\\") + 1) + imgSource;
                 plant->texture = Engine::GetInstance().textures->Load(pngPath.c_str());
             }
+
             mapData.animatedPlants.push_back(plant);
         }
     }
