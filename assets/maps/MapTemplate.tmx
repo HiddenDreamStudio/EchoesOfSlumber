@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="130" height="77" tilewidth="64" tileheight="64" infinite="0" nextlayerid="37" nextobjectid="402">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="130" height="77" tilewidth="64" tileheight="64" infinite="0" nextlayerid="37" nextobjectid="462">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -417,7 +417,7 @@
  <imagelayer id="13" name="ReferenciaMapa" offsetx="-2" offsety="-196">
   <image source="ReferenciaFondo.png" width="8320" height="5782"/>
  </imagelayer>
- <objectgroup id="31" name="Fondo piedras">
+ <objectgroup id="31" name="Fondo piedras" parallaxx="0.2">
   <object id="271" gid="173" x="3351" y="5310" width="3002.82" height="2140"/>
   <object id="272" gid="173" x="4687" y="3198" width="1906" height="1948"/>
   <object id="273" gid="174" x="1959" y="4801" width="1506" height="1874"/>
@@ -428,18 +428,6 @@
   <object id="279" gid="172" x="3579" y="1928" width="1354" height="1471"/>
   <object id="281" gid="173" x="7855" y="2190" width="802" height="819.673"/>
   <object id="282" gid="175" x="8390.94" y="1741.47" width="1031.3" height="1343.18" rotation="227.035"/>
- </objectgroup>
- <objectgroup id="33" name="AnimatedPlants">
-  <object id="395" name="Planta_17" type="AnimatedPlant" x="799.77" y="2343.85" width="440.3" height="259">
-   <properties>
-    <property name="tsx" value="../textures/spritesheets/SS_environment/tsx/planta_17.tsx"/>
-   </properties>
-  </object>
-  <object id="396" name="Planta_16" type="AnimatedPlant" x="1264.27" y="3548" width="169.067" height="281.778">
-   <properties>
-    <property name="tsx" value="../textures/spritesheets/SS_environment/tsx/planta_16.tsx"/>
-   </properties>
-  </object>
  </objectgroup>
  <objectgroup id="30" name="Assets 5">
   <object id="240" gid="162" x="4905.65" y="4346" width="349.184" height="329"/>
@@ -489,7 +477,17 @@
   <object id="211" gid="157" x="5628" y="3021.33" width="95.7648" height="116.634"/>
   <object id="212" gid="116" x="4181" y="1230" width="322" height="162"/>
  </objectgroup>
- <objectgroup id="35" name="AnimatedPlants">
+ <objectgroup id="33" name="AnimatedPlants">
+  <object id="395" name="Planta_17" type="AnimatedPlant" x="799.77" y="2343.85" width="440.3" height="259">
+   <properties>
+    <property name="tsx" value="../textures/spritesheets/SS_environment/tsx/planta_17.tsx"/>
+   </properties>
+  </object>
+  <object id="396" name="Planta_16" type="AnimatedPlant" x="1264.27" y="3548" width="169.067" height="281.778">
+   <properties>
+    <property name="tsx" value="../textures/spritesheets/SS_environment/tsx/planta_16.tsx"/>
+   </properties>
+  </object>
   <object id="380" name="Planta_12" type="AnimatedPlant" x="8029" y="4657" width="150" height="150">
    <properties>
     <property name="tsx" value="../textures/spritesheets/SS_environment/tsx/planta_12.tsx"/>
@@ -550,12 +548,6 @@
     <property name="tsx" value="../textures/spritesheets/SS_environment/tsx/planta_10.tsx"/>
    </properties>
   </object>
- </objectgroup>
- <objectgroup id="26" name="Assets 2">
-  <object id="159" gid="166" x="7729.22" y="4817" width="180.447" height="152"/>
-  <object id="160" gid="152" x="5976" y="4834" width="417" height="329.652"/>
-  <object id="166" gid="125" x="634" y="3919" width="57" height="71.0112"/>
-  <object id="170" gid="107" x="705" y="3658.33" width="63" height="129"/>
  </objectgroup>
  <objectgroup id="26" name="Assets 2">
   <object id="159" gid="166" x="7729.22" y="4817" width="180.447" height="152"/>

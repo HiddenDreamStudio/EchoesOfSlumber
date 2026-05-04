@@ -70,10 +70,10 @@ bool Map::Update(float dt)
                 float worldX = deco->x;
                 float worldY = deco->y - deco->height;
 
-                // Aplicar la càmera i l'escala de finestra (igual que DrawTexture)
+                // Aplicar la càmera i l'escala de finestra amb parallax
                 SDL_FRect dst;
-                dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
-                dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
+                dst.x = (float)((int)(render->camera.x * deco->parallaxFactorX) + (int)worldX * scale);
+                dst.y = (float)((int)(render->camera.y * deco->parallaxFactorY) + (int)worldY * scale);
                 dst.w = deco->width * scale;
                 dst.h = deco->height * scale;
 
@@ -94,7 +94,7 @@ bool Map::Update(float dt)
 
             SDL_FRect dst;
             dst.x = (float)(render->camera.x + plant->x * scale);
-            dst.y = (float)(render->camera.y + plant->y * scale);           
+            dst.y = (float)(render->camera.y + plant->y * scale);
             dst.w = plant->w * scale;
             dst.h = plant->h * scale;
 
@@ -106,7 +106,7 @@ bool Map::Update(float dt)
 
             SDL_RenderTexture(render->renderer, plant->texture, &src, &dst);
         }
-        
+
         // Calculate camera bounds in tiles
         float camX = -render->camera.x;
         float camY = -render->camera.y;
@@ -164,8 +164,8 @@ bool Map::PostUpdate()
             float worldY = deco->y - deco->height;
 
             SDL_FRect dst;
-            dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
-            dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
+            dst.x = (float)((int)(render->camera.x * deco->parallaxFactorX) + (int)worldX * scale);
+            dst.y = (float)((int)(render->camera.y * deco->parallaxFactorY) + (int)worldY * scale);
             dst.w = deco->width * scale;
             dst.h = deco->height * scale;
 
@@ -309,7 +309,8 @@ bool Map::Load(std::string path, std::string fileName)
             std::string imgName = tilesetNode.child("image").attribute("source").as_string();
             if (!imgName.empty()) {
                 tileSet->texture = Engine::GetInstance().textures->Load((mapPath + imgName).c_str());
-            } else {
+            }
+            else {
                 tileSet->texture = nullptr;
             }
 
@@ -325,17 +326,17 @@ bool Map::Load(std::string path, std::string fileName)
                         col.y = objectNode.attribute("y").as_float(0.0f);
                         col.width = objectNode.attribute("width").as_float(0.0f);
                         col.height = objectNode.attribute("height").as_float(0.0f);
-                        
+
                         pugi::xml_node polyNode = objectNode.child("polygon");
                         if (polyNode != NULL) {
                             std::string pointsStr = polyNode.attribute("points").as_string();
                             std::stringstream ss(pointsStr);
                             std::string pointPair;
-                            while(std::getline(ss, pointPair, ' ')) {
-                                if(pointPair.empty()) continue;
+                            while (std::getline(ss, pointPair, ' ')) {
+                                if (pointPair.empty()) continue;
                                 std::stringstream ssPair(pointPair);
                                 std::string xStr, yStr;
-                                if(std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
+                                if (std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
                                     col.polygonPoints.push_back((int)std::stof(xStr));
                                     col.polygonPoints.push_back((int)std::stof(yStr));
                                 }
@@ -398,7 +399,8 @@ bool Map::Load(std::string path, std::string fileName)
                                     (int*)col.polygonPoints.data(),
                                     (int)col.polygonPoints.size(),
                                     STATIC);
-                            } else if (numVerts >= 3) {
+                            }
+                            else if (numVerts >= 3) {
                                 c1 = Engine::GetInstance().physics.get()->CreateConvexPolygon(
                                     (int)(mapCoord.getX() + col.x),
                                     (int)(mapCoord.getY() + col.y),
@@ -410,7 +412,8 @@ bool Map::Load(std::string path, std::string fileName)
                                 c1->ctype = ColliderType::PLATFORM;
                                 colliderList.push_back(c1);
                             }
-                        } else {
+                        }
+                        else {
                             hasRectCollider[j * mapData.width + i] = true;
                         }
                     }
@@ -582,13 +585,13 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     auto enemy = std::dynamic_pointer_cast<EnemyCarmel>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
                     enemy->position = Vector2D(x, y);
 
-                    float patrolLeft  = x - 200.0f;
+                    float patrolLeft = x - 200.0f;
                     float patrolRight = x + 200.0f;
                     pugi::xml_node props = objectNode.child("properties");
                     if (props) {
                         for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
                             std::string propName = prop.attribute("name").as_string();
-                            if (propName == "patrol_left")  patrolLeft  = prop.attribute("value").as_float();
+                            if (propName == "patrol_left")  patrolLeft = prop.attribute("value").as_float();
                             if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
                         }
                     }
@@ -599,13 +602,13 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                 else if (entityType == "EnemyB") {
                     auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
                     enemyB->position = Vector2D(x, y);
-                    float patrolLeft  = x - 200.0f;
+                    float patrolLeft = x - 200.0f;
                     float patrolRight = x + 200.0f;
                     pugi::xml_node props = objectNode.child("properties");
                     if (props) {
                         for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
                             std::string propName = prop.attribute("name").as_string();
-                            if (propName == "patrol_left")  patrolLeft  = prop.attribute("value").as_float();
+                            if (propName == "patrol_left")  patrolLeft = prop.attribute("value").as_float();
                             if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
                         }
                     }
@@ -643,7 +646,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
-                
+
                 auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
                 checkpoint->position = Vector2D(x, y);
                 checkpoint->Start();
@@ -734,6 +737,9 @@ void Map::LoadDecorationObjects()
         }
         if (skip) continue;
 
+        float groupParallaxX = groupNode.attribute("parallaxx").as_float(1.0f);
+        float groupParallaxY = groupNode.attribute("parallaxy").as_float(1.0f);
+
         std::vector<DecorationObject*> layerDecos;
 
         for (pugi::xml_node objNode = groupNode.child("object");
@@ -741,11 +747,11 @@ void Map::LoadDecorationObjects()
             objNode = objNode.next_sibling("object"))
         {
             unsigned int rawGid = objNode.attribute("gid").as_uint(0);
-            if (rawGid == 0) continue; 
+            if (rawGid == 0) continue;
 
             const unsigned int FLIPPED_HORIZONTALLY_FLAG = 0x80000000;
-            const unsigned int FLIPPED_VERTICALLY_FLAG   = 0x40000000;
-            const unsigned int FLIPPED_DIAGONALLY_FLAG   = 0x20000000;
+            const unsigned int FLIPPED_VERTICALLY_FLAG = 0x40000000;
+            const unsigned int FLIPPED_DIAGONALLY_FLAG = 0x20000000;
 
             int gid = rawGid & ~(FLIPPED_HORIZONTALLY_FLAG | FLIPPED_VERTICALLY_FLAG | FLIPPED_DIAGONALLY_FLAG);
 
@@ -789,6 +795,8 @@ void Map::LoadDecorationObjects()
             deco->rotation = objNode.attribute("rotation").as_double(0.0);
             deco->isFront = (groupName == "Assets front");
             deco->gid = gid;
+            deco->parallaxFactorX = groupParallaxX;
+            deco->parallaxFactorY = groupParallaxY;
 
             auto it = ts->tileTextures.find(relativeId);
             deco->texture = (it != ts->tileTextures.end()) ? it->second : nullptr;
@@ -841,7 +849,7 @@ void Map::LoadAnimatedPlants()
             plant->y = objNode.attribute("y").as_float();
             plant->w = objNode.attribute("width").as_float();
             plant->h = objNode.attribute("height").as_float();
-            plant->isFront = (layerName == "AnimatedPlants front"); 
+            plant->isFront = (layerName == "AnimatedPlants front");
             plant->tsxPath = tsxFile;
 
             std::string fullTsxPath = mapPath + tsxFile;
