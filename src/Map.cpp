@@ -55,12 +55,13 @@ bool Map::Update(float dt)
 
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
+                
                 Engine::GetInstance().render->DrawTexture(
                     imgLayer->texture,
                     static_cast<int>(imgLayer->offsetX),
                     static_cast<int>(imgLayer->offsetY),
                     nullptr,
-                    imgLayer->parallaxFactorX
+                    imgLayer->parallaxFactorX 
                 );
             }
         }
@@ -72,8 +73,8 @@ bool Map::Update(float dt)
 
                 // Aplicar la càmera i l'escala de finestra amb parallax
                 SDL_FRect dst;
-                dst.x = (float)((int)(render->camera.x * deco->parallaxFactorX) + (int)worldX * scale);
-                dst.y = (float)((int)(render->camera.y * deco->parallaxFactorY) + (int)worldY * scale);
+                dst.x = (float)((int)(render->camera.x * deco->parallaxFactorX) + (int)(worldX * scale));
+                dst.y = (float)((int)(render->camera.y * deco->parallaxFactorY) + (int)(worldY * scale));
                 dst.w = deco->width * scale;
                 dst.h = deco->height * scale;
 
@@ -701,6 +702,7 @@ void Map::SaveEntities(std::shared_ptr<Player> player) {
 
 void Map::LoadImageLayers()
 {
+    
     for (pugi::xml_node imgNode = mapFileXML.child("map").child("imagelayer");
         imgNode != NULL;
         imgNode = imgNode.next_sibling("imagelayer"))
