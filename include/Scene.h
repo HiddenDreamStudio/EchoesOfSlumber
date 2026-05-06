@@ -47,6 +47,7 @@ private:
     float musicVolume_ = 0.8f;
     float sfxVolume_ = 0.8f;
     int menuClickFxId = -1;
+    bool isFullscreen_ = false;
 
     // =========================================================================
     //  MAIN MENU
@@ -82,6 +83,7 @@ private:
     static constexpr int BTN_MUSIC_DOWN = 12;
     static constexpr int BTN_SFX_UP = 13;
     static constexpr int BTN_SFX_DOWN = 14;
+    static constexpr int BTN_FULLSCREEN = 15;
 
     // =========================================================================
     //  INTRO (Splash Logos)
@@ -128,11 +130,21 @@ private:
     void DrawPauseMenu();
     void DrawPauseOptionsPanel(int winW, int winH);
     void HandlePauseMenuUIEvents(UIElement* uiElement);
+    bool HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH);
+
+    // Gamepad slider navigation (0 = music, 1 = sfx)
+    int   optionsSliderSel_ = 0;
+    float sliderRepeatTimer_ = 0.0f;
 
 public:
     void SetGameOverVisible(bool visible);
     void ResetHealthUI(int health);
+    float wakeUpNotifTimer_ = 0.0f;
+    static constexpr float WAKEUP_NOTIF_DURATION = 4000.0f;
     float checkpointSaveTimer_ = 0.0f;
+    float noCapeNotifTimer_ = 0.0f;
+    static constexpr float CAPA_NOTIF_DURATION = 3000.0f;
+    void ShowNoCapeNotification();
 
 private:
     // Button IDs — pause menu
@@ -146,6 +158,7 @@ private:
     static constexpr int BTN_PAUSE_OPT_SFX_UP = 27;
     static constexpr int BTN_PAUSE_OPT_SFX_DOWN = 28;
     static constexpr int BTN_PAUSE_OPT_BACK = 29;
+    static constexpr int BTN_PAUSE_OPT_FULLSCREEN = 33;
     static constexpr int BTN_PAUSE_MAP = 32;
     static constexpr int BTN_GAMEOVER_MAINMENU = 30;
     static constexpr int BTN_GAMEOVER_CONTINUE = 31;
@@ -174,7 +187,9 @@ private:
     float capaY_ = 600.0f;
     bool  capaCollected_ = false;
     float capaFloatTimer_ = 0.0f; // floating animation timer
+    float capaNotifTimer_ = 0.0f; // cape pickup notification timer
     
+
     // Game Over Menu Assets
     SDL_Texture* texGameOverBg_ = nullptr;
     SDL_Texture* texGameOverBtn_ = nullptr;
@@ -186,6 +201,7 @@ private:
 
     // Checkpoint notification
     SDL_Texture* texCheckpointSaved_ = nullptr;
+    SDL_Texture* texNoCapeNotif_ = nullptr;
 
     // Pause menu textures
     SDL_Texture* texPauseBackground_ = nullptr;
