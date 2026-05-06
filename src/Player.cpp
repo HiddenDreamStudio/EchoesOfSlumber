@@ -181,13 +181,17 @@ void Player::GetPhysicsValues() {
 void Player::Move() {
 	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
 
+	auto& input = Engine::GetInstance().input;
+	bool moveLeft = input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT || input->GetLeftStickX() < -0.2f;
+	bool moveRight = input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT || input->GetLeftStickX() > 0.2f;
+
 	// Determine effective speed (slower while pushing)
 	float effectiveSpeed = speed;
 	if (isPushing_) {
 		effectiveSpeed = speed * PUSH_SPEED_FACTOR;
 	}
 
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
+	if (moveLeft) {
 		velocity.x = -effectiveSpeed;
 		if (!facingRight) {
 			facingRight = true;
@@ -201,7 +205,7 @@ void Player::Move() {
 			}
 		}
 	}
-	else if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT) {
+	else if (moveRight) {
 		velocity.x = effectiveSpeed;
 		if (facingRight) {
 			facingRight = false;
@@ -235,7 +239,13 @@ void Player::Move() {
 void Player::Jump() {
 	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
 
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
+	auto& input = Engine::GetInstance().input;
+	bool jumpDown = input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+	                input->GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN;
+	bool jumpUp   = input->GetKey(SDL_SCANCODE_SPACE) == KEY_UP ||
+	                input->GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_UP;
+
+	if (jumpDown) {
 		if (!isJumping) {
 			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -jumpForce, true);
 			if (anims.Has("jump")) anims.SetCurrent("jump");
@@ -252,7 +262,7 @@ void Player::Jump() {
 		}
 	}
 
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_UP && isJumping) {
+	if (jumpUp && isJumping) {
 		float vy = Engine::GetInstance().physics->GetYVelocity(pbody);
 		if (vy < 0.0f) {
 			Engine::GetInstance().physics->SetYVelocity(pbody, vy * 0.5f);
@@ -272,10 +282,19 @@ void Player::Hide(float dt)
 {
 	if (isWakingUp || isShowingDamageAnim_ || isDead_) return;
 
-	// Cannot hide without the blanket (cape collectible)
-	if (!hasBlanket_) return;
+	auto& input = Engine::GetInstance().input;
+	bool hideDown = input->GetKey(SDL_SCANCODE_H) == KEY_DOWN ||
+	                input->GetGamepadButton(SDL_GAMEPAD_BUTTON_NORTH) == KEY_DOWN;
 
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_H) == KEY_DOWN)
+	// Cannot hide without the blanket (cape collectible)
+	if (!hasBlanket_) {
+		if (hideDown) {
+			Engine::GetInstance().scene->ShowNoCapeNotification();
+		}
+		return;
+	}
+
+	if (hideDown)
 	{
 		if (!isHiding_ && !isExitingHide_)
 		{
@@ -538,7 +557,10 @@ void Player::Attack(float dt)
 
 	if (attackCooldown_ > 0.0f) attackCooldown_ -= dt;
 
-	if (input->GetKey(SDL_SCANCODE_J) == KEY_DOWN && !isAttacking_ && attackCooldown_ <= 0.0f)
+	bool attackDown = input->GetKey(SDL_SCANCODE_J) == KEY_DOWN ||
+	                  input->GetGamepadButton(SDL_GAMEPAD_BUTTON_WEST) == KEY_DOWN;
+
+	if (attackDown && !isAttacking_ && attackCooldown_ <= 0.0f)
 	{
 		isAttacking_ = true;
 		attackTimer_ = ATTACK_DURATION;
