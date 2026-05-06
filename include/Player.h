@@ -39,7 +39,7 @@ public:
 	SDL_Rect GetCurrentAnimationRect() const;
 	bool     IsFacingRight() const;
 
-	// Hiding state � queried by enemies to disable detection
+	// Hiding state queried by enemies to disable detection
 	bool IsHiding() const { return isHiding_; }
 
 	// Blanket (cape) collectible – must be collected before hiding is available
@@ -87,7 +87,7 @@ private:
 	SDL_Texture* wakeUpTexture = nullptr;
 	float drawScale = 1.0f;
 	bool facingRight = true;
-	// ?? Hide cooldown 
+	//  Hide cooldown 
 	static constexpr float HIDE_COOLDOWN = 15000.0f; // ms
 	float hideCooldown_ = 0.0f;
 	// Combat - attack
@@ -137,4 +137,4 @@ private:
 	SDL_Texture* pushTexture_ = nullptr;
 	Animation    pushAnim_;
 	static constexpr float PUSH_SPEED_FACTOR = 0.35f; // 35% of normal speed
-	};
+};
