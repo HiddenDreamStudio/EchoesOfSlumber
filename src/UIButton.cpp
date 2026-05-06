@@ -36,6 +36,18 @@ bool UIButton::Update(float dt)
 			if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_UP)
 				NotifyObserver();
 		}
+		else if (gamepadFocused)
+		{
+			// Gamepad focus — show as FOCUSED (same hover visual)
+			state = UIElementState::FOCUSED;
+
+			// Cross (×) / SOUTH button confirms
+			if (Engine::GetInstance().input->GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN)
+			{
+				state = UIElementState::PRESSED;
+				NotifyObserver();
+			}
+		}
 		else
 		{
 			state = UIElementState::NORMAL;
