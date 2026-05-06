@@ -158,23 +158,18 @@ void Player::GetPhysicsValues() {
 void Player::Move() {
 	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
 
-<<<<<<< HEAD
 	auto& input = Engine::GetInstance().input;
 	bool moveLeft = input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT || input->GetLeftStickX() < -0.2f;
 	bool moveRight = input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT || input->GetLeftStickX() > 0.2f;
 
-	if (moveLeft) {
-		velocity.x = -speed;
-=======
 	// Determine effective speed (slower while pushing)
 	float effectiveSpeed = speed;
 	if (isPushing_) {
 		effectiveSpeed = speed * PUSH_SPEED_FACTOR;
 	}
 
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT) {
+	if (moveLeft) {
 		velocity.x = -effectiveSpeed;
->>>>>>> main
 		if (!facingRight) {
 			facingRight = true;
 			if (!isJumping && !isPushing_) anims.SetCurrent("turnaround");
@@ -187,13 +182,8 @@ void Player::Move() {
 			}
 		}
 	}
-<<<<<<< HEAD
 	else if (moveRight) {
-		velocity.x = speed;
-=======
-	else if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT) {
 		velocity.x = effectiveSpeed;
->>>>>>> main
 		if (facingRight) {
 			facingRight = false;
 			if (!isJumping && !isPushing_) anims.SetCurrent("turnaround");
@@ -495,40 +485,6 @@ void Player::Draw(float dt) {
 	}
 }
 
-<<<<<<< HEAD
-void Player::Dash(float dt)
-{
-	auto& input = Engine::GetInstance().input;
-
-	if (dashCooldown_ > 0.0f) dashCooldown_ -= dt;
-
-	bool dashDown = input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_DOWN ||
-	                input->GetGamepadButton(SDL_GAMEPAD_BUTTON_LEFT_SHOULDER) == KEY_DOWN;
-
-	if (!isDashing_ && dashCooldown_ <= 0.0f && dashDown)
-	{
-		isDashing_ = true;
-		dashTimer_ = DASH_DURATION;
-		dashDirX_ = facingRight ? -1.0f : 1.0f;
-		isInvincible_ = true;
-		iFrameTimer_ = DASH_DURATION;
-		LOG("Player dash started");
-	}
-
-	if (isDashing_)
-	{
-		dashTimer_ -= dt;
-		if (dashTimer_ <= 0.0f)
-		{
-			isDashing_ = false;
-			dashCooldown_ = DASH_COOLDOWN;
-			LOG("Player dash ended");
-		}
-	}
-}
-
-=======
->>>>>>> main
 void Player::Attack(float dt)
 {
 	if (isHiding_ || isExitingHide_) return;
