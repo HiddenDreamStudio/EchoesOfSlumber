@@ -16,6 +16,9 @@ public:
 
 	bool CleanUp() override;
 
+	// Gamepad focus flag — set by UIManager navigation system
+	bool gamepadFocused = false;
+
 private:
 
 	bool canClick = true;
