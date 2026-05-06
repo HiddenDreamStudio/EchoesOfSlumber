@@ -587,6 +587,49 @@ bool Render::DrawMenuTextCentered(const char* text, SDL_Rect area, SDL_Color col
 	return true;
 }
 
+// ── Centered text with menu font (scaled) ────────────────────────────────────
+
+bool Render::DrawMenuTextCentered(const char* text, SDL_Rect area, SDL_Color color, float textScale) const
+{
+	if (!menuFont || !renderer || !text) return false;
+
+	int scale = Engine::GetInstance().window->GetScale();
+
+	SDL_Surface* surface = TTF_RenderText_Blended(menuFont, text, 0, color);
+	if (!surface) return false;
+
+	SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surface);
+	if (!tex) {
+		SDL_DestroySurface(surface);
+		return false;
+	}
+
+	SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(tex, color.a);
+
+	float textW = (float)surface->w * textScale;
+	float textH = (float)surface->h * textScale;
+	float areaX = (float)(area.x * scale);
+	float areaY = (float)(area.y * scale);
+	float areaW = (float)(area.w * scale);
+	float areaH = (float)(area.h * scale);
+
+	SDL_FRect dstrect;
+	dstrect.w = textW;
+	dstrect.h = textH;
+	dstrect.x = areaX + (areaW - textW) / 2.0f;
+	dstrect.y = areaY + (areaH - textH) / 2.0f;
+
+	SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_LINEAR);
+	SDL_RenderTexture(renderer, tex, nullptr, &dstrect);
+
+	SDL_SetTextureAlphaMod(tex, 255);
+	SDL_DestroyTexture(tex);
+	SDL_DestroySurface(surface);
+
+	return true;
+}
+
 // ── Create texture from menu-font text ───────────────────────────────────────
 
 SDL_Texture* Render::CreateMenuTextTexture(const char* text, SDL_Color color) const
