@@ -244,13 +244,21 @@ void Scene::LoadMainMenu()
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = 60;
+
+
 	const int rowH = 52;
+
+
+
+
 
 	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120,       btnH };
 
 	auto btnBack = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS_BACK, "back", backPos, this);
 	if (texMenuButton_) btnBack->SetTexture(texMenuButton_);
 	if (texButtonFragmented_) btnBack->SetHoverTexture(texButtonFragmented_);
+
+
 
 	SetSettingsPanelVisible(false);
 }
@@ -284,9 +292,12 @@ void Scene::UpdateMainMenu(float dt)
 			if (btnExit_) { btnExit_->alphaMod = 1.0f; btnExit_->isVisible = true; }
 			};
 
-		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
-			Engine::GetInstance().input->GetKey(SDL_SCANCODE_RETURN) == KEY_DOWN ||
-			Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
+		auto& inp = *Engine::GetInstance().input;
+		if (inp.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+			inp.GetKey(SDL_SCANCODE_RETURN) == KEY_DOWN ||
+			inp.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+			inp.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+			inp.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN)
 		{
 			finishCinematic();
 			return;
@@ -300,7 +311,9 @@ void Scene::UpdateMainMenu(float dt)
 	}
 	else
 	{
-		if (showSettings_ && Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
+		auto& inp2 = *Engine::GetInstance().input;
+		if (showSettings_ && (inp2.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+			inp2.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN))
 		{
 			showSettings_ = false;
 			SetSettingsPanelVisible(false);
@@ -443,7 +456,10 @@ void Scene::DrawSettingsPanel(int winW, int winH)
 	const int panelY = 60;
 	const int rowH = 52;
 
-	HandleVolumeSliderInput(panelX, panelY, panelW, rowH);
+	if (HandleVolumeSliderInput(panelX, panelY, panelW, rowH)) {
+		showSettings_ = false;
+		Engine::GetInstance().audio->PlayFx(menuClickFxId);
+	}
 
 	SDL_Rect overlay = { 0, 0, winW, winH };
 	render.DrawRectangle(overlay, 0, 0, 0, 160, true, false);
@@ -455,7 +471,7 @@ void Scene::DrawSettingsPanel(int winW, int winH)
 	render.DrawRectangle(panel, 15, 20, 35, 245, true, false); // Dark teal base
 	SDL_Rect innerPanel = { panelX + 2, panelY + 2, panelW - 4, panelH - 4 };
 	render.DrawRectangle(innerPanel, 25, 32, 50, 250, false, false); // subtle inner border
-	
+
 	SDL_Rect topBar = { panelX, panelY, panelW, 36 };
 	render.DrawRectangle(topBar, 35, 45, 75, 255, true, false);
 	render.DrawMenuTextCentered("OPTIONS", { panelX, panelY + 4, panelW, 28 }, { 220, 240, 255, 255 });
@@ -465,13 +481,13 @@ void Scene::DrawSettingsPanel(int winW, int winH)
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45, panelW / 2, 20 }, { 255, 255, 255, 255 });
-	
+
 	SDL_Rect mBarBg = { panelX + 20, panelY + 74, panelW - 40, 8 };
 	render.DrawRectangle(mBarBg, 10, 15, 25, 255, true, false); // Track background
 	int mFill = static_cast<int>(static_cast<float>(panelW - 40) * musicVolume_);
 	SDL_Rect mBarFill = { panelX + 20, panelY + 74, mFill, 8 };
 	render.DrawRectangle(mBarFill, 100, 180, 255, 255, true, false); // vibrant cyan fill
-	
+
 	// Knob
 	SDL_Rect mKnob = { panelX + 20 + mFill - 5, panelY + 70, 10, 16 };
 	render.DrawRectangle(mKnob, 200, 220, 255, 255, true, false);
@@ -480,7 +496,7 @@ void Scene::DrawSettingsPanel(int winW, int winH)
 	render.DrawMenuTextCentered("SFX", { panelX, panelY + 45 + rowH, panelW / 2 - 10, 20 }, { 180, 200, 220, 255 });
 	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45 + rowH, panelW / 2, 20 }, { 255, 255, 255, 255 });
-	
+
 	SDL_Rect sBarBg = { panelX + 20, panelY + 74 + rowH, panelW - 40, 8 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, 255, true, false);
 	int sFill = static_cast<int>(static_cast<float>(panelW - 40) * sfxVolume_);
@@ -490,6 +506,23 @@ void Scene::DrawSettingsPanel(int winW, int winH)
 	// Knob
 	SDL_Rect sKnob = { panelX + 20 + sFill - 5, panelY + 70 + rowH, 10, 16 };
 	render.DrawRectangle(sKnob, 200, 220, 255, 255, true, false);
+
+	// Back Button rendering
+	SDL_Rect backBtnBg = { panelX + panelW / 2 - 60, panelY + 60 + rowH * 2 + 10, 120, 36 };
+	render.DrawRectangle(backBtnBg, 40, 50, 70, 255, true, false);
+	render.DrawMenuTextCentered("BACK", backBtnBg, { 200, 220, 255, 255 });
+
+	// ── Gamepad selection indicator ──────────────────────────────────────
+	if (Engine::GetInstance().input->IsGamepadConnected()) {
+		int selY = panelY + 45;
+		if (optionsSliderSel_ == 1) selY += rowH;
+		else if (optionsSliderSel_ == 2) selY = panelY + 60 + rowH * 2 + 10;
+
+		SDL_Rect selHighlight = { panelX + 4, selY - 2, panelW - 8, 42 };
+		if (optionsSliderSel_ == 2) selHighlight = { backBtnBg.x - 4, backBtnBg.y - 2, backBtnBg.w + 8, backBtnBg.h + 4 };
+		render.DrawRectangle(selHighlight, 60, 100, 180, 50, true, false);
+		render.DrawMenuTextCentered(">", { selHighlight.x, selHighlight.y + selHighlight.h / 2 - 10, 16, 20 }, { 100, 200, 255, 255 });
+	}
 }
 
 
@@ -592,7 +625,10 @@ void Scene::UnloadIntro()
 
 void Scene::UpdateIntro(float dt)
 {
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
+	auto& introInput = *Engine::GetInstance().input;
+	if (introInput.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+		introInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+		introInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN) {
 		if (!waitingForFade_) {
 			waitingForFade_ = true;
 			fadeTargetScene_ = SceneID::MAIN_MENU;
@@ -695,8 +731,11 @@ void Scene::UpdateIntroCinematic(float dt)
 {
 	if (waitingForFade_) return;
 
-	bool skipRequested = Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
-		Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN;
+	auto& cinInput = *Engine::GetInstance().input;
+	bool skipRequested = cinInput.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+		cinInput.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+		cinInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+		cinInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN;
 
 	if (skipRequested) {
 		waitingForFade_ = true;
@@ -843,11 +882,18 @@ void Scene::LoadGameplay()
 void Scene::UpdateGameplay(float dt)
 {
 	// Toggle pause with ESC
-	if (!isGameOver_ && Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN)
+	auto& gpInput = *Engine::GetInstance().input;
+	bool pauseToggle = gpInput.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+		gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN;
+	bool backBtn = gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN;
+
+	if (!isGameOver_ && (pauseToggle || (backBtn && (showMapViewer_ || showPauseOptions_ || isPaused_))))
 	{
 		if (showMapViewer_) {
 			showMapViewer_ = false;
-			SetPauseMenuVisible(true);
+			// If no pause menu buttons are visible, map was opened via touchpad — unpause
+			isPaused_ = false;
+			SetPauseMenuVisible(false);
 		}
 		else if (showPauseOptions_) {
 			showPauseOptions_ = false;
@@ -856,17 +902,75 @@ void Scene::UpdateGameplay(float dt)
 		else {
 			isPaused_ = !isPaused_;
 			SetPauseMenuVisible(isPaused_);
+			Engine::GetInstance().uiManager->ResetFocus();
 		}
+	}
+
+	// ── Touchpad opens/closes map directly during gameplay ───────────────
+	if (!isGameOver_ && !isPaused_ && !showMapViewer_ &&
+		gpInput.GetTouchpadPressed() == KEY_DOWN)
+	{
+		showMapViewer_ = true;
+		isPaused_ = true;
+		SetPauseMenuVisible(false);
+
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		const int viewW = winW - 20;
+		const int viewH = winH - 42 - 30;
+		mapViewZoom_ = 1.0f;
+		Vector2D playerPos = player ? player->GetPosition() : Vector2D(0, 0);
+		mapViewOffsetX_ = (float)viewW / 2.0f - (playerPos.getX() * mapViewZoom_);
+		mapViewOffsetY_ = (float)viewH / 2.0f - (playerPos.getY() * mapViewZoom_);
 	}
 
 	if (showMapViewer_)
 	{
 		auto& input = *Engine::GetInstance().input;
 
+		// Close map with touchpad
+		if (input.GetTouchpadPressed() == KEY_DOWN) {
+			showMapViewer_ = false;
+			isPaused_ = false;
+			SetPauseMenuVisible(false);
+			return;
+		}
+
+		// Clamp min zoom to not allow zooming out past the map dimensions
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		const int viewW = winW - 20;
+		const int viewH = winH - 42 - 30;
+
+		Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();
+		float minZoomX = (float)viewW / mapSize.getX();
+		float minZoomY = (float)viewH / mapSize.getY();
+		float minZoom = std::max(std::max(minZoomX, minZoomY), 0.05f); // Don't allow zooming out smaller than the map requires to fit the screen
+
 		if (input.GetKey(SDL_SCANCODE_KP_PLUS) == KEY_DOWN || input.GetKey(SDL_SCANCODE_EQUALS) == KEY_DOWN)
 			mapViewZoom_ = std::min(mapViewZoom_ + 0.05f, 2.0f);
 		if (input.GetKey(SDL_SCANCODE_KP_MINUS) == KEY_DOWN || input.GetKey(SDL_SCANCODE_MINUS) == KEY_DOWN)
-			mapViewZoom_ = std::max(mapViewZoom_ - 0.05f, 0.05f);
+			mapViewZoom_ = std::max(mapViewZoom_ - 0.05f, minZoom);
+
+		// ── Gamepad: R2 zoom in, L2 zoom out ─────────────────────────────
+		float rt = input.GetRightTrigger();
+		float lt = input.GetLeftTrigger();
+		if (rt > 0.0f)
+			mapViewZoom_ = std::min(mapViewZoom_ + rt * 0.002f * dt, 2.0f);
+		if (lt > 0.0f)
+			mapViewZoom_ = std::max(mapViewZoom_ - lt * 0.002f * dt, minZoom);
+
+		// Ensure zoom stays within limits
+		if (mapViewZoom_ < minZoom) mapViewZoom_ = minZoom;
+
+		// ── Gamepad: Left stick to pan the map ───────────────────────────
+		float lsx = input.GetLeftStickX();
+		float lsy = input.GetLeftStickY();
+		if (lsx != 0.0f || lsy != 0.0f) {
+			float panSpeed = 0.4f * dt;
+			mapViewOffsetX_ -= lsx * panSpeed;
+			mapViewOffsetY_ -= lsy * panSpeed;
+		}
 
 		Vector2D mousePos = input.GetMousePosition();
 		if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN) {
@@ -884,7 +988,7 @@ void Scene::UpdateGameplay(float dt)
 			mapViewOffsetY_ = mapViewDragOriginY_ + (mousePos.getY() - mapViewDragStartY_);
 		}
 
-		int winW = 0, winH = 0;
+
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
 		DrawMapViewer(winW, winH);
 		return;
@@ -942,6 +1046,7 @@ void Scene::UpdateGameplay(float dt)
 
 		if (player->health <= 0 && activeHealthAnim_ == 0 && !isGameOver_) {
 			isGameOver_ = true;
+
 			auto& list = Engine::GetInstance().uiManager->UIElementsList;
 			for (auto& el : list) {
 				if (el->id == BTN_GAMEOVER_MAINMENU || el->id == BTN_GAMEOVER_CONTINUE) {
@@ -1019,6 +1124,7 @@ void Scene::UnloadGameplay()
 	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
 
 	if (texBlanketActive_) { Engine::GetInstance().textures->UnLoad(texBlanketActive_);   texBlanketActive_ = nullptr; }
+
 	if (texBlanketInactive_) { Engine::GetInstance().textures->UnLoad(texBlanketInactive_); texBlanketInactive_ = nullptr; }
 	if (texCapaCollectible_) { Engine::GetInstance().textures->UnLoad(texCapaCollectible_); texCapaCollectible_ = nullptr; }
 	if (capaBody_) { Engine::GetInstance().physics->DeletePhysBody(capaBody_); capaBody_ = nullptr; }
@@ -1054,6 +1160,7 @@ void Scene::PostUpdateGameplay()
 			frame = &animHealth3_.GetCurrentFrame();
 		}
 		else {
+
 			if (currentHealthUI_ == 3) {
 				texToDraw = texHealth1_;
 				if (texHealth1_) {
@@ -1085,8 +1192,11 @@ void Scene::PostUpdateGameplay()
 		}
 
 		if (texToDraw && frame) {
+
+
 			Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
 		}
+
 
 		if (player->HasBlanket())
 		{
@@ -1094,6 +1204,7 @@ void Scene::PostUpdateGameplay()
 			SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
 			if (blanketTex)
 			{
+
 				Engine::GetInstance().render->DrawTextureAlpha(blanketTex, 220, 72, 64, 64, 255);
 			}
 		}
@@ -1103,6 +1214,9 @@ void Scene::PostUpdateGameplay()
 	if (isGameOver_) {
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
+
+
+
 
 		if (texGameOver_) {
 			float tw, th;
@@ -1116,15 +1230,20 @@ void Scene::PostUpdateGameplay()
 			float sx = ((float)winW - sw) / 2.0f;
 			float sy = drawY - (sh - th) / 2.0f;
 
+
 			SDL_SetTextureScaleMode(texGameOver_, SDL_SCALEMODE_LINEAR);
+
 
 			float shadowOffset = 6.0f;
 			SDL_SetTextureColorMod(texGameOver_, 255, 100, 100);
 			Engine::GetInstance().render->DrawTextureAlphaF(texGameOver_, sx + shadowOffset, sy + shadowOffset, sw, sh, (Uint8)130);
 
+
+
 			SDL_SetTextureColorMod(texGameOver_, 255, 255, 255);
 			Engine::GetInstance().render->DrawTextureAlphaF(texGameOver_, sx, sy, sw, sh, (Uint8)255);
 		}
+
 
 		if (texGameOverKid_) {
 			float kw, kh;
@@ -1133,10 +1252,13 @@ void Scene::PostUpdateGameplay()
 			Engine::GetInstance().render->DrawTextureAlphaF(texGameOverKid_, (float)winW - kw * kScale - 20.0f, (float)winH - kh * kScale - 20.0f, kw * kScale, kh * kScale, (Uint8)255);
 		}
 
+
 		if (texGameOverFrag1_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag1_, 100.0f, 150.0f, 160.0f, 160.0f, 180);
 		if (texGameOverFrag3_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag3_, (float)winW - 350.0f, 80.0f, 200.0f, 200.0f, 150);
 		if (texGameOverFrag5_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag5_, 200.0f, (float)winH - 300.0f, 140.0f, 140.0f, 160);
 		if (texGameOverFrag1_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag1_, (float)winW / 2.0f + 250.0f, (float)winH / 2.0f + 120.0f, 120.0f, 120.0f, 130);
+
+
 		if (texGameOverFrag4_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag4_, 50.0f, (float)winH - 220.0f, 180.0f, 180.0f, 200);
 	}
 
@@ -1271,6 +1393,7 @@ void Scene::PostUpdateGameplay()
 }
 
 // ── Map viewer ────────────────────────────────────────────────────────────────
+
 void Scene::DrawMapViewer(int winW, int winH)
 {
 	auto& render = *Engine::GetInstance().render;
@@ -1288,8 +1411,12 @@ void Scene::DrawMapViewer(int winW, int winH)
 
 	SDL_Rect hintBar = { 0, winH - 28, winW, 28 };
 	render.DrawRectangle(hintBar, 10, 16, 30, 220, true, false);
-	render.DrawText("Left click + drag: pan   |   +/-: zoom   |   ESC: back",
-		winW / 2 - 230, winH - 22, 0, 0, { 120, 160, 200, 200 });
+	if (Engine::GetInstance().input->IsGamepadConnected())
+		render.DrawText("L-Stick: pan  |  R2: zoom in  |  L2: zoom out  |  Touchpad: back",
+			winW / 2 - 270, winH - 22, 0, 0, { 120, 160, 200, 200 });
+	else
+		render.DrawText("Left click + drag: pan   |   +/-: zoom   |   ESC: back",
+			winW / 2 - 230, winH - 22, 0, 0, { 120, 160, 200, 200 });
 
 	const int viewX = 10;
 	const int viewY = 42;
@@ -1308,10 +1435,16 @@ void Scene::DrawMapViewer(int winW, int winH)
 		SDL_Event events[16];
 		int count = SDL_PeepEvents(events, 16, SDL_PEEKEVENT,
 			SDL_EVENT_MOUSE_WHEEL, SDL_EVENT_MOUSE_WHEEL);
+
+		Vector2D mapSize = map.GetMapSizeInPixels();
+		float minZoomX = (float)viewW / mapSize.getX();
+		float minZoomY = (float)viewH / mapSize.getY();
+		float minZoom = std::max(std::max(minZoomX, minZoomY), 0.05f);
+
 		for (int i = 0; i < count; i++) {
 			float wheelY = events[i].wheel.y;
 			float newZoom = mapViewZoom_ + wheelY * 0.05f;
-			if (newZoom < 0.05f) newZoom = 0.05f;
+			if (newZoom < minZoom) newZoom = minZoom;
 			if (newZoom > 2.0f)  newZoom = 2.0f;
 			Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
 			float mx = mousePos.getX() - (float)viewX;
@@ -1323,6 +1456,18 @@ void Scene::DrawMapViewer(int winW, int winH)
 		SDL_PeepEvents(events, count, SDL_GETEVENT,
 			SDL_EVENT_MOUSE_WHEEL, SDL_EVENT_MOUSE_WHEEL);
 	}
+
+	// ── Clamp map offset to map boundaries ───────────────────────────────
+	Vector2D mapSize = map.GetMapSizeInPixels();
+	float maxOffsetX = 0.0f;
+	float maxOffsetY = 0.0f;
+	float minOffsetX = (float)viewW - mapSize.getX() * mapViewZoom_;
+	float minOffsetY = (float)viewH - mapSize.getY() * mapViewZoom_;
+
+	if (mapViewOffsetX_ > maxOffsetX) mapViewOffsetX_ = maxOffsetX;
+	if (mapViewOffsetX_ < minOffsetX) mapViewOffsetX_ = minOffsetX;
+	if (mapViewOffsetY_ > maxOffsetY) mapViewOffsetY_ = maxOffsetY;
+	if (mapViewOffsetY_ < minOffsetY) mapViewOffsetY_ = minOffsetY;
 
 	float invZoom = 1.0f / mapViewZoom_;
 	float camLeft = -mapViewOffsetX_ * invZoom;
@@ -1406,12 +1551,15 @@ void Scene::DrawMapViewer(int winW, int winH)
 	// Step 4: Player sprite + position marker
 	if (player && player->texture)
 	{
+
 		Vector2D playerPos = player->GetPosition();
 		float worldX = playerPos.getX() + (float)player->texW / 2.0f;
 		float worldY = playerPos.getY() + (float)player->texH / 2.0f;
 
+
 		float screenX = (float)viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
 		float screenY = (float)viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+
 
 		SDL_Rect src = player->GetCurrentAnimationRect();
 		SDL_FRect srcF = { (float)src.x, (float)src.y, (float)src.w, (float)src.h };
@@ -1439,11 +1587,15 @@ void Scene::DrawMapViewer(int winW, int winH)
 		SDL_RenderTextureRotated(render.renderer, player->texture, &srcF, &dst, 0, nullptr, flip);
 		SDL_SetTextureAlphaMod(player->texture, 255);
 
+
+
 		int r = (int)(9.0f * mapViewZoom_ * (float)scale);
 		if (r < 4) r = 4;
 
+
 		int markerCX = (int)(screenX * (float)scale);
 		int markerCY = (int)((screenY - drawH / 2.0f - 6.0f) * (float)scale);
+
 
 		SDL_Rect shadowRect = {
 			markerCX - r - 2,
@@ -1453,6 +1605,7 @@ void Scene::DrawMapViewer(int winW, int winH)
 		};
 		render.DrawRectangle(shadowRect, 0, 0, 0, 180, true, false);
 
+
 		SDL_Rect dotRect = {
 			markerCX - r,
 			markerCY - r,
@@ -1460,6 +1613,7 @@ void Scene::DrawMapViewer(int winW, int winH)
 			r * 2
 		};
 		render.DrawRectangle(dotRect, 255, 215, 0, 255, true, false);
+
 
 		int innerR = std::max(2, r / 3);
 		SDL_Rect innerDot = {
@@ -1469,6 +1623,7 @@ void Scene::DrawMapViewer(int winW, int winH)
 			innerR * 2
 		};
 		render.DrawRectangle(innerDot, 255, 255, 255, 255, true, false);
+
 
 		int labelX = (int)(screenX)-10;
 		int labelY = (int)(screenY - drawH / 2.0f - 6.0f) - (int)((float)r / (float)scale) - 14;
@@ -1528,15 +1683,31 @@ void Scene::LoadPauseMenuButtons()
 		btnMenu->SetHoverTexture(texButtonFragmented_);
 		btnCont->SetHoverTexture(texButtonFragmented_);
 	}
+
+
+
+
+
+
+
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = winH / 2 - 100;
-	const int rowH = 52;
-	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120,       btnH };
 
-	auto btnBack = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_BACK, "back", backPos, this);
-	if (texPauseButtonWhite_) btnBack->SetTexture(texPauseButtonWhite_);
-	if (texButtonFragmented_) btnBack->SetHoverTexture(texButtonFragmented_);
+
+	const int rowH = 52;
+
+
+
+
+
+
+
+
+
+
+
+
 
 	SetPauseMenuVisible(false);
 }
@@ -1645,23 +1816,24 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	render.DrawRectangle(panel, 15, 20, 35, 245, true, false); // Dark teal base
 	SDL_Rect innerPanel = { panelX + 2, panelY + 2, panelW - 4, panelH - 4 };
 	render.DrawRectangle(innerPanel, 25, 32, 50, 250, false, false); // subtle inner border
-	
+
 	SDL_Rect topBar = { panelX, panelY, panelW, 36 };
 	render.DrawRectangle(topBar, 35, 45, 75, 255, true, false);
 	render.DrawMenuTextCentered("OPTIONS", { panelX, panelY + 4, panelW, 28 }, { 220, 240, 255, 255 });
 
 	// Music slider
 	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 45, panelW / 2 - 10, 20 }, { 180, 200, 220, 255 });
+
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45, panelW / 2, 20 }, { 255, 255, 255, 255 });
-	
+
 	SDL_Rect mBarBg = { panelX + 20, panelY + 74, panelW - 40, 8 };
 	render.DrawRectangle(mBarBg, 10, 15, 25, 255, true, false); // Track background
 	int mFill = static_cast<int>(static_cast<float>(panelW - 40) * musicVolume_);
 	SDL_Rect mBarFill = { panelX + 20, panelY + 74, mFill, 8 };
 	render.DrawRectangle(mBarFill, 100, 180, 255, 255, true, false); // vibrant cyan fill
-	
+
 	// Knob
 	SDL_Rect mKnob = { panelX + 20 + mFill - 5, panelY + 70, 10, 16 };
 	render.DrawRectangle(mKnob, 200, 220, 255, 255, true, false);
@@ -1670,7 +1842,7 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	render.DrawMenuTextCentered("SFX", { panelX, panelY + 45 + rowH, panelW / 2 - 10, 20 }, { 180, 200, 220, 255 });
 	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45 + rowH, panelW / 2, 20 }, { 255, 255, 255, 255 });
-	
+
 	SDL_Rect sBarBg = { panelX + 20, panelY + 74 + rowH, panelW - 40, 8 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, 255, true, false);
 	int sFill = static_cast<int>(static_cast<float>(panelW - 40) * sfxVolume_);
@@ -1680,6 +1852,26 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	// Knob
 	SDL_Rect sKnob = { panelX + 20 + sFill - 5, panelY + 70 + rowH, 10, 16 };
 	render.DrawRectangle(sKnob, 200, 220, 255, 255, true, false);
+
+	// Back Button rendering
+	SDL_Rect backBtnBg = { panelX + panelW / 2 - 60, panelY + 60 + rowH * 2 + 10, 120, 36 };
+	render.DrawRectangle(backBtnBg, 40, 50, 70, 255, true, false);
+	render.DrawMenuTextCentered("BACK", backBtnBg, { 200, 220, 255, 255 });
+
+	// ── Gamepad selection indicator (► arrow next to selected slider) ────
+	if (Engine::GetInstance().input->IsGamepadConnected()) {
+		int selY = panelY + 45;
+		if (optionsSliderSel_ == 1) selY += rowH;
+		else if (optionsSliderSel_ == 2) selY = panelY + 60 + rowH * 2 + 10;
+
+		// Highlight bar behind the selected row
+		SDL_Rect selHighlight = { panelX + 4, selY - 2, panelW - 8, 42 };
+		if (optionsSliderSel_ == 2) selHighlight = { backBtnBg.x - 4, backBtnBg.y - 2, backBtnBg.w + 8, backBtnBg.h + 4 };
+		render.DrawRectangle(selHighlight, 60, 100, 180, 50, true, false);
+
+		// Small arrow indicator
+		render.DrawMenuTextCentered(">", { selHighlight.x, selHighlight.y + selHighlight.h / 2 - 10, 16, 20 }, { 100, 200, 255, 255 });
+	}
 }
 
 
@@ -1712,10 +1904,11 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 		const int viewH = winH - 42 - 30;
 
 		mapViewZoom_ = 1.0f;
-		
+
 		Vector2D playerPos = player ? player->GetPosition() : Vector2D(0, 0);
 		mapViewOffsetX_ = (float)viewW / 2.0f - (playerPos.getX() * mapViewZoom_);
 		mapViewOffsetY_ = (float)viewH / 2.0f - (playerPos.getY() * mapViewZoom_);
+
 		break;
 	}
 	case BTN_PAUSE_SAVE:
@@ -1755,12 +1948,14 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 		showPauseOptions_ = false;
 		SetPauseOptionsPanelVisible(false);
 		break;
+
 	case BTN_GAMEOVER_MAINMENU:
 		isGameOver_ = false;
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::MAIN_MENU;
 		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 500.0f);
 		break;
+
 	case BTN_GAMEOVER_CONTINUE:
 	{
 		SetGameOverVisible(false);
@@ -1853,17 +2048,30 @@ void Scene::DrawFragments(bool front, int winW, int winH)
 	}
 }
 
-void Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH)
+bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH)
 {
 	auto& input = *Engine::GetInstance().input;
-	
-	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN || 
-		input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT) 
+	float dt = Engine::GetInstance().GetDt();
+
+	// Back Button hit box (shared between Main Menu settings and Pause options)
+	SDL_Rect backHit = { panelX + panelW / 2 - 60, panelY + 60 + rowH * 2 + 10, 120, 36 };
+
+	// ── Mouse slider dragging / clicks ─────────────────────────────────
+	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN ||
+		input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT)
 	{
 		Vector2D mousePos = input.GetMousePosition();
 		int mouseX = (int)mousePos.getX();
 		int mouseY = (int)mousePos.getY();
-		
+
+		// Check Back button click
+		if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN) {
+			if (mouseX >= backHit.x && mouseX <= backHit.x + backHit.w &&
+				mouseY >= backHit.y && mouseY <= backHit.y + backHit.h) {
+				return true; // Go back
+			}
+		}
+
 		int trackX = panelX + 20;
 		int trackW = panelW - 40;
 
@@ -1871,7 +2079,7 @@ void Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 		SDL_Rect mSliderHit = { trackX - 10, panelY + 60, trackW + 20, 30 };
 		if (mouseX >= mSliderHit.x && mouseX <= mSliderHit.x + mSliderHit.w &&
 			mouseY >= mSliderHit.y && mouseY <= mSliderHit.y + mSliderHit.h) {
-			
+
 			musicVolume_ = (float)(mouseX - trackX) / (float)trackW;
 			if (musicVolume_ < 0.0f) musicVolume_ = 0.0f;
 			if (musicVolume_ > 1.0f) musicVolume_ = 1.0f;
@@ -1882,11 +2090,75 @@ void Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 		SDL_Rect sSliderHit = { trackX - 10, panelY + 60 + rowH, trackW + 20, 30 };
 		if (mouseX >= sSliderHit.x && mouseX <= sSliderHit.x + sSliderHit.w &&
 			mouseY >= sSliderHit.y && mouseY <= sSliderHit.y + sSliderHit.h) {
-			
+
 			sfxVolume_ = (float)(mouseX - trackX) / (float)trackW;
 			if (sfxVolume_ < 0.0f) sfxVolume_ = 0.0f;
 			if (sfxVolume_ > 1.0f) sfxVolume_ = 1.0f;
 			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
 		}
 	}
+
+	// ── Gamepad D-pad / stick slider navigation ──────────────────────────
+	// Back button shortcuts (B / East)
+	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN) {
+		return true; // Back
+	}
+
+	// D-pad Up/Down or Left Stick Y: switch between Music (0), SFX (1), Back (2)
+	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_UP) == KEY_DOWN ||
+		(input.GetLeftStickY() < -0.5f && sliderRepeatTimer_ <= 0.0f))
+	{
+		optionsSliderSel_ = std::max(0, optionsSliderSel_ - 1);
+		sliderRepeatTimer_ = 250.0f;
+	}
+	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_DOWN) == KEY_DOWN ||
+		(input.GetLeftStickY() > 0.5f && sliderRepeatTimer_ <= 0.0f))
+	{
+		optionsSliderSel_ = std::min(2, optionsSliderSel_ + 1);
+		sliderRepeatTimer_ = 250.0f;
+	}
+
+	// If Back is selected and A (SOUTH) is pressed, go back
+	if (optionsSliderSel_ == 2 && input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN) {
+		return true;
+	}
+
+	// D-pad Left/Right: step volume by 5%
+	float volStep = 0.05f;
+	bool stepLeft = input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_LEFT) == KEY_DOWN;
+	bool stepRight = input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_RIGHT) == KEY_DOWN;
+
+	// Left stick X: continuous adjust (smooth)
+	float stickX = input.GetLeftStickX();
+	float continuousAdj = 0.0f;
+	if (std::fabs(stickX) > 0.3f)
+		continuousAdj = stickX * 0.0005f * dt;
+
+	if (optionsSliderSel_ == 0) {
+		if (stepRight)  musicVolume_ = std::min(1.0f, musicVolume_ + volStep);
+		if (stepLeft)   musicVolume_ = std::max(0.0f, musicVolume_ - volStep);
+		if (continuousAdj != 0.0f) {
+			musicVolume_ += continuousAdj;
+			if (musicVolume_ < 0.0f) musicVolume_ = 0.0f;
+			if (musicVolume_ > 1.0f) musicVolume_ = 1.0f;
+		}
+		if (stepLeft || stepRight || continuousAdj != 0.0f)
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
+	}
+	else if (optionsSliderSel_ == 1) {
+		if (stepRight)  sfxVolume_ = std::min(1.0f, sfxVolume_ + volStep);
+		if (stepLeft)   sfxVolume_ = std::max(0.0f, sfxVolume_ - volStep);
+		if (continuousAdj != 0.0f) {
+			sfxVolume_ += continuousAdj;
+			if (sfxVolume_ < 0.0f) sfxVolume_ = 0.0f;
+			if (sfxVolume_ > 1.0f) sfxVolume_ = 1.0f;
+		}
+		if (stepLeft || stepRight || continuousAdj != 0.0f)
+			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
+	}
+
+	if (sliderRepeatTimer_ > 0.0f)
+		sliderRepeatTimer_ -= dt;
+
+	return false;
 }

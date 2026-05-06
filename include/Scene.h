@@ -130,7 +130,11 @@ private:
     void DrawPauseMenu();
     void DrawPauseOptionsPanel(int winW, int winH);
     void HandlePauseMenuUIEvents(UIElement* uiElement);
-    void HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH);
+    bool HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH);
+
+    // Gamepad slider navigation (0 = music, 1 = sfx)
+    int   optionsSliderSel_ = 0;
+    float sliderRepeatTimer_ = 0.0f;
 
 public:
     void SetGameOverVisible(bool visible);
@@ -139,6 +143,7 @@ public:
     static constexpr float WAKEUP_NOTIF_DURATION = 4000.0f;
     float checkpointSaveTimer_ = 0.0f;
     float noCapeNotifTimer_ = 0.0f;
+    static constexpr float CAPA_NOTIF_DURATION = 3000.0f;
     void ShowNoCapeNotification();
 
 private:
@@ -183,7 +188,7 @@ private:
     bool  capaCollected_ = false;
     float capaFloatTimer_ = 0.0f; // floating animation timer
     float capaNotifTimer_ = 0.0f; // cape pickup notification timer
-    static constexpr float CAPA_NOTIF_DURATION = 4000.0f;
+    
 
     // Game Over Menu Assets
     SDL_Texture* texGameOverBg_ = nullptr;
@@ -196,6 +201,7 @@ private:
 
     // Checkpoint notification
     SDL_Texture* texCheckpointSaved_ = nullptr;
+    SDL_Texture* texNoCapeNotif_ = nullptr;
 
     // Pause menu textures
     SDL_Texture* texPauseBackground_ = nullptr;
