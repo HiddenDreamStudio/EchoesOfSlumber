@@ -96,3 +96,14 @@ int Window::GetScale() const
 {
 	return scale;
 }
+
+void Window::SetFullscreen(bool fullscreen)
+{
+	if (fullscreen) {
+		SDL_SetWindowFullscreenMode(window, nullptr);
+		SDL_SetWindowFullscreen(window, true);
+	}
+	else {
+		SDL_SetWindowFullscreen(window, false);
+	}
+}
