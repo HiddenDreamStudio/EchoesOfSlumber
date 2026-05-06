@@ -417,7 +417,7 @@
  <imagelayer id="13" name="ReferenciaMapa" offsetx="-2" offsety="-196">
   <image source="ReferenciaFondo.png" width="8320" height="5782"/>
  </imagelayer>
- <objectgroup id="31" name="Fondo piedras" parallaxx="1">
+ <objectgroup id="31" name="Fondo piedras" parallaxx="0.2">
   <object id="271" gid="173" x="3351" y="5310" width="3002.82" height="2140"/>
   <object id="272" gid="173" x="4687" y="3198" width="1906" height="1948"/>
   <object id="273" gid="174" x="1959" y="4801" width="1506" height="1874"/>
@@ -429,7 +429,7 @@
   <object id="281" gid="173" x="7855" y="2190" width="802" height="819.673"/>
   <object id="282" gid="175" x="8390.94" y="1741.47" width="1031.3" height="1343.18" rotation="227.035"/>
  </objectgroup>
- <objectgroup id="30" name="Assets 5">
+ <objectgroup id="30" name="Assets 5" parallaxx="0.4">
   <object id="240" gid="162" x="4905.65" y="4346" width="349.184" height="329"/>
   <object id="241" gid="121" x="4397.12" y="4880" width="65.7143" height="64"/>
   <object id="242" gid="166" x="3806.39" y="4886" width="199.441" height="168"/>
@@ -453,7 +453,7 @@
   <object id="267" gid="120" x="5334" y="2324" width="80" height="48"/>
   <object id="268" gid="119" x="5918" y="2523" width="132" height="98"/>
  </objectgroup>
- <objectgroup id="29" name="Assets 4">
+ <objectgroup id="29" name="Assets 4" parallaxx="0.6">
   <object id="213" gid="162" x="8067.81" y="4113.64" width="171.538" height="161.622"/>
   <object id="215" gid="156" x="6545.2" y="5388.07" width="906.667" height="1268" rotation="331.643"/>
   <object id="216" gid="156" x="6559.18" y="4789.26" width="789.472" height="1104.1" rotation="25.0411"/>
@@ -466,7 +466,7 @@
   <object id="225" gid="163" x="4618.33" y="1245" width="218" height="337.765"/>
   <object id="226" gid="164" x="4303" y="803.273" width="197" height="267.393" rotation="180"/>
  </objectgroup>
- <objectgroup id="28" name="Assets 3">
+ <objectgroup id="28" name="Assets 3" parallaxx="0.8">
   <object id="201" gid="160" x="7811.02" y="4125.37" width="190.24" height="176.736"/>
   <object id="202" gid="163" x="7650.21" y="4816.11" width="77.2005" height="119.613"/>
   <object id="203" gid="167" x="6322.55" y="4819.41" width="186.059" height="153.901"/>
@@ -549,7 +549,7 @@
    </properties>
   </object>
  </objectgroup>
- <objectgroup id="26" name="Assets 2">
+ <objectgroup id="26" name="Assets 2" parallaxx="0.8">
   <object id="159" gid="166" x="7729.22" y="4817" width="180.447" height="152"/>
   <object id="160" gid="152" x="5976" y="4834" width="417" height="329.652"/>
   <object id="166" gid="125" x="634" y="3919" width="57" height="71.0112"/>
