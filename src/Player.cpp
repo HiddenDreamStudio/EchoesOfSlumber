@@ -96,6 +96,25 @@ bool Player::Update(float dt)
 
 	GetPhysicsValues();
 
+	// Dynamically evaluate push state while in contact with a rock
+	if (pushContactCount_ > 0 && pushedRockBody_ != nullptr) {
+		int px, py, rx, ry;
+		pbody->GetPosition(px, py);
+		pushedRockBody_->GetPosition(rx, ry);
+		bool wasPushing = isPushing_;
+		if (abs(py - ry) < 50) {
+			isPushing_ = true;
+			pushDir_ = (px < rx) ? 1.0f : -1.0f;
+			if (!wasPushing) {
+				pushAnim_.Reset();
+			}
+		} else {
+			isPushing_ = false;
+		}
+	} else {
+		isPushing_ = false;
+	}
+
 	// Tick hide cooldown
 	if (hideCooldown_ > 0.0f) hideCooldown_ -= dt;
 
@@ -675,31 +694,21 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		break;
 	case ColliderType::PUSH_ROCK:
 	{
-		// Detect lateral push — only if player is roughly beside the rock, not on top
+		pushContactCount_++;
+		pushedRockBody_ = physB;
+
 		int playerX, playerY, rockX, rockY;
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(rockX, rockY);
 
-		int vertDiff = abs(playerY - rockY);
-		// Only count as push if the player is at roughly the same height (not landing on top)
-		if (vertDiff < 50) {
-			pushContactCount_++;
-			isPushing_ = true;
-			pushDir_ = (playerX < rockX) ? 1.0f : -1.0f;
-			pushAnim_.Reset();
-			pushedRockBody_ = physB;
-		}
-		else {
-			// Player is above the rock — treat as platform for landing
-			if (playerY < rockY) {
-				if (isJumping) {
-					if (anims.GetCurrentName() != "jump") {
-						anims.SetCurrent("idle");
-					}
+		// Player is above the rock — treat as platform for landing
+		if (playerY < rockY - 10) {
+			if (isJumping) {
+				if (anims.GetCurrentName() != "jump") {
+					anims.SetCurrent("idle");
 				}
-				isJumping = false;
-				
 			}
+			isJumping = false;
 		}
 		break;
 	}

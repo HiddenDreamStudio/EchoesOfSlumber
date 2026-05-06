@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tileset version="1.10" tiledversion="1.11.2" name="carmelBlowupAnimation" tilewidth="256" tileheight="256" tilecount="6" columns="6">
+ <image source="../spritesheets/SS enemics C/spritesheet_Carmel_Blowup.png" width="1536" height="256"/>
+ <tile id="0" type="blowup">
+  <animation>
+   <frame tileid="0" duration="120"/>
+   <frame tileid="1" duration="120"/>
+   <frame tileid="2" duration="120"/>
+   <frame tileid="3" duration="120"/>
+   <frame tileid="4" duration="120"/>
+   <frame tileid="5" duration="120"/>
+  </animation>
+ </tile>
+</tileset>

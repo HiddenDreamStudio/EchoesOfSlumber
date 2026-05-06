@@ -3,7 +3,7 @@
 #include "Enemy.h"
 #include "Animation.h"
 
-enum class EnemyCarmelState { IDLE, PATROL, CHASE, ATTACK, STUNNED, DEATH };
+enum class EnemyCarmelState { IDLE, PATROL, CHASE, SCARED, BLOWUP, DEATH };
 
 class EnemyCarmel : public Enemy
 {
@@ -17,29 +17,43 @@ public:
 
 	void SetPatrolPoints(float leftX, float rightX);
 
+	// Override collision so this enemy does NOT deal contact damage
+	void OnCollision(PhysBody* physA, PhysBody* physB) override;
+	void OnCollisionEnd(PhysBody* physA, PhysBody* physB) override;
+
 private:
 	void UpdateFSM(float dt) override;
 	void TransitionTo(EnemyCarmelState newState);
 	void Draw(float dt) override;
+	void DealExplosionDamage();
 
-	AnimationSet anims_;
+	// Animation sets & textures for each state
+	AnimationSet idleAnims_;
 	AnimationSet rollAnims_;
-	SDL_Texture* rollTexture_ = nullptr;
+	AnimationSet scaredAnims_;
+	AnimationSet blowupAnims_;
+
+	SDL_Texture* rollTexture_    = nullptr;
+	SDL_Texture* scaredTexture_  = nullptr;
+	SDL_Texture* blowupTexture_  = nullptr;
 
 	EnemyCarmelState state_      = EnemyCarmelState::IDLE;
 	float            stateTimer_ = 0.0f;
 	bool             facingRight_ = false;
-	float            attackDirX_  = 1.0f;
+	bool             hasExploded_ = false;
 
 	float patrolLeftX_  = 0.0f;
 	float patrolRightX_ = 0.0f;
 	float patrolDirX_   = 1.0f;
 
-	static constexpr float DETECTION_RADIUS = 300.0f;
-	static constexpr float ATTACK_RANGE     = 100.0f;
-	static constexpr float IDLE_DURATION    = 1500.0f;
-	static constexpr float STUN_DURATION    = 600.0f;
-	static constexpr float ATTACK_SPEED     = 12.0f;
-	static constexpr float ATTACK_DURATION  = 350.0f;
-	static constexpr float ROLL_DRAW_SCALE  = 0.5f;
+	// Pulse timer for the explosion radius indicator
+	float pulseTimer_ = 0.0f;
+
+	static constexpr float DETECTION_RADIUS  = 300.0f;
+	static constexpr float ARRIVE_RANGE      = 60.0f;   // stops next to player, not on top
+	static constexpr float IDLE_DURATION     = 1500.0f;
+	static constexpr float EXPLOSION_RADIUS  = 90.0f;   // area of effect in pixels
+	static constexpr float EXPLOSION_DAMAGE  = 2;
+	static constexpr float ROLL_DRAW_SCALE   = 0.5f;
+	static constexpr float BLOWUP_DRAW_SCALE = 0.5f;
 };
