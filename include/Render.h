@@ -43,6 +43,7 @@ public:
 	bool DrawTextureAlphaF(SDL_Texture* texture, float x, float y, float w, float h, Uint8 alpha = 255) const;
 	bool DrawMenuText(const char* text, int x, int y, int w, int h, SDL_Color color) const;
 	bool DrawMenuTextCentered(const char* text, SDL_Rect area, SDL_Color color) const;
+	bool DrawMenuTextCentered(const char* text, SDL_Rect area, SDL_Color color, float textScale) const;
 	SDL_Texture* CreateMenuTextTexture(const char* text, SDL_Color color) const;
 	SDL_Texture* RecolorTexture(SDL_Texture* src, Uint8 r, Uint8 g, Uint8 b) const;
 
