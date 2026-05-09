@@ -7,7 +7,7 @@
   <image source="MapMetadata1.png" width="128" height="64"/>
  </tileset>
  <tileset firstgid="5" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
-  <image source="Tileset.png" width="640" height="640"/>
+  <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
    <objectgroup draworder="index" id="2">
     <object id="1" x="5" y="6" width="59" height="58">
@@ -363,164 +363,164 @@
  <tileset firstgid="105" name="DecoracionSprites" tilewidth="1906" tileheight="1975" tilecount="52" columns="0">
   <grid orientation="orthogonal" width="1" height="1"/>
   <tile id="0">
-   <image source="AssetsDecoracion/Deco1.png" width="64" height="112"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco1.png" width="64" height="112"/>
   </tile>
   <tile id="1">
-   <image source="AssetsDecoracion/Deco2.png" width="128" height="160"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco2.png" width="128" height="160"/>
   </tile>
   <tile id="2">
-   <image source="AssetsDecoracion/Deco3.png" width="63" height="129"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco3.png" width="63" height="129"/>
   </tile>
   <tile id="3">
-   <image source="AssetsDecoracion/Deco4.png" width="208" height="96"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco4.png" width="208" height="96"/>
   </tile>
   <tile id="4">
-   <image source="AssetsDecoracion/Deco5.png" width="177" height="178"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco5.png" width="177" height="178"/>
   </tile>
   <tile id="5">
-   <image source="AssetsDecoracion/Deco6.png" width="189" height="303"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco6.png" width="189" height="303"/>
   </tile>
   <tile id="6">
-   <image source="AssetsDecoracion/Deco7.png" width="160" height="497"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco7.png" width="160" height="497"/>
   </tile>
   <tile id="7">
-   <image source="AssetsDecoracion/Deco8.png" width="208" height="497"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco8.png" width="208" height="497"/>
   </tile>
   <tile id="8">
-   <image source="AssetsDecoracion/Deco9.png" width="243" height="291"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco9.png" width="243" height="291"/>
   </tile>
   <tile id="9">
-   <image source="AssetsDecoracion/Deco10.png" width="277" height="291"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco10.png" width="277" height="291"/>
   </tile>
   <tile id="10">
-   <image source="AssetsDecoracion/Deco11.png" width="290" height="178"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco11.png" width="290" height="178"/>
   </tile>
   <tile id="11">
-   <image source="AssetsDecoracion/Deco12.png" width="322" height="162"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco12.png" width="322" height="162"/>
   </tile>
   <tile id="12">
-   <image source="AssetsDecoracion/Deco13.png" width="241" height="178"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco13.png" width="241" height="178"/>
   </tile>
   <tile id="13">
-   <image source="AssetsDecoracion/Deco14.png" width="229" height="177"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco14.png" width="229" height="177"/>
   </tile>
   <tile id="14">
-   <image source="AssetsDecoracion/Deco15.png" width="132" height="98"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco15.png" width="132" height="98"/>
   </tile>
   <tile id="15">
-   <image source="AssetsDecoracion/Deco16.png" width="80" height="48"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco16.png" width="80" height="48"/>
   </tile>
   <tile id="16">
-   <image source="AssetsDecoracion/Deco17.png" width="115" height="112"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco17.png" width="115" height="112"/>
   </tile>
   <tile id="17">
-   <image source="AssetsDecoracion/Deco18.png" width="244" height="129"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco18.png" width="244" height="129"/>
   </tile>
   <tile id="18">
-   <image source="AssetsDecoracion/Deco19.png" width="712" height="502"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco19.png" width="712" height="502"/>
   </tile>
   <tile id="19">
-   <image source="AssetsDecoracion/Deco20.png" width="157" height="259"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco20.png" width="157" height="259"/>
   </tile>
   <tile id="20">
-   <image source="AssetsDecoracion/Deco21.png" width="179" height="223"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco21.png" width="179" height="223"/>
   </tile>
   <tile id="21">
-   <image source="AssetsDecoracion/Deco22.png" width="157" height="238"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco22.png" width="157" height="238"/>
   </tile>
   <tile id="22">
-   <image source="AssetsDecoracion/Deco23.png" width="146" height="101"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco23.png" width="146" height="101"/>
   </tile>
   <tile id="23">
-   <image source="AssetsDecoracion/Deco24.png" width="145" height="208"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco24.png" width="145" height="208"/>
   </tile>
   <tile id="24">
-   <image source="AssetsDecoracion/Deco25.png" width="129" height="150"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco25.png" width="129" height="150"/>
   </tile>
   <tile id="25">
-   <image source="AssetsDecoracion/Deco26.png" width="319" height="537"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco26.png" width="319" height="537"/>
   </tile>
   <tile id="26">
-   <image source="AssetsDecoracion/Deco27.png" width="457" height="537"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco27.png" width="457" height="537"/>
   </tile>
   <tile id="47">
-   <image source="AssetsDecoracion/Deco 28.png" width="845" height="668"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 28.png" width="845" height="668"/>
   </tile>
   <tile id="48">
-   <image source="AssetsDecoracion/Deco 29.png" width="455" height="552"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 29.png" width="455" height="552"/>
   </tile>
   <tile id="49">
-   <image source="AssetsDecoracion/Deco 30.png" width="29" height="178"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 30.png" width="29" height="178"/>
   </tile>
   <tile id="50">
-   <image source="AssetsDecoracion/Deco 31.png" width="72" height="170"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 31.png" width="72" height="170"/>
   </tile>
   <tile id="51">
-   <image source="AssetsDecoracion/Deco 32.png" width="542" height="758"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 32.png" width="542" height="758"/>
   </tile>
   <tile id="52">
-   <image source="AssetsDecoracion/Deco 33.png" width="491" height="598"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 33.png" width="491" height="598"/>
   </tile>
   <tile id="53">
-   <image source="AssetsDecoracion/Deco 34.png" width="497" height="475"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 34.png" width="497" height="475"/>
   </tile>
   <tile id="54">
-   <image source="AssetsDecoracion/Deco 35.png" width="251" height="331"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 35.png" width="251" height="331"/>
   </tile>
   <tile id="55">
-   <image source="AssetsDecoracion/Deco 36.png" width="479" height="445"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 36.png" width="479" height="445"/>
   </tile>
   <tile id="56">
-   <image source="AssetsDecoracion/Deco 37.png" width="456" height="217"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 37.png" width="456" height="217"/>
   </tile>
   <tile id="57">
-   <image source="AssetsDecoracion/Deco 38.png" width="519" height="489"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 38.png" width="519" height="489"/>
   </tile>
   <tile id="58">
-   <image source="AssetsDecoracion/Deco 39.png" width="486" height="753"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 39.png" width="486" height="753"/>
   </tile>
   <tile id="59">
-   <image source="AssetsDecoracion/Deco 40.png" width="389" height="528"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 40.png" width="389" height="528"/>
   </tile>
   <tile id="60">
-   <image source="AssetsDecoracion/Deco 41.png" width="510" height="469"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 41.png" width="510" height="469"/>
   </tile>
   <tile id="61">
-   <image source="AssetsDecoracion/Deco 42.png" width="425" height="358"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 42.png" width="425" height="358"/>
   </tile>
   <tile id="62">
-   <image source="AssetsDecoracion/Deco 43.png" width="486" height="402"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 43.png" width="486" height="402"/>
   </tile>
   <tile id="63">
-   <image source="AssetsDecoracion/Deco 44.png" width="483" height="560"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 44.png" width="483" height="560"/>
   </tile>
   <tile id="64">
-   <image source="AssetsDecoracion/Deco 45.png" width="434" height="346"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 45.png" width="434" height="346"/>
   </tile>
   <tile id="65">
-   <image source="AssetsDecoracion/Deco 46.png" width="321" height="568"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 46.png" width="321" height="568"/>
   </tile>
   <tile id="66">
-   <image source="AssetsDecoracion/Deco 47.png" width="281" height="582"/>
+   <image source="Nivell 1/AssetsDecoracion/Deco 47.png" width="281" height="582"/>
   </tile>
   <tile id="67">
-   <image source="AssetsDecoracion/Pedrolo 5.png" width="1354" height="1471"/>
+   <image source="Nivell 1/AssetsDecoracion/Pedrolo 5.png" width="1354" height="1471"/>
   </tile>
   <tile id="68">
-   <image source="AssetsDecoracion/Pedrolo 1.png" width="1906" height="1948"/>
+   <image source="Nivell 1/AssetsDecoracion/Pedrolo 1.png" width="1906" height="1948"/>
   </tile>
   <tile id="69">
-   <image source="AssetsDecoracion/Pedrolo 2.png" width="1506" height="1874"/>
+   <image source="Nivell 1/AssetsDecoracion/Pedrolo 2.png" width="1506" height="1874"/>
   </tile>
   <tile id="70">
-   <image source="AssetsDecoracion/Pedrolo 3.png" width="1558" height="1943"/>
+   <image source="Nivell 1/AssetsDecoracion/Pedrolo 3.png" width="1558" height="1943"/>
   </tile>
   <tile id="71">
-   <image source="AssetsDecoracion/Pedrolo 4.png" width="1691" height="1975"/>
+   <image source="Nivell 1/AssetsDecoracion/Pedrolo 4.png" width="1691" height="1975"/>
   </tile>
  </tileset>
  <imagelayer id="13" name="ReferenciaMapa" visible="0" opacity="0.34" offsetx="228" offsety="-4240">
-  <image source="referenciaMapa.png" width="32000" height="30968"/>
+  <image source="Nivell 1/referenciaMapa.png" width="32000" height="30968"/>
  </imagelayer>
  <objectgroup id="31" name="Fondo piedras" visible="0"/>
  <objectgroup id="33" name="AnimatedPlants" visible="0"/>
