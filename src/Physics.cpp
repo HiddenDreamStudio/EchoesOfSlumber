@@ -465,20 +465,51 @@ b2BodyType Physics::ToB2Type(bodyType t)
 void Physics::DrawSegmentCb(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* ctx)
 {
     auto& r = *Engine::GetInstance().render.get();
-    r.DrawLine(METERS_TO_PIXELS(p1.x), METERS_TO_PIXELS(p1.y),
-        METERS_TO_PIXELS(p2.x), METERS_TO_PIXELS(p2.y), 255, 255, 255);
+    int x1 = METERS_TO_PIXELS(p1.x);
+    int y1 = METERS_TO_PIXELS(p1.y);
+    int x2 = METERS_TO_PIXELS(p2.x);
+    int y2 = METERS_TO_PIXELS(p2.y);
+
+    // Camera culling
+    SDL_Rect cam = r.camera;
+    cam.x = -cam.x; cam.y = -cam.y;
+    SDL_Rect shapeRect = { std::min(x1, x2), std::min(y1, y2), std::abs(x1 - x2) + 1, std::abs(y1 - y2) + 1 };
+    if (!SDL_HasRectIntersection(&cam, &shapeRect))
+        return;
+
+    r.DrawLine(x1, y1, x2, y2, 255, 255, 255);
 }
 
 void Physics::DrawPolygonCb(const b2Vec2* v, int n, b2HexColor color, void* ctx)
 {
     auto& r = *Engine::GetInstance().render.get();
+    
+    // Quick camera culling for the whole polygon
+    SDL_Rect cam = r.camera;
+    cam.x = -cam.x; cam.y = -cam.y;
+    int minX = 1000000, minY = 1000000, maxX = -1000000, maxY = -1000000;
+    for (int i = 0; i < n; ++i) {
+        int px = METERS_TO_PIXELS(v[i].x);
+        int py = METERS_TO_PIXELS(v[i].y);
+        if (px < minX) minX = px; if (py < minY) minY = py;
+        if (px > maxX) maxX = px; if (py > maxY) maxY = py;
+    }
+    SDL_Rect polyRect = { minX, minY, maxX - minX + 1, maxY - minY + 1 };
+    if (!SDL_HasRectIntersection(&cam, &polyRect))
+        return;
+
+    std::vector<SDL_FPoint> points(n + 1);
+    int scale = Engine::GetInstance().window->GetScale();
     for (int i = 0; i < n; ++i)
     {
-        const b2Vec2 a = v[i];
-        const b2Vec2 b = v[(i + 1) % n];
-        r.DrawLine(METERS_TO_PIXELS(a.x), METERS_TO_PIXELS(a.y),
-            METERS_TO_PIXELS(b.x), METERS_TO_PIXELS(b.y), 255, 255, 100);
+        points[i].x = (float)(r.camera.x + METERS_TO_PIXELS(v[i].x) * scale);
+        points[i].y = (float)(r.camera.y + METERS_TO_PIXELS(v[i].y) * scale);
     }
+    points[n] = points[0];
+
+    SDL_SetRenderDrawBlendMode(r.renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(r.renderer, 255, 255, 100, 255);
+    SDL_RenderLines(r.renderer, points.data(), (int)points.size());
 }
 
 void Physics::DrawSolidPolygonCb(b2Transform xf, const b2Vec2* v, int n, float radius, b2HexColor color, void* ctx)

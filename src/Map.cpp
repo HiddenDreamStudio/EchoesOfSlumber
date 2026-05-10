@@ -66,6 +66,10 @@ bool Map::Update(float dt)
         }
         for (const auto& deco : mapData.decorationObjects) {
             if (deco->texture && !deco->isFront) {
+                // Culling: check if object is visible on screen
+                if (!render->IsOnScreenWorldRect(deco->x, deco->y - deco->height, deco->width, deco->height))
+                    continue;
+
                 // Posició en coordenades de món (Tiled usa l'origen a baix-esquerra per objectes gid)
                 float worldX = deco->x;
                 float worldY = deco->y - deco->height;
@@ -90,6 +94,11 @@ bool Map::Update(float dt)
         for (const auto& plant : mapData.animatedPlants) {
             if (plant->isFront) continue;
             plant->anim.Update(dt);
+
+            // Culling
+            if (!render->IsOnScreenWorldRect(plant->x, plant->y, plant->w, plant->h))
+                continue;
+
             const SDL_Rect& frame = plant->anim.GetCurrentFrame();
 
             SDL_FRect dst;
@@ -121,25 +130,50 @@ bool Map::Update(float dt)
         // iterate all tiles in a layer that are visible to the camera
         for (const auto& mapLayer : mapData.layers) {
             if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true) {
+                
+                // Group tiles by tileset to batch them
+                std::unordered_map<TileSet*, std::vector<SDL_Vertex>> batches;
+                
                 for (int i = startX; i < endX; i++) {
                     for (int j = startY; j < endY; j++) {
-
-                        //Get the gid from tile
                         int gid = mapLayer->Get(i, j);
-
-                        //Check if the gid is different from 0 - some tiles are empty
                         if (gid != 0) {
                             TileSet* tileSet = GetTilesetFromTileId(gid);
-                            if (tileSet != nullptr) {
-                                //Get the Rect from the tileSetTexture;
+                            if (tileSet != nullptr && tileSet->texture != nullptr) {
                                 SDL_Rect tileRect = tileSet->GetRect(gid);
-                                //Get the screen coordinates from the tile coordinates
                                 Vector2D mapCoord = MapToWorld(i, j);
-                                //Draw the texture
-                                render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect);
+                                
+                                float x = (float)((int)(render->camera.x) + (int)mapCoord.getX() * scale);
+                                float y = (float)((int)(render->camera.y) + (int)mapCoord.getY() * scale);
+                                float w = (float)(tileRect.w * scale);
+                                float h = (float)(tileRect.h * scale);
+
+                                float tw = 0.0f, th = 0.0f;
+                                Engine::GetInstance().textures->GetSize(tileSet->texture, (int&)tw, (int&)th);
+
+                                float u0 = (float)tileRect.x / tw;
+                                float v0 = (float)tileRect.y / th;
+                                float u1 = (float)(tileRect.x + tileRect.w) / tw;
+                                float v1 = (float)(tileRect.y + tileRect.h) / th;
+
+                                SDL_FColor white = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+                                // Quad as two triangles (0-1-2 and 2-3-0)
+                                batches[tileSet].push_back({ {x, y}, white, {u0, v0} });
+                                batches[tileSet].push_back({ {x + w, y}, white, {u1, v0} });
+                                batches[tileSet].push_back({ {x + w, y + h}, white, {u1, v1} });
+                                
+                                batches[tileSet].push_back({ {x + w, y + h}, white, {u1, v1} });
+                                batches[tileSet].push_back({ {x, y + h}, white, {u0, v1} });
+                                batches[tileSet].push_back({ {x, y}, white, {u0, v0} });
                             }
                         }
                     }
+                }
+
+                // Render batches
+                for (auto& [tileSet, vertices] : batches) {
+                    SDL_RenderGeometry(render->renderer, tileSet->texture, vertices.data(), (int)vertices.size(), nullptr, 0);
                 }
             }
         }

@@ -107,3 +107,8 @@ void Window::SetFullscreen(bool fullscreen)
 		SDL_SetWindowFullscreen(window, false);
 	}
 }
+
+void Window::SetBorderless(bool borderless)
+{
+	SDL_SetWindowBordered(window, !borderless);
+}

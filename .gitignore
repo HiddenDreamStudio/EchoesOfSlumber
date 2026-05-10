@@ -415,6 +415,8 @@ libjpeg-turbo
 pugixml
 ffmpeg
 tracy
+discord_social_sdk
+vulkan
 Makefile
 /*.sln
 assets/saves/savedata.xml

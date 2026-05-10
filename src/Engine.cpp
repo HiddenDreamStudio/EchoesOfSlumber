@@ -16,6 +16,7 @@
 #include "UIManager.h"
 #include "Cinematics.h"
 #include "SaveSystem.h"
+#include "DiscordManager.h"
 #include "tracy/Tracy.hpp"
 
 // Constructor
@@ -42,6 +43,7 @@ Engine::Engine() {
 	uiManager = std::make_shared<UIManager>(); 
 	cinematics = std::make_shared<Cinematics>();
 	saveSystem = std::make_shared<SaveSystem>();
+	discord = std::make_shared<DiscordManager>();
 
     // Ordered for awake / Start / Update
     // Reverse order of CleanUp
@@ -56,6 +58,7 @@ Engine::Engine() {
 	AddModule(std::static_pointer_cast<Module>(uiManager)); 
 	AddModule(std::static_pointer_cast<Module>(cinematics));
 	AddModule(std::static_pointer_cast<Module>(saveSystem));
+	AddModule(std::static_pointer_cast<Module>(discord));
 
     // Render last 
     AddModule(std::static_pointer_cast<Module>(render));

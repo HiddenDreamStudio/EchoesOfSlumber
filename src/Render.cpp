@@ -1,8 +1,11 @@
 #include "Engine.h"
 #include "Window.h"
 #include "Render.h"
+#include "Textures.h"
 #include "Log.h"
 #include <cmath>
+#include <vector>
+#include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -31,8 +34,14 @@ bool Render::Awake()
 	int scale = Engine::GetInstance().window->GetScale();
 	SDL_Window* window = Engine::GetInstance().window->window;
 
-	// SDL3: no flags; create default renderer and set vsync separately
-	renderer = SDL_CreateRenderer(window, nullptr);
+	// SDL3: attempt to use the 'gpu' backend to leverage Vulkan and share context
+	renderer = SDL_CreateRenderer(window, "gpu");
+
+	if (renderer == NULL)
+	{
+		LOG("Could not create the 'gpu' renderer! SDL_Error: %s. Falling back to default.", SDL_GetError());
+		renderer = SDL_CreateRenderer(window, nullptr);
+	}
 
 	if (renderer == NULL)
 	{
@@ -41,6 +50,24 @@ bool Render::Awake()
 	}
 	else
 	{
+		LOG("Using render driver: %s", SDL_GetRendererName(renderer));
+
+		// --- Vulkan / SDL_GPU Initialization ---
+		// We initialize the GPU device separately. In SDL3, multiple modules can share 
+		// the same backend (Vulkan) if initialized correctly.
+		gpuDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, "vulkan");
+		if (gpuDevice == NULL) {
+			LOG("Could not create SDL_GPU device with Vulkan! Error: %s", SDL_GetError());
+			gpuDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
+		}
+
+		if (gpuDevice != NULL) {
+			LOG("SDL_GPU device initialized using backend: %s", SDL_GetGPUDeviceDriver(gpuDevice));
+			// We don't claim the window if the renderer is already using it (to avoid black screen)
+			// SDL_Renderer with "gpu" backend already manages the window surface.
+		}
+		// ---------------------------------------
+
 		if (configParameters.child("vsync").attribute("value").as_bool())
 		{
 			if (!SDL_SetRenderVSync(renderer, 1))
@@ -68,6 +95,19 @@ bool Render::Awake()
 	menuFont = TTF_OpenFont("assets/fonts/Tiraroum.ttf", 60);
 	if (!menuFont) {
 		LOG("Warning: could not load menu font Tiraroum.ttf: %s", SDL_GetError());
+	}
+
+	// Initialize Fireflies
+	fireflies_.clear();
+	for (int i = 0; i < 40; ++i) {
+		Firefly f;
+		f.x = (float)(rand() % 1280);
+		f.y = (float)(rand() % 720);
+		f.speed = 20.0f + (rand() % 50);
+		f.size = 2.0f + (rand() % 4);
+		f.angle = (float)(rand() % 360);
+		f.color = { 200, 255, 150, 150 }; // Greenish yellow
+		fireflies_.push_back(f);
 	}
 
 	return ret;
@@ -100,10 +140,59 @@ bool Render::Update(float dt)
 
 bool Render::PostUpdate()
 {
+	DrawFireflies(Engine::GetInstance().GetDt());
 	DrawFade();
 	SDL_SetRenderDrawColor(renderer, background.r, background.g, background.b, background.a);
 	SDL_RenderPresent(renderer);
 	return true;
+}
+
+void Render::DrawFireflies(float dt)
+{
+	if (!firefliesActive_) return;
+
+	totalTime_ += dt / 1000.0f;
+	int scale = Engine::GetInstance().window->GetScale();
+
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+
+	for (auto& f : fireflies_) {
+		// Procedural movement: float around
+		f.x += std::sin(totalTime_ * 0.5f + f.angle) * f.speed * (dt / 1000.0f);
+		f.y += std::cos(totalTime_ * 0.3f + f.angle) * f.speed * (dt / 1000.0f);
+
+		// Wrap around screen
+		if (f.x < 0) f.x = 1280;
+		if (f.x > 1280) f.x = 0;
+		if (f.y < 0) f.y = 720;
+		if (f.y > 720) f.y = 0;
+
+		// Draw firefly as a small glowing circle
+		// We simulate the "blur" by drawing multiple circles with decreasing alpha
+		for (int i = 0; i < 3; ++i) {
+			float r = f.size * (i + 1) * 2.0f;
+			Uint8 alpha = (Uint8)(f.color.a / (i + 1));
+			DrawCircle((int)f.x, (int)f.y, (int)r, f.color.r, f.color.g, f.color.b, alpha, false);
+		}
+	}
+
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+}
+
+void Render::DrawProtagonistGlow(SDL_Texture* tex, int x, int y, const SDL_Rect* section, SDL_FlipMode flip) const
+{
+	if (!tex) return;
+
+	// Draw a slightly larger, colored version behind the player for an aura effect
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+	SDL_SetTextureColorMod(tex, 100, 200, 255); // Dreamy blue glow
+	
+	// Draw slightly larger (+10%)
+	DrawTexture(tex, x - 2, y - 2, section, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.1f);
+
+	// Reset
+	SDL_SetTextureColorMod(tex, 255, 255, 255);
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 }
 
 // Called before quitting
@@ -150,14 +239,10 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 	}
 	else
 	{
-		float tw = 0.0f, th = 0.0f;
-		if (!SDL_GetTextureSize(texture, &tw, &th))
-		{
-			LOG("SDL_GetTextureSize failed: %s", SDL_GetError());
-			return false;
-		}
-		rect.w = tw * scale;
-		rect.h = th * scale;
+		int tw, th;
+		Engine::GetInstance().textures->GetSize(texture, tw, th);
+		rect.w = (float)tw * scale;
+		rect.h = (float)th * scale;
 	}
 
 	const SDL_FRect* src = NULL;

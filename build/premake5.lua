@@ -428,13 +428,14 @@ function check_discord_sdk()
     --   external/discord_social_sdk/bin/release/discord_partner_sdk.dll   (Windows)
     --   external/discord_social_sdk/lib/release/libdiscord_partner_sdk.so (Linux)
     
-    local discord_social_sdk_version = "1.8.14026"
+    local discord_social_sdk_version = "1.9.15332"
     local discord_social_sdk_zip = "DiscordSocialSdk-" .. discord_social_sdk_version .. ".zip"
     
-    -- Download URL: use CLI override, env var, or default to GitHub Release asset
+    -- Download URL: use CLI override, env var, or default to mirror
     local discord_social_sdk_url = _OPTIONS["discord_sdk_url"]
         or os.getenv("DISCORD_SDK_URL")
-        or "https://github.com/Amphoreous/EchoesOfSlumber/releases/download/discord-social-sdk-v" .. discord_social_sdk_version .. "/" .. discord_social_sdk_zip
+        -- Mirror
+        or "https://github.com/TheUnrealZaka/discord_social_sdk/releases/download/v" .. discord_social_sdk_version .. "/" .. discord_social_sdk_zip
     
     if not os.isdir("discord_social_sdk") or not os.isdir("discord_social_sdk/include") then
         if not os.isfile(discord_social_sdk_zip) then
@@ -454,7 +455,7 @@ function check_discord_sdk()
                 print("")
                 print("  To fix this, either:")
                 print("    1. Upload the SDK zip as a GitHub Release asset at:")
-                print("       https://github.com/Amphoreous/EchoesOfSlumber/releases")
+                print("       https://github.com/HiddenDreamStudio/EchoesOfSlumber/releases")
                 print("       Tag: discord-social-sdk-v" .. discord_social_sdk_version)
                 print("")
                 print("    2. Or pass a custom URL:")
@@ -559,6 +560,40 @@ function check_ffmpeg()
     os.chdir("../")
 end
 
+function check_vulkan()
+    os.chdir("external")
+    
+    -- Vulkan SDK components: Headers and Loader
+    local vulkan_headers_version = "v1.3.283"
+    local vulkan_headers_zip = "Vulkan-Headers.zip"
+    
+    if(os.isdir("vulkan") == false) then
+        if(not os.isfile(vulkan_headers_zip)) then
+            print("Vulkan Headers " .. vulkan_headers_version .. " not found, downloading from GitHub")
+            local download_url = "https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/" .. vulkan_headers_version .. ".zip"
+            local result_str, response_code = http.download(download_url, vulkan_headers_zip, {
+                progress = download_progress,
+                headers = { "From: Premake", "Referer: Premake" }
+            })
+        end
+        print("Unzipping Vulkan Headers to " .. os.getcwd())
+        zip.extract(vulkan_headers_zip, os.getcwd())
+        
+        -- Rename the extracted folder to vulkan
+        local extracted_folder = "Vulkan-Headers-" .. string.sub(vulkan_headers_version, 2)
+        if os.isdir(extracted_folder) then
+            os.rename(extracted_folder, "vulkan")
+            print("Renamed " .. extracted_folder .. " to vulkan")
+        end
+        
+        os.remove(vulkan_headers_zip)
+    else
+        print("Vulkan already exists")
+    end
+    
+    os.chdir("../")
+end
+
 function build_externals()
     print("Checking external dependencies...")
     
@@ -594,6 +629,9 @@ function build_externals()
     if downloadFFmpeg and not os.isdir("external/ffmpeg/include") then
         all_exist = false
     end
+    if downloadVulkan and not os.isdir("external/vulkan/include") then
+        all_exist = false
+    end
     
     -- If all dependencies exist, skip version fetching entirely
     if all_exist then
@@ -624,6 +662,9 @@ function build_externals()
     end
     if (downloadFFmpeg) then
         check_ffmpeg()
+    end
+    if (downloadVulkan) then
+        check_vulkan()
     end
 end
 
@@ -670,6 +711,9 @@ sdl3_ttf_dir = "external/SDL3_ttf"
 
 downloadTracy = true
 tracy_dir = "external/tracy"
+
+downloadVulkan = true
+vulkan_dir = "external/vulkan"
 
 -- Discord Social SDK: auto-downloads from GitHub Release asset.
 -- The SDK zip must be uploaded as a release asset on your repo.
@@ -725,7 +769,7 @@ workspace (workspaceName)
 
     targetdir "bin/%{cfg.buildcfg}/"
 
-if (downloadSDL3 or downloadBox2D or downloadLibJPEGTurbo or downloadPugiXML or downloadSDL3Image or downloadLibPNG or downloadSDL3TTF or downloadTracy or downloadDiscordSDK) then
+if (downloadSDL3 or downloadBox2D or downloadLibJPEGTurbo or downloadPugiXML or downloadSDL3Image or downloadLibPNG or downloadSDL3TTF or downloadTracy or downloadDiscordSDK or downloadVulkan) then
     build_externals()
 end
 
@@ -757,7 +801,7 @@ end
             "../include/**.hpp"
         }
         
-        filter {"system:windows", "action:vs*"}
+        filter { "system:windows", "action:vs*" }
             files {"../src/*.rc", "../src/*.ico"}
 
         filter{}
@@ -773,9 +817,9 @@ end
         includedirs { sdl3_ttf_dir .. "/include" }
         includedirs { tracy_dir .. "/public" }
         includedirs { ffmpeg_dir .. "/include" }
+        includedirs { vulkan_dir .. "/include" }
         -- Discord Social SDK: single-header API (discordpp.h)
-        -- Uncomment when the SDK is downloaded and downloadDiscordSDK = true
-        -- includedirs { discord_sdk_dir .. "/include" }
+        includedirs { discord_sdk_dir .. "/include" }
 
         cdialect "C17"
         cppdialect "C++17"
@@ -786,8 +830,9 @@ end
             dependson {"box2d", "pugixml", "tracy"}
             links {"box2d", "pugixml", "tracy", "SDL3", "SDL3_image", "SDL3_ttf", "jpeg", "libpng"}
             links {"avcodec", "avformat", "avutil", "swscale", "swresample"}
-            -- Discord Social SDK: uncomment when enabled
-            -- links { "discord_partner_sdk" }
+            -- Discord Social SDK
+            links { "discord_partner_sdk" }
+            -- Vulkan: SDL3 GPU loads Vulkan dynamically at runtime, no need to link vulkan-1.lib
             characterset ("Unicode")
             buildoptions { "/Zc:__cplusplus" }
 
@@ -798,33 +843,33 @@ end
             -- SDL3 x64 específic
             filter { "system:windows", "platforms:x64" }
                 libdirs { "../bin/%{cfg.buildcfg}", sdl3_dir .. "/lib/x64", sdl3_image_dir .. "/lib/x64", sdl3_ttf_dir .. "/lib/x64", libjpeg_turbo_dir .. "/lib", libpng_dir .. "/lib", ffmpeg_dir .. "/lib" }
-                -- Discord Social SDK: uncomment when enabled
-                -- libdirs { discord_sdk_dir .. "/lib/release" }
+                -- Discord Social SDK
+                libdirs { discord_sdk_dir .. "/lib/release" }
                 postbuildcommands {
                     -- Copy DLLs using xcopy with proper quoting for paths with spaces
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3\\lib\\x64\\SDL3.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_image\\lib\\x64\\SDL3_image.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_ttf\\lib\\x64\\SDL3_ttf.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\libjpeg-turbo\\bin\\jpeg62.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
-                    'xcopy /Y /D "$(SolutionDir)build\\external\\ffmpeg\\bin\\*.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
-                    -- Discord Social SDK: uncomment when enabled
-                    -- 'xcopy /Y /D "$(SolutionDir)build\\external\\discord_social_sdk\\bin\\release\\discord_partner_sdk.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
+                    'xcopy /Y /D "$(SolutionDir)build\\external\\ffmpeg\\bin\\*.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
+                    -- Discord Social SDK
+                    'xcopy /Y /D "$(SolutionDir)build\\external\\discord_social_sdk\\bin\\release\\discord_partner_sdk.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
                 }
                 
             -- SDL3 x86 específic
             filter { "system:windows", "platforms:x86" }
                 libdirs { "../bin/%{cfg.buildcfg}", sdl3_dir .. "/lib/x86", sdl3_image_dir .. "/lib/x86", sdl3_ttf_dir .. "/lib/x86", libjpeg_turbo_dir .. "/lib", libpng_dir .. "/lib", ffmpeg_dir .. "/lib" }
-                -- Discord Social SDK: uncomment when enabled
-                -- libdirs { discord_sdk_dir .. "/lib/release" }
+                -- Discord Social SDK
+                libdirs { discord_sdk_dir .. "/lib/release" }
                 postbuildcommands {
                     -- Copy DLLs using xcopy with proper quoting for paths with spaces
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3\\lib\\x86\\SDL3.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_image\\lib\\x86\\SDL3_image.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_ttf\\lib\\x86\\SDL3_ttf.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\libjpeg-turbo\\bin\\jpeg62.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
-                    'xcopy /Y /D "$(SolutionDir)build\\external\\ffmpeg\\bin\\*.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
-                    -- Discord Social SDK: uncomment when enabled
-                    -- 'xcopy /Y /D "$(SolutionDir)build\\external\\discord_social_sdk\\bin\\release\\discord_partner_sdk.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
+                    'xcopy /Y /D "$(SolutionDir)build\\external\\ffmpeg\\bin\\*.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
+                    -- Discord Social SDK
+                    'xcopy /Y /D "$(SolutionDir)build\\external\\discord_social_sdk\\bin\\release\\discord_partner_sdk.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
                 }
 
         filter "system:linux"

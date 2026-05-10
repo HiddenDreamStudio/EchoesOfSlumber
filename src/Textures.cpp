@@ -64,9 +64,11 @@ SDL_Texture* const Textures::Load(const char* path)
 // Unload texture
 bool Textures::UnLoad(SDL_Texture* texture)
 {
-	for (const auto& _texture : textures) {
-		if (_texture == texture) {
+	for (auto it = textures.begin(); it != textures.end(); ++it) {
+		if (*it == texture) {
+			textureInfo.erase(texture);
 			SDL_DestroyTexture(texture);
+			textures.erase(it);
 			return true;
 		}
 	}
@@ -85,6 +87,7 @@ SDL_Texture* const Textures::LoadSurface(SDL_Surface* surface)
 	else
 	{
 		textures.push_back(texture);
+		textureInfo[texture] = { surface->w, surface->h };
 	}
 
 	return texture;
@@ -93,6 +96,13 @@ SDL_Texture* const Textures::LoadSurface(SDL_Surface* surface)
 // Retrieve size of a texture
 void Textures::GetSize(const SDL_Texture* texture, int& width, int& height) const
 {
+	auto it = textureInfo.find(texture);
+	if (it != textureInfo.end()) {
+		width = it->second.w;
+		height = it->second.h;
+		return;
+	}
+
 	float tw = 0.0f;
 	float th = 0.0f;
 	if (!SDL_GetTextureSize((SDL_Texture*)texture, &tw, &th))
@@ -105,5 +115,6 @@ void Textures::GetSize(const SDL_Texture* texture, int& width, int& height) cons
 	{
 		width = (int)tw;
 		height = (int)th;
+		textureInfo[texture] = { width, height };
 	}
 }
