@@ -415,83 +415,31 @@ end
 function check_discord_sdk()
     os.chdir("external")
     
-    -- Discord Social SDK configuration
-    -- The SDK is hosted as a GitHub Release asset for automated CI downloads.
-    -- To update the SDK version:
-    --   1. Download the latest from the Discord Developer Portal
-    --   2. Upload the zip as a release asset to your GitHub repo
-    --   3. Update discord_social_sdk_version and discord_social_sdk_url below
-    --
-    -- Expected structure after extraction:
-    --   external/discord_social_sdk/include/discordpp.h
-    --   external/discord_social_sdk/lib/release/discord_partner_sdk.lib   (Windows)
-    --   external/discord_social_sdk/bin/release/discord_partner_sdk.dll   (Windows)
-    --   external/discord_social_sdk/lib/release/libdiscord_partner_sdk.so (Linux)
-    
     local discord_social_sdk_version = "1.9.15332"
-    local discord_social_sdk_zip = "DiscordSocialSdk-" .. discord_social_sdk_version .. ".zip"
+    local discord_social_sdk_zip = "discord_social_sdk.zip"
     
-    -- Download URL: use CLI override, env var, or default to mirror
-    local discord_social_sdk_url = _OPTIONS["discord_sdk_url"]
-        or os.getenv("DISCORD_SDK_URL")
-        -- Mirror
-        or "https://github.com/TheUnrealZaka/discord_social_sdk/releases/download/v" .. discord_social_sdk_version .. "/" .. discord_social_sdk_zip
+    -- Mirror on TheUnrealZaka account (Header-only or slim version)
+    local discord_social_sdk_url = "https://github.com/TheUnrealZaka/discord_social_sdk/archive/refs/heads/main.zip"
     
     if not os.isdir("discord_social_sdk") or not os.isdir("discord_social_sdk/include") then
-        if not os.isfile(discord_social_sdk_zip) then
-            print("Discord Social SDK v" .. discord_social_sdk_version .. " not found, downloading...")
-            print("URL: " .. discord_social_sdk_url)
-            local result_str, response_code = http.download(discord_social_sdk_url, discord_social_sdk_zip, {
-                progress = download_progress,
-                headers = { "From: Premake", "Referer: Premake" }
-            })
+        print("Discord Social SDK mirror not found, downloading from: " .. discord_social_sdk_url)
+        local result_str, response_code = http.download(discord_social_sdk_url, discord_social_sdk_zip, {
+            progress = download_progress,
+            headers = { "From: Premake", "Referer: Premake" }
+        })
+        
+        if os.isfile(discord_social_sdk_zip) then
+            print("Unzipping Discord Social SDK...")
+            zip.extract(discord_social_sdk_zip, os.getcwd())
             
-            if not os.isfile(discord_social_sdk_zip) then
-                print("")
-                print("============================================================")
-                print("  Discord Social SDK DOWNLOAD FAILED")
-                print("")
-                print("  Could not download from: " .. discord_social_sdk_url)
-                print("")
-                print("  To fix this, either:")
-                print("    1. Upload the SDK zip as a GitHub Release asset at:")
-                print("       https://github.com/HiddenDreamStudio/EchoesOfSlumber/releases")
-                print("       Tag: discord-social-sdk-v" .. discord_social_sdk_version)
-                print("")
-                print("    2. Or pass a custom URL:")
-                print("       premake5 vs2022 --discord_sdk_url=\"https://...\"")
-                print("")
-                print("    3. Or set the DISCORD_SDK_URL environment variable")
-                print("")
-                print("    4. Or manually extract to: build/external/discord_social_sdk/")
-                print("============================================================")
-                print("")
-                os.chdir("../")
-                return
+            -- GitHub zips usually extract to <repo>-<branch>
+            if os.isdir("discord_social_sdk-main") then
+                os.rename("discord_social_sdk-main", "discord_social_sdk")
             end
-        end
-        
-        print("Unzipping Discord Social SDK to " .. os.getcwd())
-        zip.extract(discord_social_sdk_zip, os.getcwd())
-        
-        -- The zip may extract to a versioned folder; rename to simple name
-        local versioned_folder = "DiscordSocialSdk-" .. discord_social_sdk_version
-        if os.isdir(versioned_folder) then
-            os.rename(versioned_folder, "discord_social_sdk")
-            print("Renamed " .. versioned_folder .. " to discord_social_sdk")
-        end
-        
-        -- Also handle if it extracts to just "discord_social_sdk" directly
-        -- (no rename needed in that case)
-        
-        os.remove(discord_social_sdk_zip)
-        
-        -- Verify extraction succeeded
-        if not os.isdir("discord_social_sdk/include") then
-            print("WARNING: Discord Social SDK extracted but include/ folder not found.")
-            print("         Check the zip structure and adjust the extraction logic.")
-        else
-            print("Discord Social SDK v" .. discord_social_sdk_version .. " installed successfully")
+            
+            os.remove(discord_social_sdk_zip)
+            print("Discord Social SDK headers installed from mirror.")
+            print("IMPORTANT: Ensure 'discord_partner_sdk.lib' and '.dll' are present in lib/bin folders to link correctly.")
         end
     else
         print("Discord Social SDK already exists")
@@ -830,7 +778,7 @@ end
             dependson {"box2d", "pugixml", "tracy"}
             links {"box2d", "pugixml", "tracy", "SDL3", "SDL3_image", "SDL3_ttf", "jpeg", "libpng"}
             links {"avcodec", "avformat", "avutil", "swscale", "swresample"}
-            -- Discord Social SDK
+            -- Discord Social SDK: link directly to the partner library binary
             links { "discord_partner_sdk" }
             -- Vulkan: SDL3 GPU loads Vulkan dynamically at runtime, no need to link vulkan-1.lib
             characterset ("Unicode")
@@ -972,54 +920,6 @@ end
         
         filter "system:linux"
             links { "pthread", "dl" }
-        
-        filter{}
 
-    -- Discord Social SDK project (commented out until SDK is downloaded)
-    -- The Social SDK uses a single header-only API (discordpp.h).
-    -- To enable:
-    --   1. Set downloadDiscordSDK = true above
-    --   2. Download the SDK from the Discord Developer Portal
-    --   3. Extract to build/external/discord_social_sdk/
-    --   4. Uncomment this project and the Discord lines in the main project above
-    --   5. Create a .cpp file with: #define DISCORDPP_IMPLEMENTATION \n #include "discordpp.h"
-    --
-    -- Unlike the old Game SDK, the Social SDK doesn't need a separate static lib.
-    -- Just include discordpp.h and link discord_partner_sdk.lib/.dll directly.
-    --
-    --[[
-    -- Example: if you prefer a thin static lib to isolate the implementation define:
-    project "discord_social_sdk"
-        kind "StaticLib"
-        language "C++"
-        cppdialect "C++17"
-        
-        location "build_files/"
-        targetdir "../bin/%{cfg.buildcfg}"
-        
-        defines { "DISCORDPP_IMPLEMENTATION" }
-        
-        includedirs { discord_sdk_dir .. "/include" }
-        
-        files { 
-            discord_sdk_dir .. "/include/discordpp.h",
-            "../src/discord/**.cpp",
-            "../src/discord/**.h"
-        }
-        
-        filter "action:vs*"
-            defines { "_WINSOCK_DEPRECATED_NO_WARNINGS", "_CRT_SECURE_NO_WARNINGS" }
-            characterset ("Unicode")
-            buildoptions { "/Zc:__cplusplus" }
-            
-        filter "system:windows"
-            defines { "_WIN32" }
-            libdirs { discord_sdk_dir .. "/lib/release" }
-            links { "discord_partner_sdk" }
-            
-        filter "system:linux"
-            libdirs { discord_sdk_dir .. "/lib/release" }
-            links { "discord_partner_sdk" }
-            
         filter {}
-    --]]
+

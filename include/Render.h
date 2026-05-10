@@ -1,12 +1,13 @@
 #pragma once
 
+#include <vector>
+#include <list>
+#include <string>
+
 #include "Module.h"
 #include "Vector2D.h"
 #include "SDL3/SDL.h"
 #include "SDL3_ttf/SDL_ttf.h"
-#include <vector>
-#include <list>
-#include <string>
 
 enum class FadeDirection { FADE_IN, FADE_OUT };
 
@@ -57,10 +58,10 @@ public:
 	void ApplyAmbientTint(SDL_Texture* tex) const;
 	void ResetAmbientTint(SDL_Texture* tex) const;
 
-	// Post-processing and VFX
-	void DrawFireflies(float dt);
-	void SetFirefliesActive(bool active) { firefliesActive_ = active; }
-	void DrawProtagonistGlow(SDL_Texture* tex, int x, int y, const SDL_Rect* section, SDL_FlipMode flip) const;
+	// Cinematic Effects
+	void StartEyelidEffect(float duration);
+	void DrawEyelidEffect();
+	void SetCameraSway(bool active) { cameraSwayActive_ = active; }
 
 	// Fade overlay system
 	void StartFade(FadeDirection dir, float durationMs);
@@ -120,15 +121,13 @@ private:
 	// Ambient tint — applied to entity sprites (GPU fragment shader multiply)
 	SDL_Color ambientTint_ = { 255, 255, 255, 255 }; // neutral = no tint
 
-	// Fireflies VFX
-	bool firefliesActive_ = true;
-	struct Firefly {
-		float x, y;
-		float speed;
-		float size;
-		float angle;
-		SDL_Color color;
-	};
-	std::vector<Firefly> fireflies_;
 	float totalTime_ = 0.0f;
+
+	// Eyelid Effect
+	bool eyelidActive_ = false;
+	float eyelidDuration_ = 2000.0f;
+	float eyelidElapsed_ = 0.0f;
+
+	// Camera Sway
+	bool cameraSwayActive_ = false;
 };

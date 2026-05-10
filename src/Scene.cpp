@@ -14,6 +14,7 @@
 #include "Item.h"
 #include "UIManager.h"
 #include "SaveSystem.h"
+#include "DiscordManager.h"
 #include "Physics.h"
 #include <cstdlib>
 #include <cmath>
@@ -175,6 +176,9 @@ void Scene::LoadMainMenu()
 	settingsCooldown_ = 0;
 	musicVolume_ = 1.0f;
 	sfxVolume_ = 1.0f;
+
+	Engine::GetInstance().discord->UpdatePresence("In Main Menu", "Alpha Phase");
+    Engine::GetInstance().render->SetCameraSway(false);
 
 	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Game-Menu.wav", 1.0f);
 
@@ -360,12 +364,18 @@ void Scene::PostUpdateMainMenu()
 			renderLogoX = winW / 2 - logoW / 2;
 			renderLogoY = winH / 2 - logoH / 2;
 			renderChildX = winW;
+			if (btnPlay_) btnPlay_->isVisible = false;
+			if (btnSettings_) btnSettings_->isVisible = false;
+			if (btnExit_) btnExit_->isVisible = false;
 			break;
 
 		case MenuAnimState::LOGO_HOLD:
 			renderLogoX = winW / 2 - logoW / 2;
 			renderLogoY = winH / 2 - logoH / 2;
 			renderChildX = winW;
+			if (btnPlay_) btnPlay_->isVisible = false;
+			if (btnSettings_) btnSettings_->isVisible = false;
+			if (btnExit_) btnExit_->isVisible = false;
 			break;
 
 		case MenuAnimState::SLIDE_LOGO:
@@ -375,6 +385,9 @@ void Scene::PostUpdateMainMenu()
 			renderLogoX = static_cast<int>((static_cast<float>(winW) / 2.0f - static_cast<float>(logoW) / 2.0f) + (static_cast<float>(logoDestX) - (static_cast<float>(winW) / 2.0f - static_cast<float>(logoW) / 2.0f)) * t);
 			renderLogoY = static_cast<int>((static_cast<float>(winH) / 2.0f - static_cast<float>(logoH) / 2.0f) + (static_cast<float>(logoDestY) - (static_cast<float>(winH) / 2.0f - static_cast<float>(logoH) / 2.0f)) * t);
 			renderChildX = winW;
+			if (btnPlay_) btnPlay_->isVisible = false;
+			if (btnSettings_) btnSettings_->isVisible = false;
+			if (btnExit_) btnExit_->isVisible = false;
 			break;
 
 		case MenuAnimState::SLIDE_CHILD:
@@ -384,6 +397,9 @@ void Scene::PostUpdateMainMenu()
 			renderChildX = (int)(winW + (childDestX - winW) * t);
 			renderLogoX = logoDestX;
 			renderLogoY = logoDestY;
+			if (btnPlay_) btnPlay_->isVisible = false;
+			if (btnSettings_) btnSettings_->isVisible = false;
+			if (btnExit_) btnExit_->isVisible = false;
 			break;
 
 		case MenuAnimState::FADE_FRAGS_BTNS:
@@ -545,6 +561,12 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 		showSettings_ = !showSettings_;
 		SetSettingsPanelVisible(showSettings_);
 		settingsCooldown_ = 4;
+
+		if (showSettings_)
+			Engine::GetInstance().discord->UpdatePresence("In Options", "Alpha Phase");
+		else
+			Engine::GetInstance().discord->UpdatePresence("In Main Menu", "Alpha Phase");
+
 		break;
 	case BTN_EXIT:
 		LOG("Main Menu: Exit");
@@ -608,6 +630,8 @@ static constexpr float INTRO_TOTAL_MS = INTRO_FADE_MS * 2.0f + INTRO_HOLD_MS;
 void Scene::LoadIntro()
 {
 	LOG("Loading Intro splash screen");
+	Engine::GetInstance().discord->UpdatePresence("", "");
+
 	introPhase_ = IntroPhase::CITM_FADEIN;
 	introTimer_ = 0.0f;
 
@@ -758,6 +782,12 @@ void Scene::LoadGameplay()
 	isPaused_ = false;
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
+
+	Engine::GetInstance().discord->UpdatePresence("Playing: Level 1", "Alpha Phase");
+    Engine::GetInstance().render->SetCameraSway(true);
+    
+    // Trigger "Waking up" effect (4 seconds duration)
+    Engine::GetInstance().render->StartEyelidEffect(4000.0f);
 
 	Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 1.0f);
 

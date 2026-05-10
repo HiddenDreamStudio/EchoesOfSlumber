@@ -472,9 +472,6 @@ void Player::Draw(float dt) {
 			SDL_SetTextureBlendMode(activeTex, SDL_BLENDMODE_BLEND);
 		}
 
-		// Protagonist Glow effect (Shader-like)
-		render->DrawProtagonistGlow(activeTex, drawX, drawY, animFrame, flip);
-
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
 
 		// Restore alpha and color modulation
