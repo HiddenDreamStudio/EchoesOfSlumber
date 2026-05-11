@@ -415,32 +415,32 @@ end
 function check_discord_sdk()
     os.chdir("external")
     
-    local discord_social_sdk_version = "1.9.15332"
-    local discord_social_sdk_zip = "discord_social_sdk.zip"
+    -- Get the latest version from our own repo
+    local versions = get_latest_versions()
+    -- We assume the SDK version is managed via the repo tags or a default
+    local discord_version = "1.9.15332" 
+    local discord_folder = "discord_social_sdk"
+    local discord_zip = "discord_social_sdk-" .. discord_version .. ".zip"
     
-    -- Mirror on TheUnrealZaka account (Header-only or slim version)
-    local discord_social_sdk_url = "https://github.com/TheUnrealZaka/discord_social_sdk/archive/refs/heads/main.zip"
-    
-    if not os.isdir("discord_social_sdk") or not os.isdir("discord_social_sdk/include") then
-        print("Discord Social SDK mirror not found, downloading from: " .. discord_social_sdk_url)
-        local result_str, response_code = http.download(discord_social_sdk_url, discord_social_sdk_zip, {
-            progress = download_progress,
-            headers = { "From: Premake", "Referer: Premake" }
-        })
-        
-        if os.isfile(discord_social_sdk_zip) then
-            print("Unzipping Discord Social SDK...")
-            zip.extract(discord_social_sdk_zip, os.getcwd())
-            
-            -- GitHub zips usually extract to <repo>-<branch>
-            if os.isdir("discord_social_sdk-main") then
-                os.rename("discord_social_sdk-main", "discord_social_sdk")
-            end
-            
-            os.remove(discord_social_sdk_zip)
-            print("Discord Social SDK headers installed from mirror.")
-            print("IMPORTANT: Ensure 'discord_partner_sdk.lib' and '.dll' are present in lib/bin folders to link correctly.")
+    if(os.isdir(discord_folder) == false) then
+        if(not os.isfile(discord_zip)) then
+            print("Discord Social SDK v" .. discord_version .. " not found, downloading latest release from GitHub")
+            -- We fetch the specific release asset
+            local download_url = "https://github.com/" .. repo .. "/releases/download/v" .. discord_version .. "/DiscordSocialSdk-" .. discord_version .. ".zip"
+            local result_str, response_code = http.download(download_url, discord_zip, {
+                progress = download_progress,
+                headers = { "From: Premake", "Referer: Premake" }
+            })
         end
+        print("Unzipping Discord Social SDK to " .. os.getcwd())
+        zip.extract(discord_zip, os.getcwd())
+        
+        -- Handle extraction structure
+        if os.isdir("discord_social_sdk-" .. discord_version) then
+            os.rename("discord_social_sdk-" .. discord_version, discord_folder)
+        end
+        
+        os.remove(discord_zip)
     else
         print("Discord Social SDK already exists")
     end
@@ -780,7 +780,6 @@ end
             links {"avcodec", "avformat", "avutil", "swscale", "swresample"}
             -- Discord Social SDK: link directly to the partner library binary
             links { "discord_partner_sdk" }
-            -- Vulkan: SDL3 GPU loads Vulkan dynamically at runtime, no need to link vulkan-1.lib
             characterset ("Unicode")
             buildoptions { "/Zc:__cplusplus" }
 
@@ -793,33 +792,23 @@ end
                 libdirs { "../bin/%{cfg.buildcfg}", sdl3_dir .. "/lib/x64", sdl3_image_dir .. "/lib/x64", sdl3_ttf_dir .. "/lib/x64", libjpeg_turbo_dir .. "/lib", libpng_dir .. "/lib", ffmpeg_dir .. "/lib" }
                 -- Discord Social SDK
                 libdirs { discord_sdk_dir .. "/lib/release" }
+                links { "discord_partner_sdk" }
                 postbuildcommands {
-                    -- Copy DLLs using xcopy with proper quoting for paths with spaces
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3\\lib\\x64\\SDL3.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_image\\lib\\x64\\SDL3_image.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_ttf\\lib\\x64\\SDL3_ttf.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\libjpeg-turbo\\bin\\jpeg62.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
                     'xcopy /Y /D "$(SolutionDir)build\\external\\ffmpeg\\bin\\*.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
-                    -- Discord Social SDK
-                    'xcopy /Y /D "$(SolutionDir)build\\external\\discord_social_sdk\\bin\\release\\discord_partner_sdk.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
-                }
-                
-            -- SDL3 x86 específic
-            filter { "system:windows", "platforms:x86" }
-                libdirs { "../bin/%{cfg.buildcfg}", sdl3_dir .. "/lib/x86", sdl3_image_dir .. "/lib/x86", sdl3_ttf_dir .. "/lib/x86", libjpeg_turbo_dir .. "/lib", libpng_dir .. "/lib", ffmpeg_dir .. "/lib" }
-                -- Discord Social SDK
-                libdirs { discord_sdk_dir .. "/lib/release" }
-                postbuildcommands {
-                    -- Copy DLLs using xcopy with proper quoting for paths with spaces
-                    'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3\\lib\\x86\\SDL3.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
-                    'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_image\\lib\\x86\\SDL3_image.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
-                    'xcopy /Y /D "$(SolutionDir)build\\external\\SDL3_ttf\\lib\\x86\\SDL3_ttf.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
-                    'xcopy /Y /D "$(SolutionDir)build\\external\\libjpeg-turbo\\bin\\jpeg62.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
-                    'xcopy /Y /D "$(SolutionDir)build\\external\\ffmpeg\\bin\\*.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0',
-                    -- Discord Social SDK
                     'xcopy /Y /D "$(SolutionDir)build\\external\\discord_social_sdk\\bin\\release\\discord_partner_sdk.dll" "$(SolutionDir)bin\\%{cfg.buildcfg}\\" 2>nul || exit 0'
                 }
 
+            filter { "system:linux" }
+                libdirs { discord_sdk_dir .. "/lib/release" }
+                links { "discord_partner_sdk" } -- Links to libdiscord_partner_sdk.so
+
+            filter { "system:macosx" }
+                libdirs { discord_sdk_dir .. "/lib/release" }
+                links { "discord_partner_sdk" } -- Links to libdiscord_partner_sdk.dylib
         filter "system:linux"
             links {"pthread", "m", "dl", "rt", "X11"}
 

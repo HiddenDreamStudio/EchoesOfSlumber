@@ -785,9 +785,6 @@ void Scene::LoadGameplay()
 
 	Engine::GetInstance().discord->UpdatePresence("Playing: Level 1", "Alpha Phase");
     Engine::GetInstance().render->SetCameraSway(true);
-    
-    // Trigger "Waking up" effect (4 seconds duration)
-    Engine::GetInstance().render->StartEyelidEffect(4000.0f);
 
 	Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 1.0f);
 
@@ -800,6 +797,9 @@ void Scene::LoadGameplay()
 		player->position = Vector2D(96.0f, 672.0f);
 		player->Start();
 	}
+
+	// FIX: Set camera position immediately to avoid the "initial slide" bug
+	Engine::GetInstance().render->SetCameraPosition(player->position.getX(), player->position.getY());
 
 	LoadPauseMenuButtons();
 
@@ -1024,9 +1024,10 @@ void Scene::UpdateGameplay(float dt)
 		return;
 	}
 
-	if (isPaused_) DrawPauseMenu();
-
-	if (isPaused_) return;
+	if (isPaused_) {
+		DrawPauseMenu();
+		return;
+	}
 
 	if (player) {
 		// Wake-up notification trigger
@@ -1172,7 +1173,7 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Draw Health HUD ---
-	if (player && !player->isWakingUp) {
+	if (!isPaused_ && !showMapViewer_ && player && !player->isWakingUp) {
 		SDL_Rect r;
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
@@ -1222,8 +1223,6 @@ void Scene::PostUpdateGameplay()
 		}
 
 		if (texToDraw && frame) {
-
-
 			Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
 		}
 
@@ -1234,7 +1233,6 @@ void Scene::PostUpdateGameplay()
 			SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
 			if (blanketTex)
 			{
-
 				Engine::GetInstance().render->DrawTextureAlpha(blanketTex, 220, 72, 64, 64, 255);
 			}
 		}
@@ -1244,9 +1242,6 @@ void Scene::PostUpdateGameplay()
 	if (isGameOver_) {
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
-
-
-
 
 		if (texGameOver_) {
 			float tw, th;
@@ -1267,8 +1262,6 @@ void Scene::PostUpdateGameplay()
 			float shadowOffset = 6.0f;
 			SDL_SetTextureColorMod(texGameOver_, 255, 100, 100);
 			Engine::GetInstance().render->DrawTextureAlphaF(texGameOver_, sx + shadowOffset, sy + shadowOffset, sw, sh, (Uint8)130);
-
-
 
 			SDL_SetTextureColorMod(texGameOver_, 255, 255, 255);
 			Engine::GetInstance().render->DrawTextureAlphaF(texGameOver_, sx, sy, sw, sh, (Uint8)255);
@@ -1293,7 +1286,7 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Checkpoint Save Notification ---
-	if (checkpointSaveTimer_ > 0.0f) {
+	if (!isPaused_ && checkpointSaveTimer_ > 0.0f) {
 		checkpointSaveTimer_ -= Engine::GetInstance().GetDt();
 		if (texCheckpointSaved_) {
 			float tw, th;
@@ -1314,7 +1307,7 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Wake-up notification ---
-	if (wakeUpNotifTimer_ > 0.0f) {
+	if (!isPaused_ && wakeUpNotifTimer_ > 0.0f) {
 		wakeUpNotifTimer_ -= Engine::GetInstance().GetDt();
 
 		int winW = 0, winH = 0;
@@ -1325,32 +1318,23 @@ void Scene::PostUpdateGameplay()
 		if (wakeUpNotifTimer_ < 800.0f)
 			alpha = (Uint8)(255.0f * (wakeUpNotifTimer_ / 800.0f));
 
-		// Panel dimensions — slightly larger to give the text more padding
+		// Panel dimensions
 		const int panelW = 270;
 		const int panelH = 36;
 		const int panelX = (winW - panelW) / 2;
 		const int panelY = 40;
 
-		// Black filled panel
 		SDL_Rect panel = { panelX, panelY, panelW, panelH };
 		render.DrawRectangle(panel, 0, 0, 0, alpha, true, false);
-
-		// White border (outline) — 2px
 		SDL_Rect border = { panelX - 2, panelY - 2, panelW + 4, panelH + 4 };
 		render.DrawRectangle(border, 255, 255, 255, alpha, false, false);
 
-		// Text centered inside the panel — no accents or special punctuation (scaled down)
 		SDL_Color textColor = { 255, 255, 255, alpha };
-		render.DrawMenuTextCentered(
-			"What is this... Where am I...",
-			{ panelX, panelY, panelW, panelH },
-			textColor,
-			0.35f
-		);
+		render.DrawMenuTextCentered("What is this... Where am I...", { panelX, panelY, panelW, panelH }, textColor, 0.35f);
 	}
 
 	// --- Cape pickup notification ---
-	if (capaNotifTimer_ > 0.0f) {
+	if (!isPaused_ && capaNotifTimer_ > 0.0f) {
 		capaNotifTimer_ -= Engine::GetInstance().GetDt();
 
 		int winW2 = 0, winH2 = 0;
@@ -1361,32 +1345,22 @@ void Scene::PostUpdateGameplay()
 		if (capaNotifTimer_ < 800.0f)
 			alpha2 = (Uint8)(255.0f * (capaNotifTimer_ / 800.0f));
 
-		// Panel dimensions
 		const int cpW = 280;
 		const int cpH = 36;
 		const int cpX = (winW2 - cpW) / 2;
 		const int cpY = 40;
 
-		// Black filled panel
 		SDL_Rect cpPanel = { cpX, cpY, cpW, cpH };
 		render2.DrawRectangle(cpPanel, 0, 0, 0, alpha2, true, false);
-
-		// White border (outline) — 2px
 		SDL_Rect cpBorder = { cpX - 2, cpY - 2, cpW + 4, cpH + 4 };
 		render2.DrawRectangle(cpBorder, 255, 255, 255, alpha2, false, false);
 
-		// Text centered inside the panel (scaled down)
 		SDL_Color cpColor = { 255, 255, 255, alpha2 };
-		render2.DrawMenuTextCentered(
-			"Cape collected! Press H to hide",
-			{ cpX, cpY, cpW, cpH },
-			cpColor,
-			0.35f
-		);
+		render2.DrawMenuTextCentered("Cape collected! Press H to hide", { cpX, cpY, cpW, cpH }, cpColor, 0.35f);
 	}
 
 	// --- No cape notification ---
-	if (noCapeNotifTimer_ > 0.0f) {
+	if (!isPaused_ && noCapeNotifTimer_ > 0.0f) {
 		noCapeNotifTimer_ -= Engine::GetInstance().GetDt();
 
 		int winW3 = 0, winH3 = 0;
@@ -1397,32 +1371,30 @@ void Scene::PostUpdateGameplay()
 		if (noCapeNotifTimer_ < 800.0f)
 			alpha3 = (Uint8)(255.0f * (noCapeNotifTimer_ / 800.0f));
 
-		// Panel dimensions
 		const int ncpW = 340;
 		const int ncpH = 36;
 		const int ncpX = (winW3 - ncpW) / 2;
 		const int ncpY = 40;
 
-		// Black filled panel
 		SDL_Rect ncpPanel = { ncpX, ncpY, ncpW, ncpH };
 		render3.DrawRectangle(ncpPanel, 0, 0, 0, alpha3, true, false);
-
-		// White border (outline) — 2px
 		SDL_Rect ncpBorder = { ncpX - 2, ncpY - 2, ncpW + 4, ncpH + 4 };
 		render3.DrawRectangle(ncpBorder, 255, 255, 255, alpha3, false, false);
 
-		// Text centered inside the panel (scaled down)
 		SDL_Color ncpColor = { 255, 255, 255, alpha3 };
-		render3.DrawMenuTextCentered(
-			"You cant do this you need an object",
-			{ ncpX, ncpY, ncpW, ncpH },
-			ncpColor,
-			0.35f
-		);
+		render3.DrawMenuTextCentered("You cant do this you need an object", { ncpX, ncpY, ncpW, ncpH }, ncpColor, 0.35f);
 	}
-}
 
-// ── Map viewer ────────────────────────────────────────────────────────────────
+	// ── Final rendering passes (CRITICAL: Must be on top of EVERYTHING) ────
+	if (showMapViewer_) {
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		DrawMapViewer(winW, winH);
+	}
+	else if (isPaused_) {
+		DrawPauseMenu();
+	}
+}// ── Map viewer ────────────────────────────────────────────────────────────────
 
 void Scene::DrawMapViewer(int winW, int winH)
 {
@@ -1813,18 +1785,12 @@ void Scene::DrawPauseMenu()
 
 	if (showPauseOptions_)
 	{
-		SDL_Rect overlay = { 0, 0, winW, winH };
-		render.DrawRectangle(overlay, 0, 0, 0, 180, true, false);
 		DrawPauseOptionsPanel(winW, winH);
 		return;
 	}
 
 	if (texPauseBackground_)
 		render.DrawTextureAlpha(texPauseBackground_, 0, 0, winW, winH, 255);
-	else {
-		SDL_Rect overlay = { 0, 0, winW, winH };
-		render.DrawRectangle(overlay, 0, 0, 0, 180, true, false);
-	}
 }
 
 void Scene::DrawPauseOptionsPanel(int winW, int winH)
@@ -1840,8 +1806,6 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	HandleVolumeSliderInput(panelX, panelY, panelW, rowH);
 
 	// Prettier panel background with a modern gradient-like style
-	SDL_Rect shadow = { panelX + 4, panelY + 4, panelW, panelH };
-	render.DrawRectangle(shadow, 0, 0, 0, 150, true, false);
 	SDL_Rect panel = { panelX, panelY, panelW, panelH };
 	render.DrawRectangle(panel, 15, 20, 35, 245, true, false); // Dark teal base
 	SDL_Rect innerPanel = { panelX + 2, panelY + 2, panelW - 4, panelH - 4 };
