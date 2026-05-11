@@ -30,6 +30,9 @@ bool Render::Awake()
 	int scale = Engine::GetInstance().window->GetScale();
 	SDL_Window* window = Engine::GetInstance().window->window;
 
+	// Request best quality texture filtering for upscaling 1280x720 → native resolution
+	SDL_SetHint("SDL_RENDER_SCALE_QUALITY", "best");
+
 	// Revert to default renderer for stability (fixes the broken intro logo)
 	renderer = SDL_CreateRenderer(window, nullptr);
 
@@ -41,6 +44,9 @@ bool Render::Awake()
 	else
 	{
 		LOG("Using render driver: %s", SDL_GetRendererName(renderer));
+
+		// Render at 1280x720 logical resolution, auto-scale to fill display with letterbox
+		SDL_SetRenderLogicalPresentation(renderer, 1280, 720, SDL_LOGICAL_PRESENTATION_LETTERBOX);
 
 		// --- Vulkan / SDL_GPU Initialization (for future shaders) ---
 		gpuDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, "vulkan");
@@ -116,11 +122,10 @@ bool Render::PostUpdate()
 	return true;
 }
 
-void Render::StartEyelidEffect(float duration)
-{
-    eyelidActive_ = true;
-    eyelidDuration_ = duration;
-    eyelidElapsed_ = 0.0f;
+void Render::OnWindowResize(int newWidth, int newHeight) {
+    float scaleX = (float)newWidth / 1280.0f;
+    float scaleY = (float)newHeight / 720.0f;
+    this->renderScale = std::min(scaleX, scaleY);
 }
 
 void Render::DrawEyelidEffect()
@@ -388,6 +393,7 @@ SDL_Texture* Render::RecolorTexture(SDL_Texture* src, Uint8 r, Uint8 g, Uint8 b)
 
 	if (result) {
 		SDL_SetTextureBlendMode(result, SDL_BLENDMODE_BLEND);
+		SDL_SetTextureScaleMode(result, SDL_SCALEMODE_LINEAR);
         // Also cache size for the new texture
         Engine::GetInstance().textures->textureInfo[result] = { w, h };
 	}

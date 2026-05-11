@@ -1,5 +1,6 @@
 #include "Engine.h"
 #include "Input.h"
+#include "Render.h"
 #include "Window.h"
 #include "Log.h"
 #include <cmath>
@@ -218,11 +219,22 @@ bool Input::PreUpdate()
 
 		case SDL_EVENT_MOUSE_MOTION:
 		{
-			int scale = Engine::GetInstance().window->GetScale();
-			mouseMotionX = (int)(event.motion.xrel / scale);
-			mouseMotionY = (int)(event.motion.yrel / scale);
-			mouseX = (int)(event.motion.x / scale);
-			mouseY = (int)(event.motion.y / scale);
+			// Convert window-space mouse coordinates to the renderer's logical
+			// coordinate system (1280x720) so that UI hit-testing works correctly
+			// in all display modes (windowed, fullscreen, borderless).
+			SDL_Renderer* rend = Engine::GetInstance().render->renderer;
+			float lx, ly;
+			SDL_RenderCoordinatesFromWindow(rend, event.motion.x, event.motion.y, &lx, &ly);
+			mouseX = (int)lx;
+			mouseY = (int)ly;
+
+			float ldx, ldy;
+			SDL_RenderCoordinatesFromWindow(rend, event.motion.xrel, event.motion.yrel, &ldx, &ldy);
+			// xrel/yrel are deltas — subtract origin mapping to get pure delta
+			float ox, oy;
+			SDL_RenderCoordinatesFromWindow(rend, 0.0f, 0.0f, &ox, &oy);
+			mouseMotionX = (int)(ldx - ox);
+			mouseMotionY = (int)(ldy - oy);
 		}
 		break;
 

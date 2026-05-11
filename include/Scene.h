@@ -55,12 +55,27 @@ private:
     bool showSettings_ = false;
     int  settingsCooldown_ = 0;
 
+    // ── Settings in-place animation (main menu) ──────────────────────────────
+    enum class SettingsAnimState {
+        NONE,               // normal main menu buttons visible
+        FADE_OUT_BUTTONS,   // fading out Play/Options/Exit
+        FADE_IN_OPTIONS,    // fading in volume sliders + display mode + back
+        OPTIONS_ACTIVE,     // options fully visible and interactive
+        FADE_OUT_OPTIONS,   // fading out options
+        FADE_IN_BUTTONS     // fading in Play/Options/Exit
+    };
+    SettingsAnimState settingsAnimState_ = SettingsAnimState::NONE;
+    float settingsAnimTimer_ = 0.0f;
+    float settingsButtonsAlpha_ = 1.0f;   // alpha for Play/Options/Exit
+    float settingsOptionsAlpha_ = 0.0f;   // alpha for options controls
+    int   windowModeIndex_ = 0;           // 0=Windowed, 1=Fullscreen, 2=Borderless
+
     void LoadMainMenu();
     void UnloadMainMenu();
     void UpdateMainMenu(float dt);
     void PostUpdateMainMenu();
     void HandleMainMenuUIEvents(UIElement* uiElement);
-    void DrawSettingsPanel(int winW, int winH);
+    void DrawSettingsInPlace(int winW, int winH);
     void SetSettingsPanelVisible(bool visible);
 
     enum class MenuAnimState {
@@ -230,6 +245,7 @@ private:
     std::shared_ptr<UIElement> btnPlay_;
     std::shared_ptr<UIElement> btnSettings_;
     std::shared_ptr<UIElement> btnExit_;
+    std::shared_ptr<UIElement> btnBack_;
 
     // ── Fade orchestration ────────────────────────────────────────────────────
     bool    waitingForFade_ = false;

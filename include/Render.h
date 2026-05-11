@@ -58,6 +58,9 @@ public:
 	void ApplyAmbientTint(SDL_Texture* tex) const;
 	void ResetAmbientTint(SDL_Texture* tex) const;
 
+	// Resolution Scaling
+	void OnWindowResize(int newWidth, int newHeight);
+
 	// Cinematic Effects
 	void StartEyelidEffect(float duration);
 	void DrawEyelidEffect();
@@ -122,6 +125,7 @@ private:
 	SDL_Color ambientTint_ = { 255, 255, 255, 255 }; // neutral = no tint
 
 	float totalTime_ = 0.0f;
+	float renderScale = 1.0f;
 
 	// Eyelid Effect
 	bool eyelidActive_ = false;

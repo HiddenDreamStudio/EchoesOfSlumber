@@ -134,6 +134,14 @@ bool Engine::Update() {
     if (input->GetWindowEvent(WE_QUIT) == true)
         ret = false;
 
+    // F11 Fullscreen cycle: Windowed → Fullscreen → Borderless → Windowed
+    if (input->GetKey(SDL_SCANCODE_F11) == KEY_DOWN) {
+        WindowMode current = window->GetWindowMode();
+        if (current == WindowMode::WINDOWED)        window->SetWindowMode(WindowMode::FULLSCREEN);
+        else if (current == WindowMode::FULLSCREEN)  window->SetWindowMode(WindowMode::BORDERLESS);
+        else                                         window->SetWindowMode(WindowMode::WINDOWED);
+    }
+
     if (ret == true)
         ret = PreUpdate();
 

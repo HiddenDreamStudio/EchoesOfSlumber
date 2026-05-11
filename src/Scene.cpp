@@ -19,9 +19,9 @@
 #include <cstdlib>
 #include <cmath>
 
-// ────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Button IDs  (main menu)
-// ────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 static constexpr int BTN_PLAY = 1;
 static constexpr int BTN_SETTINGS = 2;
 static constexpr int BTN_EXIT = 3;
@@ -174,8 +174,18 @@ void Scene::LoadMainMenu()
 {
 	showSettings_ = false;
 	settingsCooldown_ = 0;
+	settingsAnimState_ = SettingsAnimState::NONE;
+	settingsAnimTimer_ = 0.0f;
+	settingsButtonsAlpha_ = 1.0f;
+	settingsOptionsAlpha_ = 0.0f;
 	musicVolume_ = 1.0f;
 	sfxVolume_ = 1.0f;
+
+	// Sync display mode index with actual window mode
+	WindowMode wm = Engine::GetInstance().window->GetWindowMode();
+	if (wm == WindowMode::FULLSCREEN) windowModeIndex_ = 1;
+	else if (wm == WindowMode::BORDERLESS) windowModeIndex_ = 2;
+	else windowModeIndex_ = 0;
 
 	Engine::GetInstance().discord->UpdatePresence("In Main Menu", "Alpha Phase");
     Engine::GetInstance().render->SetCameraSway(false);
@@ -245,26 +255,16 @@ void Scene::LoadMainMenu()
 		btnExit_->SetHoverTexture(texButtonFragmented_);
 	}
 
-	const int panelW = 340;
-	const int panelX = winW / 2 - panelW / 2;
-	const int panelY = 60;
-
-
-	const int rowH = 52;
-
-
-
-
-
-	SDL_Rect backPos = { panelX + panelW / 2 - 60,          panelY + 60 + rowH * 2 + 10, 120,       btnH };
-
-	auto btnBack = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS_BACK, "back", backPos, this);
-	if (texMenuButton_) btnBack->SetTexture(texMenuButton_);
-	if (texButtonFragmented_) btnBack->SetHoverTexture(texButtonFragmented_);
-
-
-
-	SetSettingsPanelVisible(false);
+	// Back button for settings (same style as main buttons, hidden by default)
+	SDL_Rect backPos = { btnX, startY + gap * 3, btnW, btnH };
+	btnBack_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SETTINGS_BACK, "back", backPos, this);
+	if (btnBack_) {
+		btnBack_->alphaMod = 0.0f;
+		btnBack_->isVisible = false;
+		btnBack_->state = UIElementState::DISABLED;
+		if (texMenuButton_) btnBack_->SetTexture(texMenuButton_);
+		if (texButtonFragmented_) btnBack_->SetHoverTexture(texButtonFragmented_);
+	}
 }
 
 void Scene::UnloadMainMenu()
@@ -315,12 +315,81 @@ void Scene::UpdateMainMenu(float dt)
 	}
 	else
 	{
-		auto& inp2 = *Engine::GetInstance().input;
-		if (showSettings_ && (inp2.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
-			inp2.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN))
+		// â”€â”€ Settings in-place animation state machine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+		const float FADE_DURATION = 300.0f;
+
+		if (settingsAnimState_ != SettingsAnimState::NONE &&
+			settingsAnimState_ != SettingsAnimState::OPTIONS_ACTIVE)
 		{
-			showSettings_ = false;
-			SetSettingsPanelVisible(false);
+			settingsAnimTimer_ += dt;
+			float t = settingsAnimTimer_ / FADE_DURATION;
+			if (t > 1.0f) t = 1.0f;
+
+			switch (settingsAnimState_) {
+			case SettingsAnimState::FADE_OUT_BUTTONS:
+				settingsButtonsAlpha_ = 1.0f - t;
+				if (btnPlay_) btnPlay_->alphaMod = settingsButtonsAlpha_;
+				if (btnSettings_) btnSettings_->alphaMod = settingsButtonsAlpha_;
+				if (btnExit_) btnExit_->alphaMod = settingsButtonsAlpha_;
+				if (t >= 1.0f) {
+					if (btnPlay_) { btnPlay_->isVisible = false; btnPlay_->state = UIElementState::DISABLED; }
+					if (btnSettings_) { btnSettings_->isVisible = false; btnSettings_->state = UIElementState::DISABLED; }
+					if (btnExit_) { btnExit_->isVisible = false; btnExit_->state = UIElementState::DISABLED; }
+					settingsAnimState_ = SettingsAnimState::FADE_IN_OPTIONS;
+					settingsAnimTimer_ = 0.0f;
+					settingsOptionsAlpha_ = 0.0f;
+					showSettings_ = true;
+					// Show back button, start fading in
+					if (btnBack_) { btnBack_->isVisible = true; btnBack_->state = UIElementState::NORMAL; btnBack_->alphaMod = 0.0f; }
+				}
+				break;
+			case SettingsAnimState::FADE_IN_OPTIONS:
+				settingsOptionsAlpha_ = t;
+				if (btnBack_) btnBack_->alphaMod = t;
+				if (t >= 1.0f) {
+					settingsAnimState_ = SettingsAnimState::OPTIONS_ACTIVE;
+					settingsOptionsAlpha_ = 1.0f;
+					if (btnBack_) btnBack_->alphaMod = 1.0f;
+				}
+				break;
+			case SettingsAnimState::FADE_OUT_OPTIONS:
+				settingsOptionsAlpha_ = 1.0f - t;
+				if (btnBack_) btnBack_->alphaMod = 1.0f - t;
+				if (t >= 1.0f) {
+					showSettings_ = false;
+					settingsOptionsAlpha_ = 0.0f;
+					if (btnBack_) { btnBack_->isVisible = false; btnBack_->state = UIElementState::DISABLED; btnBack_->alphaMod = 0.0f; }
+					settingsAnimState_ = SettingsAnimState::FADE_IN_BUTTONS;
+					settingsAnimTimer_ = 0.0f;
+					if (btnPlay_) { btnPlay_->isVisible = true; btnPlay_->state = UIElementState::NORMAL; btnPlay_->alphaMod = 0.0f; }
+					if (btnSettings_) { btnSettings_->isVisible = true; btnSettings_->state = UIElementState::NORMAL; btnSettings_->alphaMod = 0.0f; }
+					if (btnExit_) { btnExit_->isVisible = true; btnExit_->state = UIElementState::NORMAL; btnExit_->alphaMod = 0.0f; }
+				}
+				break;
+			case SettingsAnimState::FADE_IN_BUTTONS:
+				settingsButtonsAlpha_ = t;
+				if (btnPlay_) btnPlay_->alphaMod = settingsButtonsAlpha_;
+				if (btnSettings_) btnSettings_->alphaMod = settingsButtonsAlpha_;
+				if (btnExit_) btnExit_->alphaMod = settingsButtonsAlpha_;
+				if (t >= 1.0f) {
+					settingsAnimState_ = SettingsAnimState::NONE;
+					settingsButtonsAlpha_ = 1.0f;
+					Engine::GetInstance().discord->UpdatePresence("In Main Menu", "Alpha Phase");
+				}
+				break;
+			default: break;
+			}
+		}
+
+		// ESC / B to go back from options
+		auto& inp2 = *Engine::GetInstance().input;
+		if (settingsAnimState_ == SettingsAnimState::OPTIONS_ACTIVE &&
+			(inp2.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+			 inp2.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN))
+		{
+			settingsAnimState_ = SettingsAnimState::FADE_OUT_OPTIONS;
+			settingsAnimTimer_ = 0.0f;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
 		}
 	}
 }
@@ -347,8 +416,8 @@ void Scene::PostUpdateMainMenu()
 	}
 
 	int renderChildX = childDestX;
-	int renderLogoX = logoDestX;
-	int renderLogoY = logoDestY;
+	float renderLogoX = (float)logoDestX;
+	float renderLogoY = (float)logoDestY;
 	int bgR = 21, bgG = 31, bgB = 32;
 
 	if (menuAnimState_ != MenuAnimState::IDLE) {
@@ -361,8 +430,8 @@ void Scene::PostUpdateMainMenu()
 			bgR = static_cast<int>(21.0f * t);
 			bgG = static_cast<int>(31.0f * t);
 			bgB = static_cast<int>(32.0f * t);
-			renderLogoX = winW / 2 - logoW / 2;
-			renderLogoY = winH / 2 - logoH / 2;
+			renderLogoX = (float)(winW / 2 - logoW / 2);
+			renderLogoY = (float)(winH / 2 - logoH / 2);
 			renderChildX = winW;
 			if (btnPlay_) btnPlay_->isVisible = false;
 			if (btnSettings_) btnSettings_->isVisible = false;
@@ -370,8 +439,8 @@ void Scene::PostUpdateMainMenu()
 			break;
 
 		case MenuAnimState::LOGO_HOLD:
-			renderLogoX = winW / 2 - logoW / 2;
-			renderLogoY = winH / 2 - logoH / 2;
+			renderLogoX = (float)(winW / 2 - logoW / 2);
+			renderLogoY = (float)(winH / 2 - logoH / 2);
 			renderChildX = winW;
 			if (btnPlay_) btnPlay_->isVisible = false;
 			if (btnSettings_) btnSettings_->isVisible = false;
@@ -382,8 +451,8 @@ void Scene::PostUpdateMainMenu()
 			t = menuAnimTimer_ / 1500.0f;
 			if (t > 1.0f) t = 1.0f;
 			t = 1.0f - (float)pow(1.0f - t, 3.0f);
-			renderLogoX = static_cast<int>((static_cast<float>(winW) / 2.0f - static_cast<float>(logoW) / 2.0f) + (static_cast<float>(logoDestX) - (static_cast<float>(winW) / 2.0f - static_cast<float>(logoW) / 2.0f)) * t);
-			renderLogoY = static_cast<int>((static_cast<float>(winH) / 2.0f - static_cast<float>(logoH) / 2.0f) + (static_cast<float>(logoDestY) - (static_cast<float>(winH) / 2.0f - static_cast<float>(logoH) / 2.0f)) * t);
+			renderLogoX = ((float)winW / 2.0f - (float)logoW / 2.0f) + ((float)logoDestX - ((float)winW / 2.0f - (float)logoW / 2.0f)) * t;
+			renderLogoY = ((float)winH / 2.0f - (float)logoH / 2.0f) + ((float)logoDestY - ((float)winH / 2.0f - (float)logoH / 2.0f)) * t;
 			renderChildX = winW;
 			if (btnPlay_) btnPlay_->isVisible = false;
 			if (btnSettings_) btnSettings_->isVisible = false;
@@ -395,8 +464,8 @@ void Scene::PostUpdateMainMenu()
 			if (t > 1.0f) t = 1.0f;
 			t = 1.0f - (float)pow(1.0f - t, 3.0f);
 			renderChildX = (int)(winW + (childDestX - winW) * t);
-			renderLogoX = logoDestX;
-			renderLogoY = logoDestY;
+			renderLogoX = (float)logoDestX;
+			renderLogoY = (float)logoDestY;
 			if (btnPlay_) btnPlay_->isVisible = false;
 			if (btnSettings_) btnSettings_->isVisible = false;
 			if (btnExit_) btnExit_->isVisible = false;
@@ -404,8 +473,8 @@ void Scene::PostUpdateMainMenu()
 
 		case MenuAnimState::FADE_FRAGS_BTNS:
 			renderChildX = childDestX;
-			renderLogoX = logoDestX;
-			renderLogoY = logoDestY;
+			renderLogoX = (float)logoDestX;
+			renderLogoY = (float)logoDestY;
 			if (btnPlay_) {
 				float f0 = (menuAnimTimer_ - 0.0f) / 1000.0f;
 				if (f0 < 0.0f) f0 = 0.0f; if (f0 > 1.0f) f0 = 1.0f;
@@ -455,92 +524,181 @@ void Scene::PostUpdateMainMenu()
 	DrawFragments(true, winW, winH);
 
 	if (texMenuLogo_) {
-		render.DrawTextureAlpha(texMenuLogo_, renderLogoX, renderLogoY, logoW, logoH, 255);
+		render.DrawTextureAlphaF(texMenuLogo_, renderLogoX, renderLogoY, (float)logoW, (float)logoH, 255);
 	}
 
-	if (showSettings_)
-		DrawSettingsPanel(winW, winH);
+	if (showSettings_ || settingsOptionsAlpha_ > 0.0f)
+		DrawSettingsInPlace(winW, winH);
 }
 
-void Scene::DrawSettingsPanel(int winW, int winH)
+void Scene::DrawSettingsInPlace(int winW, int winH)
 {
 	auto& render = *Engine::GetInstance().render;
+	Uint8 alpha = (Uint8)(255.0f * settingsOptionsAlpha_);
+	if (alpha == 0) return;
 
-	const int panelW = 340;
-	const int panelH = 240;
-	const int panelX = winW / 2 - panelW / 2;
-	const int panelY = 60;
-	const int rowH = 52;
+	// Reuse the exact same positions as the main menu buttons
+	const int leftHalf = winW / 2;
+	const int btnW = 315;
+	const int btnH = static_cast<int>(static_cast<float>(btnW) * (130.0f / 456.0f));
+	const int logoW = 385;
+	const int logoH = static_cast<int>(static_cast<float>(logoW) * (569.0f / 1559.0f));
+	const int logoY = winH / 4 - logoH / 2;
+	const int startY = logoY + logoH + 20;
+	const int gap = btnH + 10;
+	const int panelX = (leftHalf - btnW) / 2;
 
-	if (HandleVolumeSliderInput(panelX, panelY, panelW, rowH)) {
-		showSettings_ = false;
-		Engine::GetInstance().audio->PlayFx(menuClickFxId);
-	}
+	int trackX = panelX + 20;
+	int trackW = btnW - 40;
 
-	SDL_Rect overlay = { 0, 0, winW, winH };
-	render.DrawRectangle(overlay, 0, 0, 0, 160, true, false);
+	SDL_Color labelColor = { 180, 200, 220, alpha };
+	SDL_Color valColor   = { 255, 255, 255, alpha };
 
-	// Prettier panel background with a modern gradient-like style (using alpha blending)
-	SDL_Rect shadow = { panelX + 4, panelY + 4, panelW, panelH };
-	render.DrawRectangle(shadow, 0, 0, 0, 150, true, false);
-	SDL_Rect panel = { panelX, panelY, panelW, panelH };
-	render.DrawRectangle(panel, 15, 20, 35, 245, true, false); // Dark teal base
-	SDL_Rect innerPanel = { panelX + 2, panelY + 2, panelW - 4, panelH - 4 };
-	render.DrawRectangle(innerPanel, 25, 32, 50, 250, false, false); // subtle inner border
-
-	SDL_Rect topBar = { panelX, panelY, panelW, 36 };
-	render.DrawRectangle(topBar, 35, 45, 75, 255, true, false);
-	render.DrawMenuTextCentered("OPTIONS", { panelX, panelY + 4, panelW, 28 }, { 220, 240, 255, 255 });
-
-	// Music slider
-	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 45, panelW / 2 - 10, 20 }, { 180, 200, 220, 255 });
+	// Row 0: Music slider (same Y as Play button)
+	int row0Y = startY + 10;
+	render.DrawMenuTextCentered("MUSIC", { panelX, row0Y, btnW / 2 - 10, 20 }, labelColor);
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45, panelW / 2, 20 }, { 255, 255, 255, 255 });
+	render.DrawMenuTextCentered(vol, { panelX + btnW / 2, row0Y, btnW / 2, 20 }, valColor);
 
-	SDL_Rect mBarBg = { panelX + 20, panelY + 74, panelW - 40, 8 };
-	render.DrawRectangle(mBarBg, 10, 15, 25, 255, true, false); // Track background
-	int mFill = static_cast<int>(static_cast<float>(panelW - 40) * musicVolume_);
-	SDL_Rect mBarFill = { panelX + 20, panelY + 74, mFill, 8 };
-	render.DrawRectangle(mBarFill, 100, 180, 255, 255, true, false); // vibrant cyan fill
+	SDL_Rect mBarBg = { trackX, row0Y + 32, trackW, 8 };
+	render.DrawRectangle(mBarBg, 10, 15, 25, alpha, true, false);
+	int mFill = static_cast<int>(static_cast<float>(trackW) * musicVolume_);
+	SDL_Rect mBarFill = { trackX, row0Y + 32, mFill, 8 };
+	render.DrawRectangle(mBarFill, 100, 180, 255, alpha, true, false);
+	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 28, 10, 16 };
+	render.DrawRectangle(mKnob, 200, 220, 255, alpha, true, false);
 
-	// Knob
-	SDL_Rect mKnob = { panelX + 20 + mFill - 5, panelY + 70, 10, 16 };
-	render.DrawRectangle(mKnob, 200, 220, 255, 255, true, false);
-
-	// SFX slider
-	render.DrawMenuTextCentered("SFX", { panelX, panelY + 45 + rowH, panelW / 2 - 10, 20 }, { 180, 200, 220, 255 });
+	// Row 1: SFX slider (same Y as Options button)
+	int row1Y = startY + gap + 10;
+	render.DrawMenuTextCentered("SFX", { panelX, row1Y, btnW / 2 - 10, 20 }, labelColor);
 	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45 + rowH, panelW / 2, 20 }, { 255, 255, 255, 255 });
+	render.DrawMenuTextCentered(vol, { panelX + btnW / 2, row1Y, btnW / 2, 20 }, valColor);
 
-	SDL_Rect sBarBg = { panelX + 20, panelY + 74 + rowH, panelW - 40, 8 };
-	render.DrawRectangle(sBarBg, 10, 15, 25, 255, true, false);
-	int sFill = static_cast<int>(static_cast<float>(panelW - 40) * sfxVolume_);
-	SDL_Rect sBarFill = { panelX + 20, panelY + 74 + rowH, sFill, 8 };
-	render.DrawRectangle(sBarFill, 100, 180, 255, 255, true, false);
+	SDL_Rect sBarBg = { trackX, row1Y + 32, trackW, 8 };
+	render.DrawRectangle(sBarBg, 10, 15, 25, alpha, true, false);
+	int sFill = static_cast<int>(static_cast<float>(trackW) * sfxVolume_);
+	SDL_Rect sBarFill = { trackX, row1Y + 32, sFill, 8 };
+	render.DrawRectangle(sBarFill, 100, 180, 255, alpha, true, false);
+	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 28, 10, 16 };
+	render.DrawRectangle(sKnob, 200, 220, 255, alpha, true, false);
 
-	// Knob
-	SDL_Rect sKnob = { panelX + 20 + sFill - 5, panelY + 70 + rowH, 10, 16 };
-	render.DrawRectangle(sKnob, 200, 220, 255, 255, true, false);
+	// Row 2: Display mode selector (same Y as Exit button)
+	int row2Y = startY + gap * 2 + 15;
+	render.DrawMenuTextCentered("DISPLAY", { panelX, row2Y, btnW, 20 }, labelColor);
 
-	// Back Button rendering
-	SDL_Rect backBtnBg = { panelX + panelW / 2 - 60, panelY + 60 + rowH * 2 + 10, 120, 36 };
-	render.DrawRectangle(backBtnBg, 40, 50, 70, 255, true, false);
-	render.DrawMenuTextCentered("BACK", backBtnBg, { 200, 220, 255, 255 });
+	const char* modeNames[] = { "WINDOWED", "FULLSCREEN", "BORDERLESS" };
+	int arrowW = 30;
+	SDL_Rect leftArrowArea  = { panelX + 20, row2Y + 28, arrowW, 30 };
+	SDL_Rect modeArea       = { panelX + 20 + arrowW, row2Y + 28, btnW - 40 - arrowW * 2, 30 };
+	SDL_Rect rightArrowArea = { panelX + btnW - 20 - arrowW, row2Y + 28, arrowW, 30 };
 
-	// ── Gamepad selection indicator ──────────────────────────────────────
-	if (Engine::GetInstance().input->IsGamepadConnected()) {
-		int selY = panelY + 45;
-		if (optionsSliderSel_ == 1) selY += rowH;
-		else if (optionsSliderSel_ == 2) selY = panelY + 60 + rowH * 2 + 10;
+	SDL_Color arrowColor = { 100, 180, 255, alpha };
+	render.DrawMenuTextCentered("<", leftArrowArea, arrowColor);
+	render.DrawMenuTextCentered(modeNames[windowModeIndex_], modeArea, valColor);
+	render.DrawMenuTextCentered(">", rightArrowArea, arrowColor);
 
-		SDL_Rect selHighlight = { panelX + 4, selY - 2, panelW - 8, 42 };
-		if (optionsSliderSel_ == 2) selHighlight = { backBtnBg.x - 4, backBtnBg.y - 2, backBtnBg.w + 8, backBtnBg.h + 4 };
-		render.DrawRectangle(selHighlight, 60, 100, 180, 50, true, false);
-		render.DrawMenuTextCentered(">", { selHighlight.x, selHighlight.y + selHighlight.h / 2 - 10, 16, 20 }, { 100, 200, 255, 255 });
+	// Back button (row 3) is rendered by the UIElement system (btnBack_)
+
+	// Handle mouse input for sliders and display mode
+	if (settingsAnimState_ == SettingsAnimState::OPTIONS_ACTIVE)
+	{
+		auto& input = *Engine::GetInstance().input;
+
+		if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN ||
+			input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT)
+		{
+			Vector2D mousePos = input.GetMousePosition();
+			int mx = (int)mousePos.getX();
+			int my = (int)mousePos.getY();
+
+			SDL_Rect mHit = { trackX - 10, row0Y + 18, trackW + 20, 32 };
+			if (mx >= mHit.x && mx <= mHit.x + mHit.w && my >= mHit.y && my <= mHit.y + mHit.h) {
+				musicVolume_ = (float)(mx - trackX) / (float)trackW;
+				if (musicVolume_ < 0.0f) musicVolume_ = 0.0f;
+				if (musicVolume_ > 1.0f) musicVolume_ = 1.0f;
+				Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
+			}
+
+			SDL_Rect sHit = { trackX - 10, row1Y + 18, trackW + 20, 32 };
+			if (mx >= sHit.x && mx <= sHit.x + sHit.w && my >= sHit.y && my <= sHit.y + sHit.h) {
+				sfxVolume_ = (float)(mx - trackX) / (float)trackW;
+				if (sfxVolume_ < 0.0f) sfxVolume_ = 0.0f;
+				if (sfxVolume_ > 1.0f) sfxVolume_ = 1.0f;
+				Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
+			}
+		}
+
+		if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN) {
+			Vector2D mousePos = input.GetMousePosition();
+			int mx = (int)mousePos.getX();
+			int my = (int)mousePos.getY();
+
+			if (mx >= leftArrowArea.x && mx <= leftArrowArea.x + leftArrowArea.w &&
+				my >= leftArrowArea.y && my <= leftArrowArea.y + leftArrowArea.h) {
+				windowModeIndex_ = (windowModeIndex_ + 2) % 3;
+				WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+				Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+			if (mx >= rightArrowArea.x && mx <= rightArrowArea.x + rightArrowArea.w &&
+				my >= rightArrowArea.y && my <= rightArrowArea.y + rightArrowArea.h) {
+				windowModeIndex_ = (windowModeIndex_ + 1) % 3;
+				WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+				Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+		}
+
+		// ── Gamepad navigation ──────────────────────────────────────
+		auto& gpInput = *Engine::GetInstance().input;
+		float dt = Engine::GetInstance().GetDt();
+
+		if (gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_UP) == KEY_DOWN ||
+			(gpInput.GetLeftStickY() < -0.5f && sliderRepeatTimer_ <= 0.0f)) {
+			optionsSliderSel_ = std::max(0, optionsSliderSel_ - 1);
+			sliderRepeatTimer_ = 250.0f;
+		}
+		if (gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_DOWN) == KEY_DOWN ||
+			(gpInput.GetLeftStickY() > 0.5f && sliderRepeatTimer_ <= 0.0f)) {
+			optionsSliderSel_ = std::min(2, optionsSliderSel_ + 1);
+			sliderRepeatTimer_ = 250.0f;
+		}
+
+		float volStep = 0.05f;
+		bool stepLeft = gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_LEFT) == KEY_DOWN;
+		bool stepRight = gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_RIGHT) == KEY_DOWN;
+
+		if (optionsSliderSel_ == 0) {
+			if (stepRight)  musicVolume_ = std::min(1.0f, musicVolume_ + volStep);
+			if (stepLeft)   musicVolume_ = std::max(0.0f, musicVolume_ - volStep);
+			if (stepLeft || stepRight) Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
+		}
+		else if (optionsSliderSel_ == 1) {
+			if (stepRight)  sfxVolume_ = std::min(1.0f, sfxVolume_ + volStep);
+			if (stepLeft)   sfxVolume_ = std::max(0.0f, sfxVolume_ - volStep);
+			if (stepLeft || stepRight) Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
+		}
+		else if (optionsSliderSel_ == 2) {
+			if (stepLeft || stepRight) {
+				windowModeIndex_ = (windowModeIndex_ + (stepRight ? 1 : 2)) % 3;
+				WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+				Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+		}
+
+		if (sliderRepeatTimer_ > 0.0f) sliderRepeatTimer_ -= dt;
+
+		if (gpInput.IsGamepadConnected()) {
+			int selY = row0Y;
+			if (optionsSliderSel_ == 1) selY = row1Y;
+			else if (optionsSliderSel_ == 2) selY = row2Y;
+			SDL_Rect selHighlight = { panelX, selY - 4, btnW, 50 };
+			render.DrawRectangle(selHighlight, 60, 100, 180, 50, true, false);
+		}
 	}
 }
-
 
 void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 {
@@ -558,15 +716,12 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 800.0f);
 		break;
 	case BTN_SETTINGS:
-		showSettings_ = !showSettings_;
-		SetSettingsPanelVisible(showSettings_);
-		settingsCooldown_ = 4;
-
-		if (showSettings_)
+		if (settingsAnimState_ == SettingsAnimState::NONE) {
+			settingsAnimState_ = SettingsAnimState::FADE_OUT_BUTTONS;
+			settingsAnimTimer_ = 0.0f;
+			optionsSliderSel_ = 0;
 			Engine::GetInstance().discord->UpdatePresence("In Options", "Alpha Phase");
-		else
-			Engine::GetInstance().discord->UpdatePresence("In Main Menu", "Alpha Phase");
-
+		}
 		break;
 	case BTN_EXIT:
 		LOG("Main Menu: Exit");
@@ -574,25 +729,11 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 		quitEvent.type = SDL_EVENT_QUIT;
 		SDL_PushEvent(&quitEvent);
 		break;
-	case BTN_MUSIC_UP:
-		musicVolume_ = std::min(1.0f, musicVolume_ + 0.1f);
-		Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
-		break;
-	case BTN_MUSIC_DOWN:
-		musicVolume_ = std::max(0.0f, musicVolume_ - 0.1f);
-		Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
-		break;
-	case BTN_SFX_UP:
-		sfxVolume_ = std::min(1.0f, sfxVolume_ + 0.1f);
-		Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
-		break;
-	case BTN_SFX_DOWN:
-		sfxVolume_ = std::max(0.0f, sfxVolume_ - 0.1f);
-		Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
-		break;
 	case BTN_SETTINGS_BACK:
-		showSettings_ = false;
-		SetSettingsPanelVisible(false);
+		if (settingsAnimState_ == SettingsAnimState::OPTIONS_ACTIVE) {
+			settingsAnimState_ = SettingsAnimState::FADE_OUT_OPTIONS;
+			settingsAnimTimer_ = 0.0f;
+		}
 		break;
 	default:
 		break;
@@ -601,22 +742,8 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 
 void Scene::SetSettingsPanelVisible(bool visible)
 {
-	auto& list = Engine::GetInstance().uiManager->UIElementsList;
-	for (auto& el : list)
-	{
-		bool isSettingsBtn = (el->id >= BTN_SETTINGS_BACK && el->id <= BTN_SFX_DOWN) || el->id == BTN_SETTINGS_BACK;
-		bool isMainBtn = (el->id == BTN_PLAY || el->id == BTN_SETTINGS || el->id == BTN_EXIT);
-
-		if (isSettingsBtn) {
-			el->state = visible ? UIElementState::NORMAL : UIElementState::DISABLED;
-			el->isVisible = visible;
-		}
-
-		if (isMainBtn) {
-			el->state = visible ? UIElementState::DISABLED : UIElementState::NORMAL;
-			el->isVisible = !visible;
-		}
-	}
+	// No-op for main menu â€” settings are now drawn in-place without separate UI elements.
+	// Kept for compatibility with pause menu code paths.
 }
 
 // ============================================================================
@@ -921,7 +1048,7 @@ void Scene::UpdateGameplay(float dt)
 	{
 		if (showMapViewer_) {
 			showMapViewer_ = false;
-			// If no pause menu buttons are visible, map was opened via touchpad — unpause
+			// If no pause menu buttons are visible, map was opened via touchpad â€” unpause
 			isPaused_ = false;
 			SetPauseMenuVisible(false);
 		}
@@ -936,7 +1063,7 @@ void Scene::UpdateGameplay(float dt)
 		}
 	}
 
-	// ── Touchpad opens/closes map directly during gameplay ───────────────
+	// â”€â”€ Touchpad opens/closes map directly during gameplay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 	if (!isGameOver_ && !isPaused_ && !showMapViewer_ &&
 		gpInput.GetTouchpadPressed() == KEY_DOWN)
 	{
@@ -982,7 +1109,7 @@ void Scene::UpdateGameplay(float dt)
 		if (input.GetKey(SDL_SCANCODE_KP_MINUS) == KEY_DOWN || input.GetKey(SDL_SCANCODE_MINUS) == KEY_DOWN)
 			mapViewZoom_ = std::max(mapViewZoom_ - 0.05f, minZoom);
 
-		// ── Gamepad: R2 zoom in, L2 zoom out ─────────────────────────────
+		// â”€â”€ Gamepad: R2 zoom in, L2 zoom out â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 		float rt = input.GetRightTrigger();
 		float lt = input.GetLeftTrigger();
 		if (rt > 0.0f)
@@ -993,7 +1120,7 @@ void Scene::UpdateGameplay(float dt)
 		// Ensure zoom stays within limits
 		if (mapViewZoom_ < minZoom) mapViewZoom_ = minZoom;
 
-		// ── Gamepad: Left stick to pan the map ───────────────────────────
+		// â”€â”€ Gamepad: Left stick to pan the map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 		float lsx = input.GetLeftStickX();
 		float lsy = input.GetLeftStickY();
 		if (lsx != 0.0f || lsy != 0.0f) {
@@ -1385,7 +1512,7 @@ void Scene::PostUpdateGameplay()
 		render3.DrawMenuTextCentered("You cant do this you need an object", { ncpX, ncpY, ncpW, ncpH }, ncpColor, 0.35f);
 	}
 
-	// ── Final rendering passes (CRITICAL: Must be on top of EVERYTHING) ────
+	// â”€â”€ Final rendering passes (CRITICAL: Must be on top of EVERYTHING) â”€â”€â”€â”€
 	if (showMapViewer_) {
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
@@ -1394,7 +1521,7 @@ void Scene::PostUpdateGameplay()
 	else if (isPaused_) {
 		DrawPauseMenu();
 	}
-}// ── Map viewer ────────────────────────────────────────────────────────────────
+}// â”€â”€ Map viewer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 void Scene::DrawMapViewer(int winW, int winH)
 {
@@ -1459,7 +1586,7 @@ void Scene::DrawMapViewer(int winW, int winH)
 			SDL_EVENT_MOUSE_WHEEL, SDL_EVENT_MOUSE_WHEEL);
 	}
 
-	// ── Clamp map offset to map boundaries ───────────────────────────────
+	// â”€â”€ Clamp map offset to map boundaries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 	Vector2D mapSize = map.GetMapSizeInPixels();
 	float maxOffsetX = 0.0f;
 	float maxOffsetY = 0.0f;
@@ -1642,7 +1769,7 @@ void Scene::DrawMapViewer(int winW, int winH)
 	render.DrawText(zoomText, winW - 60, winH - 22, 0, 0, { 120, 160, 200, 200 });
 }
 
-// ── Pause menu helpers ────────────────────────────────────────────────────────
+// â”€â”€ Pause menu helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 void Scene::LoadPauseMenuButtons()
 {
@@ -1852,7 +1979,7 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	render.DrawRectangle(backBtnBg, 40, 50, 70, 255, true, false);
 	render.DrawMenuTextCentered("BACK", backBtnBg, { 200, 220, 255, 255 });
 
-	// ── Gamepad selection indicator (► arrow next to selected slider) ────
+	// â”€â”€ Gamepad selection indicator (â–º arrow next to selected slider) â”€â”€â”€â”€
 	if (Engine::GetInstance().input->IsGamepadConnected()) {
 		int selY = panelY + 45;
 		if (optionsSliderSel_ == 1) selY += rowH;
@@ -2039,9 +2166,10 @@ void Scene::DrawFragments(bool front, int winW, int winH)
 
 		SDL_SetTextureAlphaMod(f.tex, f.alpha);
 		SDL_SetTextureBlendMode(f.tex, SDL_BLENDMODE_BLEND);
+		SDL_SetTextureScaleMode(f.tex, SDL_SCALEMODE_LINEAR);
 
-		int scale = Engine::GetInstance().window->GetScale();
-		SDL_FRect dst = { (f.x + xOff) * (float)scale, (f.y + yOff) * (float)scale, f.w * (float)scale, f.h * (float)scale };
+		// Use logical coordinates directly — SDL_SetRenderLogicalPresentation handles scaling
+		SDL_FRect dst = { f.x + xOff, f.y + yOff, f.w, f.h };
 
 		SDL_RenderTextureRotated(render.renderer, f.tex, nullptr, &dst,
 			(double)angle, nullptr, SDL_FLIP_NONE);
@@ -2058,7 +2186,7 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 	// Back Button hit box (shared between Main Menu settings and Pause options)
 	SDL_Rect backHit = { panelX + panelW / 2 - 60, panelY + 60 + rowH * 2 + 10, 120, 36 };
 
-	// ── Mouse slider dragging / clicks ─────────────────────────────────
+	// â”€â”€ Mouse slider dragging / clicks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN ||
 		input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT)
 	{
@@ -2100,7 +2228,7 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 		}
 	}
 
-	// ── Gamepad D-pad / stick slider navigation ──────────────────────────
+	// â”€â”€ Gamepad D-pad / stick slider navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 	// Back button shortcuts (B / East)
 	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN) {
 		return true; // Back

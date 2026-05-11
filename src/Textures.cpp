@@ -88,6 +88,7 @@ SDL_Texture* const Textures::LoadSurface(SDL_Surface* surface)
 	{
 		textures.push_back(texture);
 		textureInfo[texture] = { surface->w, surface->h };
+		SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
 	}
 
 	return texture;
