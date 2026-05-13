@@ -13,6 +13,7 @@
 #include "Box.h"
 #include "PushRock.h"
 #include "VFX.h"
+#include "EnemyStitchling.h"
 #include "tracy/Tracy.hpp"
 
 EntityManager::EntityManager() : Module()
@@ -104,6 +105,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::VFX:
 		entity = std::make_shared<VFX>();
+		break;
+	case EntityType::STITCHLING:
+		entity = std::make_shared<EnemyStitchling>();
 		break;
 	default:
 		break;

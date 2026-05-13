@@ -15,6 +15,7 @@ enum class EntityType
 	BOX,
 	PUSH_ROCK,
 	VFX,
+	STITCHLING,
 	UNKNOWN
 };
 

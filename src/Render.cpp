@@ -156,8 +156,8 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 			LOG("SDL_GetTextureSize failed: %s", SDL_GetError());
 			return false;
 		}
-		rect.w = tw * scale;
-		rect.h = th * scale;
+		rect.w = tw * scale * drawScale;
+		rect.h = th * scale * drawScale;
 	}
 
 	const SDL_FRect* src = NULL;

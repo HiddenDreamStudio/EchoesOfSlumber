@@ -15,6 +15,7 @@
 #include "tracy/Tracy.hpp"
 
 #include <math.h>
+#include "EnemyStitchling.h"
 #include <algorithm>
 #include <sstream>
 
@@ -624,6 +625,12 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     checkpoint->position = Vector2D(x, y);
                     checkpoint->Start();
                     LOG("Checkpoint spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "Stitchling" || entityType == "BlockCrawler") {
+                    auto stitch = std::dynamic_pointer_cast<EnemyStitchling>(Engine::GetInstance().entityManager->CreateEntity(EntityType::STITCHLING));
+                    stitch->position = Vector2D(x, y);
+                    stitch->Start();
+                    LOG("Stitchling spawned at: %f, %f", x, y);
                 }
                 else if (entityType == "Box") {
                     auto box = std::dynamic_pointer_cast<Box>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOX));
