@@ -34,6 +34,8 @@ enum class ColliderType {
     BOX,
     PUSH_ROCK,
     PROJECTILE,
+    KEY,
+    DOOR,
     UNKNOWN
     // ..
 };

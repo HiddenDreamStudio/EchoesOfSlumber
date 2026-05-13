@@ -15,6 +15,8 @@ enum class EntityType
 	BOX,
 	PUSH_ROCK,
 	VFX,
+	KEY,
+	DOOR,
 	UNKNOWN
 };
 
