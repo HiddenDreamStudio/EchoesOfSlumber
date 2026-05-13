@@ -8,6 +8,7 @@
 #include "EnemyCarmel.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
+#include "EnemyBlockCrawler.h"
 #include "Projectile.h"
 #include "Checkpoint.h"
 #include "Box.h"
@@ -101,6 +102,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::PUSH_ROCK:
 		entity = std::make_shared<PushRock>();
+		break;
+	case EntityType::BLOCK_CRAWLER:
+		entity = std::make_shared<EnemyBlockCrawler>();
 		break;
 	case EntityType::VFX:
 		entity = std::make_shared<VFX>();

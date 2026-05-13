@@ -14,6 +14,7 @@ enum class EntityType
 	CHECKPOINT,
 	BOX,
 	PUSH_ROCK,
+	BLOCK_CRAWLER,
 	VFX,
 	UNKNOWN
 };

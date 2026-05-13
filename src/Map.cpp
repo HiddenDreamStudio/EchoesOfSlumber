@@ -8,6 +8,7 @@
 #include "EnemyCarmel.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
+#include "EnemyBlockCrawler.h"
 #include "Checkpoint.h"
 #include "Box.h"
 #include "PushRock.h"
@@ -564,6 +565,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
 
                 std::string entityType = objectNode.attribute("type").as_string();
+                if (entityType.empty()) entityType = objectNode.attribute("class").as_string();
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
 
@@ -618,6 +620,23 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     enemyC->position = Vector2D(x, y);
                     enemyC->Start();
                     LOG("EnemyC spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "BlockCrawler") {
+                    auto crawler = std::dynamic_pointer_cast<EnemyBlockCrawler>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BLOCK_CRAWLER));
+                    crawler->position = Vector2D(x, y);
+                    float patrolLeft  = x - 200.0f;
+                    float patrolRight = x + 200.0f;
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string propName = prop.attribute("name").as_string();
+                            if (propName == "patrol_left")  patrolLeft  = prop.attribute("value").as_float();
+                            if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
+                        }
+                    }
+                    crawler->SetPatrolPoints(patrolLeft, patrolRight);
+                    crawler->Start();
+                    LOG("BlockCrawler spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
                 }
                 else if (entityType == "Checkpoint") {
                     auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
