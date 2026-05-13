@@ -63,6 +63,29 @@ bool Scene::Update(float dt)
 		ChangeScene(pendingScene);
 	}
 
+	if (Engine::GetInstance().input->GetKey(konamiSequence[konamiIndex]) == KEY_DOWN) {
+
+		konamiIndex++;
+
+		if (konamiIndex >= 10) {
+			isKonamiActive = !isKonamiActive;
+
+			if (isKonamiActive) {
+				LOG("CODIGO KONAMI COMPLETADO Recompensa activada.");
+
+				if (player != nullptr) {
+					player->health = 999999; 
+					ResetHealthUI(3);
+				}
+			}
+			else {
+				LOG("COdigo Konami desactivado.");
+			}
+
+			konamiIndex = 0; 
+		}
+	}
+
 	switch (currentScene)
 	{
 	case SceneID::INTRO:

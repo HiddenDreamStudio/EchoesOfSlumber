@@ -259,4 +259,17 @@ private:
 
     void InitFragments(int winW, int winH, int childX, int childW);
     void DrawFragments(bool front, int winW, int winH);
+
+private:
+        
+    int konamiIndex = 0;
+    bool isKonamiActive = false;
+
+    const int konamiSequence[10] = {
+        SDL_SCANCODE_UP, SDL_SCANCODE_UP,
+        SDL_SCANCODE_DOWN, SDL_SCANCODE_DOWN,
+        SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT,
+        SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT,
+        SDL_SCANCODE_B, SDL_SCANCODE_A
+        };
 };
