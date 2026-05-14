@@ -426,7 +426,7 @@ function check_discord_sdk()
         if(not os.isfile(discord_zip)) then
             print("Discord Social SDK v" .. discord_version .. " not found, downloading latest release from GitHub")
             -- We fetch the specific release asset
-            local download_url = "https://github.com/" .. repo .. "/releases/download/v" .. discord_version .. "/DiscordSocialSdk-" .. discord_version .. ".zip"
+            local download_url = "https://github.com/TheUnrealZaka/discord_social_sdk/releases/download/v" .. discord_version .. "/DiscordSocialSdk-" .. discord_version .. ".zip"
             local result_str, response_code = http.download(download_url, discord_zip, {
                 progress = download_progress,
                 headers = { "From: Premake", "Referer: Premake" }
