@@ -213,7 +213,7 @@ TileSet* Map::GetTilesetFromTileId(int gid) const
     }
 
     // Verificar si el gid realment pertany al tileset (dins del seu rang de tileCount)
-    if (bestMatch && gid < bestMatch->firstGid + bestMatch->tileCount) {
+    if (bestMatch && (bestMatch->tileCount == 0 || gid < bestMatch->firstGid + bestMatch->tileCount)) {
         return bestMatch;
     }
 
@@ -304,6 +304,15 @@ bool Map::Load(std::string path, std::string fileName)
             tileSet->margin = tilesetNode.attribute("margin").as_int();
             tileSet->tileCount = tilesetNode.attribute("tilecount").as_int();
             tileSet->columns = tilesetNode.attribute("columns").as_int();
+
+            std::string tsxSrc = tilesetNode.attribute("source").as_string();
+            if (!tsxSrc.empty() && tileSet->tileCount == 0) {
+                pugi::xml_document tsxDoc;
+                if (tsxDoc.load_file((mapPath + tsxSrc).c_str())) {
+                    tileSet->tileCount = tsxDoc.child("tileset").attribute("tilecount").as_int();
+                    tileSet->columns = tsxDoc.child("tileset").attribute("columns").as_int();
+                }
+            }
 
             //Load the tileset image (skip if tileset uses per-tile images)
             std::string imgName = tilesetNode.child("image").attribute("source").as_string();
@@ -721,18 +730,18 @@ void Map::LoadImageLayers()
 void Map::LoadDecorationObjects()
 {
     const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoints", "AnimatedPlants", "AnimatedPlants front", "InteractiveAssets" };
-
+    
     for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
         groupNode != NULL;
         groupNode = groupNode.next_sibling("objectgroup"))
     {
         std::string groupName = groupNode.attribute("name").as_string();
-
+        
         bool skip = false;
         for (const auto& excluded : excludedNames) {
             if (groupName == excluded) { skip = true; break; }
         }
-        if (skip) continue;
+        if (skip) continue; 
 
         std::vector<DecorationObject*> layerDecos;
 
@@ -762,7 +771,19 @@ void Map::LoadDecorationObjects()
                 {
                     if (tsNode.attribute("firstgid").as_int() != ts->firstGid) continue;
 
-                    for (pugi::xml_node tileNode = tsNode.child("tile");
+                    std::string tsxSource = tsNode.attribute("source").as_string();
+                    if (tsxSource.empty()) break;
+
+                    std::string fullTsxPath = mapPath + tsxSource;
+                    std::string tsxFolder = fullTsxPath.substr(0, fullTsxPath.find_last_of("/\\") + 1);
+
+                    pugi::xml_document tsxDoc;
+                    if (!tsxDoc.load_file(fullTsxPath.c_str())) {
+                        LOG("WARNING: Could not load tsx file: %s", fullTsxPath.c_str());
+                        break;
+                    }
+
+                    for (pugi::xml_node tileNode = tsxDoc.child("tileset").child("tile");
                         tileNode != NULL;
                         tileNode = tileNode.next_sibling("tile"))
                     {
@@ -771,7 +792,8 @@ void Map::LoadDecorationObjects()
                         std::string imgSrc = tileNode.child("image").attribute("source").as_string();
                         if (!imgSrc.empty())
                         {
-                            std::string fullPath = mapPath + imgSrc;
+                            std::string fullPath = tsxFolder + imgSrc;
+                            LOG("Loading deco texture: %s", fullPath.c_str());
                             SDL_Texture* tex = Engine::GetInstance().textures->Load(fullPath.c_str());
                             ts->tileTextures[relativeId] = tex;
                         }
