@@ -2029,6 +2029,24 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		f.alpha = 255;
 	}
 }
+		f.floatSpeed = RandF(0.4f, 0.9f);
+		f.floatAmplitude = RandF(8.0f, 22.0f);
+		f.floatPhase = RandF(0.0f, 6.2831f);
+		f.driftX = RandF(0.15f, 0.45f);
+		f.driftPhase = RandF(0.0f, 6.2831f);
+		f.rotSpeed = RandF(-6.0f, 6.0f);
+		f.rotation = RandF(0.0f, 360.0f);
+		f.alpha = 255;
+	}
+		f.floatAmplitude = RandF(8.0f, 22.0f);
+		f.floatPhase = RandF(0.0f, 6.2831f);
+		f.driftX = RandF(0.15f, 0.45f);
+		f.driftPhase = RandF(0.0f, 6.2831f);
+		f.rotSpeed = RandF(-6.0f, 6.0f);
+		f.rotation = RandF(0.0f, 360.0f);
+		f.alpha = 255;
+	}
+}
 
 void Scene::DrawFragments(bool front, int winW, int winH)
 {
