@@ -1,11 +1,254 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="301" height="158" tilewidth="64" tileheight="64" infinite="0" nextlayerid="9" nextobjectid="5">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="301" height="158" tilewidth="64" tileheight="64" infinite="0" nextlayerid="9" nextobjectid="8">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Tileset.png" width="640" height="640"/>
  </tileset>
  <tileset firstgid="101" name="TilesetLvl2" tilewidth="64" tileheight="64" tilecount="40" columns="10">
   <image source="Tileset_nivell_2.png" width="640" height="256"/>
+  <tile id="0">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="11" width="64" height="53"/>
+   </objectgroup>
+  </tile>
+  <tile id="1">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="11" width="64" height="53"/>
+   </objectgroup>
+  </tile>
+  <tile id="2">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="11" width="64" height="53"/>
+   </objectgroup>
+  </tile>
+  <tile id="7">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="64" height="64"/>
+   </objectgroup>
+  </tile>
+  <tile id="8">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="64" height="53"/>
+   </objectgroup>
+  </tile>
+  <tile id="9">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="64" height="64"/>
+   </objectgroup>
+  </tile>
+  <tile id="10">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="2" y="0" width="62" height="64"/>
+   </objectgroup>
+  </tile>
+  <tile id="12">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="61" height="64"/>
+   </objectgroup>
+  </tile>
+  <tile id="17">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="62" height="64"/>
+   </objectgroup>
+  </tile>
+  <tile id="19">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="2" y="0" width="62" height="64"/>
+   </objectgroup>
+  </tile>
+  <tile id="20">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="64" height="54"/>
+   </objectgroup>
+  </tile>
+  <tile id="21">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="64" height="54"/>
+   </objectgroup>
+  </tile>
+  <tile id="22">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="64" height="54"/>
+   </objectgroup>
+  </tile>
+  <tile id="27">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="64" height="64"/>
+   </objectgroup>
+  </tile>
+  <tile id="28">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="10" width="64" height="54"/>
+   </objectgroup>
+  </tile>
+  <tile id="29">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="0" width="64" height="64"/>
+   </objectgroup>
+  </tile>
+  <tile id="33">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="2" width="64" height="62"/>
+   </objectgroup>
+  </tile>
+  <tile id="35">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="2" width="64" height="62"/>
+   </objectgroup>
+  </tile>
+  <tile id="36">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="1" width="64" height="63"/>
+   </objectgroup>
+  </tile>
+  <tile id="37">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="1" width="64" height="63"/>
+   </objectgroup>
+  </tile>
+  <tile id="38">
+   <objectgroup draworder="index" id="2">
+    <object id="1" x="0" y="2" width="64" height="62"/>
+   </objectgroup>
+  </tile>
  </tileset>
+ <tileset firstgid="141" name="Asset 1" tilewidth="780" tileheight="1266" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 1.png" width="6240" height="10128"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="205" name="Asset 2" tilewidth="940" tileheight="598" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 2.png" width="7520" height="4784"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <objectgroup id="8" name="AnimatedPlants">
+  <object id="5" gid="141" x="14216.9" y="9729.61" width="301.212" height="499.333"/>
+  <object id="7" gid="205" x="15454" y="9707" width="434.667" height="276.522"/>
+ </objectgroup>
  <layer id="3" name="Map" width="301" height="158">
   <properties>
    <property name="Draw" type="bool" value="true"/>
@@ -171,5 +414,4 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,130,112,112,112,128,102,102,102,102,102,102,102,102,102,102,102,102,130,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="8" name="Decorative"/>
 </map>
