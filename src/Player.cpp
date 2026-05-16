@@ -120,14 +120,14 @@ bool Player::Update(float dt)
 	if (velocity.x != 0.0f && !isJumping && !isDead_ && !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isWakingUp) {
 		stepTimer_ -= dt;
 
-		
+
 		if (stepTimer_ <= 0.0f) {
 			Engine::GetInstance().audio->PlayFx(stepsFxId);
 			stepTimer_ = STEP_COOLDOWN;
 		}
 	}
 	else {
-		
+
 		stepTimer_ = 0.0f;
 	}
 
@@ -217,6 +217,7 @@ void Player::Jump() {
 			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -jumpForce, true);
 			if (anims.Has("jump")) anims.SetCurrent("jump");
 			isJumping = true;
+			currentPlatform_ = nullptr; // <--- AÑADIDO: Limpiamos la plataforma al saltar
 
 			Engine::GetInstance().audio->PlayFx(jumpFxId);
 
@@ -306,14 +307,20 @@ void Player::ApplyPhysics() {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
 	}
 
+	// <--- AÑADIDO: Heredamos velocidad de la plataforma si estamos sobre una y no saltando
+	if (currentPlatform_ != nullptr && !isJumping) {
+		float platVelX = Engine::GetInstance().physics->GetXVelocity(currentPlatform_);
+		velocity.x += platVelX;
+	}
+
 	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
 
 	// Synchronize rock velocity to avoid jitter and clipping
 	if (isPushing_ && pushedRockBody_ != nullptr) {
 		// Only synchronize when pushing towards the rock or stopping
-		if ((pushDir_ == 1.0f && velocity.x > 0.0f) || 
-		    (pushDir_ == -1.0f && velocity.x < 0.0f) || 
-		    velocity.x == 0.0f) {
+		if ((pushDir_ == 1.0f && velocity.x > 0.0f) ||
+			(pushDir_ == -1.0f && velocity.x < 0.0f) ||
+			velocity.x == 0.0f) {
 			Engine::GetInstance().physics->SetXVelocity(pushedRockBody_, velocity.x);
 		}
 	}
@@ -356,7 +363,7 @@ void Player::Draw(float dt) {
 		// the normal 128x128 walk animation, so we halve the draw scale.
 		currentDrawScale = 0.5f;
 	}
-	else 
+	else
 	{
 		bool shouldUpdate = true;
 		if (isJumping && anims.GetCurrentName() == "jump") {
@@ -622,6 +629,7 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(platX, platY);
 		if (playerY < platY) {
+			currentPlatform_ = physB; // <--- AÑADIDO: Guardamos referencia de la plataforma
 			if (isJumping) {
 				// Spawn landing dust (Centered at bottom of capsule)
 				Engine::GetInstance().entityManager->SpawnVFX(
@@ -632,7 +640,8 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 				// Allow jump animation to play the landing frames (after frame 7)
 				if (anims.GetCurrentName() == "jump") {
 					// We don't reset to idle immediately to let landing frames show
-				} else {
+				}
+				else {
 					anims.SetCurrent("idle");
 				}
 			}
@@ -676,7 +685,7 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 					}
 				}
 				isJumping = false;
-				
+
 			}
 		}
 		break;
@@ -694,6 +703,12 @@ void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 			pushContactCount_ = 0;
 			isPushing_ = false;
 			pushedRockBody_ = nullptr;
+		}
+	}
+	else if (physB->ctype == ColliderType::PLATFORM) { // <--- AÑADIDO: Limpiamos plataforma al salir
+		// Solo la soltamos si efectivamente el jugador ha saltado
+		if (currentPlatform_ == physB && isJumping) {
+			currentPlatform_ = nullptr;
 		}
 	}
 }
