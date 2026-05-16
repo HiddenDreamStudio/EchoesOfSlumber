@@ -843,43 +843,53 @@ void Map::LoadAnimatedPlants()
             objNode != NULL;
             objNode = objNode.next_sibling("object"))
         {
-            std::string type = objNode.attribute("class").as_string();
-            if (type.empty()) type = objNode.attribute("type").as_string();
-            if (type != "AnimatedPlant") continue;
+            unsigned int rawGid = objNode.attribute("gid").as_uint(0);
 
-            std::string tsxFile = "";
-            for (pugi::xml_node propNode = objNode.child("properties").child("property");
-                propNode != NULL;
-                propNode = propNode.next_sibling("property"))
+            if (rawGid == 0) continue;
+
+            const unsigned int FLIP_H = 0x80000000;
+            const unsigned int FLIP_V = 0x40000000;
+            const unsigned int FLIP_D = 0x20000000;
+            int gid = rawGid & ~(FLIP_H | FLIP_V | FLIP_D);
+
+            TileSet* ts = GetTilesetFromTileId(gid);
+
+            if (ts == nullptr) continue;
+
+            std::string tsxSource = "";
+            for (pugi::xml_node tsNode = mapFileXML.child("map").child("tileset");
+                tsNode != NULL;
+                tsNode = tsNode.next_sibling("tileset"))
             {
-                if (std::string(propNode.attribute("name").as_string()) == "tsx") {
-                    tsxFile = propNode.attribute("value").as_string();
+                if (tsNode.attribute("firstgid").as_int() == ts->firstGid) {
+                    tsxSource = tsNode.attribute("source").as_string();
+                    break;
                 }
             }
-            if (tsxFile.empty()) continue;
+
+            if (tsxSource.empty()) continue;
+
+            std::string fullTsxPath = mapPath + tsxSource;
 
             AnimatedPlantObject* plant = new AnimatedPlantObject();
             plant->x = objNode.attribute("x").as_float();
-            plant->y = objNode.attribute("y").as_float();
+            plant->y = objNode.attribute("y").as_float() - objNode.attribute("height").as_float();
             plant->w = objNode.attribute("width").as_float();
             plant->h = objNode.attribute("height").as_float();
-            plant->isFront = (layerName == "AnimatedPlants front"); 
-            plant->tsxPath = tsxFile;
+            plant->isFront = (layerName == "AnimatedPlants front");
+            plant->tsxPath = tsxSource;
 
-            std::string fullTsxPath = mapPath + tsxFile;
             std::unordered_map<int, std::string> aliases = { {0, "idle"} };
             bool loaded = plant->anim.LoadFromTSX(fullTsxPath.c_str(), aliases);
 
-            if (!loaded) {
-                delete plant;
-                continue;
-            }
+            if (!loaded) { delete plant; continue; }
 
             plant->anim.SetCurrent("idle");
             pugi::xml_document tsxDoc;
             if (tsxDoc.load_file(fullTsxPath.c_str())) {
                 std::string imgSource = tsxDoc.child("tileset").child("image").attribute("source").as_string();
-                std::string pngPath = mapPath + tsxFile.substr(0, tsxFile.find_last_of("/\\") + 1) + imgSource;
+                std::string tsxFolder = tsxSource.substr(0, tsxSource.find_last_of("/\\") + 1);
+                std::string pngPath = mapPath + tsxFolder + imgSource;
                 plant->texture = Engine::GetInstance().textures->Load(pngPath.c_str());
             }
             mapData.animatedPlants.push_back(plant);
