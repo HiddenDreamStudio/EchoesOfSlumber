@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="301" height="158" tilewidth="64" tileheight="64" infinite="0" nextlayerid="9" nextobjectid="8">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="301" height="158" tilewidth="64" tileheight="64" infinite="0" nextlayerid="12" nextobjectid="258">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Tileset.png" width="640" height="640"/>
  </tileset>
@@ -245,9 +245,1630 @@
    </animation>
   </tile>
  </tileset>
- <objectgroup id="8" name="AnimatedPlants">
-  <object id="5" gid="141" x="14216.9" y="9729.61" width="301.212" height="499.333"/>
-  <object id="7" gid="205" x="15454" y="9707" width="434.667" height="276.522"/>
+ <tileset firstgid="269" name="Asset 3" tilewidth="944" tileheight="931" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 3.png" width="7584" height="7448"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="55" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="333" name="Asset 4" tilewidth="764" tileheight="952" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 4.png" width="6112" height="7616"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="397" name="Asset 5" tilewidth="1659" tileheight="1047" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 5.png" width="13272" height="8376"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="461" name="Asset 6" tilewidth="1131" tileheight="1041" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 6.png" width="9048" height="8328"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="525" name="Asset 7" tilewidth="1018" tileheight="794" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 7.png" width="8184" height="6352"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+    <frame tileid="60" duration="140"/>
+    <frame tileid="61" duration="140"/>
+    <frame tileid="62" duration="140"/>
+    <frame tileid="63" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="589" name="Asset 8" tilewidth="977" tileheight="814" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 8.png" width="7816" height="6512"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="653" name="Asset 9" tilewidth="681" tileheight="1369" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 9.png" width="5448" height="10952"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="717" name="Asset 10" tilewidth="841" tileheight="1279" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 10.png" width="6728" height="10232"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="781" name="Asset 11" tilewidth="850" tileheight="1512" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 11.png" width="6800" height="12096"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="845" name="Asset 12" tilewidth="968" tileheight="1399" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 12.png" width="7744" height="11192"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="909" name="Asset 13" tilewidth="543" tileheight="533" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 13.png" width="4344" height="4264"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="973" name="Asset 14" tilewidth="1011" tileheight="817" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 14.png" width="8088" height="6536"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="1037" name="Asset 15" tilewidth="1011" tileheight="817" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 15.png" width="8088" height="6536"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="1101" name="Asset 17" tilewidth="814" tileheight="859" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 17.png" width="6512" height="6872"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="1165" name="Asset 18" tilewidth="1212" tileheight="690" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 18.png" width="9696" height="5520"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="1229" name="Asset 19" tilewidth="845" tileheight="620" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 19.png" width="6760" height="4960"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="1293" name="Asset 20" tilewidth="868" tileheight="1705" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 20.png" width="6944" height="13640"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="1357" name="Asset 21" tilewidth="634" tileheight="579" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 21.png" width="5072" height="4632"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="1421" name="Asset 22" tilewidth="869" tileheight="1206" tilecount="64" columns="8">
+  <image source="assets animats level 2/SS_Asset 22.png" width="6952" height="9648"/>
+  <tile id="0">
+   <animation>
+    <frame tileid="0" duration="140"/>
+    <frame tileid="1" duration="140"/>
+    <frame tileid="2" duration="140"/>
+    <frame tileid="3" duration="140"/>
+    <frame tileid="4" duration="140"/>
+    <frame tileid="5" duration="140"/>
+    <frame tileid="6" duration="140"/>
+    <frame tileid="7" duration="140"/>
+    <frame tileid="8" duration="140"/>
+    <frame tileid="9" duration="140"/>
+    <frame tileid="10" duration="140"/>
+    <frame tileid="11" duration="140"/>
+    <frame tileid="12" duration="140"/>
+    <frame tileid="13" duration="140"/>
+    <frame tileid="14" duration="140"/>
+    <frame tileid="15" duration="140"/>
+    <frame tileid="16" duration="140"/>
+    <frame tileid="17" duration="140"/>
+    <frame tileid="18" duration="140"/>
+    <frame tileid="19" duration="140"/>
+    <frame tileid="20" duration="140"/>
+    <frame tileid="21" duration="140"/>
+    <frame tileid="22" duration="140"/>
+    <frame tileid="23" duration="140"/>
+    <frame tileid="24" duration="140"/>
+    <frame tileid="25" duration="140"/>
+    <frame tileid="26" duration="140"/>
+    <frame tileid="27" duration="140"/>
+    <frame tileid="28" duration="140"/>
+    <frame tileid="29" duration="140"/>
+    <frame tileid="30" duration="140"/>
+    <frame tileid="31" duration="140"/>
+    <frame tileid="32" duration="140"/>
+    <frame tileid="33" duration="140"/>
+    <frame tileid="34" duration="140"/>
+    <frame tileid="35" duration="140"/>
+    <frame tileid="36" duration="140"/>
+    <frame tileid="37" duration="140"/>
+    <frame tileid="38" duration="140"/>
+    <frame tileid="39" duration="140"/>
+    <frame tileid="40" duration="140"/>
+    <frame tileid="41" duration="140"/>
+    <frame tileid="42" duration="140"/>
+    <frame tileid="43" duration="140"/>
+    <frame tileid="44" duration="140"/>
+    <frame tileid="45" duration="140"/>
+    <frame tileid="46" duration="140"/>
+    <frame tileid="47" duration="140"/>
+    <frame tileid="48" duration="140"/>
+    <frame tileid="49" duration="140"/>
+    <frame tileid="50" duration="140"/>
+    <frame tileid="51" duration="140"/>
+    <frame tileid="52" duration="140"/>
+    <frame tileid="53" duration="140"/>
+    <frame tileid="54" duration="140"/>
+    <frame tileid="55" duration="140"/>
+    <frame tileid="56" duration="140"/>
+    <frame tileid="57" duration="140"/>
+    <frame tileid="58" duration="140"/>
+    <frame tileid="59" duration="140"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="1485" name="MiddleGround" tilewidth="1761" tileheight="1633" tilecount="23" columns="0">
+  <grid orientation="orthogonal" width="1" height="1"/>
+  <tile id="0">
+   <image source="Assets level 2/middleground/Asset 1 mid.png" width="649" height="1185"/>
+  </tile>
+  <tile id="1">
+   <image source="Assets level 2/middleground/Asset 2 mid.png" width="881" height="521"/>
+  </tile>
+  <tile id="2">
+   <image source="Assets level 2/middleground/Asset 3 mid.png" width="769" height="849"/>
+  </tile>
+  <tile id="3">
+   <image source="Assets level 2/middleground/Asset 4 mid.png" width="441" height="849"/>
+  </tile>
+  <tile id="4">
+   <image source="Assets level 2/middleground/Asset 5 mid.png" width="1537" height="1017"/>
+  </tile>
+  <tile id="5">
+   <image source="Assets level 2/middleground/Asset 6 mid.png" width="1121" height="977"/>
+  </tile>
+  <tile id="6">
+   <image source="Assets level 2/middleground/Asset 7 mid.png" width="913" height="721"/>
+  </tile>
+  <tile id="7">
+   <image source="Assets level 2/middleground/Asset 8 mid.png" width="881" height="681"/>
+  </tile>
+  <tile id="8">
+   <image source="Assets level 2/middleground/Asset 9 mid.png" width="505" height="1161"/>
+  </tile>
+  <tile id="9">
+   <image source="Assets level 2/middleground/Asset 10 mid.png" width="737" height="1025"/>
+  </tile>
+  <tile id="10">
+   <image source="Assets level 2/middleground/Asset 11 mid.png" width="577" height="1285"/>
+  </tile>
+  <tile id="11">
+   <image source="Assets level 2/middleground/Asset 12 mid.png" width="785" height="1097"/>
+  </tile>
+  <tile id="12">
+   <image source="Assets level 2/middleground/Asset 13 mid.png" width="396" height="306"/>
+  </tile>
+  <tile id="13">
+   <image source="Assets level 2/middleground/Asset 14 mid.png" width="895" height="655"/>
+  </tile>
+  <tile id="14">
+   <image source="Assets level 2/middleground/Asset 15 mid.png" width="856" height="581"/>
+  </tile>
+  <tile id="15">
+   <image source="Assets level 2/middleground/Asset 16 mid.png" width="481" height="451"/>
+  </tile>
+  <tile id="16">
+   <image source="Assets level 2/middleground/Asset 17 mid.png" width="661" height="625"/>
+  </tile>
+  <tile id="17">
+   <image source="Assets level 2/middleground/Asset 18 mid.png" width="1003" height="499"/>
+  </tile>
+  <tile id="18">
+   <image source="Assets level 2/middleground/Asset 19 mid.png" width="811" height="541"/>
+  </tile>
+  <tile id="19">
+   <image source="Assets level 2/middleground/Asset 20 mid.png" width="841" height="1633"/>
+  </tile>
+  <tile id="20">
+   <image source="Assets level 2/middleground/Asset 21 mid.png" width="411" height="496"/>
+  </tile>
+  <tile id="21">
+   <image source="Assets level 2/middleground/Asset 22 mid.png" width="697" height="1165"/>
+  </tile>
+  <tile id="22">
+   <image source="Assets level 2/middleground/Asset 23 mid.png" width="1761" height="1521"/>
+  </tile>
+ </tileset>
+ <tileset firstgid="1508" name="Background" tilewidth="1689" tileheight="1601" tilecount="23" columns="0">
+  <grid orientation="orthogonal" width="1" height="1"/>
+  <tile id="0">
+   <image source="Assets level 2/background/Asset 1 back.png" width="793" height="1207"/>
+  </tile>
+  <tile id="1">
+   <image source="Assets level 2/background/Asset 2 back.png" width="889" height="565"/>
+  </tile>
+  <tile id="2">
+   <image source="Assets level 2/background/Asset 3 back.png" width="799" height="817"/>
+  </tile>
+  <tile id="3">
+   <image source="Assets level 2/background/Asset 4 back.png" width="505" height="907"/>
+  </tile>
+  <tile id="4">
+   <image source="Assets level 2/background/Asset 5 back.png" width="1519" height="979"/>
+  </tile>
+  <tile id="5">
+   <image source="Assets level 2/background/Asset 6 back.png" width="1099" height="1009"/>
+  </tile>
+  <tile id="6">
+   <image source="Assets level 2/background/Asset 7 back.png" width="906" height="756"/>
+  </tile>
+  <tile id="7">
+   <image source="Assets level 2/background/Asset 8 back.png" width="941" height="731"/>
+  </tile>
+  <tile id="8">
+   <image source="Assets level 2/background/Asset 9 back.png" width="505" height="1177"/>
+  </tile>
+  <tile id="9">
+   <image source="Assets level 2/background/Asset 10 back.png" width="633" height="969"/>
+  </tile>
+  <tile id="10">
+   <image source="Assets level 2/background/Asset 11 back.png" width="577" height="1289"/>
+  </tile>
+  <tile id="11">
+   <image source="Assets level 2/background/Asset 12 back.png" width="793" height="1105"/>
+  </tile>
+  <tile id="12">
+   <image source="Assets level 2/background/Asset 13 back.png" width="385" height="353"/>
+  </tile>
+  <tile id="13">
+   <image source="Assets level 2/background/Asset 14 back.png" width="841" height="681"/>
+  </tile>
+  <tile id="14">
+   <image source="Assets level 2/background/Asset 15 back.png" width="861" height="581"/>
+  </tile>
+  <tile id="15">
+   <image source="Assets level 2/background/Asset 16 back.png" width="476" height="471"/>
+  </tile>
+  <tile id="16">
+   <image source="Assets level 2/background/Asset 17 back.png" width="655" height="595"/>
+  </tile>
+  <tile id="17">
+   <image source="Assets level 2/background/Asset 18 back.png" width="925" height="529"/>
+  </tile>
+  <tile id="18">
+   <image source="Assets level 2/background/Asset 19 back.png" width="769" height="553"/>
+  </tile>
+  <tile id="19">
+   <image source="Assets level 2/background/Asset 20 back.png" width="817" height="1601"/>
+  </tile>
+  <tile id="20">
+   <image source="Assets level 2/background/Asset 21 back.png" width="426" height="496"/>
+  </tile>
+  <tile id="21">
+   <image source="Assets level 2/background/Asset 22 back.png" width="665" height="1105"/>
+  </tile>
+  <tile id="22">
+   <image source="Assets level 2/background/Asset 23 back.png" width="1689" height="1521"/>
+  </tile>
+ </tileset>
+ <tileset firstgid="1531" name="Foreground" tilewidth="1659" tileheight="1705" tilecount="22" columns="0">
+  <grid orientation="orthogonal" width="1" height="1"/>
+  <tile id="0">
+   <image source="Assets level 2/foreground/Asset 1.png" width="780" height="1266"/>
+  </tile>
+  <tile id="1">
+   <image source="Assets level 2/foreground/Asset 2.png" width="940" height="598"/>
+  </tile>
+  <tile id="2">
+   <image source="Assets level 2/foreground/Asset 3.png" width="948" height="931"/>
+  </tile>
+  <tile id="3">
+   <image source="Assets level 2/foreground/Asset 4.png" width="764" height="952"/>
+  </tile>
+  <tile id="4">
+   <image source="Assets level 2/foreground/Asset 5.png" width="1659" height="1047"/>
+  </tile>
+  <tile id="5">
+   <image source="Assets level 2/foreground/Asset 6.png" width="1131" height="1041"/>
+  </tile>
+  <tile id="6">
+   <image source="Assets level 2/foreground/Asset 7.png" width="1023" height="794"/>
+  </tile>
+  <tile id="7">
+   <image source="Assets level 2/foreground/Asset 8.png" width="977" height="814"/>
+  </tile>
+  <tile id="8">
+   <image source="Assets level 2/foreground/Asset 9.png" width="681" height="1369"/>
+  </tile>
+  <tile id="9">
+   <image source="Assets level 2/foreground/Asset 10.png" width="841" height="1279"/>
+  </tile>
+  <tile id="10">
+   <image source="Assets level 2/foreground/Asset 11.png" width="850" height="1512"/>
+  </tile>
+  <tile id="11">
+   <image source="Assets level 2/foreground/Asset 12.png" width="968" height="1399"/>
+  </tile>
+  <tile id="12">
+   <image source="Assets level 2/foreground/Asset 13.png" width="543" height="533"/>
+  </tile>
+  <tile id="13">
+   <image source="Assets level 2/foreground/Asset 14.png" width="1011" height="817"/>
+  </tile>
+  <tile id="14">
+   <image source="Assets level 2/foreground/Asset 15.png" width="995" height="719"/>
+  </tile>
+  <tile id="15">
+   <image source="Assets level 2/foreground/Asset 16.png" width="637" height="635"/>
+  </tile>
+  <tile id="16">
+   <image source="Assets level 2/foreground/Asset 17.png" width="814" height="859"/>
+  </tile>
+  <tile id="17">
+   <image source="Assets level 2/foreground/Asset 18.png" width="1212" height="690"/>
+  </tile>
+  <tile id="18">
+   <image source="Assets level 2/foreground/Asset 19.png" width="845" height="620"/>
+  </tile>
+  <tile id="19">
+   <image source="Assets level 2/foreground/Asset 20.png" width="868" height="1705"/>
+  </tile>
+  <tile id="20">
+   <image source="Assets level 2/foreground/Asset 21.png" width="634" height="579"/>
+  </tile>
+  <tile id="21">
+   <image source="Assets level 2/foreground/Asset 22.png" width="869" height="1206"/>
+  </tile>
+ </tileset>
+ <objectgroup id="11" name="Background">
+  <object id="28" gid="1508" x="16734.7" y="9710" width="341" height="519.025"/>
+  <object id="29" gid="1511" x="14632" y="9688" width="505" height="907"/>
+  <object id="30" gid="1513" x="12831" y="9697" width="1099" height="1009"/>
+  <object id="32" gid="1493" x="13874" y="9705" width="244.914" height="563.059"/>
+  <object id="33" gid="1529" x="15984.5" y="9526.33" width="287.817" height="478.252"/>
+  <object id="34" gid="1530" x="8883.27" y="9521.61" width="652.577" height="587.667"/>
+  <object id="36" gid="1527" x="7452" y="9525" width="429" height="840.672"/>
+  <object id="39" gid="1518" x="5257.45" y="10084.4" width="346.697" height="774.51"/>
+  <object id="40" gid="1509" x="3674.18" y="10086" width="1165.55" height="740.758"/>
+  <object id="43" gid="1510" x="1949" y="10095" width="730.542" height="747"/>
+  <object id="44" gid="1514" x="501" y="9584" width="906" height="756"/>
+  <object id="46" gid="1526" x="1028.12" y="8725.48" width="769" height="553"/>
+  <object id="48" gid="1527" x="31.3939" y="8752.52" width="428.858" height="840.394"/>
+  <object id="50" gid="1524" x="815.424" y="7746.48" width="691.695" height="628.333"/>
+  <object id="51" gid="1530" x="1359.03" y="6694.33" width="504.516" height="454.333"/>
+  <object id="52" gid="1523" x="125.636" y="6717.82" width="476" height="471"/>
+  <object id="53" gid="1522" x="1294.24" y="5927.36" width="492.508" height="332.343"/>
+  <object id="54" gid="1515" x="30" y="5944.79" width="604.636" height="469.702"/>
+  <object id="55" gid="1529" x="1558.91" y="5586.33" width="309.385" height="514.091"/>
+  <object id="57" gid="1508" x="4007.03" y="7985.82" width="450.576" height="685.807"/>
+  <object id="58" gid="1512" x="2204.64" y="7971.82" width="1044.12" height="672.939"/>
+  <object id="60" gid="1518" x="4151.39" y="6608.64" width="243.667" height="544.344"/>
+  <object id="61" gid="1529" x="3383.15" y="6432.08" width="404.394" height="671.963"/>
+  <object id="62" gid="1520" x="2695.88" y="4986.09" width="385" height="353"/>
+  <object id="63" gid="1514" x="3510.64" y="5090.12" width="502.97" height="419.697"/>
+  <object id="64" gid="1519" x="5322.18" y="7977.24" width="389.97" height="543.4"/>
+  <object id="65" gid="1516" x="5829.82" y="7967.79" width="295.909" height="689.673"/>
+  <object id="67" gid="1515" x="6566.36" y="7969.03" width="941" height="731"/>
+  <object id="68" gid="1514" x="5928.82" y="7965.88" width="906" height="756"/>
+  <object id="70" gid="1522" x="5930" y="6723" width="861" height="581"/>
+  <object id="72" gid="1526" x="4980" y="6669" width="769" height="553"/>
+  <object id="74" gid="1511" x="4860" y="5086" width="381" height="684.291"/>
+  <object id="75" gid="1527" x="8048" y="5357" width="329" height="644.711"/>
+  <object id="76" gid="1525" x="7066" y="4981" width="701.181" height="401"/>
+  <object id="77" gid="1524" x="8125.24" y="6502" width="408.412" height="371"/>
+  <object id="78" gid="1511" x="8332.85" y="6508.55" width="265.606" height="477.039"/>
+  <object id="80" gid="1509" x="10592" y="9487" width="479.903" height="305"/>
+  <object id="81" gid="1513" x="11511.6" y="7483.79" width="745.836" height="684.758"/>
+  <object id="82" gid="1515" x="11954.2" y="7450.85" width="631.909" height="503.727"/>
+  <object id="83" gid="1518" x="12800" y="7461" width="229" height="513.044"/>
+  <object id="86" gid="1521" x="13544" y="7465" width="638.468" height="517"/>
+  <object id="88" gid="1513" x="13278.3" y="5868.64" width="834.952" height="766.576"/>
+  <object id="89" gid="1529" x="5022.55" y="4068.63" width="368.03" height="611.539"/>
+  <object id="90" gid="1527" x="5688.97" y="4122.21" width="286.697" height="561.814"/>
+  <object id="91" gid="1525" x="12995.3" y="7445" width="641" height="366.583"/>
+  <object id="92" gid="1526" x="14528" y="5901" width="769" height="553"/>
+  <object id="93" gid="1511" x="16820" y="5862" width="505" height="907"/>
+  <object id="94" gid="1508" x="18548" y="4098" width="439" height="668.188"/>
+  <object id="95" gid="1512" x="17443" y="4080" width="1006.98" height="649"/>
+  <object id="97" gid="1516" x="17066.2" y="2928.39" width="358.081" height="834.576"/>
+  <object id="98" gid="1508" x="11973.7" y="2164.61" width="448.572" height="682.758"/>
+  <object id="99" gid="1525" x="12971.3" y="2174.09" width="670.661" height="383.545"/>
+  <object id="100" gid="1529" x="14895.3" y="2098.45" width="364.095" height="605"/>
+  <object id="101" gid="1515" x="17484" y="806.098" width="449.386" height="349.098"/>
+  <object id="102" gid="1511" x="17772" y="1396" width="337" height="605.265"/>
+  <object id="103" gid="1522" x="17020" y="1347" width="543.867" height="367"/>
+  <object id="104" gid="1521" x="12226" y="4295" width="665" height="538.484"/>
+  <object id="105" gid="1517" x="13534" y="4247" width="357" height="546.498"/>
+  <object id="106" gid="1520" x="14468" y="4789" width="385" height="353"/>
+  <object id="108" gid="1521" x="14752" y="4775" width="841" height="681"/>
+  <object id="109" gid="1508" x="16072" y="4524" width="448.732" height="683"/>
+  <object id="110" gid="1515" x="-24.5455" y="2405.39" width="941" height="731"/>
+  <object id="112" gid="1513" x="1917.67" y="2389.85" width="636.916" height="584.758"/>
+  <object id="113" gid="1514" x="5043.97" y="2432.55" width="787.818" height="657.385"/>
+  <object id="114" gid="1509" x="5962.06" y="1795.12" width="889" height="565"/>
+  <object id="115" gid="1511" x="7254.06" y="2090.36" width="505" height="907"/>
+  <object id="116" gid="1511" x="7987.39" y="2087.33" width="505" height="907"/>
+  <object id="117" gid="1510" x="7622.21" y="1869.61" width="471.727" height="482.354"/>
+  <object id="118" gid="1529" x="7140" y="1398.85" width="163" height="270.85"/>
+ </objectgroup>
+ <objectgroup id="9" name="Middleground">
+  <object id="119" gid="1501" x="16514" y="9683.67" width="342.31" height="323.667"/>
+  <object id="120" gid="1503" x="14373.6" y="9708.33" width="341.29" height="227.667"/>
+  <object id="122" gid="1492" x="12822.7" y="8918.33" width="531.667" height="410.97"/>
+  <object id="123" gid="1499" x="12433.8" y="9703" width="514.189" height="349"/>
+  <object id="124" gid="1488" x="11326.7" y="9514.33" width="194.333" height="374.125"/>
+  <object id="125" gid="1486" x="11564" y="9695.67" width="445.855" height="263.667"/>
+  <object id="126" gid="1500" x="10468" y="9490" width="203.667" height="190.964"/>
+  <object id="127" gid="1494" x="9872" y="9491.67" width="261" height="362.992"/>
+  <object id="128" gid="1490" x="8530.67" y="9497" width="538.126" height="469"/>
+  <object id="131" gid="1491" x="7604" y="9506.33" width="311.667" height="246.124"/>
+  <object id="132" gid="1493" x="7147.33" y="9533" width="171" height="393.131"/>
+  <object id="133" gid="1488" x="6694.67" y="9509" width="202.333" height="389.526"/>
+  <object id="134" gid="1502" x="5859" y="9242" width="700.836" height="348.671"/>
+  <object id="135" gid="1491" x="4618" y="10073" width="337" height="266.13"/>
+  <object id="136" gid="1485" x="5138" y="10075" width="251" height="458.297"/>
+  <object id="137" gid="1500" x="3756" y="10096" width="265.563" height="249"/>
+  <object id="138" gid="1490" x="3050" y="10077" width="661" height="576.09"/>
+  <object id="139" gid="1505" x="1423" y="9560" width="316.536" height="382"/>
+  <object id="140" gid="1499" x="1186" y="8725" width="416.95" height="283"/>
+  <object id="141" gid="1486" x="1012" y="7715" width="437.964" height="259"/>
+  <object id="142" gid="1488" x="1301.21" y="6694.7" width="159.182" height="306.452"/>
+  <object id="144" gid="1497" x="402" y="5907.55" width="226.303" height="174.871"/>
+  <object id="145" gid="1502" x="1571.73" y="5910.61" width="272.084" height="135.364"/>
+  <object id="146" gid="1493" x="1214.67" y="5926.45" width="189.848" height="436.464"/>
+  <object id="147" gid="1488" x="3234.55" y="7964.39" width="259.182" height="498.969"/>
+  <object id="148" gid="1492" x="2141.82" y="7995.55" width="469.373" height="362.818"/>
+  <object id="149" gid="1507" x="2792.73" y="4994.33" width="589.175" height="508.879"/>
+  <object id="150" gid="1499" x="3044.73" y="6297.06" width="284.53" height="193.121"/>
+  <object id="151" gid="1502" x="4039" y="6624" width="412.435" height="205.189"/>
+  <object id="152" gid="1494" x="5019.88" y="6688.76" width="288.515" height="401.259"/>
+  <object id="153" gid="1485" x="6700.24" y="6680.88" width="242.39" height="442.576"/>
+  <object id="154" gid="1491" x="6050.06" y="6685.24" width="375.783" height="296.758"/>
+  <object id="155" gid="1490" x="8424.85" y="6485.97" width="422.135" height="367.909"/>
+  <object id="156" gid="1498" x="7368.15" y="5364.36" width="311.169" height="227.727"/>
+  <object id="157" gid="1505" x="8291.97" y="5090.42" width="187.521" height="226.303"/>
+  <object id="158" gid="1492" x="7069.09" y="4910.7" width="390.968" height="302.212"/>
+  <object id="159" gid="1507" x="7674.55" y="4703.42" width="297.973" height="257.364"/>
+  <object id="160" gid="1489" x="12259.3" y="7490.82" width="799.665" height="529.121"/>
+  <object id="161" gid="1487" x="14113" y="7440.15" width="390.212" height="430.806"/>
+  <object id="162" gid="1497" x="13338.4" y="7471.18" width="297.961" height="230.242"/>
+  <object id="163" gid="1491" x="13295.5" y="5891.3" width="521.599" height="411.909"/>
+  <object id="164" gid="1486" x="14408.5" y="5851.91" width="630.241" height="372.708"/>
+  <object id="165" gid="1500" x="16617.6" y="5862.36" width="356.758" height="334.507"/>
+  <object id="166" gid="1485" x="17294.2" y="4096.03" width="306.576" height="559.772"/>
+  <object id="167" gid="1502" x="18408.1" y="4059.09" width="515.722" height="256.576"/>
+  <object id="168" gid="1505" x="18213.2" y="2944.97" width="320.604" height="386.909"/>
+  <object id="169" gid="1503" x="17216" y="2944" width="629.294" height="419.788"/>
+  <object id="170" gid="1486" x="17893.3" y="2148.88" width="481.314" height="284.636"/>
+  <object id="171" gid="1490" x="15072" y="2153" width="739.739" height="644.715"/>
+  <object id="172" gid="1491" x="13928" y="2149" width="507.785" height="401"/>
+  <object id="173" gid="1507" x="11440" y="2165" width="614.759" height="530.976"/>
+  <object id="174" gid="1490" x="13192" y="2129" width="666.634" height="581"/>
+  <object id="175" gid="1488" x="12024" y="1161" width="249.848" height="481"/>
+  <object id="176" gid="1487" x="12316" y="1129" width="363.214" height="401"/>
+  <object id="177" gid="1493" x="18026" y="1211" width="184.862" height="425"/>
+  <object id="178" gid="1490" x="17648" y="801" width="384.376" height="335"/>
+ </objectgroup>
+ <objectgroup id="10" name="Foreground">
+  <object id="248" gid="1533" x="114" y="2474" width="574.011" height="563.717"/>
+  <object id="249" gid="1552" x="3170" y="2076.11" width="253" height="351.114"/>
+  <object id="250" gid="1537" x="4363.44" y="2429" width="404.562" height="314"/>
+  <object id="251" gid="1531" x="9942" y="7189" width="186.18" height="302.185"/>
+  <object id="252" gid="1538" x="8852" y="7491" width="314.464" height="262"/>
+  <object id="253" gid="1541" x="9267" y="6596.46" width="245.365" height="436.461"/>
+  <object id="254" gid="1545" x="9779" y="6656" width="297.531" height="215"/>
+  <object id="255" gid="1527" x="9980" y="7417" width="817" height="1601"/>
+  <object id="256" gid="1511" x="9264" y="7458" width="237" height="425.661"/>
+  <object id="257" gid="1496" x="9528" y="7429" width="241.153" height="337"/>
  </objectgroup>
  <layer id="3" name="Map" width="301" height="158">
   <properties>
@@ -414,4 +2035,66 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,130,112,112,112,128,102,102,102,102,102,102,102,102,102,102,102,102,130,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
+ <objectgroup id="8" name="AnimatedPlants front">
+  <object id="5" gid="141" x="13708.9" y="9699.61" width="251.212" height="416.446"/>
+  <object id="7" gid="205" x="15590" y="9704.33" width="434.667" height="276.522"/>
+  <object id="16" gid="589" x="1999.08" y="10103.3" width="314.04" height="261.647"/>
+  <object id="20" gid="653" x="914" y="7712.33" width="159.692" height="321.024"/>
+  <object id="180" gid="1037" x="8135.33" y="9542" width="251.875" height="203.543"/>
+  <object id="181" gid="1101" x="6452" y="9267.67" width="180.197" height="190.116"/>
+  <object id="182" gid="1165" x="4914" y="10099.3" width="227.177" height="129.333"/>
+  <object id="183" gid="141" x="1270" y="9561.67" width="246.035" height="399.333"/>
+  <object id="184" gid="717" x="1704" y="9593" width="140.085" height="213.043"/>
+  <object id="185" gid="909" x="3487.67" y="9777.67" width="187.452" height="184"/>
+  <object id="187" gid="973" x="2840" y="9713" width="231.029" height="186.697"/>
+  <object id="188" gid="1037" x="2821.67" y="10110.3" width="308.126" height="249"/>
+  <object id="189" gid="1293" x="830.667" y="9430.67" width="110.667" height="236"/>
+  <object id="190" gid="1421" x="1201" y="8551" width="214.255" height="315"/>
+  <object id="191" gid="1421" x="594" y="8306" width="391" height="542.631"/>
+  <object id="192" gid="1358" x="279" y="8674" width="204.211" height="169.667"/>
+  <object id="196" gid="1166" x="611.333" y="7654.33" width="233.032" height="132.667"/>
+  <object id="198" gid="718" x="223" y="7620" width="214.587" height="326.346"/>
+  <object id="199" gid="845" x="352" y="6709" width="222.989" height="322.275"/>
+  <object id="201" gid="909" x="1242.33" y="6701.67" width="193.667" height="190.1"/>
+  <object id="203" gid="205" x="1316.67" y="5909.33" width="162.43" height="103.333"/>
+  <object id="204" gid="1421" x="355.333" y="5739" width="185.274" height="257.124"/>
+  <object id="205" gid="1229" x="5810" y="7978" width="367.984" height="270"/>
+  <object id="206" gid="206" x="7099.38" y="7973" width="414.983" height="264"/>
+  <object id="207" gid="1293" x="4599.33" y="7977.24" width="164.97" height="324.048"/>
+  <object id="208" gid="1421" x="4137.52" y="6973.79" width="250.818" height="348.086"/>
+  <object id="209" gid="1358" x="2615" y="6171.33" width="145.737" height="133.095"/>
+  <object id="210" gid="461" x="3355" y="5117" width="547.369" height="503.812"/>
+  <object id="211" gid="973" x="2638" y="4962" width="186.696" height="150.871"/>
+  <object id="212" gid="1037" x="5361.67" y="6367.67" width="162.931" height="131.667"/>
+  <object id="214" gid="333" x="5694.67" y="6672.67" width="158.364" height="197.333"/>
+  <object id="215" gid="717" x="6478" y="6710" width="146.633" height="223"/>
+  <object id="216" gid="782" x="6946.76" y="9504.36" width="143.939" height="256.043"/>
+  <object id="217" gid="782" x="8017" y="6508" width="182.143" height="324"/>
+  <object id="218" gid="1229" x="7610" y="4968" width="248.048" height="182"/>
+  <object id="219" gid="1165" x="8244" y="5097" width="205.861" height="117.198"/>
+  <object id="220" gid="205" x="4674" y="5099" width="386.689" height="246"/>
+  <object id="222" gid="142" x="5612" y="4121" width="220" height="357.077"/>
+  <object id="223" gid="782" x="11749" y="7488" width="290" height="515.859"/>
+  <object id="224" gid="973" x="12597" y="7463" width="187" height="151.117"/>
+  <object id="225" gid="333" x="14546" y="7452" width="256" height="318.995"/>
+  <object id="227" gid="141" x="14132" y="5851" width="122.493" height="198.815"/>
+  <object id="228" gid="717" x="15552" y="5886" width="182.14" height="277"/>
+  <object id="229" gid="1037" x="16459" y="5885" width="283.377" height="229"/>
+  <object id="230" gid="1101" x="17945" y="4084" width="243.537" height="257"/>
+  <object id="231" gid="1165" x="17462" y="4067" width="203.757" height="116"/>
+  <object id="232" gid="397" x="18131.8" y="2146.18" width="885.943" height="559.121"/>
+  <object id="233" gid="397" x="14515" y="4768" width="613.212" height="387"/>
+  <object id="234" gid="589" x="17582" y="661" width="125.354" height="104.44"/>
+  <object id="235" gid="205" x="12498" y="2151" width="286.087" height="182"/>
+  <object id="236" gid="1165" x="14654" y="2181" width="382.922" height="218"/>
+  <object id="237" gid="141" x="15678" y="2137" width="232" height="376.554"/>
+  <object id="238" gid="141" x="5900" y="1751" width="262" height="425.246"/>
+  <object id="239" gid="717" x="1843.64" y="2467.27" width="368.273" height="560.072"/>
+  <object id="240" gid="653" x="5238.79" y="2342.58" width="202.212" height="406.503"/>
+  <object id="241" gid="925" x="7815.67" y="1839" width="184.689" height="181.287"/>
+  <object id="242" gid="845" x="8283.33" y="1830.67" width="138" height="199.444"/>
+  <object id="243" gid="1421" x="7530" y="1584.69" width="337" height="467.689"/>
+  <object id="244" gid="1358" x="6573" y="1766" width="281.413" height="257"/>
+  <object id="246" gid="1165" x="2872.79" y="2432.88" width="370.999" height="211.212"/>
+ </objectgroup>
 </map>
