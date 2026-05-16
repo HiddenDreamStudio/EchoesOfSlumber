@@ -362,7 +362,9 @@ bool Map::Load(std::string path, std::string fileName)
                     }
                     if (!collisions.empty()) {
                         tileSet->tileCollisions[tileId] = collisions;
-
+                    }
+                }
+            }
 
             mapData.tilesets.push_back(tileSet);
         }
