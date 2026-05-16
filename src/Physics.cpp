@@ -341,6 +341,16 @@ bool Physics::IsPendingToDelete(PhysBody* physBody) {
     return pendingToDelete;
 }
 
+void Physics::FlushPendingDeletes()
+{
+    for (PhysBody* physBody : bodiesToDelete) {
+        if (physBody && b2Body_IsValid(physBody->body))
+            b2DestroyBody(physBody->body);
+        delete physBody;
+    }
+    bodiesToDelete.clear();
+}
+
 b2Vec2 Physics::GetLinearVelocity(const PhysBody* p) const
 {
     return b2Body_GetLinearVelocity(p->body);

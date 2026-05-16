@@ -761,7 +761,7 @@ void Scene::LoadGameplay()
 
 	Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 1.0f);
 
-	Engine::GetInstance().map->Load("assets/maps/", "MapTemplate.tmx");
+	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
 	Engine::GetInstance().map->LoadEntities(player);
 
 	if (player == nullptr) {
@@ -1100,8 +1100,8 @@ void Scene::UnloadGameplay()
 {
 	Engine::GetInstance().uiManager->CleanUp();
 	player.reset();
-	Engine::GetInstance().map->CleanUp();
 	Engine::GetInstance().entityManager->CleanUp();
+	Engine::GetInstance().map->CleanUp();
 	isPaused_ = false;
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
@@ -1131,6 +1131,120 @@ void Scene::UnloadGameplay()
 	capaCollected_ = false;
 }
 
+// ============================================================================
+//  Map switching helpers (F1 / F2)
+// ============================================================================
+
+void Scene::LoadMap1()
+{
+	if (currentMapFile_ == "MapTemplate.tmx") return; // already on map 1
+
+	LOG("=== Switching to Map 1 (MapTemplate.tmx) ===");
+
+	// Save player state before transition
+	int playerHealth = player ? player->health : 3;
+	bool playerHasBlanket = player ? player->HasBlanket() : false;
+
+	// 1. Release Scene's player reference
+	player.reset();
+
+	// 2. Destroy all entities (enemies, checkpoints, etc.) — they hold raw ptrs to map layers
+	Engine::GetInstance().entityManager->CleanUp();
+
+	// 3. Immediately flush queued physics body deletions so Box2D world is clean
+	Engine::GetInstance().physics->FlushPendingDeletes();
+
+	// 4. Now safe to destroy map data (layers, tilesets, colliders)
+	Engine::GetInstance().map->CleanUp();
+
+	// 5. Flush map collider deletions too
+	Engine::GetInstance().physics->FlushPendingDeletes();
+
+	// 6. Load the new map
+	currentMapFile_ = "MapTemplate.tmx";
+	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
+	Engine::GetInstance().map->LoadEntities(player);
+
+	// 7. Ensure player exists
+	if (player == nullptr) {
+		player = std::dynamic_pointer_cast<Player>(
+			Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+		player->position = Vector2D(96.0f, 672.0f);
+		player->Start();
+	}
+
+	// 8. Restore player state & skip wake-up animation (this is a transition, not a fresh start)
+	player->health = playerHealth;
+	player->SetHasBlanket(playerHasBlanket);
+	player->isWakingUp = false;
+	currentHealthUI_ = playerHealth;
+	activeHealthAnim_ = 0;
+	isGameOver_ = false;
+
+	// 9. Re-read cape position for this map
+	capaCollected_ = false;
+	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
+		capaCollected_ = true; // No cape on this map
+	}
+
+	LOG("Map 1 loaded successfully");
+}
+
+void Scene::LoadMap2()
+{
+	if (currentMapFile_ == "Map2.tmx") return; // already on map 2
+
+	LOG("=== Switching to Map 2 (Map2.tmx) ===");
+
+	// Save player state before transition
+	int playerHealth = player ? player->health : 3;
+	bool playerHasBlanket = player ? player->HasBlanket() : false;
+
+	// 1. Release Scene's player reference
+	player.reset();
+
+	// 2. Destroy all entities (enemies, checkpoints, etc.) — they hold raw ptrs to map layers
+	Engine::GetInstance().entityManager->CleanUp();
+
+	// 3. Immediately flush queued physics body deletions so Box2D world is clean
+	Engine::GetInstance().physics->FlushPendingDeletes();
+
+	// 4. Now safe to destroy map data (layers, tilesets, colliders)
+	Engine::GetInstance().map->CleanUp();
+
+	// 5. Flush map collider deletions too
+	Engine::GetInstance().physics->FlushPendingDeletes();
+
+	// 6. Load the new map
+	currentMapFile_ = "Map2.tmx";
+	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
+	Engine::GetInstance().map->LoadEntities(player);
+
+	// 7. Ensure player exists
+	if (player == nullptr) {
+		player = std::dynamic_pointer_cast<Player>(
+			Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+		player->position = Vector2D(96.0f, 672.0f);
+		player->Start();
+	}
+
+	// 8. Restore player state & skip wake-up animation (this is a transition, not a fresh start)
+	player->health = playerHealth;
+	player->SetHasBlanket(playerHasBlanket);
+	player->isWakingUp = false;
+	currentHealthUI_ = playerHealth;
+	activeHealthAnim_ = 0;
+	isGameOver_ = false;
+
+	// 9. Re-read cape position for this map
+	capaCollected_ = false;
+	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
+		capaCollected_ = true; // No cape on this map
+	}
+
+	LOG("Map 2 loaded successfully");
+}
+
 void Scene::PostUpdateGameplay()
 {
 	// Quick save/load shortcuts (only when not paused)
@@ -1139,6 +1253,12 @@ void Scene::PostUpdateGameplay()
 			Engine::GetInstance().saveSystem->QuickLoad();
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F6) == KEY_DOWN)
 			Engine::GetInstance().saveSystem->QuickSave();
+
+		// F1 / F2: switch maps
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F1) == KEY_DOWN)
+			LoadMap1();
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F2) == KEY_DOWN)
+			LoadMap2();
 	}
 
 	// --- Draw Health HUD ---

@@ -61,7 +61,8 @@ struct MapLayer
 
     unsigned int Get(int i, int j) const
     {
-        return tiles[(j * width) + i];
+        // Strip Tiled flip flags (top 3 bits) to return the actual clean tile ID
+        return (unsigned int)tiles[(j * width) + i] & 0x1FFFFFFF;
     }
 };
 

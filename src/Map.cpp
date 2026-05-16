@@ -264,6 +264,14 @@ bool Map::CleanUp()
     }
     mapData.animatedPlants.clear();
 
+    for (const auto& cp : mapData.checkpoints) {
+        delete cp;
+    }
+    mapData.checkpoints.clear();
+
+    mapData.capeFound = false;
+    mapLoaded = false;
+
     return true;
 }
 
@@ -354,9 +362,7 @@ bool Map::Load(std::string path, std::string fileName)
                     }
                     if (!collisions.empty()) {
                         tileSet->tileCollisions[tileId] = collisions;
-                    }
-                }
-            }
+
 
             mapData.tilesets.push_back(tileSet);
         }
@@ -371,8 +377,24 @@ bool Map::Load(std::string path, std::string fileName)
 
             LoadProperties(layerNode, mapLayer->properties);
 
-            for (pugi::xml_node tileNode = layerNode.child("data").child("tile"); tileNode != NULL; tileNode = tileNode.next_sibling("tile")) {
-                mapLayer->tiles.push_back(tileNode.attribute("gid").as_int());
+            std::string encoding = layerNode.child("data").attribute("encoding").as_string();
+
+            if (encoding == "csv") {
+                std::string csvStr = layerNode.child("data").child_value();
+                std::stringstream ss(csvStr);
+                std::string token;
+                while (std::getline(ss, token, ',')) {
+                    token.erase(0, token.find_first_not_of(" \n\r\t"));
+                    token.erase(token.find_last_not_of(" \n\r\t") + 1);
+                    if (!token.empty()) {
+                        // Use stoul instead of stoi to handle large GIDs with flip flags
+                        mapLayer->tiles.push_back((int)std::stoul(token));
+                    }
+                }
+            } else {
+                for (pugi::xml_node tileNode = layerNode.child("data").child("tile"); tileNode != NULL; tileNode = tileNode.next_sibling("tile")) {
+                    mapLayer->tiles.push_back(tileNode.attribute("gid").as_int());
+                }
             }
 
             mapData.layers.push_back(mapLayer);
