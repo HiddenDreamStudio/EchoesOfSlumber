@@ -148,12 +148,6 @@ void Enemy::OnCollision(PhysBody* physA, PhysBody* physB)
 	{
 		TakeDamage(1);
 	}
-	else if (physB->ctype == ColliderType::SLINGSHOT_PROJ)
-	{
-		TakeDamage(1);
-		if (physB->listener != nullptr)
-			physB->listener->Destroy();
-	}
 	else if (physB->ctype == ColliderType::PLAYER)
 	{
 		isContactWithPlayer_ = true;

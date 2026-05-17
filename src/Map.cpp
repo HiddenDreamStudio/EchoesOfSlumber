@@ -549,16 +549,6 @@ bool Map::GetCapePosition(float& outX, float& outY) const
     return false;
 }
 
-bool Map::GetSlingshotPosition(float& outX, float& outY) const
-{
-    if (mapData.slingshotFound) {
-        outX = mapData.slingshotX;
-        outY = mapData.slingshotY;
-        return true;
-    }
-    return false;
-}
-
 MapLayer* Map::GetNavigationLayer() {
     for (const auto& layer : mapData.layers) {
         if (layer->properties.GetProperty("Navigation") != NULL &&
@@ -662,12 +652,6 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     mapData.capeY = y;
                     LOG("Cape position loaded from TMX at: %f, %f", x, y);
                 }
-                else if (entityType == "Tirachinas") {
-                    mapData.slingshotFound = true;
-                    mapData.slingshotX = x;
-                    mapData.slingshotY = y;
-                    LOG("Slingshot position loaded from TMX at: %f, %f", x, y);
-                }
             }
         }
         else if (objectGroupNode.attribute("name").as_string() == std::string("Checkpoint")) {
@@ -700,29 +684,6 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     rock->Start();
                     LOG("PushRock spawned at: %f, %f (size: %.0fx%.0f)", x, y, w, h);
 >>>>>>> main
-                }
-                else if (objClass == "Tirachinas") {
-                    float x = objectNode.attribute("x").as_float();
-                    float y = objectNode.attribute("y").as_float();
-                    mapData.slingshotFound = true;
-                    mapData.slingshotX = x;
-                    mapData.slingshotY = y;
-                    LOG("Slingshot position loaded from InteractiveAssets at: %f, %f", x, y);
-                }
-            }
-        }
-        else if (objectGroupNode.attribute("name").as_string() == std::string("Weapons")) {
-            for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
-                std::string objClass = objectNode.attribute("class").as_string();
-                if (objClass.empty()) objClass = objectNode.attribute("type").as_string();
-
-                if (objClass == "Tirachinas") {
-                    float x = objectNode.attribute("x").as_float();
-                    float y = objectNode.attribute("y").as_float();
-                    mapData.slingshotFound = true;
-                    mapData.slingshotX = x;
-                    mapData.slingshotY = y;
-                    LOG("Slingshot position loaded from Weapons at: %f, %f", x, y);
                 }
             }
         }
