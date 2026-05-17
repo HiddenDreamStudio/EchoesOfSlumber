@@ -188,15 +188,7 @@ private:
     bool  capaCollected_ = false;
     float capaFloatTimer_ = 0.0f; // floating animation timer
     float capaNotifTimer_ = 0.0f; // cape pickup notification timer
-
-    // Slingshot (tirachinas) collectible
-    SDL_Texture* texSlingshotCollectible_ = nullptr;
-    float slingshotX_ = 300.0f;
-    float slingshotY_ = 600.0f;
-    bool  slingshotCollected_ = false;
-    float slingshotFloatTimer_ = 0.0f;
-    float slingshotNotifTimer_ = 0.0f;
-    static constexpr float SLINGSHOT_NOTIF_DURATION = 3000.0f;
+    
 
     // Game Over Menu Assets
     SDL_Texture* texGameOverBg_ = nullptr;
