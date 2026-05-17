@@ -1,4 +1,4 @@
-#include "EnemyC.h"
+ï»¿#include "EnemyC.h"
 #include "Engine.h"
 #include "Textures.h"
 #include "Audio.h"
@@ -127,7 +127,7 @@ bool EnemyC::Update(float dt)
 		pbody->GetPosition(bodyX, bodyY);
 		Vector2D tilePos = Engine::GetInstance().map->WorldToMap(bodyX, bodyY);
 		pathfinding->ResetPath(tilePos);
-		LOG("EnemyC re-acquired player — pathfinding reset");
+		LOG("EnemyC re-acquired player ï¿½ pathfinding reset");
 	}
 	// ?????????????????????????????????????????????????????????????????????????
 
@@ -467,6 +467,13 @@ void EnemyC::OnCollision(PhysBody* physA, PhysBody* physB)
 	{
 		LOG("EnemyC hit by player attack");
 		TakeDamage(1);
+	}
+	else if (physB->ctype == ColliderType::SLINGSHOT_PROJ)
+	{
+		LOG("EnemyC hit by slingshot projectile");
+		TakeDamage(1);
+		if (physB->listener != nullptr)
+			physB->listener->Destroy();
 	}
 	else if (physB->ctype == ColliderType::PLAYER)
 	{
