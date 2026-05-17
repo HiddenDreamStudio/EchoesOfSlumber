@@ -136,7 +136,7 @@ bool Map::Update(float dt)
                                 //Get the screen coordinates from the tile coordinates
                                 Vector2D mapCoord = MapToWorld(i, j);
                                 //Draw the texture
-                                render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect);
+                                render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect, mapLayer->parallaxFactorX);
                             }
                         }
                     }
@@ -376,6 +376,8 @@ bool Map::Load(std::string path, std::string fileName)
             mapLayer->name = layerNode.attribute("name").as_string();
             mapLayer->width = layerNode.attribute("width").as_int();
             mapLayer->height = layerNode.attribute("height").as_int();
+            mapLayer->parallaxFactorX = layerNode.attribute("parallaxx").as_float(1.0f);
+            mapLayer->parallaxFactorY = layerNode.attribute("parallaxy").as_float(1.0f);
 
             LoadProperties(layerNode, mapLayer->properties);
 
