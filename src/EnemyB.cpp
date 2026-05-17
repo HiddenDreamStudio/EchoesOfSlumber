@@ -1,4 +1,4 @@
-#include "EnemyB.h"
+ï»¿#include "EnemyB.h"
 #include "Engine.h"
 #include "Textures.h"
 #include "Render.h"
@@ -91,7 +91,7 @@ bool EnemyB::Update(float dt)
 	{
 		wasPlayerHiding_ = false;
 		TransitionTo(EnemyBState::PATROL);
-		LOG("EnemyB re-acquired player — returning to patrol");
+		LOG("EnemyB re-acquired player ï¿½ returning to patrol");
 	}
 	// ?????????????????????????????????????????????????????????????????????????
 
@@ -356,6 +356,12 @@ void EnemyB::OnCollision(PhysBody* physA, PhysBody* physB)
 	if (physB->ctype == ColliderType::ATTACK)
 	{
 		TakeDamage(1);
+	}
+	else if (physB->ctype == ColliderType::SLINGSHOT_PROJ)
+	{
+		TakeDamage(1);
+		if (physB->listener != nullptr)
+			physB->listener->Destroy();
 	}
 	else if (physB->ctype == ColliderType::PLAYER)
 	{
