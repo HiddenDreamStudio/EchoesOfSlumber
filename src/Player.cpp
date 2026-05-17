@@ -9,7 +9,6 @@
 #include "Physics.h"
 #include "EntityManager.h"
 #include "Map.h"
-#include "SlingshotProjectile.h"
 #include "tracy/Tracy.hpp"
 
 Player::Player() : Entity(EntityType::PLAYER),
@@ -73,14 +72,6 @@ bool Player::Start() {
 	}
 	pushAnim_.SetLoop(true);
 
-	// Load slingshot shoot animation spritesheet (3072x1024 = 12 columns x 4 rows, 256x256 frames)
-	slingshotShootTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Tiraxines.png");
-	for (int i = 0; i < 48; ++i) {
-		SDL_Rect r = { (i % 12) * 256, (i / 12) * 256, 256, 256 };
-		slingshotAnim_.AddFrame(r, 80);
-	}
-	slingshotAnim_.SetLoop(false);
-
 	pbody = Engine::GetInstance().physics->CreateCapsule((int)position.getX(), (int)position.getY(), 40, 100, bodyType::DYNAMIC, 0.0f);
 
 	pbody->listener = this;
@@ -126,7 +117,6 @@ bool Player::Update(float dt)
 
 	// Tick hide cooldown
 	if (hideCooldown_ > 0.0f) hideCooldown_ -= dt;
-	if (slingshotCooldown_ > 0.0f) slingshotCooldown_ -= dt;
 
 	if (!isDead_ && !isWakingUp)
 	{
@@ -139,7 +129,6 @@ bool Player::Update(float dt)
 				if (!isExitingHide_) Move();
 				Jump();
 				if (!isPushing_) Attack(dt);
-				if (!isPushing_ && !isAttacking_) Slingshot(dt);
 				Teleport();
 			}
 		}
@@ -350,123 +339,6 @@ void Player::Hide(float dt)
 	}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Slingshot mechanic
-//   • Left mouse button press: begin charging
-//   • Hold: accumulate charge, compute aim angle from player→mouse
-//   • Release: fire projectile with charge-scaled speed
-//   • Visual: trajectory preview dots + charge bar + slingshot animation
-// ─────────────────────────────────────────────────────────────────────────────
-void Player::Slingshot(float dt)
-{
-	if (!hasSlingshot_ || isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_) return;
-
-	auto& input = Engine::GetInstance().input;
-	auto& render = Engine::GetInstance().render;
-
-	KeyState lmb = input->GetMouseButtonDown(SDL_BUTTON_LEFT);
-
-	if (lmb == KEY_DOWN && !isAiming_ && slingshotCooldown_ <= 0.0f)
-	{
-		isAiming_ = true;
-		chargeTimer_ = 0.0f;
-		slingshotAnim_.Reset();
-		LOG("Slingshot aiming started");
-	}
-
-	if (isAiming_)
-	{
-		chargeTimer_ += dt;
-		if (chargeTimer_ > MAX_CHARGE_TIME) chargeTimer_ = MAX_CHARGE_TIME;
-
-		// Calculate aim angle from player center to mouse world position
-		int playerX, playerY;
-		pbody->GetPosition(playerX, playerY);
-
-		Vector2D mouseScreen = input->GetMousePosition();
-		// Convert screen mouse pos to world coords
-		float mouseWorldX = mouseScreen.getX() - (float)render->camera.x;
-		float mouseWorldY = mouseScreen.getY() - (float)render->camera.y;
-
-		float dx = mouseWorldX - (float)playerX;
-		float dy = mouseWorldY - (float)playerY;
-		aimAngle_ = std::atan2(dy, dx);
-
-		// Update facing direction based on aim
-		if (dx > 0) facingRight = false;
-		else if (dx < 0) facingRight = true;
-
-		// Advance slingshot animation based on charge (map charge ratio to frame)
-		slingshotAnim_.Update(dt);
-
-		// Draw trajectory preview dots (parabolic prediction)
-		float chargeRatio = chargeTimer_ / MAX_CHARGE_TIME;
-		float launchSpeed = MIN_LAUNCH_SPEED + (MAX_LAUNCH_SPEED - MIN_LAUNCH_SPEED) * chargeRatio;
-
-		float dirX = std::cos(aimAngle_);
-		float dirY = std::sin(aimAngle_);
-
-		// Simulate trajectory (in meters, then convert to pixels)
-		float simVx = dirX * launchSpeed;
-		float simVy = dirY * launchSpeed;
-		float gravity = 10.0f; // matches GRAVITY_Y magnitude
-
-		for (int i = 1; i <= 5; i++)
-		{
-			float t = (float)i * 0.12f; // time steps
-			float px = (float)playerX + METERS_TO_PIXELS(simVx * t);
-			float py = (float)playerY + METERS_TO_PIXELS(simVy * t + 0.5f * gravity * t * t);
-
-			Uint8 dotAlpha = (Uint8)(120 - i * 16);
-			if (dotAlpha < 30) dotAlpha = 30;
-
-			render->DrawCircle((int)px, (int)py, 3, 200, 180, 140, dotAlpha, true);
-		}
-
-		// Draw subtle charge bar near player feet
-		int barW = 30;
-		int barH = 3;
-		int barX = playerX - barW / 2;
-		int barY = playerY + 55;
-		int fillW = (int)((float)barW * chargeRatio);
-
-		// Background bar
-		SDL_Rect bgBar = { barX, barY, barW, barH };
-		render->DrawRectangle(bgBar, 40, 35, 25, 80, true, true);
-
-		// Fill bar (amber tone)
-		if (fillW > 0) {
-			SDL_Rect fillBar = { barX, barY, fillW, barH };
-			Uint8 fillAlpha = (Uint8)(60.0f + 140.0f * chargeRatio);
-			render->DrawRectangle(fillBar, 200, 170, 100, fillAlpha, true, true);
-		}
-
-		// Stop movement while aiming
-		velocity.x = 0.0f;
-
-		if (lmb == KEY_UP)
-		{
-			// Fire!
-			isAiming_ = false;
-			slingshotCooldown_ = SLINGSHOT_COOLDOWN;
-
-			// Spawn projectile
-			auto proj = std::dynamic_pointer_cast<SlingshotProjectile>(
-				Engine::GetInstance().entityManager->CreateEntity(EntityType::SLINGSHOT_PROJECTILE));
-
-			// Spawn slightly in front of player
-			float spawnOffsetX = std::cos(aimAngle_) * 30.0f;
-			float spawnOffsetY = std::sin(aimAngle_) * 30.0f;
-			proj->position = Vector2D((float)playerX + spawnOffsetX, (float)playerY - 10.0f + spawnOffsetY);
-
-			proj->SetLaunch(dirX, dirY, launchSpeed);
-			proj->Start();
-
-			LOG("Slingshot fired! angle=%.1f speed=%.1f", aimAngle_ * RADTODEG, launchSpeed);
-		}
-	}
-}
-
 void Player::ApplyPhysics() {
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
@@ -520,14 +392,6 @@ void Player::Draw(float dt) {
 		animFrame = &pushAnim_.GetCurrentFrame();
 		// The push frame is 256x256, we want it to appear the same size as
 		// the normal 128x128 walk animation, so we halve the draw scale.
-		currentDrawScale = 0.5f;
-	}
-	else if (isAiming_ && slingshotShootTexture_)
-	{
-		// Slingshot aiming animation — use dedicated spritesheet
-		activeTex = slingshotShootTexture_;
-		animFrame = &slingshotAnim_.GetCurrentFrame();
-		// 256x256 frames -> same half scale as push
 		currentDrawScale = 0.5f;
 	}
 	else 
@@ -756,9 +620,6 @@ void Player::Revive()
 	isShowingDamageAnim_ = false;
 	hideAlphaTime_ = 0.0f;
 	hideCooldown_ = 0.0f; // reset cooldown on revive
-	isAiming_ = false;
-	chargeTimer_ = 0.0f;
-	slingshotCooldown_ = 0.0f;
 	anims.SetCurrent("idle");
 	damageFlashTimer_ = 0.0f;
 }
@@ -778,10 +639,6 @@ bool Player::CleanUp()
 	if (pushTexture_) {
 		Engine::GetInstance().textures->UnLoad(pushTexture_);
 		pushTexture_ = nullptr;
-	}
-	if (slingshotShootTexture_) {
-		Engine::GetInstance().textures->UnLoad(slingshotShootTexture_);
-		slingshotShootTexture_ = nullptr;
 	}
 	return true;
 }
