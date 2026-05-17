@@ -340,7 +340,14 @@ void Player::Hide(float dt)
 // ─────────────────────────────────────────────────────────────────────────────
 void Player::Slingshot(float dt)
 {
-	if (!hasSlingshot_ || isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_) return;
+	if (!hasSlingshot_) return;
+
+	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_)
+	{
+		isAiming_ = false;
+		chargeTimer_ = 0.0f;
+		return;
+	}
 
 	auto& input = Engine::GetInstance().input;
 	auto& render = Engine::GetInstance().render;
@@ -435,9 +442,12 @@ void Player::Slingshot(float dt)
 			auto proj = std::dynamic_pointer_cast<SlingshotProjectile>(
 				Engine::GetInstance().entityManager->CreateEntity(EntityType::SLINGSHOT_PROJECTILE));
 
-			// Spawn slightly in front of player
-			float spawnOffsetX = std::cos(aimAngle_) * 30.0f;
-			float spawnOffsetY = std::sin(aimAngle_) * 30.0f;
+			// Spawn fully outside the player's collision body for all aim directions.
+			// The player body is much taller than the old 30px offset, so vertical and
+			// diagonal shots could start inside the player and immediately self-collide.
+			const float projectileSpawnClearance = 70.0f;
+			float spawnOffsetX = std::cos(aimAngle_) * projectileSpawnClearance;
+			float spawnOffsetY = std::sin(aimAngle_) * projectileSpawnClearance;
 			proj->position = Vector2D((float)playerX + spawnOffsetX, (float)playerY - 10.0f + spawnOffsetY);
 
 			proj->SetLaunch(dirX, dirY, launchSpeed);
@@ -447,7 +457,6 @@ void Player::Slingshot(float dt)
 		}
 	}
 }
-
 void Player::ApplyPhysics() {
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
