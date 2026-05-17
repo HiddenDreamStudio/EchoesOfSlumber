@@ -13,7 +13,6 @@
 #include "Box.h"
 #include "PushRock.h"
 #include "VFX.h"
-#include "SlingshotProjectile.h"
 #include "tracy/Tracy.hpp"
 
 EntityManager::EntityManager() : Module()
@@ -105,9 +104,6 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::VFX:
 		entity = std::make_shared<VFX>();
-		break;
-	case EntityType::SLINGSHOT_PROJECTILE:
-		entity = std::make_shared<SlingshotProjectile>();
 		break;
 	default:
 		break;
