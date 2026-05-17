@@ -15,7 +15,6 @@ enum class EntityType
 	BOX,
 	PUSH_ROCK,
 	VFX,
-	SLINGSHOT_PROJECTILE,
 	UNKNOWN
 };
 
