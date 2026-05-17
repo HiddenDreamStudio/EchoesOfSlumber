@@ -152,11 +152,6 @@ struct MapData
     bool  capeFound = false;
     float capeX = 0.0f;
     float capeY = 0.0f;
-
-    // Slingshot collectible spawn position (read from Entities/InteractiveAssets)
-    bool  slingshotFound = false;
-    float slingshotX = 0.0f;
-    float slingshotY = 0.0f;
 };
 
 class Map : public Module
@@ -199,9 +194,6 @@ public:
 
     // Cape position read from TMX Entities layer
     bool  GetCapePosition(float& outX, float& outY) const;
-
-    // Slingshot position read from TMX
-    bool  GetSlingshotPosition(float& outX, float& outY) const;
 
     MapLayer* GetNavigationLayer();
 
