@@ -49,11 +49,6 @@ public:
 	// Push rock state — queried externally if needed
 	bool IsPushing() const { return isPushing_; }
 
-	// Slingshot (tirachinas) collectible — must be collected before firing is available
-	bool HasSlingshot() const { return hasSlingshot_; }
-	void SetHasSlingshot(bool v) { hasSlingshot_ = v; }
-	bool IsAiming() const { return isAiming_; }
-
 private:
 
 	void GetPhysicsValues();
@@ -61,7 +56,6 @@ private:
 	void Jump();
 	void Attack(float dt);
 	void Hide(float dt);
-	void Slingshot(float dt);
 	void Teleport();
 	void ApplyPhysics();
 	void Draw(float dt);
@@ -143,17 +137,4 @@ private:
 	SDL_Texture* pushTexture_ = nullptr;
 	Animation    pushAnim_;
 	static constexpr float PUSH_SPEED_FACTOR = 0.35f; // 35% of normal speed
-
-	// Slingshot (tirachinas) weapon
-	bool  hasSlingshot_ = false;
-	bool  isAiming_ = false;
-	float chargeTimer_ = 0.0f;
-	float aimAngle_ = 0.0f;
-	float slingshotCooldown_ = 0.0f;
-	static constexpr float MAX_CHARGE_TIME = 1500.0f;    // ms
-	static constexpr float MIN_LAUNCH_SPEED = 3.0f;
-	static constexpr float MAX_LAUNCH_SPEED = 12.0f;
-	static constexpr float SLINGSHOT_COOLDOWN = 500.0f;   // ms
-	SDL_Texture* slingshotShootTexture_ = nullptr;
-	Animation    slingshotAnim_;
 };
