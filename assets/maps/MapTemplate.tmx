@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="467" height="308" tilewidth="64" tileheight="64" infinite="0" nextlayerid="38" nextobjectid="403">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="467" height="308" tilewidth="64" tileheight="64" infinite="0" nextlayerid="37" nextobjectid="401">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -144375,6 +144375,7 @@
   </data>
  </layer>
  <objectgroup id="9" name="Entities">
+  <object id="11" name="Player" type="Player" x="19422.2" y="13535" width="96" height="96"/>
   <object id="12" name="Enemy" type="Enemy" x="14574" y="12951" width="32" height="32"/>
   <object id="13" name="EnemyB" type="EnemyB" x="15580" y="12938" width="32" height="32">
    <properties>
@@ -144384,9 +144385,5 @@
   </object>
   <object id="14" name="EnemyC" type="EnemyC" x="17224" y="12920" width="32" height="32"/>
   <object id="397" name="Cape" type="Cape" x="13184" y="576"/>
-  <object id="401" name="Player" type="Player" x="19462" y="13508" width="96" height="96"/>
- </objectgroup>
- <objectgroup id="37" name="Weapons">
-  <object id="402" name="Tirachinas" type="Tirachinas" x="18913" y="13546.7" width="96" height="96"/>
  </objectgroup>
 </map>
