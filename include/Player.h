@@ -10,6 +10,11 @@ struct SDL_Texture;
 class Player : public Entity
 {
 public:
+	enum class EquippedItem { NONE, BLANKET, SLINGSHOT, STUFFED_ANIMAL };
+
+	// Equipped Item state
+	EquippedItem GetEquippedItem() const { return equippedItem_; }
+	void SetEquippedItem(EquippedItem item) { equippedItem_ = item; }
 
 	Player();
 
@@ -53,6 +58,10 @@ public:
 	bool HasSlingshot() const { return hasSlingshot_; }
 	void SetHasSlingshot(bool v) { hasSlingshot_ = v; }
 	bool IsAiming() const { return isAiming_; }
+
+	// Stuffed Animal / Plush collectible
+	bool HasStuffedAnimal() const { return hasStuffedAnimal_; }
+	void SetHasStuffedAnimal(bool v) { hasStuffedAnimal_ = v; }
 
 private:
 
@@ -134,6 +143,8 @@ private:
 
 	// Blanket (cape) collectible flag
 	bool hasBlanket_ = false;
+	bool hasStuffedAnimal_ = false;
+	EquippedItem equippedItem_ = EquippedItem::NONE;
 
 	// Push rock state
 	bool  isPushing_ = false;

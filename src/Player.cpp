@@ -111,6 +111,21 @@ bool Player::Update(float dt)
 
 	if (!isDead_ && !isWakingUp)
 	{
+		// Fast-swap equipped items during gameplay
+		auto& input = *Engine::GetInstance().input;
+		if (input.GetKey(SDL_SCANCODE_1) == KEY_DOWN && hasBlanket_) {
+			equippedItem_ = EquippedItem::BLANKET;
+			Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+		}
+		if (input.GetKey(SDL_SCANCODE_2) == KEY_DOWN && hasSlingshot_) {
+			equippedItem_ = EquippedItem::SLINGSHOT;
+			Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+		}
+		if (input.GetKey(SDL_SCANCODE_3) == KEY_DOWN && hasStuffedAnimal_) {
+			equippedItem_ = EquippedItem::STUFFED_ANIMAL;
+			Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+		}
+
 		if (!isShowingDamageAnim_) {
 			// Hide must be evaluated first so it can block other actions
 			Hide(dt);
@@ -274,9 +289,9 @@ void Player::Hide(float dt)
 	bool hideDown = input->GetKey(SDL_SCANCODE_H) == KEY_DOWN ||
 	                input->GetGamepadButton(SDL_GAMEPAD_BUTTON_NORTH) == KEY_DOWN;
 
-	// Cannot hide without the blanket (cape collectible)
-	if (!hasBlanket_) {
-		if (hideDown) {
+	// Cannot hide without the blanket (cape collectible) or if it's not equipped
+	if (!hasBlanket_ || equippedItem_ != EquippedItem::BLANKET) {
+		if (hideDown && !hasBlanket_) {
 			Engine::GetInstance().scene->ShowNoCapeNotification();
 		}
 		return;
@@ -340,7 +355,7 @@ void Player::Hide(float dt)
 // ─────────────────────────────────────────────────────────────────────────────
 void Player::Slingshot(float dt)
 {
-	if (!hasSlingshot_) return;
+	if (!hasSlingshot_ || equippedItem_ != EquippedItem::SLINGSHOT) return;
 
 	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_)
 	{

@@ -30,6 +30,7 @@ public:
     void     SetPlayerPosition(Vector2D pos);
     SceneID  GetCurrentScene() const { return currentScene; }
     std::string GetTilePosDebug() const { return ""; }
+    int GetMenuClickFxId() const { return menuClickFxId; }
 
     std::shared_ptr<Player> player = nullptr;
 
@@ -198,6 +199,9 @@ private:
     float slingshotNotifTimer_ = 0.0f;
     static constexpr float SLINGSHOT_NOTIF_DURATION = 3000.0f;
 
+    // Minimap Ornate Frame Border
+    SDL_Texture* texMinimapFrame_ = nullptr;
+
     // Game Over Menu Assets
     SDL_Texture* texGameOverBg_ = nullptr;
     SDL_Texture* texGameOverBtn_ = nullptr;
@@ -229,6 +233,21 @@ private:
     float mapViewDragOriginY_ = 0.0f;
 
     void DrawMapViewer(int winW, int winH);
+
+    // ── Inventory ─────────────────────────────────────────────────────────────
+    bool  showInventory_ = false;
+    void DrawInventory(int winW, int winH);
+
+    SDL_Texture* texInventoryBg_ = nullptr;
+    SDL_Texture* texAbilitiesLocked_ = nullptr;
+    SDL_Texture* texAbilitiesBlanket_ = nullptr;
+    SDL_Texture* texAbilitiesBlanketSling_ = nullptr;
+    SDL_Texture* texAbilitiesAll_ = nullptr;
+
+    SDL_Texture* texAbilityBlanketIcon_ = nullptr;
+    SDL_Texture* texAbilitySlingshotIcon_ = nullptr;
+    SDL_Texture* texAbilityStuffedAnimalIcon_ = nullptr;
+    SDL_Texture* texAbilityAnchorIcon_ = nullptr;
 
     // ── Main menu textures ────────────────────────────────────────────────────
     SDL_Texture* texMenuLogo_ = nullptr;

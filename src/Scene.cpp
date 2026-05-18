@@ -758,6 +758,7 @@ void Scene::LoadGameplay()
 	isPaused_ = false;
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
+	showInventory_ = false;
 
 	Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 1.0f);
 
@@ -862,32 +863,48 @@ void Scene::LoadGameplay()
 	texBlanketActive_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability.png");
 	texBlanketInactive_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability_low_opacity.png");
 
-	// Cape collectible (AS_capa.png)
-	texCapaCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/AS_capa.png");
-	if (texCapaCollectible_) {
-		SDL_SetTextureColorMod(texCapaCollectible_, 100, 100, 120);
-	}
+	// Cape collectible (Colectible manta.png - high quality folded blue blanket)
+	texCapaCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/Colectible manta.png");
 	capaCollected_ = false;
 	capaFloatTimer_ = 0.0f;
 
-	// Read cape position from TMX Entities layer instead of hardcoding
+	// Read cape position from TMX Entities layer. If not found, use a fallback spawn position
 	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
-		LOG("WARNING: No Cape entity found in TMX Entities layer, cape will not spawn");
-		capaCollected_ = true;
+		LOG("WARNING: No Cape entity found in TMX Entities layer, using default fallback position");
+		capaX_ = 450.0f;
+		capaY_ = 650.0f;
+		capaCollected_ = false;
 	}
 
 	capaBody_ = nullptr;
 
 	// Slingshot (Tirachinas) collectible
 	texSlingshotCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/Colectible tirachinas.png");
+
+	// Inventory textures
+	texInventoryBg_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Inventory_Menu_Base.png");
+	texAbilitiesLocked_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Abilities_Locked.png");
+	texAbilitiesBlanket_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Abilities_Blanket_Unlocked.png");
+	texAbilitiesBlanketSling_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Abilities_Blanket_Slingshot_Unlocked.png");
+	texAbilitiesAll_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Abilities_ALL_Unlocked.png");
+
+	texAbilityBlanketIcon_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Ability_Blanket.png");
+	texAbilitySlingshotIcon_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Ability_Slingshot.png");
+	texAbilityStuffedAnimalIcon_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Ability_Stuffed_Animal.png");
+	texAbilityAnchorIcon_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Ability_Anchor.png");
 	slingshotCollected_ = false;
 	slingshotFloatTimer_ = 0.0f;
 
-	// Read slingshot position from TMX
+	// Read slingshot position from TMX. If not found, use a fallback spawn position
 	if (!Engine::GetInstance().map->GetSlingshotPosition(slingshotX_, slingshotY_)) {
-		LOG("WARNING: No Tirachinas entity found in TMX, slingshot will not spawn");
-		slingshotCollected_ = true;
+		LOG("WARNING: No Tirachinas entity found in TMX, using default fallback position");
+		slingshotX_ = 750.0f;
+		slingshotY_ = 650.0f;
+		slingshotCollected_ = false;
 	}
+
+	// Load Minimap Ornate Frame Texture
+	texMinimapFrame_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Minimap.png");
 }
 
 void Scene::UpdateGameplay(float dt)
@@ -898,13 +915,39 @@ void Scene::UpdateGameplay(float dt)
 		gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN;
 	bool backBtn = gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN;
 
-	if (!isGameOver_ && (pauseToggle || (backBtn && (showMapViewer_ || showPauseOptions_ || isPaused_))))
+	// Toggle Inventory with 'I' or Gamepad D-pad UP
+	bool inventoryToggle = gpInput.GetKey(SDL_SCANCODE_I) == KEY_DOWN ||
+		gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_UP) == KEY_DOWN;
+
+	if (!isGameOver_ && inventoryToggle)
+	{
+		if (showInventory_) {
+			showInventory_ = false;
+			isPaused_ = false;
+			SetPauseMenuVisible(false);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (!isPaused_ && !showMapViewer_) {
+			showInventory_ = true;
+			isPaused_ = true;
+			SetPauseMenuVisible(false);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+	}
+
+	if (!isGameOver_ && (pauseToggle || (backBtn && (showMapViewer_ || showInventory_ || showPauseOptions_ || isPaused_))))
 	{
 		if (showMapViewer_) {
 			showMapViewer_ = false;
 			// If no pause menu buttons are visible, map was opened via touchpad — unpause
 			isPaused_ = false;
 			SetPauseMenuVisible(false);
+		}
+		else if (showInventory_) {
+			showInventory_ = false;
+			isPaused_ = false;
+			SetPauseMenuVisible(false);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
 		}
 		else if (showPauseOptions_) {
 			showPauseOptions_ = false;
@@ -933,6 +976,14 @@ void Scene::UpdateGameplay(float dt)
 		Vector2D playerPos = player ? player->GetPosition() : Vector2D(0, 0);
 		mapViewOffsetX_ = (float)viewW / 2.0f - (playerPos.getX() * mapViewZoom_);
 		mapViewOffsetY_ = (float)viewH / 2.0f - (playerPos.getY() * mapViewZoom_);
+	}
+
+	if (showInventory_)
+	{
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		DrawInventory(winW, winH);
+		return;
 	}
 
 	if (showMapViewer_)
@@ -1133,11 +1184,12 @@ void Scene::UpdateGameplay(float dt)
 		int capaTexW = 0, capaTexH = 0;
 		Engine::GetInstance().textures->GetSize(texCapaCollectible_, capaTexW, capaTexH);
 		float floatOffset = 6.0f * sinf(capaFloatTimer_ * 0.003f);
-		int drawX = (int)(capaX_ - (float)capaTexW * 0.5f / 2.0f);
-		int drawY = (int)(capaY_ - (float)capaTexH * 0.5f / 2.0f + floatOffset);
+		float capaScale = 0.06f; // Perfect floating scale for the high-res blue blanket!
+		int drawX = (int)(capaX_ - (float)capaTexW * capaScale / 2.0f);
+		int drawY = (int)(capaY_ - (float)capaTexH * capaScale / 2.0f + floatOffset);
 
 		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
-		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, capaScale);
 	}
 }
 
@@ -1150,6 +1202,7 @@ void Scene::UnloadGameplay()
 	isPaused_ = false;
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
+	showInventory_ = false;
 
 	if (texHealth1_) { Engine::GetInstance().textures->UnLoad(texHealth1_); texHealth1_ = nullptr; }
 	if (texHealth2_) { Engine::GetInstance().textures->UnLoad(texHealth2_); texHealth2_ = nullptr; }
@@ -1177,6 +1230,20 @@ void Scene::UnloadGameplay()
 
 	if (texSlingshotCollectible_) { Engine::GetInstance().textures->UnLoad(texSlingshotCollectible_); texSlingshotCollectible_ = nullptr; }
 	slingshotCollected_ = false;
+
+	if (texInventoryBg_) { Engine::GetInstance().textures->UnLoad(texInventoryBg_); texInventoryBg_ = nullptr; }
+	if (texAbilitiesLocked_) { Engine::GetInstance().textures->UnLoad(texAbilitiesLocked_); texAbilitiesLocked_ = nullptr; }
+	if (texAbilitiesBlanket_) { Engine::GetInstance().textures->UnLoad(texAbilitiesBlanket_); texAbilitiesBlanket_ = nullptr; }
+	if (texAbilitiesBlanketSling_) { Engine::GetInstance().textures->UnLoad(texAbilitiesBlanketSling_); texAbilitiesBlanketSling_ = nullptr; }
+	if (texAbilitiesAll_) { Engine::GetInstance().textures->UnLoad(texAbilitiesAll_); texAbilitiesAll_ = nullptr; }
+
+	if (texAbilityBlanketIcon_) { Engine::GetInstance().textures->UnLoad(texAbilityBlanketIcon_); texAbilityBlanketIcon_ = nullptr; }
+	if (texAbilitySlingshotIcon_) { Engine::GetInstance().textures->UnLoad(texAbilitySlingshotIcon_); texAbilitySlingshotIcon_ = nullptr; }
+	if (texAbilityStuffedAnimalIcon_) { Engine::GetInstance().textures->UnLoad(texAbilityStuffedAnimalIcon_); texAbilityStuffedAnimalIcon_ = nullptr; }
+	if (texAbilityAnchorIcon_) { Engine::GetInstance().textures->UnLoad(texAbilityAnchorIcon_); texAbilityAnchorIcon_ = nullptr; }
+
+	// Unload Minimap Ornate Frame
+	if (texMinimapFrame_) { Engine::GetInstance().textures->UnLoad(texMinimapFrame_); texMinimapFrame_ = nullptr; }
 }
 
 void Scene::PostUpdateGameplay()
@@ -1190,7 +1257,7 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Draw Health HUD ---
-	if (player && !player->isWakingUp) {
+	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_) {
 		SDL_Rect r;
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
@@ -1246,15 +1313,22 @@ void Scene::PostUpdateGameplay()
 		}
 
 
-		if (player->HasBlanket())
-		{
-			// --- Blanket Ability HUD Icon ---
-			SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
-			if (blanketTex)
-			{
+		Player::EquippedItem eq = player->GetEquippedItem();
 
-				Engine::GetInstance().render->DrawTextureAlpha(blanketTex, 220, 72, 64, 64, 255);
+		// --- Blanket HUD Icon ---
+		if (player->HasBlanket() && texCapaCollectible_)
+		{
+			int blHudX = 220;
+			int blHudY = 72;
+			Uint8 blAlpha = player->IsHiding() ? (Uint8)255 : (Uint8)160;
+
+			if (eq == Player::EquippedItem::BLANKET)
+			{
+				// Draw a gorgeous golden neon border around equipped Blanket HUD slot
+				SDL_Rect hudBorder = { blHudX - 4, blHudY - 4, 56, 56 };
+				Engine::GetInstance().render->DrawRectangle(hudBorder, 255, 195, 0, 255, false, false);
 			}
+			Engine::GetInstance().render->DrawTextureAlpha(texCapaCollectible_, blHudX, blHudY, 48, 48, blAlpha);
 		}
 
 		// --- Slingshot HUD Icon ---
@@ -1264,7 +1338,179 @@ void Scene::PostUpdateGameplay()
 			int slHudX = player->HasBlanket() ? 290 : 220;
 			int slHudY = 72;
 			Uint8 slAlpha = player->IsAiming() ? (Uint8)255 : (Uint8)160;
+
+			if (eq == Player::EquippedItem::SLINGSHOT)
+			{
+				// Draw a gorgeous golden neon border around equipped Slingshot HUD slot
+				SDL_Rect hudBorder = { slHudX - 4, slHudY - 4, 56, 56 };
+				Engine::GetInstance().render->DrawRectangle(hudBorder, 255, 195, 0, 255, false, false);
+			}
 			Engine::GetInstance().render->DrawTextureAlpha(texSlingshotCollectible_, slHudX, slHudY, 48, 48, slAlpha);
+		}
+
+		// --- Draw Dynamic Minimap ---
+		if (!texMinimapFrame_)
+		{
+			texMinimapFrame_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Minimap.png");
+		}
+
+		if (texMinimapFrame_)
+		{
+			auto& render = *Engine::GetInstance().render;
+			int winW = 0, winH = 0;
+			Engine::GetInstance().window->GetWindowSize(winW, winH);
+			
+			// Position: Bottom-Right corner of the screen
+			int miniW = 220;
+			int miniH = 220;
+			int miniX = winW - miniW - 20;
+			int miniY = winH - miniH - 20;
+
+			// Inner boundaries for terrain viewport (accounting for the ornate border thickness)
+			int borderThickness = 19;
+			int innerX = miniX + borderThickness;
+			int innerY = miniY + borderThickness;
+			int innerW = miniW - borderThickness * 2; // 182px
+			int innerH = miniH - borderThickness * 2; // 182px
+			int centerX = innerX + innerW / 2;
+			int centerY = innerY + innerH / 2;
+
+			// Draw a dark solid container background behind the scrolling map terrain
+			SDL_Rect miniBg = { innerX, innerY, innerW, innerH };
+			render.DrawRectangle(miniBg, 12, 16, 26, 210, true, false);
+
+			// Center the map viewport around the player's pixel position
+			float pWorldX = player->position.getX();
+			float pWorldY = player->position.getY();
+
+			// 1 minimap pixel = 4 world pixels (perfect for 64px / 32px tiles to show context)
+			int tileWidth = Engine::GetInstance().map->GetTileWidth();
+			int tileHeight = Engine::GetInstance().map->GetTileHeight();
+			if (tileWidth <= 0) tileWidth = 64;
+			if (tileHeight <= 0) tileHeight = 64;
+
+			float worldToMiniScale = 4.0f / (float)tileWidth;
+
+			// Scan local tile neighborhood around the player's tile position
+			int pTileX = (int)(pWorldX / (float)tileWidth);
+			int pTileY = (int)(pWorldY / (float)tileHeight);
+			int radius = 25; // Scan range of 25 tiles out to fill the larger viewport
+
+			for (int dy = -radius; dy <= radius; dy++)
+			{
+				for (int dx = -radius; dx <= radius; dx++)
+				{
+					int tx = pTileX + dx;
+					int ty = pTileY + dy;
+
+					// Draw all layers that have "Draw" enabled (so we see the actual level visuals!)
+					for (const auto& mapLayer : Engine::GetInstance().map->mapData.layers)
+					{
+						if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true)
+						{
+							if (tx >= 0 && tx < mapLayer->width && ty >= 0 && ty < mapLayer->height)
+							{
+								int gid = mapLayer->Get(tx, ty);
+								if (gid != 0)
+								{
+									TileSet* tileSet = Engine::GetInstance().map->GetTilesetFromTileId(gid);
+									if (tileSet != nullptr && tileSet->texture != nullptr)
+									{
+										SDL_Rect tileRect = tileSet->GetRect(gid);
+
+										// Calculate sub-pixel world position offset from player
+										float wTileX = (float)tx * (float)tileWidth;
+										float wTileY = (float)ty * (float)tileHeight;
+
+										float offsetWorldX = wTileX - pWorldX;
+										float offsetWorldY = wTileY - pWorldY;
+
+										// Convert offset to minimap coordinates
+										float offsetMiniX = offsetWorldX * worldToMiniScale;
+										float offsetMiniY = offsetWorldY * worldToMiniScale;
+
+										int drawTileX = (int)(centerX + offsetMiniX);
+										int drawTileY = (int)(centerY + offsetMiniY);
+
+										// Viewport Clipping - only render if inside the inner frame boundary
+										// Standard tiles are 4px wide in our minimap scale
+										if (drawTileX >= innerX && drawTileX + 4 <= innerX + innerW &&
+											drawTileY >= innerY && drawTileY + 4 <= innerY + innerH)
+										{
+											// Draw the real tile texture scaled down, speed=0.0f to lock to HUD space!
+											float drawScale = 4.0f / (float)tileWidth;
+											render.DrawTexture(tileSet->texture, drawTileX, drawTileY, &tileRect, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// --- Draw Collectibles on Radar if not yet picked up ---
+			// Cape / Blanket Collectible (Blue Dot)
+			if (!capaCollected_)
+			{
+				float offsetWorldX = capaX_ - pWorldX;
+				float offsetWorldY = (capaY_ - 50.0f) - pWorldY; // account for float offset center
+				float offsetMiniX = offsetWorldX * worldToMiniScale;
+				float offsetMiniY = offsetWorldY * worldToMiniScale;
+
+				int drawX = (int)(centerX + offsetMiniX);
+				int drawY = (int)(centerY + offsetMiniY);
+
+				if (drawX >= innerX + 3 && drawX <= innerX + innerW - 3 &&
+					drawY >= innerY + 3 && drawY <= innerY + innerH - 3)
+				{
+					SDL_Rect dot = { drawX - 3, drawY - 3, 6, 6 };
+					// High-contrast neon blue color for the Cape!
+					render.DrawRectangle(dot, 0, 190, 255, 255, true, false);
+					SDL_Rect dotOutline = { drawX - 4, drawY - 4, 8, 8 };
+					render.DrawRectangle(dotOutline, 255, 255, 255, 200, false, false);
+				}
+			}
+
+			// Slingshot / Tirachinas Collectible (Orange Dot)
+			if (!slingshotCollected_)
+			{
+				float offsetWorldX = slingshotX_ - pWorldX;
+				float offsetWorldY = (slingshotY_ - 50.0f) - pWorldY; // account for float offset center
+				float offsetMiniX = offsetWorldX * worldToMiniScale;
+				float offsetMiniY = offsetWorldY * worldToMiniScale;
+
+				int drawX = (int)(centerX + offsetMiniX);
+				int drawY = (int)(centerY + offsetMiniY);
+
+				if (drawX >= innerX + 3 && drawX <= innerX + innerW - 3 &&
+					drawY >= innerY + 3 && drawY <= innerY + innerH - 3)
+				{
+					SDL_Rect dot = { drawX - 3, drawY - 3, 6, 6 };
+					// High-contrast neon orange color for the Slingshot!
+					render.DrawRectangle(dot, 255, 120, 0, 255, true, false);
+					SDL_Rect dotOutline = { drawX - 4, drawY - 4, 8, 8 };
+					render.DrawRectangle(dotOutline, 255, 255, 255, 200, false, false);
+				}
+			}
+
+			// --- Draw Player Indicator (Blinking glowing yellow dot in the exact center) ---
+			float gameTime = (float)SDL_GetTicks();
+			Uint8 pAlpha = (Uint8)(170 + 85.0f * sinf(gameTime * 0.007f));
+			SDL_Rect playerDot = { centerX - 3, centerY - 3, 6, 6 };
+			render.DrawRectangle(playerDot, 255, 235, 30, pAlpha, true, false);
+			SDL_Rect playerBorder = { centerX - 4, centerY - 4, 8, 8 };
+			render.DrawRectangle(playerBorder, 255, 255, 255, 255, false, false);
+
+			// --- Draw Ornate Frame Overlay right on top ---
+			int frameW = 0, frameH = 0;
+			Engine::GetInstance().textures->GetSize(texMinimapFrame_, frameW, frameH);
+			if (frameW > 0)
+			{
+				SDL_Rect frameSec = { 0, 0, frameW, frameH };
+				float scaleFrame = 220.0f / (float)frameW;
+				render.DrawTexture(texMinimapFrame_, miniX, miniY, &frameSec, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, scaleFrame);
+			}
 		}
 	}
 
@@ -1483,6 +1729,161 @@ void Scene::PostUpdateGameplay()
 			spColor,
 			0.35f
 		);
+	}
+}
+
+// ── Inventory ─────────────────────────────────────────────────────────────────
+
+void Scene::DrawInventory(int winW, int winH)
+{
+	auto& render = *Engine::GetInstance().render;
+
+	// 1. Draw the split-screen background template texture
+	if (texInventoryBg_)
+	{
+		render.DrawTextureAlpha(texInventoryBg_, 0, 0, winW, winH, 255);
+	}
+	else
+	{
+		// Fallback dim background if texture not loaded
+		SDL_Rect dimBg = { 0, 0, winW, winH };
+		render.DrawRectangle(dimBg, 5, 8, 15, 230, true, false);
+	}
+
+	// 2. Compute left section (Abilities) layout & draw the active Diamond Graphic
+	int diamSize = (winW < 1280) ? 440 : 520;
+	int diamX = (winW / 2 - diamSize) / 2;
+	int diamY = (winH - diamSize) / 2;
+
+	bool blanket = player && player->HasBlanket();
+	bool slingshot = player && player->HasSlingshot();
+	bool stuffed = player && player->HasStuffedAnimal();
+
+	SDL_Texture* diamTex = texAbilitiesLocked_;
+	if (blanket && slingshot && stuffed)
+	{
+		diamTex = texAbilitiesAll_;
+	}
+	else if (blanket && slingshot)
+	{
+		diamTex = texAbilitiesBlanketSling_;
+	}
+	else if (blanket)
+	{
+		diamTex = texAbilitiesBlanket_;
+	}
+	else
+	{
+		diamTex = texAbilitiesLocked_;
+	}
+
+	if (diamTex)
+	{
+		render.DrawTextureAlpha(diamTex, diamX, diamY, diamSize, diamSize, 255);
+	}
+
+	// 2b. Compute exact slot centers on the wheel texture
+	// In the wheel, the slots form an inner diamond with a 0.15 radius (0.35f to 0.65f)
+	int topX = diamX + diamSize / 2;
+	int topY = diamY + (int)(diamSize * 0.35f);
+
+	int leftX = diamX + (int)(diamSize * 0.35f);
+	int leftY = diamY + diamSize / 2;
+
+	int rightX_diam = diamX + (int)(diamSize * 0.65f);
+	int rightY_diam = diamY + diamSize / 2;
+
+	int bottomX = diamX + diamSize / 2;
+	int bottomY = diamY + (int)(diamSize * 0.65f);
+
+	// Dynamic icon size (100px when diamSize=520, which covers the lock diamond completely!)
+	int iconSize = (int)(diamSize * 0.192f);
+
+	// Mouse detection based on the true slot centers!
+	auto& input = Engine::GetInstance().input;
+	Vector2D mousePos = input->GetMousePosition();
+
+	// Hover radius is half of iconSize plus some padding
+	int hoverRadius = iconSize / 2;
+
+	bool hoverTop = (mousePos.getX() >= topX - hoverRadius && mousePos.getX() <= topX + hoverRadius &&
+					 mousePos.getY() >= topY - hoverRadius && mousePos.getY() <= topY + hoverRadius);
+
+	bool hoverLeft = (mousePos.getX() >= leftX - hoverRadius && mousePos.getX() <= leftX + hoverRadius &&
+					  mousePos.getY() >= leftY - hoverRadius && mousePos.getY() <= leftY + hoverRadius);
+
+	bool hoverRight = (mousePos.getX() >= rightX_diam - hoverRadius && mousePos.getX() <= rightX_diam + hoverRadius &&
+					   mousePos.getY() >= rightY_diam - hoverRadius && mousePos.getY() <= rightY_diam + hoverRadius);
+
+	bool hoverBottom = (mousePos.getX() >= bottomX - hoverRadius && mousePos.getX() <= bottomX + hoverRadius &&
+						mousePos.getY() >= bottomY - hoverRadius && mousePos.getY() <= bottomY + hoverRadius);
+
+	// Handle item equipping clicks!
+	if (input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN)
+	{
+		if (hoverLeft && blanket)
+		{
+			player->SetEquippedItem(Player::EquippedItem::BLANKET);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (hoverTop && slingshot)
+		{
+			player->SetEquippedItem(Player::EquippedItem::SLINGSHOT);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (hoverRight && stuffed)
+		{
+			player->SetEquippedItem(Player::EquippedItem::STUFFED_ANIMAL);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+	}
+
+	// Draw hover overlays inside the diamond (feedback for active slots)
+	if (hoverLeft && blanket)
+	{
+		SDL_Rect hov = { leftX - iconSize/2 - 2, leftY - iconSize/2 - 2, iconSize + 4, iconSize + 4 };
+		render.DrawRectangle(hov, 255, 255, 255, 120, false, false);
+	}
+	if (hoverTop && slingshot)
+	{
+		SDL_Rect hov = { topX - iconSize/2 - 2, topY - iconSize/2 - 2, iconSize + 4, iconSize + 4 };
+		render.DrawRectangle(hov, 255, 255, 255, 120, false, false);
+	}
+	if (hoverRight && stuffed)
+	{
+		SDL_Rect hov = { rightX_diam - iconSize/2 - 2, rightY_diam - iconSize/2 - 2, iconSize + 4, iconSize + 4 };
+		render.DrawRectangle(hov, 255, 255, 255, 120, false, false);
+	}
+
+	// Draw active equipping golden frame overlays inside the diamond
+	Player::EquippedItem eq = player ? player->GetEquippedItem() : Player::EquippedItem::NONE;
+	if (eq != Player::EquippedItem::NONE)
+	{
+		int eqX = 0, eqY = 0;
+		if (eq == Player::EquippedItem::BLANKET && blanket) { eqX = leftX; eqY = leftY; }
+		else if (eq == Player::EquippedItem::SLINGSHOT && slingshot) { eqX = topX; eqY = topY; }
+		else if (eq == Player::EquippedItem::STUFFED_ANIMAL && stuffed) { eqX = rightX_diam; eqY = rightY_diam; }
+
+		if (eqX != 0)
+		{
+			SDL_Rect eqBorder = { eqX - iconSize/2 - 3, eqY - iconSize/2 - 3, iconSize + 6, iconSize + 6 };
+			render.DrawRectangle(eqBorder, 255, 195, 0, 255, false, false);
+			SDL_Rect eqBorder2 = { eqX - iconSize/2 - 5, eqY - iconSize/2 - 5, iconSize + 10, iconSize + 10 };
+			render.DrawRectangle(eqBorder2, 255, 215, 80, 160, false, false);
+		}
+	}
+
+
+
+	// 5. Instructions Footer Overlay
+	SDL_Rect footer = { 0, winH - 45, winW, 30 };
+	if (Engine::GetInstance().input->IsGamepadConnected())
+	{
+		render.DrawMenuTextCentered("Clic en slots para Equipar  |  ARRIBA o 'I' para cerrar", footer, { 180, 210, 240, 200 }, 0.35f);
+	}
+	else
+	{
+		render.DrawMenuTextCentered("Clic en slots para Equipar (Teclas 1, 2, 3 en juego)  |  'I' para cerrar", footer, { 180, 210, 240, 200 }, 0.35f);
 	}
 }
 
