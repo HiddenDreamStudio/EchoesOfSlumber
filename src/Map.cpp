@@ -13,6 +13,7 @@
 #include "PushRock.h"
 #include "Window.h"
 #include "tracy/Tracy.hpp"
+#include "Door.h"
 
 #include <math.h>
 #include <algorithm>
@@ -671,6 +672,12 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     mapData.capeX = x;
                     mapData.capeY = y;
                     LOG("Cape position loaded from TMX at: %f, %f", x, y);
+                }
+                else if (entityType == "Door") {
+                    auto door = std::dynamic_pointer_cast<Door>(Engine::GetInstance().entityManager->CreateEntity(EntityType::DOOR));
+                    door->position = Vector2D(x, y);
+                    door->Start();
+                    LOG("Door spawned at: %f, %f", x, y);
                 }
             }
         }
