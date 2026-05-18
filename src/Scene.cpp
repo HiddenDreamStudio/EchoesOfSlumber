@@ -1,4 +1,4 @@
-﻿#include "Engine.h"
+#include "Engine.h"
 #include "Input.h"
 #include "Textures.h"
 #include "Audio.h"
@@ -650,7 +650,7 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 			}
 		}
 
-		// ── Gamepad navigation ──────────────────────────────────────
+		// -- Gamepad navigation --------------------------------------
 		auto& gpInput = *Engine::GetInstance().input;
 		float dt = Engine::GetInstance().GetDt();
 
@@ -1568,7 +1568,7 @@ void Scene::PostUpdateGameplay()
 		render3.DrawRectangle(ncpBorder, 255, 255, 255, alpha3, false, false);
 
 		SDL_Color ncpColor = { 255, 255, 255, alpha3 };
-		render3.DrawMenuTextCentered("You cant do this you need an object", { ncpX, ncpY, ncpW, ncpH }, ncpColor, 0.35f);
+		render3.DrawMenuTextCentered("You can't do this; you need an object", { ncpX, ncpY, ncpW, ncpH }, ncpColor, 0.35f);
 	}
 
 	// --- Slingshot pickup notification ---

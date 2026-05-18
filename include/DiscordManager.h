@@ -23,6 +23,6 @@ private:
 
     std::shared_ptr<discordpp::Client> client;
     const uint64_t APPLICATION_ID = 1476916209667805430;
-    bool isReady = false;
-    int64_t startTime = 0;
+    std::atomic<bool> isReady = false;
+    std::atomic<int64_t> startTime = 0;
 };

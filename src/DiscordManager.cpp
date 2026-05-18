@@ -21,6 +21,11 @@ bool DiscordManager::Awake()
     LOG("Initializing Discord Social SDK (Direct RPC Mode)...");
     client = std::make_shared<discordpp::Client>();
 
+    if (!client) {
+        LOG("Discord: Failed to instantiate client!");
+        return false;
+    }
+
     // Set Application ID first
     client->SetApplicationId(APPLICATION_ID);
 
@@ -45,9 +50,9 @@ bool DiscordManager::Awake()
     }, discordpp::LoggingSeverity::Info);
 
     // Initialize global start time for the session timer
-    startTime = time(nullptr);
+    startTime = (int64_t)time(nullptr);
 
-    // In Direct RPC mode, we don't wait for callbacks; we activate immediately
+    // In Direct RPC mode, we don't wait for callbacks; we activate immediately if client is valid
     isReady = true; 
 
     return true;
@@ -55,6 +60,8 @@ bool DiscordManager::Awake()
 
 bool DiscordManager::Start()
 {
+    if (!isReady || !client) return true;
+
     LOG("Setting initial Discord Presence...");
     UpdatePresence("", "");
     return true;
@@ -62,13 +69,17 @@ bool DiscordManager::Start()
 
 bool DiscordManager::Update(float dt)
 {
-    discordpp::RunCallbacks();
+    if (client) {
+        discordpp::RunCallbacks();
+    }
     return true;
 }
 
 bool DiscordManager::CleanUp()
 {
     LOG("Cleaning up Discord SDK");
+    isReady = false;
+    client.reset();
     return true;
 }
 
@@ -80,7 +91,7 @@ void DiscordManager::Authenticate()
 
 void DiscordManager::UpdatePresence(const char* state, const char* details)
 {
-    if (!isReady) return;
+    if (!isReady || !client) return;
 
     discordpp::Activity activity;
     activity.SetType(discordpp::ActivityTypes::Playing);

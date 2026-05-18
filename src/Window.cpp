@@ -113,6 +113,7 @@ void Window::SetFullscreen(bool fullscreen)
 	}
 	else {
 		SDL_SetWindowFullscreen(window, false);
+		SDL_SetWindowBordered(window, true); // Restore borders when exiting fullscreen
 		currentMode = WindowMode::WINDOWED;
 	}
 }
@@ -121,6 +122,7 @@ void Window::SetBorderless(bool borderless)
 {
 	SDL_SetWindowBordered(window, !borderless);
 	if (borderless) currentMode = WindowMode::BORDERLESS;
+	else currentMode = WindowMode::WINDOWED;
 }
 
 void Window::SetWindowMode(WindowMode mode)
@@ -138,6 +140,7 @@ void Window::SetWindowMode(WindowMode mode)
 		// Fullscreen usually changes resolution to match display
 		SDL_SetWindowFullscreenMode(window, nullptr);
 		SDL_SetWindowFullscreen(window, true);
+		SDL_SetWindowBordered(window, false); // Best practice for exclusive fullscreen
 		break;
 	case WindowMode::BORDERLESS:
 	{

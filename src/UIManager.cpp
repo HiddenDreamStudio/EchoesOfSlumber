@@ -55,7 +55,11 @@ bool UIManager::Update(float dt)
 		{
 			pendingDelete.push_back(uiElement);
 		}
-		// In Update we only handle logic (timers, inputs, states)
+		else
+		{
+			// In Update we only handle logic (timers, inputs, states)
+			uiElement->Update(dt);
+		}
 	}
 
 	// Cleanup
@@ -70,15 +74,13 @@ bool UIManager::Update(float dt)
 
 bool UIManager::PostUpdate()
 {
-	float dt = Engine::GetInstance().GetDt();
-
 	// ── Draw all UI Elements ─────────────────────────────────────────────
 	for (const auto& uiElement : UIElementsList)
 	{
 		if (!uiElement->pendingToDelete)
 		{
-			// Call update again but this time we focus on rendering inside UIButton::Update
-			uiElement->Update(dt);
+			// Render UI elements in PostUpdate (on top of everything else)
+			uiElement->Draw();
 		}
 	}
 

@@ -465,37 +465,35 @@ b2BodyType Physics::ToB2Type(bodyType t)
 void Physics::DrawSegmentCb(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* ctx)
 {
     auto& r = *Engine::GetInstance().render.get();
-    int x1 = METERS_TO_PIXELS(p1.x);
-    int y1 = METERS_TO_PIXELS(p1.y);
-    int x2 = METERS_TO_PIXELS(p2.x);
-    int y2 = METERS_TO_PIXELS(p2.y);
+    float x1 = (float)METERS_TO_PIXELS(p1.x);
+    float y1 = (float)METERS_TO_PIXELS(p1.y);
+    float x2 = (float)METERS_TO_PIXELS(p2.x);
+    float y2 = (float)METERS_TO_PIXELS(p2.y);
 
-    // Camera culling
-    SDL_Rect cam = r.camera;
-    cam.x = -cam.x; cam.y = -cam.y;
-    SDL_Rect shapeRect = { std::min(x1, x2), std::min(y1, y2), std::abs(x1 - x2) + 1, std::abs(y1 - y2) + 1 };
-    if (!SDL_HasRectIntersection(&cam, &shapeRect))
+    // Camera culling (using world coordinates)
+    float minX = std::min(x1, x2), minY = std::min(y1, y2);
+    float width = std::abs(x1 - x2) + 1.0f, height = std::abs(y1 - y2) + 1.0f;
+    
+    if (!r.IsOnScreenWorldRect(minX, minY, width, height))
         return;
 
-    r.DrawLine(x1, y1, x2, y2, 255, 255, 255);
+    r.DrawLine((int)x1, (int)y1, (int)x2, (int)y2, 255, 255, 255);
 }
 
 void Physics::DrawPolygonCb(const b2Vec2* v, int n, b2HexColor color, void* ctx)
 {
     auto& r = *Engine::GetInstance().render.get();
     
-    // Quick camera culling for the whole polygon
-    SDL_Rect cam = r.camera;
-    cam.x = -cam.x; cam.y = -cam.y;
-    int minX = 1000000, minY = 1000000, maxX = -1000000, maxY = -1000000;
+    // Quick camera culling for the whole polygon (using world coordinates)
+    float minX = 1e6f, minY = 1e6f, maxX = -1e6f, maxY = -1e6f;
     for (int i = 0; i < n; ++i) {
-        int px = METERS_TO_PIXELS(v[i].x);
-        int py = METERS_TO_PIXELS(v[i].y);
+        float px = (float)METERS_TO_PIXELS(v[i].x);
+        float py = (float)METERS_TO_PIXELS(v[i].y);
         if (px < minX) minX = px; if (py < minY) minY = py;
         if (px > maxX) maxX = px; if (py > maxY) maxY = py;
     }
-    SDL_Rect polyRect = { minX, minY, maxX - minX + 1, maxY - minY + 1 };
-    if (!SDL_HasRectIntersection(&cam, &polyRect))
+
+    if (!r.IsOnScreenWorldRect(minX, minY, maxX - minX + 1.0f, maxY - minY + 1.0f))
         return;
 
     std::vector<SDL_FPoint> points(n + 1);

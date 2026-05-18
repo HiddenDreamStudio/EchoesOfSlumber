@@ -58,12 +58,15 @@ bool Render::Awake()
 		if (gpuDevice != NULL) {
 			LOG("SDL_GPU device initialized using backend: %s", SDL_GetGPUDeviceDriver(gpuDevice));
 
-			// Claim the window so the GPU device can present to it
+			// NOTE: We don't claim the window yet to avoid conflicts with SDL_Renderer
+			// while the Vulkan path is still a no-op.
+			/*
 			if (SDL_ClaimWindowForGPUDevice(gpuDevice, window)) {
 				LOG("SDL_GPU: Window claimed successfully");
 			} else {
 				LOG("SDL_GPU: Failed to claim window! Error: %s", SDL_GetError());
 			}
+			*/
 		}
 
 		if (configParameters.child("vsync").attribute("value").as_bool())
@@ -339,26 +342,110 @@ void Render::SetCameraTarget(float x, float y)
 	}
 	cameraInitialized_ = true;
 }
-void Render::SetCameraPosition(float x, float y) { float vW = GetWorldViewportWidth(), vH = GetWorldViewportHeight(); camera.x = (int)(-x + vW / 2); camera.y = (int)(-y + vH / 2); cameraTargetX_ = x; cameraTargetY_ = y; cameraInitialized_ = true; }
+void Render::SetCameraPosition(float x, float y)
+{
+	float vW = GetWorldViewportWidth();
+	float vH = GetWorldViewportHeight();
+	camera.x = (int)(-x + vW / 2);
+	camera.y = (int)(-y + vH / 2);
+	cameraTargetX_ = x;
+	cameraTargetY_ = y;
+	cameraInitialized_ = true;
+}
 
 void Render::ClampCameraToMapBounds(float mapWidth, float mapHeight)
 {
-	float vW = GetWorldViewportWidth(), vH = GetWorldViewportHeight();
-	if (camera.x > 0) camera.x = 0; if (camera.x < -(mapWidth - vW)) camera.x = (int)-(mapWidth - vW);
-	if (camera.y > 0) camera.y = 0; if (camera.y < -(mapHeight - vH)) camera.y = (int)-(mapHeight - vH);
+	float vW = GetWorldViewportWidth();
+	float vH = GetWorldViewportHeight();
+	if (camera.x > 0) camera.x = 0;
+	if (camera.x < -(mapWidth - vW)) camera.x = (int)-(mapWidth - vW);
+	if (camera.y > 0) camera.y = 0;
+	if (camera.y < -(mapHeight - vH)) camera.y = (int)-(mapHeight - vH);
 }
 
-void Render::SetDeadZone(float w, float h) { deadZoneWidth_ = std::fmax(0.0f, w); deadZoneHeight_ = std::fmax(0.0f, h); }
-void Render::SetCameraSmoothSpeed(float s) { cameraSmoothSpeed_ = std::fmax(0.0f, s); }
+void Render::SetDeadZone(float w, float h)
+{
+	deadZoneWidth_ = std::fmax(0.0f, w);
+	deadZoneHeight_ = std::fmax(0.0f, h);
+}
 
-Vector2D Render::GetCameraPosition() const { float vW = GetWorldViewportWidth(), vH = GetWorldViewportHeight(); return Vector2D((float)(-camera.x + vW / 2), (float)(-camera.y + vH / 2)); }
-float Render::GetWorldViewportWidth() const { return (float)camera.w / Engine::GetInstance().window->GetScale(); }
-float Render::GetWorldViewportHeight() const { return (float)camera.h / Engine::GetInstance().window->GetScale(); }
+void Render::SetCameraSmoothSpeed(float s)
+{
+	cameraSmoothSpeed_ = std::fmax(0.0f, s);
+}
 
-bool Render::DrawTextureAlpha(SDL_Texture* t, int x, int y, int w, int h, Uint8 a) const { if (!t) return false; int s = Engine::GetInstance().window->GetScale(); SDL_FRect d = { (float)x * s, (float)y * s, (float)w * s, (float)h * s }; SDL_SetTextureAlphaMod(t, a); bool ok = SDL_RenderTexture(renderer, t, nullptr, &d); SDL_SetTextureAlphaMod(t, 255); return ok; }
-bool Render::DrawTextureAlphaF(SDL_Texture* t, float x, float y, float w, float h, Uint8 a) const { if (!t) return false; int s = Engine::GetInstance().window->GetScale(); SDL_FRect d = { x * s, y * s, w * s, h * s }; SDL_SetTextureAlphaMod(t, a); bool ok = SDL_RenderTexture(renderer, t, nullptr, &d); SDL_SetTextureAlphaMod(t, 255); return ok; }
+Vector2D Render::GetCameraPosition() const
+{
+	float vW = GetWorldViewportWidth();
+	float vH = GetWorldViewportHeight();
+	return Vector2D((float)(-camera.x + vW / 2), (float)(-camera.y + vH / 2));
+}
 
-bool Render::DrawMenuText(const char* t, int x, int y, int w, int h, SDL_Color c) const { if (!menuFont || !t) return false; SDL_Surface* s = TTF_RenderText_Blended(menuFont, t, 0, c); if (!s) return false; SDL_Texture* tx = SDL_CreateTextureFromSurface(renderer, s); SDL_FRect d = { (float)x * Engine::GetInstance().window->GetScale(), (float)y * Engine::GetInstance().window->GetScale(), (w > 0) ? (float)w * Engine::GetInstance().window->GetScale() : (float)s->w, (h > 0) ? (float)h * Engine::GetInstance().window->GetScale() : (float)s->h }; SDL_RenderTexture(renderer, tx, nullptr, &d); SDL_DestroyTexture(tx); SDL_DestroySurface(s); return true; }
+float Render::GetWorldViewportWidth() const
+{
+	return (float)camera.w / Engine::GetInstance().window->GetScale();
+}
+
+float Render::GetWorldViewportHeight() const
+{
+	return (float)camera.h / Engine::GetInstance().window->GetScale();
+}
+
+bool Render::DrawTextureAlpha(SDL_Texture* t, int x, int y, int w, int h, Uint8 a) const
+{
+	if (!t) return false;
+	int s = Engine::GetInstance().window->GetScale();
+	SDL_FRect d = { (float)x * s, (float)y * s, (float)w * s, (float)h * s };
+
+	SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(t, a);
+	bool ok = SDL_RenderTexture(renderer, t, nullptr, &d);
+	SDL_SetTextureAlphaMod(t, 255);
+	return ok;
+}
+
+bool Render::DrawTextureAlphaF(SDL_Texture* t, float x, float y, float w, float h, Uint8 a) const
+{
+	if (!t) return false;
+	int s = Engine::GetInstance().window->GetScale();
+	SDL_FRect d = { x * s, y * s, w * s, h * s };
+
+	SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(t, a);
+	bool ok = SDL_RenderTexture(renderer, t, nullptr, &d);
+	SDL_SetTextureAlphaMod(t, 255);
+	return ok;
+}
+
+bool Render::DrawMenuText(const char* t, int x, int y, int w, int h, SDL_Color c) const
+{
+	if (!menuFont || !t) return false;
+	SDL_Surface* s = TTF_RenderText_Blended(menuFont, t, 0, c);
+	if (!s) return false;
+
+	SDL_Texture* tx = SDL_CreateTextureFromSurface(renderer, s);
+	if (!tx) {
+		LOG("SDL_CreateTextureFromSurface error: %s", SDL_GetError());
+		SDL_DestroySurface(s);
+		return false;
+	}
+
+	SDL_SetTextureBlendMode(tx, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(tx, c.a);
+
+	SDL_FRect d = {
+		(float)x * Engine::GetInstance().window->GetScale(),
+		(float)y * Engine::GetInstance().window->GetScale(),
+		(w > 0) ? (float)w * Engine::GetInstance().window->GetScale() : (float)s->w,
+		(h > 0) ? (float)h * Engine::GetInstance().window->GetScale() : (float)s->h
+	};
+
+	bool ok = SDL_RenderTexture(renderer, tx, nullptr, &d);
+
+	SDL_DestroyTexture(tx);
+	SDL_DestroySurface(s);
+	return ok;
+}
 
 bool Render::DrawMenuTextCentered(const char* t, SDL_Rect a, SDL_Color c) const
 {
@@ -370,17 +457,41 @@ bool Render::DrawMenuTextCentered(const char* t, SDL_Rect a, SDL_Color c, float 
 	if (!menuFont || !t) return false;
 	SDL_Surface* s = TTF_RenderText_Blended(menuFont, t, 0, c);
 	if (!s) return false;
+
 	SDL_Texture* tx = SDL_CreateTextureFromSurface(renderer, s);
-	if (!tx) { SDL_DestroySurface(s); return false; }
+	if (!tx) {
+		LOG("SDL_CreateTextureFromSurface error: %s", SDL_GetError());
+		SDL_DestroySurface(s);
+		return false;
+	}
+
+	SDL_SetTextureBlendMode(tx, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(tx, c.a);
+
 	float tw = (float)s->w * ts, th = (float)s->h * ts, sc = (float)Engine::GetInstance().window->GetScale();
 	SDL_FRect d = { (a.x * sc) + (a.w * sc - tw) / 2.0f, (a.y * sc) + (a.h * sc - th) / 2.0f, tw, th };
-	SDL_RenderTexture(renderer, tx, nullptr, &d);
+
+	bool ok = SDL_RenderTexture(renderer, tx, nullptr, &d);
+
 	SDL_DestroyTexture(tx);
 	SDL_DestroySurface(s);
-	return true;
+	return ok;
 }
 
-SDL_Texture* Render::CreateMenuTextTexture(const char* t, SDL_Color c) const { SDL_Surface* s = TTF_RenderText_Blended(menuFont, t, 0, c); if (!s) return nullptr; SDL_Texture* tx = SDL_CreateTextureFromSurface(renderer, s); SDL_DestroySurface(s); return tx; }
+SDL_Texture* Render::CreateMenuTextTexture(const char* t, SDL_Color c) const
+{
+	if (!menuFont || !t) return nullptr;
+	SDL_Surface* s = TTF_RenderText_Blended(menuFont, t, 0, c);
+	if (!s) return nullptr;
+
+	SDL_Texture* tx = SDL_CreateTextureFromSurface(renderer, s);
+	SDL_DestroySurface(s);
+
+	if (tx) {
+		SDL_SetTextureBlendMode(tx, SDL_BLENDMODE_BLEND);
+	}
+	return tx;
+}
 
 SDL_Texture* Render::RecolorTexture(SDL_Texture* src, Uint8 r, Uint8 g, Uint8 b) const
 {

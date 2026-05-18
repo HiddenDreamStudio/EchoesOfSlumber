@@ -537,6 +537,18 @@ function check_vulkan()
                 progress = download_progress,
                 headers = { "From: Premake", "Referer: Premake" }
             })
+
+            if not os.isfile(vulkan_headers_zip) then
+                print("")
+                print("============================================================")
+                print("  Vulkan Headers DOWNLOAD FAILED")
+                print("")
+                print("  Could not download from: " .. download_url)
+                print("============================================================")
+                print("")
+                os.chdir("../")
+                return
+            end
         end
         print("Unzipping Vulkan Headers to " .. os.getcwd())
         zip.extract(vulkan_headers_zip, os.getcwd())
