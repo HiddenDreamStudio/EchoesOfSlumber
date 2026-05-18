@@ -48,10 +48,7 @@ bool Render::Awake()
 		// Render at 1280x720 logical resolution, auto-scale to fill display with letterbox
 		SDL_SetRenderLogicalPresentation(renderer, 1280, 720, SDL_LOGICAL_PRESENTATION_LETTERBOX);
 
-		// --- Vulkan / SDL_GPU Initialization (placeholder for future shaders) ---
-		// NOTE: gpuDevice is created here but not yet claimed for the window
-		// (SDL_ClaimWindowForGPUDevice). It will be fully wired when shader
-		// pipelines are implemented. See docs/Vulkan_Architecture_Plan.md.
+		// --- Vulkan / SDL_GPU Initialization ---
 		gpuDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, "vulkan");
 		if (gpuDevice == NULL) {
 			LOG("Could not create SDL_GPU device with Vulkan! Error: %s", SDL_GetError());
@@ -60,6 +57,13 @@ bool Render::Awake()
 
 		if (gpuDevice != NULL) {
 			LOG("SDL_GPU device initialized using backend: %s", SDL_GetGPUDeviceDriver(gpuDevice));
+
+			// Claim the window so the GPU device can present to it
+			if (SDL_ClaimWindowForGPUDevice(gpuDevice, window)) {
+				LOG("SDL_GPU: Window claimed successfully");
+			} else {
+				LOG("SDL_GPU: Failed to claim window! Error: %s", SDL_GetError());
+			}
 		}
 
 		if (configParameters.child("vsync").attribute("value").as_bool())
@@ -206,7 +210,12 @@ bool Render::CleanUp()
 	LOG("Destroying SDL render");
 	if (font) TTF_CloseFont(font);
 	if (menuFont) TTF_CloseFont(menuFont);
-	if (gpuDevice) SDL_DestroyGPUDevice(gpuDevice);
+	if (gpuDevice) {
+		// Release the window before destroying the GPU device
+		SDL_Window* window = Engine::GetInstance().window->window;
+		if (window) SDL_ReleaseWindowFromGPUDevice(gpuDevice, window);
+		SDL_DestroyGPUDevice(gpuDevice);
+	}
 	if (renderer) SDL_DestroyRenderer(renderer);
 	return true;
 }
