@@ -11,6 +11,7 @@
 #include "Map.h"
 #include "SlingshotProjectile.h"
 #include "tracy/Tracy.hpp"
+#include "Door.h"
 
 Player::Player() : Entity(EntityType::PLAYER),
 texW(128), texH(128),
@@ -817,7 +818,18 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 	case ColliderType::ITEM:
 		Engine::GetInstance().audio->PlayFx(pickCoinFxId);
 		physB->listener->Destroy();
+		keys++;
 		break;
+
+	case ColliderType::DOOR:
+	{
+		Door* door = (Door*)physB->listener;
+		if (door != nullptr && !door->isOpen && keys > 0) {
+			door->Open();
+			keys--;
+		}
+		break;
+	}
 	case ColliderType::PROJECTILE:
 		TakeDamage(1);
 		if (physB->listener != nullptr)
