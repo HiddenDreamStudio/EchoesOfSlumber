@@ -86,6 +86,8 @@ public:
 
 	bool isWakingUp = true;
 
+	int keys = 0;
+
 private:
 	b2Vec2 velocity = { 0.0f, 0.0f };
 	AnimationSet anims;
