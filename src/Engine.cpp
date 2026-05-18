@@ -156,17 +156,22 @@ bool Engine::Update() {
 }
 
 // Called before quitting
-bool Engine::CleanUp() {
-
+bool Engine::CleanUp()
+{
     Timer timer = Timer();
 
     LOG("Engine::CleanUp");
 
     bool result = true;
-    for (const auto& module : moduleList) {
-        result = module->CleanUp();
+    // CRITICAL FIX: Iterate the module list in REVERSE order during CleanUp.
+    // This ensures that high-level modules and resource managers (Render, Textures, etc.)
+    // are cleaned up BEFORE the foundational modules like Window (which calls SDL_Quit).
+    // This prevents "Access Violation" crashes on exit when trying to use SDL after it's quit.
+    for (auto it = moduleList.rbegin(); it != moduleList.rend(); ++it) {
+        result = (*it)->CleanUp();
         if (!result) {
-            break;
+            LOG("CleanUp failed for module: %s", (*it)->name.c_str());
+            // We continue cleaning up other modules even if one fails
         }
     }
 

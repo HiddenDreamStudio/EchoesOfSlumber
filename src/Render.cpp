@@ -33,8 +33,14 @@ bool Render::Awake()
 	// NOTE: SDL_RENDER_SCALE_QUALITY is SDL2-only and has no effect in SDL3.
 	// Per-texture filtering is set via SDL_SetTextureScaleMode instead.
 
-	// Revert to default renderer for stability (fixes the broken intro logo)
-	renderer = SDL_CreateRenderer(window, nullptr);
+	// Try to create a Vulkan renderer first
+	renderer = SDL_CreateRenderer(window, "vulkan");
+
+	// Fallback to default if Vulkan fails
+	if (renderer == NULL) {
+		LOG("Vulkan renderer failed: %s. Falling back to default GPU renderer.", SDL_GetError());
+		renderer = SDL_CreateRenderer(window, nullptr);
+	}
 
 	if (renderer == NULL)
 	{
@@ -47,27 +53,6 @@ bool Render::Awake()
 
 		// Render at 1280x720 logical resolution, auto-scale to fill display with letterbox
 		SDL_SetRenderLogicalPresentation(renderer, 1280, 720, SDL_LOGICAL_PRESENTATION_LETTERBOX);
-
-		// --- Vulkan / SDL_GPU Initialization ---
-		gpuDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, "vulkan");
-		if (gpuDevice == NULL) {
-			LOG("Could not create SDL_GPU device with Vulkan! Error: %s", SDL_GetError());
-			gpuDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
-		}
-
-		if (gpuDevice != NULL) {
-			LOG("SDL_GPU device initialized using backend: %s", SDL_GetGPUDeviceDriver(gpuDevice));
-
-			// NOTE: We don't claim the window yet to avoid conflicts with SDL_Renderer
-			// while the Vulkan path is still a no-op.
-			/*
-			if (SDL_ClaimWindowForGPUDevice(gpuDevice, window)) {
-				LOG("SDL_GPU: Window claimed successfully");
-			} else {
-				LOG("SDL_GPU: Failed to claim window! Error: %s", SDL_GetError());
-			}
-			*/
-		}
 
 		if (configParameters.child("vsync").attribute("value").as_bool())
 			SDL_SetRenderVSync(renderer, 1);

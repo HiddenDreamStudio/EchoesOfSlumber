@@ -70,8 +70,8 @@ bool Scene::Update(float dt)
 		UpdateIntro(dt);
 		break;
 	case SceneID::MAIN_MENU:
-		PostUpdateMainMenu();
 		UpdateMainMenu(dt);
+		PostUpdateMainMenu();
 		break;
 	case SceneID::INTRO_CINEMATIC:
 		UpdateIntroCinematic(dt);
