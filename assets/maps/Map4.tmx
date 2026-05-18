@@ -1,8 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="173" height="178" tilewidth="64" tileheight="64" infinite="0" nextlayerid="2" nextobjectid="1">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="173" height="178" tilewidth="64" tileheight="64" infinite="0" nextlayerid="3" nextobjectid="29">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Tileset.png" width="640" height="640"/>
  </tileset>
+ <tileset firstgid="101" source="Assets level 4/middle level 4.tsx"/>
+ <objectgroup id="2" name="middleground">
+  <object id="1" gid="105" x="2178" y="11354" width="484" height="206.692"/>
+  <object id="3" gid="105" x="2649" y="9490" width="484" height="206.692"/>
+  <object id="4" gid="105" x="6033" y="10578" width="484" height="206.692"/>
+  <object id="9" gid="105" x="8288.03" y="1560.42" width="484" height="206.692"/>
+  <object id="5" gid="106" x="2205.66" y="7959.33" width="650.007" height="216.328"/>
+  <object id="6" gid="2147483754" x="6832.33" y="7324.67" width="650.007" height="216.328"/>
+  <object id="7" gid="2147483754" x="7452.33" y="4892.67" width="650.007" height="216.328"/>
+  <object id="8" gid="2147483754" x="2800.93" y="2910.61" width="650.007" height="216.328"/>
+  <object id="10" gid="109" x="4175.36" y="11346.8" width="474.169" height="215.669"/>
+  <object id="11" gid="109" x="4814.03" y="7958" width="354.973" height="161.455"/>
+  <object id="12" gid="109" x="4423.12" y="2902" width="817.876" height="372"/>
+  <object id="13" gid="109" x="3422.72" y="5064" width="501.279" height="228"/>
+  <object id="14" gid="103" x="5808.47" y="5119" width="577.535" height="505"/>
+  <object id="15" gid="103" x="10236" y="1894.33" width="267.991" height="234.333"/>
+  <object id="16" gid="103" x="3664.25" y="8845" width="467.746" height="409"/>
+  <object id="17" gid="108" x="1378.02" y="2892.12" width="801.375" height="464.798"/>
+  <object id="18" gid="108" x="9974.29" y="3436.33" width="801.375" height="464.798"/>
+  <object id="19" gid="114" x="8559.07" y="5846" width="1073.93" height="259"/>
+  <object id="20" gid="114" x="3375.07" y="7966" width="1073.93" height="259"/>
+  <object id="21" gid="113" x="3776" y="2944" width="337" height="934.06"/>
+  <object id="22" gid="110" x="1320.41" y="8949" width="532.589" height="713"/>
+  <object id="23" gid="112" x="8072.82" y="3060" width="618.179" height="608"/>
+  <object id="26" gid="112" x="6352.82" y="6004" width="618.179" height="608"/>
+  <object id="27" gid="112" x="4056.82" y="9500" width="354.179" height="348.347"/>
+  <object id="24" gid="115" x="1584.21" y="5854" width="416.786" height="509.895"/>
+  <object id="25" gid="115" x="7984" y="10050" width="285" height="348.668"/>
+  <object id="28" gid="1073741928" x="5640.5" y="2692.94" width="353.408" height="415.788"/>
+ </objectgroup>
  <layer id="1" name="Map" width="173" height="178">
   <properties>
    <property name="Draw" type="bool" value="true"/>
