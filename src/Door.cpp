@@ -5,7 +5,7 @@
 #include "Render.h"
 #include "Log.h"
 
-Door::Door() : Entity(EntityType::DOOR)
+Door::Door() : Entity(EntityType::DOOR), texW(0), texH(0), texturePath(nullptr)
 {
 	name = "door";
 	pbody = nullptr;
@@ -22,22 +22,29 @@ bool Door::Awake()
 bool Door::Start()
 {
 	texturePath = "assets/textures/door.png";
-	
-	texW = 32; 
+	texW = 32;
 	texH = 64;
+
+	texture = Engine::GetInstance().textures->Load(texturePath);
+
+	pbody = Engine::GetInstance().physics->CreateRectangle((int)position.getX() + texW / 2, (int)position.getY() + texH / 2, texW, texH, bodyType::STATIC);
+	pbody->ctype = ColliderType::DOOR;
+	pbody->listener = this;
 
 	return true;
 }
 
 bool Door::Update(float dt)
 {
-	if (!isOpen)
-	{
+	if (pbody != nullptr) {
+		int x, y;
+		pbody->GetPosition(x, y);
+		position.setX((float)x);
+		position.setY((float)y);
 
-	}
-	else 
-	{
-
+		if (!isOpen) {
+			Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2);
+		}
 	}
 
 	return true;
@@ -45,6 +52,14 @@ bool Door::Update(float dt)
 
 bool Door::CleanUp()
 {
+	if (texture != nullptr) {
+		Engine::GetInstance().textures->UnLoad(texture);
+		texture = nullptr;
+	}
+	if (pbody != nullptr) {
+		Engine::GetInstance().physics->DeletePhysBody(pbody);
+		pbody = nullptr;
+	}
 	return true;
 }
 
@@ -53,5 +68,11 @@ void Door::Open()
 	if (!isOpen)
 	{
 		isOpen = true;
+		LOG("Door opened");
+
+		if (pbody != nullptr) {
+			Engine::GetInstance().physics->DeletePhysBody(pbody);
+			pbody = nullptr;
+		}
 	}
 }

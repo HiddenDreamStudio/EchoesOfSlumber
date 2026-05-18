@@ -14,6 +14,7 @@
 #include "PushRock.h"
 #include "VFX.h"
 #include "tracy/Tracy.hpp"
+#include "Door.h"
 
 EntityManager::EntityManager() : Module()
 {
@@ -104,6 +105,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::VFX:
 		entity = std::make_shared<VFX>();
+		break;
+	case EntityType::DOOR:
+		entity = std::make_shared<Door>();
 		break;
 	default:
 		break;
