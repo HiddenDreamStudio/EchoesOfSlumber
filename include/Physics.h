@@ -35,6 +35,7 @@ enum class ColliderType {
     PUSH_ROCK,
     PROJECTILE,
     DOOR,
+    SLINGSHOT_PROJ,
     UNKNOWN
     // ..
 };

@@ -16,6 +16,7 @@ enum class EntityType
 	PUSH_ROCK,
 	VFX,
 	DOOR,
+	SLINGSHOT_PROJECTILE,
 	UNKNOWN
 };
 

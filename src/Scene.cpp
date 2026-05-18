@@ -877,6 +877,17 @@ void Scene::LoadGameplay()
 	}
 
 	capaBody_ = nullptr;
+
+	// Slingshot (Tirachinas) collectible
+	texSlingshotCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/Colectible tirachinas.png");
+	slingshotCollected_ = false;
+	slingshotFloatTimer_ = 0.0f;
+
+	// Read slingshot position from TMX
+	if (!Engine::GetInstance().map->GetSlingshotPosition(slingshotX_, slingshotY_)) {
+		LOG("WARNING: No Tirachinas entity found in TMX, slingshot will not spawn");
+		slingshotCollected_ = true;
+	}
 }
 
 void Scene::UpdateGameplay(float dt)
@@ -1080,6 +1091,40 @@ void Scene::UpdateGameplay(float dt)
 				LOG("Cape collected - blanket ability unlocked!");
 			}
 		}
+
+		// Slingshot collectible pickup (proximity check)
+		if (!slingshotCollected_ && player)
+		{
+			slingshotFloatTimer_ += dt;
+
+			float sdx = player->position.getX() - slingshotX_;
+			float sdy = player->position.getY() - (slingshotY_ - 50.0f);
+			float sdistSq = sdx * sdx + sdy * sdy;
+			float spickupRadius = 60.0f;
+
+			if (sdistSq < spickupRadius * spickupRadius)
+			{
+				slingshotCollected_ = true;
+				player->SetHasSlingshot(true);
+				Engine::GetInstance().audio->PlayFx(player->pickCoinFxId);
+				slingshotNotifTimer_ = SLINGSHOT_NOTIF_DURATION;
+				LOG("Slingshot collected! Ranged attack unlocked.");
+			}
+		}
+	}
+
+	// Draw slingshot collectible in-world
+	if (!slingshotCollected_ && texSlingshotCollectible_)
+	{
+		int slTexW = 0, slTexH = 0;
+		Engine::GetInstance().textures->GetSize(texSlingshotCollectible_, slTexW, slTexH);
+		float slFloatOffset = 6.0f * sinf(slingshotFloatTimer_ * 0.003f);
+		float slScale = 0.05f; // 2000x2000 * 0.05 = 100x100px
+		int slDrawX = (int)(slingshotX_ - (float)slTexW * slScale / 2.0f);
+		int slDrawY = (int)(slingshotY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
+
+		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
+		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
 
 	// Draw cape collectible in-world
@@ -1129,6 +1174,9 @@ void Scene::UnloadGameplay()
 	if (texCapaCollectible_) { Engine::GetInstance().textures->UnLoad(texCapaCollectible_); texCapaCollectible_ = nullptr; }
 	if (capaBody_) { Engine::GetInstance().physics->DeletePhysBody(capaBody_); capaBody_ = nullptr; }
 	capaCollected_ = false;
+
+	if (texSlingshotCollectible_) { Engine::GetInstance().textures->UnLoad(texSlingshotCollectible_); texSlingshotCollectible_ = nullptr; }
+	slingshotCollected_ = false;
 }
 
 // ============================================================================
@@ -1328,6 +1376,16 @@ void Scene::PostUpdateGameplay()
 				Engine::GetInstance().render->DrawTextureAlpha(blanketTex, 220, 72, 64, 64, 255);
 			}
 		}
+
+		// --- Slingshot HUD Icon ---
+		if (player->HasSlingshot() && texSlingshotCollectible_)
+		{
+			// Position to the right of the blanket icon (or in its spot if no blanket)
+			int slHudX = player->HasBlanket() ? 290 : 220;
+			int slHudY = 72;
+			Uint8 slAlpha = player->IsAiming() ? (Uint8)255 : (Uint8)160;
+			Engine::GetInstance().render->DrawTextureAlpha(texSlingshotCollectible_, slHudX, slHudY, 48, 48, slAlpha);
+		}
 	}
 
 	// --- Game Over Screen ---
@@ -1507,6 +1565,42 @@ void Scene::PostUpdateGameplay()
 			"You cant do this you need an object",
 			{ ncpX, ncpY, ncpW, ncpH },
 			ncpColor,
+			0.35f
+		);
+	}
+
+	// --- Slingshot pickup notification ---
+	if (slingshotNotifTimer_ > 0.0f) {
+		slingshotNotifTimer_ -= Engine::GetInstance().GetDt();
+
+		int winW4 = 0, winH4 = 0;
+		Engine::GetInstance().window->GetWindowSize(winW4, winH4);
+		auto& render4 = *Engine::GetInstance().render;
+
+		Uint8 alpha4 = 255;
+		if (slingshotNotifTimer_ < 800.0f)
+			alpha4 = (Uint8)(255.0f * (slingshotNotifTimer_ / 800.0f));
+
+		// Panel dimensions
+		const int spW = 340;
+		const int spH = 36;
+		const int spX = (winW4 - spW) / 2;
+		const int spY = 40;
+
+		// Black filled panel
+		SDL_Rect spPanel = { spX, spY, spW, spH };
+		render4.DrawRectangle(spPanel, 0, 0, 0, alpha4, true, false);
+
+		// White border (outline)
+		SDL_Rect spBorder = { spX - 2, spY - 2, spW + 4, spH + 4 };
+		render4.DrawRectangle(spBorder, 255, 255, 255, alpha4, false, false);
+
+		// Text
+		SDL_Color spColor = { 255, 255, 255, alpha4 };
+		render4.DrawMenuTextCentered(
+			"Slingshot found! Left click to aim and fire",
+			{ spX, spY, spW, spH },
+			spColor,
 			0.35f
 		);
 	}
@@ -2118,18 +2212,26 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		float tw = 0, th = 0;
 		SDL_GetTextureSize(f.tex, &tw, &th);
 
-		float sc = RandF(0.25f, 0.30f);
+		float sc = RandF(0.30f, 0.42f);
 		f.w = (float)winW * sc;
 		f.h = f.w * (th / tw);
 
 		f.inFront = (i < 3);
 
-		float padX = 10.0f, padY = 15.0f;
-		if (i == 0) { f.x = halfW + padX;                                  f.y = (float)winH - f.h - padY; }
-		else if (i == 1) { f.x = halfW + ((float)winW - halfW) / 2.0f - (f.w / 2.0f); f.y = (float)winH - f.h - padY; }
-		else if (i == 2) { f.x = (float)winW - f.w - padX;                             f.y = (float)winH - f.h - padY; }
-		else if (i == 3) { f.x = halfW + padX;                                  f.y = padY + 10.0f; }
-		else if (i == 4) { f.x = (float)winW - f.w - padX;                             f.y = padY + 10.0f; }
+		// Logical distribution to AVOID the face (upper center-right part of the illustration)
+		// We push them towards the edges of the right half or the bottom
+		if (i % 2 == 0) {
+			// Prefer bottom area
+			f.x = RandF(halfW - 50.0f, (float)winW - f.w * 0.5f);
+			f.y = RandF(halfH, (float)winH - f.h - 10.0f);
+		}
+		else {
+			// Prefer side areas (far right or closer to center but not top-center)
+			if (i == 1) f.x = RandF(halfW - 30.0f, halfW + 100.0f);
+			else        f.x = RandF((float)winW - f.w - 20.0f, (float)winW - 10.0f);
+			
+			f.y = RandF(10.0f, halfH);
+		}
 
 		f.floatSpeed = RandF(0.4f, 0.9f);
 		f.floatAmplitude = RandF(8.0f, 22.0f);

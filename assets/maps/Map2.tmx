@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="301" height="158" tilewidth="64" tileheight="64" infinite="0" nextlayerid="13" nextobjectid="261">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
-  <image source="Tileset.png" width="640" height="640"/>
+  <image source="Nivell 2/Tileset_nivell_2.png" width="640" height="640"/>
  </tileset>
  <tileset firstgid="101" name="TilesetLvl2" tilewidth="64" tileheight="64" tilecount="40" columns="10">
   <image source="Tileset_nivell_2.png" width="640" height="256"/>
