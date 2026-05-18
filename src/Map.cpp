@@ -8,6 +8,7 @@
 #include "EnemyCarmel.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
+#include "EnemyPlush.h"
 #include "Checkpoint.h"
 #include "Box.h"
 #include "PushRock.h"
@@ -628,6 +629,12 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     enemyC->position = Vector2D(x, y);
                     enemyC->Start();
                     LOG("EnemyC spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "EnemyPlush") {
+                    auto enemyPlush = std::dynamic_pointer_cast<EnemyPlush>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_PLUSH));
+                    enemyPlush->position = Vector2D(x, y);
+                    enemyPlush->Start();
+                    LOG("EnemyPlush spawned at: %f, %f", x, y);
                 }
                 else if (entityType == "Checkpoint") {
                     auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));

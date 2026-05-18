@@ -8,6 +8,7 @@
 #include "EnemyCarmel.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
+#include "EnemyPlush.h"
 #include "Projectile.h"
 #include "Checkpoint.h"
 #include "Box.h"
@@ -90,6 +91,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::ENEMY_C:
 		entity = std::make_shared<EnemyC>();
+		break;
+	case EntityType::ENEMY_PLUSH:
+		entity = std::make_shared<EnemyPlush>();
 		break;
 	case EntityType::PROJECTILE:
 		entity = std::make_shared<Projectile>();

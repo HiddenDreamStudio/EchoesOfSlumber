@@ -144384,6 +144384,7 @@
   </object>
   <object id="14" name="EnemyC" type="EnemyC" x="17224" y="12920" width="32" height="32"/>
   <object id="397" name="Cape" type="Cape" x="13184" y="576"/>
+  <object id="999" name="EnemyPlush" type="EnemyPlush" x="19200" y="13508" width="32" height="32"/>
   <object id="401" name="Player" type="Player" x="19462" y="13508" width="96" height="96"/>
  </objectgroup>
  <objectgroup id="37" name="Weapons">
