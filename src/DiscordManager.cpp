@@ -41,7 +41,7 @@ bool DiscordManager::Awake()
 
     // Set up logging
     client->AddLogCallback([](std::string message, discordpp::LoggingSeverity severity) {
-        LOG("[Discord %s] %s", discordpp::EnumToString(severity), message.c_str());
+        LOG("[Discord %s] %s", discordpp::EnumToString(severity).c_str(), message.c_str());
     }, discordpp::LoggingSeverity::Info);
 
     // Initialize global start time for the session timer

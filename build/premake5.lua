@@ -417,8 +417,8 @@ function check_discord_sdk()
     
     -- Get the latest version from our own repo
     local versions = get_latest_versions()
-    -- We assume the SDK version is managed via the repo tags or a default
-    local discord_version = "1.9.15332" 
+    -- Use the configured/latest repo version when available, otherwise keep the current default
+    local discord_version = (versions and versions.discord) or "1.9.15332" 
     local discord_folder = "discord_social_sdk"
     local discord_zip = "discord_social_sdk-" .. discord_version .. ".zip"
     
@@ -431,6 +431,20 @@ function check_discord_sdk()
                 progress = download_progress,
                 headers = { "From: Premake", "Referer: Premake" }
             })
+
+            if not os.isfile(discord_zip) then
+                print("")
+                print("============================================================")
+                print("  Discord Social SDK DOWNLOAD FAILED")
+                print("")
+                print("  Could not download from: " .. download_url)
+                print("")
+                print("  To fix this, manually extract to: build/external/discord_social_sdk/")
+                print("============================================================")
+                print("")
+                os.chdir("../")
+                return
+            end
         end
         print("Unzipping Discord Social SDK to " .. os.getcwd())
         zip.extract(discord_zip, os.getcwd())
@@ -778,8 +792,7 @@ end
             dependson {"box2d", "pugixml", "tracy"}
             links {"box2d", "pugixml", "tracy", "SDL3", "SDL3_image", "SDL3_ttf", "jpeg", "libpng"}
             links {"avcodec", "avformat", "avutil", "swscale", "swresample"}
-            -- Discord Social SDK: link directly to the partner library binary
-            links { "discord_partner_sdk" }
+            -- Discord Social SDK: linked in platform-specific filter below (with libdirs)
             characterset ("Unicode")
             buildoptions { "/Zc:__cplusplus" }
 

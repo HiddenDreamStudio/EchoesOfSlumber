@@ -30,8 +30,8 @@ bool Render::Awake()
 	int scale = Engine::GetInstance().window->GetScale();
 	SDL_Window* window = Engine::GetInstance().window->window;
 
-	// Request best quality texture filtering for upscaling 1280x720 → native resolution
-	SDL_SetHint("SDL_RENDER_SCALE_QUALITY", "best");
+	// NOTE: SDL_RENDER_SCALE_QUALITY is SDL2-only and has no effect in SDL3.
+	// Per-texture filtering is set via SDL_SetTextureScaleMode instead.
 
 	// Revert to default renderer for stability (fixes the broken intro logo)
 	renderer = SDL_CreateRenderer(window, nullptr);
@@ -48,7 +48,10 @@ bool Render::Awake()
 		// Render at 1280x720 logical resolution, auto-scale to fill display with letterbox
 		SDL_SetRenderLogicalPresentation(renderer, 1280, 720, SDL_LOGICAL_PRESENTATION_LETTERBOX);
 
-		// --- Vulkan / SDL_GPU Initialization (for future shaders) ---
+		// --- Vulkan / SDL_GPU Initialization (placeholder for future shaders) ---
+		// NOTE: gpuDevice is created here but not yet claimed for the window
+		// (SDL_ClaimWindowForGPUDevice). It will be fully wired when shader
+		// pipelines are implemented. See docs/Vulkan_Architecture_Plan.md.
 		gpuDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, "vulkan");
 		if (gpuDevice == NULL) {
 			LOG("Could not create SDL_GPU device with Vulkan! Error: %s", SDL_GetError());
@@ -149,12 +152,25 @@ void Render::DrawEyelidEffect()
     SDL_RenderFillRect(renderer, &bottomBar);
 }
 
+void Render::StartEyelidEffect(float duration)
+{
+    eyelidActive_ = true;
+    eyelidElapsed_ = 0.0f;
+    eyelidDuration_ = duration;
+}
+
 void Render::FollowTarget(float dt)
 {
-    if (!cameraInitialized_) return;
-
     float viewW = GetWorldViewportWidth();
     float viewH = GetWorldViewportHeight();
+
+    // Snap camera on first call instead of lerping from (0,0)
+    if (!cameraInitialized_) {
+        camera.x = static_cast<int>(-(cameraTargetX_ - viewW / 2.0f));
+        camera.y = static_cast<int>(-(cameraTargetY_ - viewH / 2.0f));
+        cameraInitialized_ = true;
+        return;
+    }
 
     float currentX = -camera.x + viewW / 2.0f;
     float currentY = -camera.y + viewH / 2.0f;
@@ -188,8 +204,10 @@ void Render::FollowTarget(float dt)
 bool Render::CleanUp()
 {
 	LOG("Destroying SDL render");
+	if (font) TTF_CloseFont(font);
 	if (menuFont) TTF_CloseFont(menuFont);
-	SDL_DestroyRenderer(renderer);
+	if (gpuDevice) SDL_DestroyGPUDevice(gpuDevice);
+	if (renderer) SDL_DestroyRenderer(renderer);
 	return true;
 }
 
@@ -299,7 +317,19 @@ bool Render::IsOnScreenWorldRect(float x, float y, float w, float h, int margin)
 	return !(x + w + margin < camX || x - margin > camX + sw || y + h + margin < camY || y - margin > camY + sh);
 }
 
-void Render::SetCameraTarget(float x, float y) { cameraTargetX_ = x; cameraTargetY_ = y; cameraInitialized_ = true; }
+void Render::SetCameraTarget(float x, float y)
+{
+	bool wasInitialized = cameraInitialized_;
+	cameraTargetX_ = x;
+	cameraTargetY_ = y;
+	if (!wasInitialized) {
+		// Snap camera to target on first call to avoid lerping from (0,0)
+		float vW = GetWorldViewportWidth(), vH = GetWorldViewportHeight();
+		camera.x = (int)(-x + vW / 2);
+		camera.y = (int)(-y + vH / 2);
+	}
+	cameraInitialized_ = true;
+}
 void Render::SetCameraPosition(float x, float y) { float vW = GetWorldViewportWidth(), vH = GetWorldViewportHeight(); camera.x = (int)(-x + vW / 2); camera.y = (int)(-y + vH / 2); cameraTargetX_ = x; cameraTargetY_ = y; cameraInitialized_ = true; }
 
 void Render::ClampCameraToMapBounds(float mapWidth, float mapHeight)

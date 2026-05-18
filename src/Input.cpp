@@ -228,9 +228,12 @@ bool Input::PreUpdate()
 			mouseX = (int)lx;
 			mouseY = (int)ly;
 
+			// Convert relative deltas to logical coordinates.
+			// We map xrel/yrel through SDL_RenderCoordinatesFromWindow and subtract
+			// the origin mapping to isolate the pure scale factor. This is correct
+			// for uniform linear transforms (letterbox/integer-scale presentations).
 			float ldx, ldy;
 			SDL_RenderCoordinatesFromWindow(rend, event.motion.xrel, event.motion.yrel, &ldx, &ldy);
-			// xrel/yrel are deltas — subtract origin mapping to get pure delta
 			float ox, oy;
 			SDL_RenderCoordinatesFromWindow(rend, 0.0f, 0.0f, &ox, &oy);
 			mouseMotionX = (int)(ldx - ox);

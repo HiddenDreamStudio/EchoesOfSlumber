@@ -19,9 +19,9 @@
 #include <cstdlib>
 #include <cmath>
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ----------------------------------------------------------------------------
 // Button IDs  (main menu)
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ----------------------------------------------------------------------------
 static constexpr int BTN_PLAY = 1;
 static constexpr int BTN_SETTINGS = 2;
 static constexpr int BTN_EXIT = 3;
@@ -315,7 +315,7 @@ void Scene::UpdateMainMenu(float dt)
 	}
 	else
 	{
-		// â”€â”€ Settings in-place animation state machine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+		// -- Settings in-place animation state machine --------------------
 		const float FADE_DURATION = 300.0f;
 
 		if (settingsAnimState_ != SettingsAnimState::NONE &&
@@ -1060,7 +1060,7 @@ void Scene::UpdateGameplay(float dt)
 	{
 		if (showMapViewer_) {
 			showMapViewer_ = false;
-			// If no pause menu buttons are visible, map was opened via touchpad â€” unpause
+			// If no pause menu buttons are visible, map was opened via touchpad -- unpause
 			isPaused_ = false;
 			SetPauseMenuVisible(false);
 		}
@@ -1075,7 +1075,7 @@ void Scene::UpdateGameplay(float dt)
 		}
 	}
 
-	// â”€â”€ Touchpad opens/closes map directly during gameplay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// -- Touchpad opens/closes map directly during gameplay ---------------
 	if (!isGameOver_ && !isPaused_ && !showMapViewer_ &&
 		gpInput.GetTouchpadPressed() == KEY_DOWN)
 	{
@@ -1121,7 +1121,7 @@ void Scene::UpdateGameplay(float dt)
 		if (input.GetKey(SDL_SCANCODE_KP_MINUS) == KEY_DOWN || input.GetKey(SDL_SCANCODE_MINUS) == KEY_DOWN)
 			mapViewZoom_ = std::max(mapViewZoom_ - 0.05f, minZoom);
 
-		// â”€â”€ Gamepad: R2 zoom in, L2 zoom out â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+		// -- Gamepad: R2 zoom in, L2 zoom out -----------------------------
 		float rt = input.GetRightTrigger();
 		float lt = input.GetLeftTrigger();
 		if (rt > 0.0f)
@@ -1132,7 +1132,7 @@ void Scene::UpdateGameplay(float dt)
 		// Ensure zoom stays within limits
 		if (mapViewZoom_ < minZoom) mapViewZoom_ = minZoom;
 
-		// â”€â”€ Gamepad: Left stick to pan the map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+		// -- Gamepad: Left stick to pan the map ---------------------------
 		float lsx = input.GetLeftStickX();
 		float lsy = input.GetLeftStickY();
 		if (lsx != 0.0f || lsy != 0.0f) {
@@ -1607,7 +1607,7 @@ void Scene::PostUpdateGameplay()
 		);
 	}
 
-	// â”€â”€ Final rendering passes (CRITICAL: Must be on top of EVERYTHING) â”€â”€â”€â”€
+	// -- Final rendering passes (CRITICAL: Must be on top of EVERYTHING) ----
 	if (showMapViewer_) {
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
@@ -1685,7 +1685,7 @@ void Scene::DrawMapViewer(int winW, int winH)
 			SDL_EVENT_MOUSE_WHEEL, SDL_EVENT_MOUSE_WHEEL);
 	}
 
-	// â”€â”€ Clamp map offset to map boundaries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// -- Clamp map offset to map boundaries -------------------------------
 	Vector2D mapSize = map.GetMapSizeInPixels();
 	float maxOffsetX = 0.0f;
 	float maxOffsetY = 0.0f;
@@ -1868,7 +1868,7 @@ void Scene::DrawMapViewer(int winW, int winH)
 	render.DrawText(zoomText, winW - 60, winH - 22, 0, 0, { 120, 160, 200, 200 });
 }
 
-// â”€â”€ Pause menu helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Pause menu helpers --------------------------------------------------------
 
 void Scene::LoadPauseMenuButtons()
 {
@@ -2078,7 +2078,7 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	render.DrawRectangle(backBtnBg, 40, 50, 70, 255, true, false);
 	render.DrawMenuTextCentered("BACK", backBtnBg, { 200, 220, 255, 255 });
 
-	// â”€â”€ Gamepad selection indicator (> arrow next to selected slider) â”€â”€â”€â”€
+	// -- Gamepad selection indicator (> arrow next to selected slider) ----
 	if (Engine::GetInstance().input->IsGamepadConnected()) {
 		int selY = panelY + 45;
 		if (optionsSliderSel_ == 1) selY += rowH;
@@ -2285,7 +2285,7 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 	// Back Button hit box (shared between Main Menu settings and Pause options)
 	SDL_Rect backHit = { panelX + panelW / 2 - 60, panelY + 60 + rowH * 2 + 10, 120, 36 };
 
-	// â”€â”€ Mouse slider dragging / clicks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// -- Mouse slider dragging / clicks ---------------------------------
 	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN ||
 		input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_REPEAT)
 	{
@@ -2327,7 +2327,7 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 		}
 	}
 
-	// â”€â”€ Gamepad D-pad / stick slider navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+	// -- Gamepad D-pad / stick slider navigation --------------------------
 	// Back button shortcuts (B / East)
 	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN) {
 		return true; // Back
