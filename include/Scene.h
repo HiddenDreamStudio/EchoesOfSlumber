@@ -124,6 +124,11 @@ private:
     void UpdateGameplay(float dt);
     void PostUpdateGameplay();
 
+    // ── Map switching (F1 / F2) ──────────────────────────────────────────────
+    std::string currentMapFile_ = "MapTemplate.tmx";
+    void LoadMap1();   // loads MapTemplate.tmx
+    void LoadMap2();   // loads Map2.tmx
+
     void LoadPauseMenuButtons();
     void SetPauseMenuVisible(bool visible);
     void SetPauseOptionsPanelVisible(bool visible);
