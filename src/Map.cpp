@@ -13,6 +13,7 @@
 #include "PushRock.h"
 #include "Window.h"
 #include "tracy/Tracy.hpp"
+#include "Door.h"
 
 #include <math.h>
 #include <algorithm>
@@ -138,9 +139,8 @@ bool Map::Update(float dt)
                             if (tileSet != nullptr && tileSet->texture != nullptr) {
                                 SDL_Rect tileRect = tileSet->GetRect(gid);
                                 Vector2D mapCoord = MapToWorld(i, j);
-                                
                                 // Stable rendering with DrawTexture
-                                render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect);
+                                render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect, mapLayer->parallaxFactorX);
                             }
                         }
                     }
@@ -217,7 +217,7 @@ TileSet* Map::GetTilesetFromTileId(int gid) const
     }
 
     // Verificar si el gid realment pertany al tileset (dins del seu rang de tileCount)
-    if (bestMatch && gid < bestMatch->firstGid + bestMatch->tileCount) {
+    if (bestMatch && (bestMatch->tileCount == 0 || gid < bestMatch->firstGid + bestMatch->tileCount)) {
         return bestMatch;
     }
 
@@ -268,6 +268,14 @@ bool Map::CleanUp()
     }
     mapData.animatedPlants.clear();
 
+    for (const auto& cp : mapData.checkpoints) {
+        delete cp;
+    }
+    mapData.checkpoints.clear();
+
+    mapData.capeFound = false;
+    mapLoaded = false;
+
     return true;
 }
 
@@ -308,6 +316,15 @@ bool Map::Load(std::string path, std::string fileName)
             tileSet->margin = tilesetNode.attribute("margin").as_int();
             tileSet->tileCount = tilesetNode.attribute("tilecount").as_int();
             tileSet->columns = tilesetNode.attribute("columns").as_int();
+
+            std::string tsxSrc = tilesetNode.attribute("source").as_string();
+            if (!tsxSrc.empty() && tileSet->tileCount == 0) {
+                pugi::xml_document tsxDoc;
+                if (tsxDoc.load_file((mapPath + tsxSrc).c_str())) {
+                    tileSet->tileCount = tsxDoc.child("tileset").attribute("tilecount").as_int();
+                    tileSet->columns = tsxDoc.child("tileset").attribute("columns").as_int();
+                }
+            }
 
             //Load the tileset image (skip if tileset uses per-tile images)
             std::string imgName = tilesetNode.child("image").attribute("source").as_string();
@@ -363,11 +380,29 @@ bool Map::Load(std::string path, std::string fileName)
             mapLayer->name = layerNode.attribute("name").as_string();
             mapLayer->width = layerNode.attribute("width").as_int();
             mapLayer->height = layerNode.attribute("height").as_int();
+            mapLayer->parallaxFactorX = layerNode.attribute("parallaxx").as_float(1.0f);
+            mapLayer->parallaxFactorY = layerNode.attribute("parallaxy").as_float(1.0f);
 
             LoadProperties(layerNode, mapLayer->properties);
 
-            for (pugi::xml_node tileNode = layerNode.child("data").child("tile"); tileNode != NULL; tileNode = tileNode.next_sibling("tile")) {
-                mapLayer->tiles.push_back(tileNode.attribute("gid").as_int());
+            std::string encoding = layerNode.child("data").attribute("encoding").as_string();
+
+            if (encoding == "csv") {
+                std::string csvStr = layerNode.child("data").child_value();
+                std::stringstream ss(csvStr);
+                std::string token;
+                while (std::getline(ss, token, ',')) {
+                    token.erase(0, token.find_first_not_of(" \n\r\t"));
+                    token.erase(token.find_last_not_of(" \n\r\t") + 1);
+                    if (!token.empty()) {
+                        // Use stoul instead of stoi to handle large GIDs with flip flags
+                        mapLayer->tiles.push_back((int)std::stoul(token));
+                    }
+                }
+            } else {
+                for (pugi::xml_node tileNode = layerNode.child("data").child("tile"); tileNode != NULL; tileNode = tileNode.next_sibling("tile")) {
+                    mapLayer->tiles.push_back(tileNode.attribute("gid").as_int());
+                }
             }
 
             mapData.layers.push_back(mapLayer);
@@ -651,11 +686,18 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     mapData.capeY = y;
                     LOG("Cape position loaded from TMX at: %f, %f", x, y);
                 }
+                else if (entityType == "Door") {
+                    auto door = std::dynamic_pointer_cast<Door>(Engine::GetInstance().entityManager->CreateEntity(EntityType::DOOR));
+                    door->position = Vector2D(x, y);
+                    door->Start();
+                    LOG("Door spawned at: %f, %f", x, y);
+                }
                 else if (entityType == "Tirachinas") {
                     mapData.slingshotFound = true;
                     mapData.slingshotX = x;
                     mapData.slingshotY = y;
                     LOG("Slingshot position loaded from TMX at: %f, %f", x, y);
+                }
                 }
             }
         }
@@ -764,18 +806,18 @@ void Map::LoadImageLayers()
 void Map::LoadDecorationObjects()
 {
     const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoints", "AnimatedPlants", "AnimatedPlants front", "InteractiveAssets" };
-
+    
     for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
         groupNode != NULL;
         groupNode = groupNode.next_sibling("objectgroup"))
     {
         std::string groupName = groupNode.attribute("name").as_string();
-
+        
         bool skip = false;
         for (const auto& excluded : excludedNames) {
             if (groupName == excluded) { skip = true; break; }
         }
-        if (skip) continue;
+        if (skip) continue; 
 
         std::vector<DecorationObject*> layerDecos;
 
@@ -805,7 +847,19 @@ void Map::LoadDecorationObjects()
                 {
                     if (tsNode.attribute("firstgid").as_int() != ts->firstGid) continue;
 
-                    for (pugi::xml_node tileNode = tsNode.child("tile");
+                    std::string tsxSource = tsNode.attribute("source").as_string();
+                    if (tsxSource.empty()) break;
+
+                    std::string fullTsxPath = mapPath + tsxSource;
+                    std::string tsxFolder = fullTsxPath.substr(0, fullTsxPath.find_last_of("/\\") + 1);
+
+                    pugi::xml_document tsxDoc;
+                    if (!tsxDoc.load_file(fullTsxPath.c_str())) {
+                        LOG("WARNING: Could not load tsx file: %s", fullTsxPath.c_str());
+                        break;
+                    }
+
+                    for (pugi::xml_node tileNode = tsxDoc.child("tileset").child("tile");
                         tileNode != NULL;
                         tileNode = tileNode.next_sibling("tile"))
                     {
@@ -814,7 +868,8 @@ void Map::LoadDecorationObjects()
                         std::string imgSrc = tileNode.child("image").attribute("source").as_string();
                         if (!imgSrc.empty())
                         {
-                            std::string fullPath = mapPath + imgSrc;
+                            std::string fullPath = tsxFolder + imgSrc;
+                            LOG("Loading deco texture: %s", fullPath.c_str());
                             SDL_Texture* tex = Engine::GetInstance().textures->Load(fullPath.c_str());
                             ts->tileTextures[relativeId] = tex;
                         }
@@ -864,43 +919,53 @@ void Map::LoadAnimatedPlants()
             objNode != NULL;
             objNode = objNode.next_sibling("object"))
         {
-            std::string type = objNode.attribute("class").as_string();
-            if (type.empty()) type = objNode.attribute("type").as_string();
-            if (type != "AnimatedPlant") continue;
+            unsigned int rawGid = objNode.attribute("gid").as_uint(0);
 
-            std::string tsxFile = "";
-            for (pugi::xml_node propNode = objNode.child("properties").child("property");
-                propNode != NULL;
-                propNode = propNode.next_sibling("property"))
+            if (rawGid == 0) continue;
+
+            const unsigned int FLIP_H = 0x80000000;
+            const unsigned int FLIP_V = 0x40000000;
+            const unsigned int FLIP_D = 0x20000000;
+            int gid = rawGid & ~(FLIP_H | FLIP_V | FLIP_D);
+
+            TileSet* ts = GetTilesetFromTileId(gid);
+
+            if (ts == nullptr) continue;
+
+            std::string tsxSource = "";
+            for (pugi::xml_node tsNode = mapFileXML.child("map").child("tileset");
+                tsNode != NULL;
+                tsNode = tsNode.next_sibling("tileset"))
             {
-                if (std::string(propNode.attribute("name").as_string()) == "tsx") {
-                    tsxFile = propNode.attribute("value").as_string();
+                if (tsNode.attribute("firstgid").as_int() == ts->firstGid) {
+                    tsxSource = tsNode.attribute("source").as_string();
+                    break;
                 }
             }
-            if (tsxFile.empty()) continue;
+
+            if (tsxSource.empty()) continue;
+
+            std::string fullTsxPath = mapPath + tsxSource;
 
             AnimatedPlantObject* plant = new AnimatedPlantObject();
             plant->x = objNode.attribute("x").as_float();
-            plant->y = objNode.attribute("y").as_float();
+            plant->y = objNode.attribute("y").as_float() - objNode.attribute("height").as_float();
             plant->w = objNode.attribute("width").as_float();
             plant->h = objNode.attribute("height").as_float();
-            plant->isFront = (layerName == "AnimatedPlants front"); 
-            plant->tsxPath = tsxFile;
+            plant->isFront = (layerName == "AnimatedPlants front");
+            plant->tsxPath = tsxSource;
 
-            std::string fullTsxPath = mapPath + tsxFile;
             std::unordered_map<int, std::string> aliases = { {0, "idle"} };
             bool loaded = plant->anim.LoadFromTSX(fullTsxPath.c_str(), aliases);
 
-            if (!loaded) {
-                delete plant;
-                continue;
-            }
+            if (!loaded) { delete plant; continue; }
 
             plant->anim.SetCurrent("idle");
             pugi::xml_document tsxDoc;
             if (tsxDoc.load_file(fullTsxPath.c_str())) {
                 std::string imgSource = tsxDoc.child("tileset").child("image").attribute("source").as_string();
-                std::string pngPath = mapPath + tsxFile.substr(0, tsxFile.find_last_of("/\\") + 1) + imgSource;
+                std::string tsxFolder = tsxSource.substr(0, tsxSource.find_last_of("/\\") + 1);
+                std::string pngPath = mapPath + tsxFolder + imgSource;
                 plant->texture = Engine::GetInstance().textures->Load(pngPath.c_str());
             }
             mapData.animatedPlants.push_back(plant);
