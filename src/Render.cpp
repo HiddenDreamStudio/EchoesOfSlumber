@@ -39,7 +39,7 @@ bool Render::Awake()
 	// Fallback to default if Vulkan fails
 	if (renderer == NULL) {
 		LOG("Vulkan renderer failed: %s. Falling back to default GPU renderer.", SDL_GetError());
-		renderer = SDL_CreateRenderer(window, nullptr);
+	renderer = SDL_CreateRenderer(window, nullptr);
 	}
 
 	if (renderer == NULL)
@@ -262,7 +262,9 @@ bool Render::DrawRectangle(const SDL_Rect& rect, Uint8 r, Uint8 g, Uint8 b, Uint
 	float camY = use_camera ? (float)camera.y : 0.0f;
 	rec = { camX + rect.x * scale, camY + rect.y * scale, (float)rect.w * scale, (float)rect.h * scale };
 
-	return (filled ? SDL_RenderFillRect(renderer, &rec) : SDL_RenderRect(renderer, &rec));
+	bool result = (filled ? SDL_RenderFillRect(renderer, &rec) : SDL_RenderRect(renderer, &rec));
+	if (!result) LOG("DrawRectangle error: %s", SDL_GetError());
+	return result;
 }
 
 bool Render::DrawLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a, bool use_camera) const
@@ -272,7 +274,9 @@ bool Render::DrawLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b,
 	SDL_SetRenderDrawColor(renderer, r, g, b, a);
 	float camX = use_camera ? (float)camera.x : 0.0f;
 	float camY = use_camera ? (float)camera.y : 0.0f;
-	return SDL_RenderLine(renderer, camX + x1 * scale, camY + y1 * scale, camX + x2 * scale, camY + y2 * scale);
+	bool result = SDL_RenderLine(renderer, camX + (float)x1 * scale, camY + (float)y1 * scale, camX + (float)x2 * scale, camY + (float)y2 * scale);
+	if (!result) LOG("DrawLine error: %s", SDL_GetError());
+	return result;
 }
 
 bool Render::DrawCircle(int x, int y, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a, bool use_camera) const
@@ -283,13 +287,16 @@ bool Render::DrawCircle(int x, int y, int radius, Uint8 r, Uint8 g, Uint8 b, Uin
 	float cx = (float)((use_camera ? camera.x : 0) + x * scale);
 	float cy = (float)((use_camera ? camera.y : 0) + y * scale);
 	
-	std::vector<SDL_FPoint> points(360);
+	SDL_FPoint points[361]; // Use stack array for performance
 	float factor = (float)M_PI / 180.0f;
 	for (int i = 0; i < 360; ++i) {
-		points[i].x = cx + (float)(radius * cos(i * factor));
-		points[i].y = cy + (float)(radius * sin(i * factor));
+		points[i].x = cx + (float)(radius * cos(i * factor) * scale);
+		points[i].y = cy + (float)(radius * sin(i * factor) * scale);
 	}
-	return SDL_RenderPoints(renderer, points.data(), 360);
+	points[360] = points[0];
+	bool result = SDL_RenderLines(renderer, points, 361);
+	if (!result) LOG("DrawCircle error: %s", SDL_GetError());
+	return result;
 }
 
 bool Render::DrawText(const char* text, int x, int y, int w, int h, SDL_Color color) const
