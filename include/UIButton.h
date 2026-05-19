@@ -12,7 +12,8 @@ public:
 	virtual ~UIButton();
 
 	// Called each loop iteration
-	bool Update(float dt);
+	bool Update(float dt) override;
+	bool Draw() override;
 
 	bool CleanUp() override;
 
