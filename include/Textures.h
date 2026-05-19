@@ -4,6 +4,14 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
+#include <list>
+#include <unordered_map>
+#include <string>
+
+struct TextureData {
+	int w, h;
+};
+
 class Textures : public Module
 {
 public:
@@ -30,5 +38,6 @@ public:
 
 public:
 	std::list<SDL_Texture*> textures;
+	mutable std::unordered_map<const SDL_Texture*, TextureData> textureInfo;
 
 };
