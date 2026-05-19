@@ -695,7 +695,6 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     mapData.slingshotY = y;
                     LOG("Slingshot position loaded from TMX at: %f, %f", x, y);
                 }
-                }
             }
         }
         else if (objectGroupNode.attribute("name").as_string() == std::string("Checkpoint")) {
