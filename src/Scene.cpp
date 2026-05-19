@@ -176,7 +176,7 @@ void Scene::LoadMainMenu()
 	musicVolume_ = 1.0f;
 	sfxVolume_ = 1.0f;
 
-	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Game-Menu.wav", 1.0f);
+	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_Main_Menu.wav", 1.0f);
 
 	/*Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);*/
 
@@ -759,7 +759,7 @@ void Scene::LoadGameplay()
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
 
-	Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 1.0f);
+	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 1.0f);
 
 	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
 	Engine::GetInstance().map->LoadEntities(player);
