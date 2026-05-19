@@ -21,6 +21,7 @@ class Physics;
 class UIManager;
 class Cinematics;
 class SaveSystem;
+class DiscordManager;
 
 class Engine
 {
@@ -104,6 +105,7 @@ public:
 	std::shared_ptr<UIManager> uiManager;
 	std::shared_ptr<Cinematics> cinematics;
 	std::shared_ptr<SaveSystem> saveSystem;
+	std::shared_ptr<DiscordManager> discord;
 
 	std::string gameTitle = "Echoes of Slumber";
 
