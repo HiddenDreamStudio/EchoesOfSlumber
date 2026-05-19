@@ -9,6 +9,7 @@
 #include "EnemyB.h"
 #include "EnemyC.h"
 #include "EnemyPlush.h"
+#include "EnemyStitchling.h"
 #include "Checkpoint.h"
 #include "Box.h"
 #include "PushRock.h"
@@ -645,6 +646,12 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     enemyPlush->position = Vector2D(x, y);
                     enemyPlush->Start();
                     LOG("EnemyPlush spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "EnemyStitchling") {
+                    auto stitchling = std::dynamic_pointer_cast<EnemyStitchling>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_STITCHLING));
+                    stitchling->position = Vector2D(x, y);
+                    stitchling->Start();
+                    LOG("EnemyStitchling spawned at: %f, %f", x, y);
                 }
                 else if (entityType == "Checkpoint") {
                     auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));

@@ -191,4 +191,11 @@ private:
 	AnimationSet bearAttackAnims_;
 	AnimationSet bearDeathAnims_;
 	AnimationSet throwBearAnims_;
+
+	// Yoyo trap animation (played when caught by Stitchling)
+	SDL_Texture* yoyoTrapTexture_ = nullptr;
+
+public:
+	bool         isYoyoTrapped_ = false;
+	AnimationSet yoyoTrapAnims_;
 };

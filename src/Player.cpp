@@ -121,6 +121,12 @@ bool Player::Start() {
 	throwBearAnims_.SetLoop("FallAsleep", false);
 	throwBearAnims_.SetLoop("SleepIdle", true);
 
+	// Load yoyo trap animation (played when caught by Stitchling)
+	yoyoTrapTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_dany_yoyo.png");
+	yoyoTrapAnims_.LoadFromTSX("assets/textures/animations/protagonistYoyo.xml", { {0, "yoyo"} });
+	yoyoTrapAnims_.SetCurrent("yoyo");
+	yoyoTrapAnims_.SetLoop("yoyo", true);
+
 
 	hasStuffedAnimal_ = true;
 	equippedItem_ = EquippedItem::STUFFED_ANIMAL;
@@ -319,7 +325,7 @@ void Player::GetPhysicsValues() {
 }
 
 void Player::Move() {
-	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_) return;
 
 	auto& input = Engine::GetInstance().input;
 	bool moveLeft = input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT || input->GetLeftStickX() < -0.2f;
@@ -381,7 +387,7 @@ void Player::Move() {
 }
 
 void Player::Jump() {
-	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_) return;
 
 	auto& input = Engine::GetInstance().input;
 	bool jumpDown = input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
@@ -424,7 +430,7 @@ void Player::Jump() {
 // ─────────────────────────────────────────────────────────────────────────────
 void Player::Hide(float dt)
 {
-	if (isWakingUp || isShowingDamageAnim_ || isDead_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isYoyoTrapped_) return;
 
 	auto& input = Engine::GetInstance().input;
 	bool hideDown = input->GetKey(SDL_SCANCODE_H) == KEY_DOWN ||
@@ -498,7 +504,7 @@ void Player::Slingshot(float dt)
 {
 	if (!hasSlingshot_ || equippedItem_ != EquippedItem::SLINGSHOT) return;
 
-	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_)
+	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_ || isYoyoTrapped_)
 	{
 		isAiming_ = false;
 		isAimingWithGamepad_ = false;
@@ -764,6 +770,15 @@ void Player::Draw(float dt) {
 			anims.SetCurrent("idle");
 		}
 	}
+	else if (isYoyoTrapped_ && yoyoTrapTexture_)
+	{
+		// Yoyo trap animation — player is caught by the Stitchling
+		yoyoTrapAnims_.Update(dt);
+		activeTex = yoyoTrapTexture_;
+		animFrame = &yoyoTrapAnims_.GetCurrentFrame();
+		// 484x480 frames → scale down to match ~128px character size
+		currentDrawScale = 0.27f;
+	}
 	else if (isHiding_ || isExitingHide_)
 	{
 		// Hide animation is advanced inside Hide() — just grab the current frame
@@ -915,7 +930,7 @@ void Player::Draw(float dt) {
 
 void Player::Attack(float dt)
 {
-	if (isHiding_ || isExitingHide_) return;
+	if (isHiding_ || isExitingHide_ || isYoyoTrapped_) return;
 
 	auto& input = Engine::GetInstance().input;
 	auto& physics = Engine::GetInstance().physics;
