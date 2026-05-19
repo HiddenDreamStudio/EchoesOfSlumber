@@ -89,8 +89,8 @@ bool Map::Update(float dt)
         }
 
         for (const auto& plant : mapData.animatedPlants) {
-            if (plant->isFront) continue;
-            plant->anim.Update(dt);
+            plant->anim.Update(dt); 
+            if (plant->isFront) continue; 
             const SDL_Rect& frame = plant->anim.GetCurrentFrame();
 
             SDL_FRect dst;
