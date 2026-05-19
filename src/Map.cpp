@@ -631,13 +631,13 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     auto enemy = std::dynamic_pointer_cast<EnemyCarmel>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
                     enemy->position = Vector2D(x, y);
 
-                    float patrolLeft  = x - 200.0f;
+                    float patrolLeft = x - 200.0f;
                     float patrolRight = x + 200.0f;
                     pugi::xml_node props = objectNode.child("properties");
                     if (props) {
                         for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
                             std::string propName = prop.attribute("name").as_string();
-                            if (propName == "patrol_left")  patrolLeft  = prop.attribute("value").as_float();
+                            if (propName == "patrol_left")  patrolLeft = prop.attribute("value").as_float();
                             if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
                         }
                     }
@@ -648,13 +648,13 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                 else if (entityType == "EnemyB") {
                     auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
                     enemyB->position = Vector2D(x, y);
-                    float patrolLeft  = x - 200.0f;
+                    float patrolLeft = x - 200.0f;
                     float patrolRight = x + 200.0f;
                     pugi::xml_node props = objectNode.child("properties");
                     if (props) {
                         for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
                             std::string propName = prop.attribute("name").as_string();
-                            if (propName == "patrol_left")  patrolLeft  = prop.attribute("value").as_float();
+                            if (propName == "patrol_left")  patrolLeft = prop.attribute("value").as_float();
                             if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
                         }
                     }
@@ -704,7 +704,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
-                
+
                 auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
                 checkpoint->position = Vector2D(x, y);
                 checkpoint->Start();
@@ -757,6 +757,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
         }
     }
 }
+
 
 void Map::SaveEntities(std::shared_ptr<Player> player) {
 
