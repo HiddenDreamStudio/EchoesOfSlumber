@@ -64,6 +64,9 @@ public:
 	// Called each loop iteration
 	virtual bool Update(float dt) { return true; }
 
+	// Called during the rendering phase
+	virtual bool Draw() { return true; }
+
 	// 
 	void SetTexture(SDL_Texture* tex)
 	{
