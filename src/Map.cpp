@@ -14,6 +14,11 @@
 #include "Window.h"
 #include "tracy/Tracy.hpp"
 #include "Door.h"
+<<<<<<< Updated upstream
+=======
+#include "Item.h"
+
+>>>>>>> Stashed changes
 #include <math.h>
 #include <algorithm>
 #include <sstream>
@@ -646,9 +651,24 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                 else if (entityType == "Door") {
                     auto door = std::dynamic_pointer_cast<Door>(Engine::GetInstance().entityManager->CreateEntity(EntityType::DOOR));
                     door->position = Vector2D(x, y);
-                    door->Start();
+                    door->Start();  
                     LOG("Door spawned at: %f, %f", x, y);
                 }
+<<<<<<< Updated upstream
+=======
+                else if (entityType == "Item") {
+                    auto item = std::dynamic_pointer_cast<Item>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ITEM));
+                    item->position = Vector2D(x, y);
+                    item->Start();
+                    LOG("Item spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "    ") {
+                    mapData.slingshotFound = true;
+                    mapData.slingshotX = x;
+                    mapData.slingshotY = y;
+                    LOG("Slingshot position loaded from TMX at: %f, %f", x, y);
+                }
+>>>>>>> Stashed changes
             }
         }
         else if (objectGroupNode.attribute("name").as_string() == std::string("Checkpoint")) {

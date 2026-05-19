@@ -9,31 +9,32 @@
 #include "Physics.h"
 #include "EntityManager.h"
 
-Item::Item() : Entity(EntityType::ITEM)
+Item::Item() : Entity(EntityType::ITEM), texture(nullptr), texturePath(nullptr), texW(0), texH(0), pbody(nullptr)
 {
 	name = "item";
 }
 
 Item::~Item() {}
 
-bool Item::Awake() {
-	return true;
-}
+bool Item::Awake() { return true; }
 
 bool Item::Start() {
-
-	//initilize textures
+	// Load texture
 	texture = Engine::GetInstance().textures->Load("Assets/Textures/goldCoin.png");
-	
-	// L08 TODO 4: Add a physics to an item - initialize the physics body
-	Engine::GetInstance().textures.get()->GetSize(texture, texW, texH);
-	pbody = Engine::GetInstance().physics->CreateCircle((int)position.getX() + texH / 2, (int)position.getY() + texH / 2, texH / 2, bodyType::DYNAMIC);
 
-	// L08 TODO 7: Assign collider type
+	// Set size
+	if (texture != nullptr) {
+		Engine::GetInstance().textures.get()->GetSize(texture, texW, texH);
+	}
+	else {
+		texW = 32;
+		texH = 32;
+	}
+
+	// Create dynamic collider
+	pbody = Engine::GetInstance().physics->CreateCircle((int)position.getX() + texW / 2, (int)position.getY() + texH / 2, texW / 2, bodyType::DYNAMIC);
 	pbody->ctype = ColliderType::ITEM;
-
-	// Set this class as the listener of the pbody
-	pbody->listener = this;   // so Begin/EndContact can call back to Item
+	pbody->listener = this;
 
 	return true;
 }
@@ -42,28 +43,39 @@ bool Item::Update(float dt)
 {
 	if (!active) return true;
 
-	if (Engine::GetInstance().scene->isPaused_) {
-		int x, y;
-		pbody->GetPosition(x, y);
-		Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2);
-		return true;
-	}
-
-	// L08 TODO 4: Add a physics to an item - update the position of the object from the physics.  
 	int x, y;
 	pbody->GetPosition(x, y);
-	position.setX((float)x);
-	position.setY((float)y);
 
-	Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2);
+	if (!Engine::GetInstance().scene->isPaused_) {
+		position.setX((float)x);
+		position.setY((float)y);
+	}
+
+	// Draw item
+	if (texture != nullptr) {
+		Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2);
+	}
+	else {
+		// Draw placeholder
+		SDL_Rect rect = { x - texW / 2, y - texH / 2, texW, texH };
+		Engine::GetInstance().render->DrawRectangle(rect, 255, 255, 0, 255, true, true);
+	}
 
 	return true;
 }
 
 bool Item::CleanUp()
 {
-	Engine::GetInstance().textures->UnLoad(texture);
-	Engine::GetInstance().physics->DeletePhysBody(pbody);
+	// Free texture
+	if (texture != nullptr) {
+		Engine::GetInstance().textures->UnLoad(texture);
+		texture = nullptr;
+	}
+	// Free collider
+	if (pbody != nullptr) {
+		Engine::GetInstance().physics->DeletePhysBody(pbody);
+		pbody = nullptr;
+	}
 	return true;
 }
 
