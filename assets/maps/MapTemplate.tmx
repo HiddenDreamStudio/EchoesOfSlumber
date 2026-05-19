@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<<<<<<< Updated upstream
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="467" height="308" tilewidth="64" tileheight="64" infinite="0" nextlayerid="37" nextobjectid="401">
-=======
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="173" height="204" tilewidth="64" tileheight="64" infinite="0" nextlayerid="43" nextobjectid="877">
->>>>>>> Stashed changes
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="467" height="308" tilewidth="64" tileheight="64" infinite="0" nextlayerid="37" nextobjectid="401">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -144379,7 +144375,6 @@
   </data>
  </layer>
  <objectgroup id="9" name="Entities">
-  <object id="11" name="Player" type="Player" x="19422.2" y="13535" width="96" height="96"/>
   <object id="12" name="Enemy" type="Enemy" x="14574" y="12951" width="32" height="32"/>
   <object id="13" name="EnemyB" type="EnemyB" x="15580" y="12938" width="32" height="32">
    <properties>
@@ -144387,15 +144382,11 @@
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-<<<<<<< Updated upstream
   <object id="14" name="EnemyC" type="EnemyC" x="17224" y="12920" width="32" height="32"/>
-  <object id="397" name="Cape" type="Cape" x="13184" y="576"/>
-=======
   <object id="774" name="Enemy" type="Enemy" x="1892" y="6474" width="32" height="32"/>
-  <object id="775" name="Player" type="Player" x="8588.36" y="8491.39" width="96" height="96"/>
-  <object id="776" name="Cape" type="Cape" x="5546.06" y="1579.27"/>
-  <object id="875" name="Key" type="Item" x="8540.5" y="8551" width="38" height="27.5"/>
-  <object id="876" name="Door" type="Door" x="8709" y="8491" width="55" height="87"/>
->>>>>>> Stashed changes
+  <object id="775" name="Player" type="Player" x="19384.8" y="13533.5" width="96" height="96"/>
+  <object id="397" name="Cape" type="Cape" x="13184" y="576"/>
+  <object id="875" name="Key" type="Item" x="19337" y="13593.1" width="38" height="27.5"/>
+  <object id="876" name="Door" type="Door" x="19518.3" y="13502.1" width="55" height="87"/>
  </objectgroup>
 </map>

@@ -10,7 +10,6 @@ struct SDL_Texture;
 class Door : public Entity
 {
 public:
-
 	Door();
 	virtual ~Door();
 
@@ -19,17 +18,6 @@ public:
 	bool Update(float dt) override;
 	bool CleanUp() override;
 
-<<<<<<< Updated upstream
-	// Method to handle the opening
-	void Open();
-
-public:
-
-	bool isOpen = false;
-
-private:
-
-=======
 	// Open the door
 	void Open();
 
@@ -39,16 +27,11 @@ public:
 
 private:
 	// Texture data
->>>>>>> Stashed changes
 	SDL_Texture* texture;
 	const char* texturePath;
-	int texW, texH;
+	int texW, texH; // Individual frame dimensions (256x256)
 
-<<<<<<< Updated upstream
-	// Pointer to the physics body blocking passage
-=======
 	// Collision body
->>>>>>> Stashed changes
 	PhysBody* pbody;
 
 	// Breaking animation

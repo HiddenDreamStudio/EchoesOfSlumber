@@ -152,6 +152,10 @@ struct MapData
     bool  capeFound = false;
     float capeX = 0.0f;
     float capeY = 0.0f;
+
+    bool  slingshotFound = false;
+    float slingshotX = 0.0f;
+    float slingshotY = 0.0f;
 };
 
 class Map : public Module
