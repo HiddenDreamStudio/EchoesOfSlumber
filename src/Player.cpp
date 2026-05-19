@@ -81,6 +81,50 @@ bool Player::Start() {
 	}
 	slingshotAnim_.SetLoop(false);
 
+	// Load Bear Animations from XML
+	bearAppearTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/SS_oso_apareixent-Pintado.png");
+	bearAppearAnims_.LoadFromTSX("assets/textures/animations/bearAppear.xml", { {0, "appear"} });
+	bearAppearAnims_.SetCurrent("appear");
+	bearAppearAnims_.SetLoop("appear", false);
+
+	bearIdleTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/SS_oso_idle-Pintado.png");
+	bearIdleAnims_.LoadFromTSX("assets/textures/animations/bearIdle.xml", { {0, "idle"} });
+	bearIdleAnims_.SetCurrent("idle");
+	bearIdleAnims_.SetLoop("idle", true);
+
+	bearWalkTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/SS_oso_caminant-Pintado.png");
+	bearWalkAnims_.LoadFromTSX("assets/textures/animations/bearWalk.xml", { {0, "walk"} });
+	bearWalkAnims_.SetCurrent("walk");
+	bearWalkAnims_.SetLoop("walk", true);
+
+	bearAttackTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/SS_oso_atacant-Pintado.png");
+	bearAttackAnims_.LoadFromTSX("assets/textures/animations/bearAttack.xml", { {0, "attack"} });
+	bearAttackAnims_.SetCurrent("attack");
+	bearAttackAnims_.SetLoop("attack", false);
+
+	bearDeathTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/SS_oso_palmant-Pintado.png");
+	bearDeathAnims_.LoadFromTSX("assets/textures/animations/bearDeath.xml", { {0, "death"} });
+	bearDeathAnims_.SetCurrent("death");
+	bearDeathAnims_.SetLoop("death", false);
+
+	throwBearTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/SS_llencar_oso.png");
+	if (throwBearTexture_) {
+		SDL_SetTextureScaleMode(throwBearTexture_, SDL_SCALEMODE_NEAREST);
+	}
+	throwBearAnims_.LoadFromTSX("assets/textures/animations/protagonistThrowBear.xml", { {0, "ThrowStart"}, {24, "BearActiveIdle"}, {72, "FallAsleep"}, {48, "SleepIdle"} });
+	LOG("throwBearAnims_ loaded. Has ThrowStart: %d, BearActiveIdle: %d, FallAsleep: %d, SleepIdle: %d",
+		throwBearAnims_.Has("ThrowStart"), throwBearAnims_.Has("BearActiveIdle"),
+		throwBearAnims_.Has("FallAsleep"), throwBearAnims_.Has("SleepIdle"));
+	throwBearAnims_.SetCurrent("ThrowStart");
+	throwBearAnims_.SetLoop("ThrowStart", false);
+	throwBearAnims_.SetLoop("BearActiveIdle", true);
+	throwBearAnims_.SetLoop("FallAsleep", false);
+	throwBearAnims_.SetLoop("SleepIdle", true);
+
+
+	hasStuffedAnimal_ = true;
+	equippedItem_ = EquippedItem::STUFFED_ANIMAL;
+
 	pbody = Engine::GetInstance().physics->CreateCapsule((int)position.getX(), (int)position.getY(), 40, 100, bodyType::DYNAMIC, 0.0f);
 
 	pbody->listener = this;
@@ -111,32 +155,125 @@ bool Player::Update(float dt)
 
 	if (!isDead_ && !isWakingUp)
 	{
-		// Fast-swap equipped items during gameplay
+		// Fast-swap equipped items during gameplay (blocked in bear mode)
 		auto& input = *Engine::GetInstance().input;
-		if (input.GetKey(SDL_SCANCODE_1) == KEY_DOWN && hasBlanket_) {
-			equippedItem_ = EquippedItem::BLANKET;
-			Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+		bool canSwap = !isBearMode_ && !isBearTransforming_;
+		if (canSwap) {
+			if (input.GetKey(SDL_SCANCODE_1) == KEY_DOWN && hasBlanket_) {
+				equippedItem_ = EquippedItem::BLANKET;
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+			}
+			if (input.GetKey(SDL_SCANCODE_2) == KEY_DOWN && hasSlingshot_) {
+				equippedItem_ = EquippedItem::SLINGSHOT;
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+			}
+			if (input.GetKey(SDL_SCANCODE_3) == KEY_DOWN && hasStuffedAnimal_) {
+				equippedItem_ = EquippedItem::STUFFED_ANIMAL;
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+			}
 		}
-		if (input.GetKey(SDL_SCANCODE_2) == KEY_DOWN && hasSlingshot_) {
-			equippedItem_ = EquippedItem::SLINGSHOT;
-			Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
-		}
-		if (input.GetKey(SDL_SCANCODE_3) == KEY_DOWN && hasStuffedAnimal_) {
-			equippedItem_ = EquippedItem::STUFFED_ANIMAL;
-			Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+
+		// Toggle bear mode
+		bool bearToggleDown = input.GetKey(SDL_SCANCODE_O) == KEY_DOWN ||
+		                     input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN;
+
+		if (bearToggleDown && hasStuffedAnimal_ && equippedItem_ == EquippedItem::STUFFED_ANIMAL && 
+		    !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isAiming_) 
+		{
+			if (!isBearMode_ && !isBearTransforming_ && !isThrowingBear_ && !isKidSleeping_) {
+				isThrowingBear_ = true;
+				throwBearAnims_.SetCurrent("ThrowStart");
+				throwBearAnims_.ResetCurrent();
+				velocity.x = 0.0f;
+				Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
+
+				int bodyX, bodyY;
+				pbody->GetPosition(bodyX, bodyY);
+				bearSummonPosition_ = Vector2D((float)bodyX, (float)bodyY);
+				bearSummonFacingRight_ = facingRight;
+
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				LOG("Player starting bear throw");
+			}
+			else if (isBearMode_ && !isBearTransforming_ && !isAttacking_) {
+				// Exit bear mode: kid wakes up and bear goes away
+				isBearMode_ = false;
+				isBearTransforming_ = false;
+				isKidSleeping_ = true;
+				bearSleepTimer_ = 2000.0f; // 2 seconds sleep
+				throwBearAnims_.SetCurrent("FallAsleep");
+				throwBearAnims_.ResetCurrent();
+
+				// Teleport player physics body back to kid position
+				pbody->SetPosition((int)bearSummonPosition_.getX(), (int)bearSummonPosition_.getY());
+				
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				LOG("Player exited bear mode, kid is sleeping at summon position");
+			}
 		}
 
 		if (!isShowingDamageAnim_) {
-			// Hide must be evaluated first so it can block other actions
-			Hide(dt);
-
-			// All other actions are blocked while hiding
-			if (!isHiding_) {
-				if (!isExitingHide_) Move();
-				Jump();
-				if (!isPushing_) Attack(dt);
-				if (!isPushing_ && !isAttacking_) Slingshot(dt);
+			if (isThrowingBear_) {
+				velocity.x = 0.0f;
+				Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
+				throwBearAnims_.Update(dt);
+				if (throwBearAnims_.HasFinishedOnce("ThrowStart")) {
+					isThrowingBear_ = false;
+					isBearTransforming_ = true;
+					bearAppearAnims_.ResetCurrent();
+					LOG("Player starting bear transformation");
+				}
+			}
+			else if (isKidSleeping_) {
+				velocity.x = 0.0f;
+				Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
+				throwBearAnims_.Update(dt);
+				if (throwBearAnims_.GetCurrentName() == "FallAsleep" && throwBearAnims_.HasFinishedOnce("FallAsleep")) {
+					throwBearAnims_.SetCurrent("SleepIdle");
+				}
+				bearSleepTimer_ -= dt;
+				if (bearSleepTimer_ <= 0.0f) {
+					isKidSleeping_ = false;
+					anims.SetCurrent("idle");
+				}
+			}
+			else if (isBearTransforming_) {
+				// Transform state blocks all normal actions
+				velocity.x = 0.0f;
+				Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
+				bearAppearAnims_.Update(dt);
+				if (bearAppearAnims_.HasFinishedOnce("appear")) {
+					isBearTransforming_ = false;
+					isBearMode_ = true;
+					bearIdleAnims_.ResetCurrent();
+					LOG("Player bear transformation complete! Now in bear mode.");
+				}
+				// Also update the throwing idle animation of the kid
+				throwBearAnims_.SetCurrent("BearActiveIdle");
+				throwBearAnims_.Update(dt);
+			}
+			else if (isBearMode_) {
+				// Giant Bear mode controls (only move left/right and attack)
+				Move();
+				Attack(dt);
 				Teleport();
+				// Also update the throwing idle animation of the kid
+				throwBearAnims_.SetCurrent("BearActiveIdle");
+				throwBearAnims_.Update(dt);
+			}
+			else {
+				// Standard human controls
+				// Hide must be evaluated first so it can block other actions
+				Hide(dt);
+
+				// All other actions are blocked while hiding
+				if (!isHiding_) {
+					if (!isExitingHide_) Move();
+					Jump();
+					if (!isPushing_) Attack(dt);
+					if (!isPushing_ && !isAttacking_) Slingshot(dt);
+					Teleport();
+				}
 			}
 		}
 	}
@@ -198,13 +335,15 @@ void Player::Move() {
 		velocity.x = -effectiveSpeed;
 		if (!facingRight) {
 			facingRight = true;
-			if (!isJumping && !isPushing_) anims.SetCurrent("turnaround");
+			if (!isJumping && !isPushing_ && !isBearMode_) anims.SetCurrent("turnaround");
 		}
 
-		if (!isJumping && !isPushing_) {
-			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
-				if (anims.Has("run")) anims.SetCurrent("run");
-				else anims.SetCurrent("idle");
+		if (!isBearMode_) {
+			if (!isJumping && !isPushing_) {
+				if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
+					if (anims.Has("run")) anims.SetCurrent("run");
+					else anims.SetCurrent("idle");
+				}
 			}
 		}
 	}
@@ -212,13 +351,15 @@ void Player::Move() {
 		velocity.x = effectiveSpeed;
 		if (facingRight) {
 			facingRight = false;
-			if (!isJumping && !isPushing_) anims.SetCurrent("turnaround");
+			if (!isJumping && !isPushing_ && !isBearMode_) anims.SetCurrent("turnaround");
 		}
 
-		if (!isJumping && !isPushing_) {
-			if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
-				if (anims.Has("run")) anims.SetCurrent("run");
-				else anims.SetCurrent("idle");
+		if (!isBearMode_) {
+			if (!isJumping && !isPushing_) {
+				if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
+					if (anims.Has("run")) anims.SetCurrent("run");
+					else anims.SetCurrent("idle");
+				}
 			}
 		}
 	}
@@ -228,7 +369,7 @@ void Player::Move() {
 			// Keep isPushing_ true only while actively pressing toward the rock
 			// The collision contact may still exist but we're not pushing
 		}
-		if (!isJumping) {
+		if (!isJumping && !isBearMode_) {
 			if (anims.GetCurrentName() == "jump" && !anims.HasFinishedOnce("jump")) {
 				// let landing animation finish
 			}
@@ -360,6 +501,7 @@ void Player::Slingshot(float dt)
 	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_)
 	{
 		isAiming_ = false;
+		isAimingWithGamepad_ = false;
 		chargeTimer_ = 0.0f;
 		return;
 	}
@@ -368,13 +510,19 @@ void Player::Slingshot(float dt)
 	auto& render = Engine::GetInstance().render;
 
 	KeyState lmb = input->GetMouseButtonDown(SDL_BUTTON_LEFT);
+	bool triggerDown = input->GetRightTrigger() > 0.3f;
+	bool triggerReleased = input->GetRightTrigger() < 0.1f;
 
-	if (lmb == KEY_DOWN && !isAiming_ && slingshotCooldown_ <= 0.0f)
+	if (!isAiming_ && slingshotCooldown_ <= 0.0f)
 	{
-		isAiming_ = true;
-		chargeTimer_ = 0.0f;
-		slingshotAnim_.Reset();
-		LOG("Slingshot aiming started");
+		if (lmb == KEY_DOWN || triggerDown)
+		{
+			isAiming_ = true;
+			isAimingWithGamepad_ = triggerDown;
+			chargeTimer_ = 0.0f;
+			slingshotAnim_.Reset();
+			LOG("Slingshot aiming started");
+		}
 	}
 
 	if (isAiming_)
@@ -382,18 +530,55 @@ void Player::Slingshot(float dt)
 		chargeTimer_ += dt;
 		if (chargeTimer_ > MAX_CHARGE_TIME) chargeTimer_ = MAX_CHARGE_TIME;
 
-		// Calculate aim angle from player center to mouse world position
+		// Calculate aim angle
 		int playerX, playerY;
 		pbody->GetPosition(playerX, playerY);
 
-		Vector2D mouseScreen = input->GetMousePosition();
-		// Convert screen mouse pos to world coords
-		float mouseWorldX = mouseScreen.getX() - (float)render->camera.x;
-		float mouseWorldY = mouseScreen.getY() - (float)render->camera.y;
+		float dx = 0.0f;
+		float dy = 0.0f;
 
-		float dx = mouseWorldX - (float)playerX;
-		float dy = mouseWorldY - (float)playerY;
-		aimAngle_ = std::atan2(dy, dx);
+		if (isAimingWithGamepad_)
+		{
+			// Calculate aim angle from right stick first
+			float rx = input->GetRightStickX();
+			float ry = input->GetRightStickY();
+			if (rx * rx + ry * ry > 0.04f)
+			{
+				dx = rx;
+				dy = ry;
+				aimAngle_ = std::atan2(dy, dx);
+			}
+			else
+			{
+				// Default to left stick direction or facing direction
+				float lx = input->GetLeftStickX();
+				float ly = input->GetLeftStickY();
+				if (lx * lx + ly * ly > 0.04f)
+				{
+					dx = lx;
+					dy = ly;
+					aimAngle_ = std::atan2(dy, dx);
+				}
+				else
+				{
+					// Default based on facing direction (native sprite faces LEFT on facingRight = true)
+					dx = facingRight ? -1.0f : 1.0f;
+					dy = 0.0f;
+					aimAngle_ = facingRight ? 3.14159265f : 0.0f;
+				}
+			}
+		}
+		else
+		{
+			// Mouse aiming
+			Vector2D mouseScreen = input->GetMousePosition();
+			float mouseWorldX = mouseScreen.getX() - (float)render->camera.x;
+			float mouseWorldY = mouseScreen.getY() - (float)render->camera.y;
+
+			dx = mouseWorldX - (float)playerX;
+			dy = mouseWorldY - (float)playerY;
+			aimAngle_ = std::atan2(dy, dx);
+		}
 
 		// Update facing direction based on aim
 		if (dx > 0) facingRight = false;
@@ -447,10 +632,21 @@ void Player::Slingshot(float dt)
 		// Stop movement while aiming
 		velocity.x = 0.0f;
 
-		if (lmb == KEY_UP)
+		bool shouldFire = false;
+		if (isAimingWithGamepad_)
+		{
+			if (triggerReleased) shouldFire = true;
+		}
+		else
+		{
+			if (lmb == KEY_UP) shouldFire = true;
+		}
+
+		if (shouldFire)
 		{
 			// Fire!
 			isAiming_ = false;
+			isAimingWithGamepad_ = false;
 			slingshotCooldown_ = SLINGSHOT_COOLDOWN;
 
 			// Spawn projectile
@@ -458,8 +654,6 @@ void Player::Slingshot(float dt)
 				Engine::GetInstance().entityManager->CreateEntity(EntityType::SLINGSHOT_PROJECTILE));
 
 			// Spawn fully outside the player's collision body for all aim directions.
-			// The player body is much taller than the old 30px offset, so vertical and
-			// diagonal shots could start inside the player and immediately self-collide.
 			const float projectileSpawnClearance = 70.0f;
 			float spawnOffsetX = std::cos(aimAngle_) * projectileSpawnClearance;
 			float spawnOffsetY = std::sin(aimAngle_) * projectileSpawnClearance;
@@ -496,7 +690,65 @@ void Player::Draw(float dt) {
 	const SDL_Rect* animFrame = nullptr;
 	float currentDrawScale = drawScale;
 
-	if (isDead_)
+	bool drawingBear = isBearMode_ || isBearTransforming_;
+	int bearOffsetDrawY = 0;
+
+	if (isThrowingBear_)
+	{
+		activeTex = throwBearTexture_;
+		animFrame = &throwBearAnims_.GetCurrentFrame();
+		currentDrawScale = 1.0f;
+	}
+	else if (isKidSleeping_)
+	{
+		activeTex = throwBearTexture_;
+		animFrame = &throwBearAnims_.GetCurrentFrame();
+		currentDrawScale = 1.0f;
+	}
+	else if (isDead_ && isBearMode_)
+	{
+		bearDeathAnims_.Update(dt);
+		activeTex = bearDeathTexture_;
+		animFrame = &bearDeathAnims_.GetCurrentFrame();
+		currentDrawScale = 0.5f;
+		bearOffsetDrawY = 64;
+	}
+	else if (isBearTransforming_)
+	{
+		bearAppearAnims_.Update(dt);
+		activeTex = bearAppearTexture_;
+		animFrame = &bearAppearAnims_.GetCurrentFrame();
+		currentDrawScale = 0.5f;
+		bearOffsetDrawY = 64;
+	}
+	else if (isBearMode_)
+	{
+		if (isAttacking_)
+		{
+			bearAttackAnims_.Update(dt);
+			activeTex = bearAttackTexture_;
+			animFrame = &bearAttackAnims_.GetCurrentFrame();
+			currentDrawScale = 0.256f; // 256 / 1000
+			bearOffsetDrawY = 64;
+		}
+		else if (velocity.x != 0.0f)
+		{
+			bearWalkAnims_.Update(dt);
+			activeTex = bearWalkTexture_;
+			animFrame = &bearWalkAnims_.GetCurrentFrame();
+			currentDrawScale = 0.5f;
+			bearOffsetDrawY = 64;
+		}
+		else
+		{
+			bearIdleAnims_.Update(dt);
+			activeTex = bearIdleTexture_;
+			animFrame = &bearIdleAnims_.GetCurrentFrame();
+			currentDrawScale = 0.5f;
+			bearOffsetDrawY = 64;
+		}
+	}
+	else if (isDead_)
 	{
 		if (anims.GetCurrentName() != "death") anims.SetCurrent("death");
 		anims.Update(dt);
@@ -569,6 +821,10 @@ void Player::Draw(float dt) {
 	int drawX = static_cast<int>(position.getX() - (static_cast<float>(currentFrameW) * currentDrawScale) / 2.0f);
 	int drawY = static_cast<int>(position.getY() - (static_cast<float>(currentFrameH) * currentDrawScale) / 2.0f);
 
+	if (drawingBear) {
+		drawY -= bearOffsetDrawY;
+	}
+
 	// Adjust drawing position when pushing so hands align with the edge of the rock visually
 	if (isPushing_ && velocity.x != 0.0f && !isJumping) {
 		drawX -= static_cast<int>(pushDir_ * 35.0f);
@@ -610,6 +866,18 @@ void Player::Draw(float dt) {
 			render->ResetAmbientTint(wakeUpTexture);
 			return;
 		}
+	}
+
+	if (drawingBear && throwBearTexture_) {
+		const SDL_Rect& kidFrame = throwBearAnims_.GetCurrentFrame();
+		int kidDrawX = static_cast<int>(bearSummonPosition_.getX() - static_cast<float>(kidFrame.w) / 2.0f);
+		int kidDrawY = static_cast<int>(bearSummonPosition_.getY() - static_cast<float>(kidFrame.h) / 2.0f);
+		
+		SDL_FlipMode kidFlip = bearSummonFacingRight_ ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+
+		render->ApplyAmbientTint(throwBearTexture_);
+		render->DrawTexture(throwBearTexture_, kidDrawX, kidDrawY, &kidFrame, 1.0f, 0, INT_MAX, INT_MAX, kidFlip, 1.0f);
+		render->ResetAmbientTint(throwBearTexture_);
 	}
 
 	// ── I-frame flicker (not during hide or death) ────────────────────
@@ -654,20 +922,35 @@ void Player::Attack(float dt)
 
 	if (attackCooldown_ > 0.0f) attackCooldown_ -= dt;
 
-	bool attackDown = input->GetKey(SDL_SCANCODE_J) == KEY_DOWN ||
-	                  input->GetGamepadButton(SDL_GAMEPAD_BUTTON_WEST) == KEY_DOWN;
+	bool attackDown = false;
+	if (isBearMode_) {
+		attackDown = input->GetMouseButtonDown(1) == KEY_DOWN ||
+		             input->GetGamepadButton(SDL_GAMEPAD_BUTTON_WEST) == KEY_DOWN;
+	} else {
+		attackDown = input->GetKey(SDL_SCANCODE_J) == KEY_DOWN ||
+		             input->GetGamepadButton(SDL_GAMEPAD_BUTTON_WEST) == KEY_DOWN;
+	}
 
 	if (attackDown && !isAttacking_ && attackCooldown_ <= 0.0f)
 	{
 		isAttacking_ = true;
-		attackTimer_ = ATTACK_DURATION;
+		if (isBearMode_) {
+			attackTimer_ = 480.0f; // 6 frames * 80ms
+			bearAttackAnims_.ResetCurrent();
+		} else {
+			attackTimer_ = ATTACK_DURATION;
+		}
 		attackCooldown_ = ATTACK_COOLDOWN;
 
 		int bodyX, bodyY;
 		pbody->GetPosition(bodyX, bodyY);
 
-		int hitboxX = facingRight ? bodyX - (int)HITBOX_OFFSET : bodyX + (int)HITBOX_OFFSET;
-		attackHitbox_ = physics->CreateRectangleSensor(hitboxX, bodyY, (int)HITBOX_W, (int)HITBOX_H, bodyType::STATIC);
+		int hitboxW = isBearMode_ ? 100 : HITBOX_W;
+		int hitboxH = isBearMode_ ? 120 : HITBOX_H;
+		int offset = isBearMode_ ? 80 : HITBOX_OFFSET;
+
+		int hitboxX = facingRight ? bodyX - hitboxW / 2 - offset : bodyX + hitboxW / 2 + offset;
+		attackHitbox_ = physics->CreateRectangleSensor(hitboxX, bodyY, hitboxW, hitboxH, bodyType::STATIC);
 		attackHitbox_->listener = this;
 		attackHitbox_->ctype = ColliderType::ATTACK;
 		LOG("Player attack started");
@@ -681,7 +964,9 @@ void Player::Attack(float dt)
 		{
 			int bodyX, bodyY;
 			pbody->GetPosition(bodyX, bodyY);
-			int hitboxX = facingRight ? bodyX - (int)HITBOX_OFFSET : bodyX + (int)HITBOX_OFFSET;
+			int hitboxW = isBearMode_ ? 100 : HITBOX_W;
+			int offset = isBearMode_ ? 80 : HITBOX_OFFSET;
+			int hitboxX = facingRight ? bodyX - hitboxW / 2 - offset : bodyX + hitboxW / 2 + offset;
 			attackHitbox_->SetPosition(hitboxX, bodyY);
 		}
 
@@ -759,6 +1044,11 @@ void Player::Revive()
 	isHiding_ = false;
 	isInvincible_ = false;
 	isShowingDamageAnim_ = false;
+	isBearMode_ = false;
+	isBearTransforming_ = false;
+	isThrowingBear_ = false;
+	isKidSleeping_ = false;
+	bearSleepTimer_ = 0.0f;
 	hideAlphaTime_ = 0.0f;
 	hideCooldown_ = 0.0f; // reset cooldown on revive
 	isAiming_ = false;
@@ -787,6 +1077,30 @@ bool Player::CleanUp()
 	if (slingshotShootTexture_) {
 		Engine::GetInstance().textures->UnLoad(slingshotShootTexture_);
 		slingshotShootTexture_ = nullptr;
+	}
+	if (bearAppearTexture_) {
+		Engine::GetInstance().textures->UnLoad(bearAppearTexture_);
+		bearAppearTexture_ = nullptr;
+	}
+	if (bearIdleTexture_) {
+		Engine::GetInstance().textures->UnLoad(bearIdleTexture_);
+		bearIdleTexture_ = nullptr;
+	}
+	if (bearWalkTexture_) {
+		Engine::GetInstance().textures->UnLoad(bearWalkTexture_);
+		bearWalkTexture_ = nullptr;
+	}
+	if (bearAttackTexture_) {
+		Engine::GetInstance().textures->UnLoad(bearAttackTexture_);
+		bearAttackTexture_ = nullptr;
+	}
+	if (bearDeathTexture_) {
+		Engine::GetInstance().textures->UnLoad(bearDeathTexture_);
+		bearDeathTexture_ = nullptr;
+	}
+	if (throwBearTexture_) {
+		Engine::GetInstance().textures->UnLoad(throwBearTexture_);
+		throwBearTexture_ = nullptr;
 	}
 	return true;
 }

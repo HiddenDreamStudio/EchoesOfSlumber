@@ -84,6 +84,7 @@ SDL_Texture* const Textures::LoadSurface(SDL_Surface* surface)
 	}
 	else
 	{
+		SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 		textures.push_back(texture);
 	}
 

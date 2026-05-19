@@ -157,7 +157,7 @@ bool EnemyPlush::Update(float dt)
 		case State::JUMPING:
 			if (jumpPhase_ == JumpPhase::START) {
 				jumpStartAnims_.Update(dt);
-				if (jumpStartAnims_.HasFinishedOnce("jump_start")) {
+				if (jumpStartAnims_.HasFinishedOnce("jump_start") || velocity.y >= 0.0f) {
 					jumpPhase_ = JumpPhase::LOOP;
 				}
 			}
@@ -204,6 +204,14 @@ void EnemyPlush::UpdateFSM(float dt)
 		{
 			Destroy();
 		}
+		return;
+	}
+
+	// Bypass FSM logic when hit: just let the knockback physics resolve
+	if (isHit_)
+	{
+		GetPhysicsValues();
+		ApplyPhysics();
 		return;
 	}
 
@@ -366,6 +374,7 @@ void EnemyPlush::EnterState(State newState)
 		break;
 	case State::TENSE:
 		tenseTimer_ = 0.0f;
+		tenseVisualOffset_ = 0.0f;
 		alertAnims_.ResetCurrent();
 		break;
 	case State::JUMPING:
@@ -462,8 +471,8 @@ void EnemyPlush::Draw(float dt)
 		// Add subtle shaking visual effect if in TENSE/alert state
 		if (currentState_ == State::TENSE)
 		{
-			tenseTimer_ += dt;
-			int shake = (std::sin(tenseTimer_ * 0.1f) > 0.0f) ? 3 : -3;
+			tenseVisualOffset_ += dt;
+			int shake = (std::sin(tenseVisualOffset_ * 0.1f) > 0.0f) ? 3 : -3;
 			drawX += shake;
 		}
 
@@ -528,7 +537,7 @@ void EnemyPlush::OnCollision(PhysBody* physA, PhysBody* physB)
 	else if (physB->ctype == ColliderType::SLINGSHOT_PROJ)
 	{
 		LOG("EnemyPlush hit by slingshot projectile");
-		TakeDamage(1);
+		TakeDamage(1, false);
 		if (physB->listener != nullptr)
 			physB->listener->Destroy();
 	}
@@ -555,6 +564,11 @@ void EnemyPlush::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 
 void EnemyPlush::TakeDamage(int damage)
 {
+	TakeDamage(damage, true);
+}
+
+void EnemyPlush::TakeDamage(int damage, bool applyKnockback)
+{
 	if (currentState_ == State::DEATH) return;
 
 	health -= damage;
@@ -564,13 +578,16 @@ void EnemyPlush::TakeDamage(int damage)
 	hitTimer_ = 350.0f; // ms
 	hitAnims_.ResetCurrent();
 
-	// Knockback effect
-	Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
-	int bodyX, bodyY;
-	pbody->GetPosition(bodyX, bodyY);
+	if (applyKnockback)
+	{
+		// Knockback effect
+		Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
+		int bodyX, bodyY;
+		pbody->GetPosition(bodyX, bodyY);
 
-	float dirX = (bodyX > playerPos.getX()) ? 1.0f : -1.0f;
-	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dirX * 6.0f, -4.0f, true);
+		float dirX = (bodyX > playerPos.getX()) ? 1.0f : -1.0f;
+		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dirX * 3.5f, 0.0f, true);
+	}
 
 	if (health <= 0)
 	{

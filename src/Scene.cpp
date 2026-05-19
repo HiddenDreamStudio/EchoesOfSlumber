@@ -903,6 +903,19 @@ void Scene::LoadGameplay()
 		slingshotCollected_ = false;
 	}
 
+	// Stuffed Animal (Oso) collectible
+	texStuffedAnimalCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/Colectible oso.png");
+	stuffedAnimalCollected_ = false;
+	stuffedAnimalFloatTimer_ = 0.0f;
+
+	// Read stuffed animal position from TMX. If not found, use default fallback next to player
+	if (!Engine::GetInstance().map->GetStuffedAnimalPosition(stuffedAnimalX_, stuffedAnimalY_)) {
+		LOG("WARNING: No Oso/Peluche/StuffedAnimal entity found in TMX, using default fallback position next to player");
+		stuffedAnimalX_ = 200.0f;
+		stuffedAnimalY_ = 672.0f;
+		stuffedAnimalCollected_ = false;
+	}
+
 	// Load Minimap Ornate Frame Texture
 	texMinimapFrame_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Minimap.png");
 }
@@ -931,6 +944,21 @@ void Scene::UpdateGameplay(float dt)
 			showInventory_ = true;
 			isPaused_ = true;
 			SetPauseMenuVisible(false);
+
+			// Initialize gamepad selection to currently equipped item
+			Player::EquippedItem eq = player ? player->GetEquippedItem() : Player::EquippedItem::NONE;
+			bool blanket = player && player->HasBlanket();
+			bool slingshot = player && player->HasSlingshot();
+			bool stuffed = player && player->HasStuffedAnimal();
+
+			if (eq == Player::EquippedItem::BLANKET && blanket) inventorySel_ = 0;
+			else if (eq == Player::EquippedItem::SLINGSHOT && slingshot) inventorySel_ = 1;
+			else if (eq == Player::EquippedItem::STUFFED_ANIMAL && stuffed) inventorySel_ = 2;
+			else if (blanket) inventorySel_ = 0;
+			else if (slingshot) inventorySel_ = 1;
+			else if (stuffed) inventorySel_ = 2;
+			else inventorySel_ = -1;
+
 			Engine::GetInstance().audio->PlayFx(menuClickFxId);
 		}
 	}
@@ -1162,6 +1190,26 @@ void Scene::UpdateGameplay(float dt)
 				LOG("Slingshot collected! Ranged attack unlocked.");
 			}
 		}
+
+		// Stuffed Animal collectible pickup (proximity check)
+		if (!stuffedAnimalCollected_ && player)
+		{
+			stuffedAnimalFloatTimer_ += dt;
+
+			float sdx = player->position.getX() - stuffedAnimalX_;
+			float sdy = player->position.getY() - (stuffedAnimalY_ - 50.0f);
+			float sdistSq = sdx * sdx + sdy * sdy;
+			float spickupRadius = 60.0f;
+
+			if (sdistSq < spickupRadius * spickupRadius)
+			{
+				stuffedAnimalCollected_ = true;
+				player->SetHasStuffedAnimal(true);
+				Engine::GetInstance().audio->PlayFx(player->pickCoinFxId);
+				stuffedAnimalNotifTimer_ = STUFFED_ANIMAL_NOTIF_DURATION;
+				LOG("Stuffed Animal collected! Bear transformation unlocked.");
+			}
+		}
 	}
 
 	// Draw slingshot collectible in-world
@@ -1176,6 +1224,20 @@ void Scene::UpdateGameplay(float dt)
 
 		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
 		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
+	}
+
+	// Draw stuffed animal collectible in-world
+	if (!stuffedAnimalCollected_ && texStuffedAnimalCollectible_)
+	{
+		int slTexW = 0, slTexH = 0;
+		Engine::GetInstance().textures->GetSize(texStuffedAnimalCollectible_, slTexW, slTexH);
+		float slFloatOffset = 6.0f * sinf(stuffedAnimalFloatTimer_ * 0.003f);
+		float slScale = 0.05f; 
+		int slDrawX = (int)(stuffedAnimalX_ - (float)slTexW * slScale / 2.0f);
+		int slDrawY = (int)(stuffedAnimalY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
+
+		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
+		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
 
 	// Draw cape collectible in-world
@@ -1230,6 +1292,9 @@ void Scene::UnloadGameplay()
 
 	if (texSlingshotCollectible_) { Engine::GetInstance().textures->UnLoad(texSlingshotCollectible_); texSlingshotCollectible_ = nullptr; }
 	slingshotCollected_ = false;
+
+	if (texStuffedAnimalCollectible_) { Engine::GetInstance().textures->UnLoad(texStuffedAnimalCollectible_); texStuffedAnimalCollectible_ = nullptr; }
+	stuffedAnimalCollected_ = false;
 
 	if (texInventoryBg_) { Engine::GetInstance().textures->UnLoad(texInventoryBg_); texInventoryBg_ = nullptr; }
 	if (texAbilitiesLocked_) { Engine::GetInstance().textures->UnLoad(texAbilitiesLocked_); texAbilitiesLocked_ = nullptr; }
@@ -1730,6 +1795,42 @@ void Scene::PostUpdateGameplay()
 			0.35f
 		);
 	}
+
+	// --- Stuffed Animal pickup notification ---
+	if (stuffedAnimalNotifTimer_ > 0.0f) {
+		stuffedAnimalNotifTimer_ -= Engine::GetInstance().GetDt();
+
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		auto& render = *Engine::GetInstance().render;
+
+		Uint8 alpha = 255;
+		if (stuffedAnimalNotifTimer_ < 800.0f)
+			alpha = (Uint8)(255.0f * (stuffedAnimalNotifTimer_ / 800.0f));
+
+		// Panel dimensions
+		const int spW = 340;
+		const int spH = 36;
+		const int spX = (winW - spW) / 2;
+		const int spY = 80;
+
+		// Black filled panel
+		SDL_Rect spPanel = { spX, spY, spW, spH };
+		render.DrawRectangle(spPanel, 0, 0, 0, alpha, true, false);
+
+		// White border (outline)
+		SDL_Rect spBorder = { spX - 2, spY - 2, spW + 4, spH + 4 };
+		render.DrawRectangle(spBorder, 255, 255, 255, alpha, false, false);
+
+		// Text
+		SDL_Color spColor = { 255, 255, 255, alpha };
+		render.DrawMenuTextCentered(
+			"Teddy Bear found! Press O to Summon",
+			{ spX, spY, spW, spH },
+			spColor,
+			0.35f
+		);
+	}
 }
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
@@ -1818,6 +1919,64 @@ void Scene::DrawInventory(int winW, int winH)
 	bool hoverBottom = (mousePos.getX() >= bottomX - hoverRadius && mousePos.getX() <= bottomX + hoverRadius &&
 						mousePos.getY() >= bottomY - hoverRadius && mousePos.getY() <= bottomY + hoverRadius);
 
+	// Gamepad navigation for inventory diamond
+	if (input->IsGamepadConnected())
+	{
+		static Uint64 lastTick = SDL_GetTicks();
+		Uint64 currentTick = SDL_GetTicks();
+		float frameTime = (float)(currentTick - lastTick);
+		lastTick = currentTick;
+
+		static float invRepeatTimer = 0.0f;
+		if (invRepeatTimer > 0.0f) invRepeatTimer -= frameTime;
+
+		bool pressLeft = input->GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_LEFT) == KEY_DOWN ||
+		                 (input->GetLeftStickX() < -0.5f && invRepeatTimer <= 0.0f);
+		bool pressRight = input->GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_RIGHT) == KEY_DOWN ||
+		                  (input->GetLeftStickX() > 0.5f && invRepeatTimer <= 0.0f);
+		bool pressUp = input->GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_UP) == KEY_DOWN ||
+		               (input->GetLeftStickY() < -0.5f && invRepeatTimer <= 0.0f);
+
+		if (pressLeft && blanket)
+		{
+			inventorySel_ = 0;
+			invRepeatTimer = 250.0f;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (pressUp && slingshot)
+		{
+			inventorySel_ = 1;
+			invRepeatTimer = 250.0f;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (pressRight && stuffed)
+		{
+			inventorySel_ = 2;
+			invRepeatTimer = 250.0f;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+
+		// Equip on A/SOUTH press
+		if (input->GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN)
+		{
+			if (inventorySel_ == 0 && blanket)
+			{
+				player->SetEquippedItem(Player::EquippedItem::BLANKET);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+			else if (inventorySel_ == 1 && slingshot)
+			{
+				player->SetEquippedItem(Player::EquippedItem::SLINGSHOT);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+			else if (inventorySel_ == 2 && stuffed)
+			{
+				player->SetEquippedItem(Player::EquippedItem::STUFFED_ANIMAL);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+		}
+	}
+
 	// Handle item equipping clicks!
 	if (input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN)
 	{
@@ -1839,17 +1998,17 @@ void Scene::DrawInventory(int winW, int winH)
 	}
 
 	// Draw hover overlays inside the diamond (feedback for active slots)
-	if (hoverLeft && blanket)
+	if ((hoverLeft || (input->IsGamepadConnected() && inventorySel_ == 0)) && blanket)
 	{
 		SDL_Rect hov = { leftX - iconSize/2 - 2, leftY - iconSize/2 - 2, iconSize + 4, iconSize + 4 };
 		render.DrawRectangle(hov, 255, 255, 255, 120, false, false);
 	}
-	if (hoverTop && slingshot)
+	if ((hoverTop || (input->IsGamepadConnected() && inventorySel_ == 1)) && slingshot)
 	{
 		SDL_Rect hov = { topX - iconSize/2 - 2, topY - iconSize/2 - 2, iconSize + 4, iconSize + 4 };
 		render.DrawRectangle(hov, 255, 255, 255, 120, false, false);
 	}
-	if (hoverRight && stuffed)
+	if ((hoverRight || (input->IsGamepadConnected() && inventorySel_ == 2)) && stuffed)
 	{
 		SDL_Rect hov = { rightX_diam - iconSize/2 - 2, rightY_diam - iconSize/2 - 2, iconSize + 4, iconSize + 4 };
 		render.DrawRectangle(hov, 255, 255, 255, 120, false, false);

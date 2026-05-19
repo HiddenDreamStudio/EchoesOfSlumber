@@ -37,6 +37,7 @@ public:
 	void SetPosition(Vector2D pos);
 	Vector2D GetPosition();
 	void TakeDamage(int damage) override;
+	void TakeDamage(int damage, bool applyKnockback);
 
 public:
 	float speed = 1.0f;

@@ -62,8 +62,10 @@ public:
 	// Stuffed Animal / Plush collectible
 	bool HasStuffedAnimal() const { return hasStuffedAnimal_; }
 	void SetHasStuffedAnimal(bool v) { hasStuffedAnimal_ = v; }
+	bool IsBearMode() const { return isBearMode_; }
 
 private:
+
 
 	void GetPhysicsValues();
 	void Move();
@@ -158,6 +160,7 @@ private:
 	// Slingshot (tirachinas) weapon
 	bool  hasSlingshot_ = false;
 	bool  isAiming_ = false;
+	bool  isAimingWithGamepad_ = false;
 	float chargeTimer_ = 0.0f;
 	float aimAngle_ = 0.0f;
 	float slingshotCooldown_ = 0.0f;
@@ -167,4 +170,25 @@ private:
 	static constexpr float SLINGSHOT_COOLDOWN = 500.0f;   // ms
 	SDL_Texture* slingshotShootTexture_ = nullptr;
 	Animation    slingshotAnim_;
-};
+
+	// Bear mode states, textures, and animations
+	bool         isBearMode_ = false;
+	bool         isBearTransforming_ = false;
+	bool         isThrowingBear_ = false;
+	bool         isKidSleeping_ = false;
+	float        bearSleepTimer_ = 0.0f;
+	Vector2D     bearSummonPosition_;
+	bool         bearSummonFacingRight_ = false;
+	SDL_Texture* bearAppearTexture_ = nullptr;
+	SDL_Texture* bearIdleTexture_ = nullptr;
+	SDL_Texture* bearWalkTexture_ = nullptr;
+	SDL_Texture* bearAttackTexture_ = nullptr;
+	SDL_Texture* bearDeathTexture_ = nullptr;
+	SDL_Texture* throwBearTexture_ = nullptr;
+	AnimationSet bearAppearAnims_;
+	AnimationSet bearIdleAnims_;
+	AnimationSet bearWalkAnims_;
+	AnimationSet bearAttackAnims_;
+	AnimationSet bearDeathAnims_;
+	AnimationSet throwBearAnims_;
+};

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.11.2" name="jumpingPlushIdle" tilewidth="128" tileheight="102" tilecount="16" columns="16">
+<tileset version="1.10" tiledversion="1.11.2" name="jumpingPlushIdle" tilewidth="102" tileheight="102" tilecount="20" columns="20">
  <image source="../spritesheets/SS_Enemics_Level2/Spritesheet_Jumping_Plush_Idle.png" width="2048" height="102"/>
  <tile id="0" type="idle">
   <animation>
@@ -19,6 +19,10 @@
    <frame tileid="13" duration="100"/>
    <frame tileid="14" duration="100"/>
    <frame tileid="15" duration="100"/>
+   <frame tileid="16" duration="100"/>
+   <frame tileid="17" duration="100"/>
+   <frame tileid="18" duration="100"/>
+   <frame tileid="19" duration="100"/>
   </animation>
  </tile>
 </tileset>

@@ -556,6 +556,16 @@ bool Map::GetSlingshotPosition(float& outX, float& outY) const
     return false;
 }
 
+bool Map::GetStuffedAnimalPosition(float& outX, float& outY) const
+{
+    if (mapData.stuffedAnimalFound) {
+        outX = mapData.stuffedAnimalX;
+        outY = mapData.stuffedAnimalY;
+        return true;
+    }
+    return false;
+}
+
 MapLayer* Map::GetNavigationLayer() {
     for (const auto& layer : mapData.layers) {
         if (layer->properties.GetProperty("Navigation") != NULL &&
@@ -660,6 +670,12 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     mapData.slingshotY = y;
                     LOG("Slingshot position loaded from TMX at: %f, %f", x, y);
                 }
+                else if (entityType == "Oso" || entityType == "Peluche" || entityType == "StuffedAnimal") {
+                    mapData.stuffedAnimalFound = true;
+                    mapData.stuffedAnimalX = x;
+                    mapData.stuffedAnimalY = y;
+                    LOG("StuffedAnimal position loaded from TMX at: %f, %f", x, y);
+                }
             }
         }
         else if (objectGroupNode.attribute("name").as_string() == std::string("Checkpoint")) {
@@ -700,6 +716,14 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     mapData.slingshotY = y;
                     LOG("Slingshot position loaded from InteractiveAssets at: %f, %f", x, y);
                 }
+                else if (objClass == "Oso" || objClass == "Peluche" || objClass == "StuffedAnimal") {
+                    float x = objectNode.attribute("x").as_float();
+                    float y = objectNode.attribute("y").as_float();
+                    mapData.stuffedAnimalFound = true;
+                    mapData.stuffedAnimalX = x;
+                    mapData.stuffedAnimalY = y;
+                    LOG("StuffedAnimal position loaded from InteractiveAssets at: %f, %f", x, y);
+                }
             }
         }
         else if (objectGroupNode.attribute("name").as_string() == std::string("Weapons")) {
@@ -714,6 +738,14 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     mapData.slingshotX = x;
                     mapData.slingshotY = y;
                     LOG("Slingshot position loaded from Weapons at: %f, %f", x, y);
+                }
+                else if (objClass == "Oso" || objClass == "Peluche" || objClass == "StuffedAnimal") {
+                    float x = objectNode.attribute("x").as_float();
+                    float y = objectNode.attribute("y").as_float();
+                    mapData.stuffedAnimalFound = true;
+                    mapData.stuffedAnimalX = x;
+                    mapData.stuffedAnimalY = y;
+                    LOG("StuffedAnimal position loaded from Weapons at: %f, %f", x, y);
                 }
             }
         }

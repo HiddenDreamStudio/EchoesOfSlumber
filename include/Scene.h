@@ -199,6 +199,15 @@ private:
     float slingshotNotifTimer_ = 0.0f;
     static constexpr float SLINGSHOT_NOTIF_DURATION = 3000.0f;
 
+    // Stuffed Animal (oso) collectible
+    SDL_Texture* texStuffedAnimalCollectible_ = nullptr;
+    float stuffedAnimalX_ = 300.0f;
+    float stuffedAnimalY_ = 600.0f;
+    bool  stuffedAnimalCollected_ = false;
+    float stuffedAnimalFloatTimer_ = 0.0f;
+    float stuffedAnimalNotifTimer_ = 0.0f;
+    static constexpr float STUFFED_ANIMAL_NOTIF_DURATION = 3000.0f;
+
     // Minimap Ornate Frame Border
     SDL_Texture* texMinimapFrame_ = nullptr;
 
@@ -236,6 +245,7 @@ private:
 
     // ── Inventory ─────────────────────────────────────────────────────────────
     bool  showInventory_ = false;
+    int   inventorySel_ = -1;
     void DrawInventory(int winW, int winH);
 
     SDL_Texture* texInventoryBg_ = nullptr;

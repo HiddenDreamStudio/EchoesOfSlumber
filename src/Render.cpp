@@ -11,10 +11,10 @@
 Render::Render() : Module()
 {
 	name = "render";
-	background.r = 0;
-	background.g = 0;
-	background.b = 0;
-	background.a = 0;
+	background.r = 255;
+	background.g = 255;
+	background.b = 255;
+	background.a = 255;
 }
 
 // Destructor
@@ -88,6 +88,7 @@ bool Render::Start()
 // Called each loop iteration
 bool Render::PreUpdate()
 {
+	SDL_SetRenderDrawColor(renderer, background.r, background.g, background.b, background.a);
 	SDL_RenderClear(renderer);
 	return true;
 }

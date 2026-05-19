@@ -157,6 +157,11 @@ struct MapData
     bool  slingshotFound = false;
     float slingshotX = 0.0f;
     float slingshotY = 0.0f;
+
+    // Stuffed animal collectible spawn position (read from Entities)
+    bool  stuffedAnimalFound = false;
+    float stuffedAnimalX = 0.0f;
+    float stuffedAnimalY = 0.0f;
 };
 
 class Map : public Module
@@ -202,6 +207,9 @@ public:
 
     // Slingshot position read from TMX
     bool  GetSlingshotPosition(float& outX, float& outY) const;
+
+    // Stuffed animal position read from TMX
+    bool  GetStuffedAnimalPosition(float& outX, float& outY) const;
 
     MapLayer* GetNavigationLayer();
 

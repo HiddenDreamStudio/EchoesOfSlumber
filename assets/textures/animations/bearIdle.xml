@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.11.2" name="jumpingPlushDizzy" tilewidth="102" tileheight="102" tilecount="20" columns="20">
- <image source="../spritesheets/SS_Enemics_Level2/spritesheet_Jumping_Plush_Cansado.png" width="2048" height="102"/>
- <tile id="0" type="dizzy">
+<tileset version="1.10" tiledversion="1.11.2" name="bearIdle" tilewidth="512" tileheight="512" tilecount="16" columns="16">
+ <image source="../spritesheets/Spritesheets Prota i Oso color/SS_oso_idle-Pintado.png" width="8192" height="512"/>
+ <tile id="0" type="idle">
   <animation>
    <frame tileid="0" duration="100"/>
    <frame tileid="1" duration="100"/>
@@ -19,10 +19,6 @@
    <frame tileid="13" duration="100"/>
    <frame tileid="14" duration="100"/>
    <frame tileid="15" duration="100"/>
-   <frame tileid="16" duration="100"/>
-   <frame tileid="17" duration="100"/>
-   <frame tileid="18" duration="100"/>
-   <frame tileid="19" duration="100"/>
   </animation>
  </tile>
 </tileset>
