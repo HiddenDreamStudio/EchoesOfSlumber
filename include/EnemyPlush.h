@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Entity.h"
+#include "Animation.h"
 #include <box2d/box2d.h>
 #include <SDL3/SDL.h>
 
@@ -11,7 +12,14 @@ public:
 		PATROL,      // Normal state, moves slowly back and forth
 		TENSE,       // Tenses up and prepares to jump
 		JUMPING,     // Mid-air quick jump direct towards player
-		DIZZY        // Marejat / desorientat for a few seconds
+		DIZZY,       // Marejat / desorientat for a few seconds
+		DEATH        // Death state with animation before deletion
+	};
+
+	enum class JumpPhase {
+		START,
+		LOOP,
+		END
 	};
 
 	EnemyPlush();
@@ -48,6 +56,30 @@ private:
 	State currentState_ = State::PATROL;
 	b2Vec2 velocity = { 0.0f, 0.0f };
 
+	// Animations
+	AnimationSet idleAnims_;
+	AnimationSet alertAnims_;
+	AnimationSet jumpStartAnims_;
+	AnimationSet jumpLoopAnims_;
+	AnimationSet jumpEndAnims_;
+	AnimationSet dizzyAnims_;
+	AnimationSet hitAnims_;
+	AnimationSet dieAnims_;
+
+	// Textures
+	SDL_Texture* idleTexture_ = nullptr;
+	SDL_Texture* alertTexture_ = nullptr;
+	SDL_Texture* jumpStartTexture_ = nullptr;
+	SDL_Texture* jumpLoopTexture_ = nullptr;
+	SDL_Texture* jumpEndTexture_ = nullptr;
+	SDL_Texture* dizzyTexture_ = nullptr;
+	SDL_Texture* hitTexture_ = nullptr;
+	SDL_Texture* dieTexture_ = nullptr;
+
+	// Hit details
+	bool isHit_ = false;
+	float hitTimer_ = 0.0f;
+
 	// FSM parameters
 	static constexpr float PATROL_SPEED = 1.0f;
 	static constexpr float JUMP_SPEED_X_LONG = 8.0f;
@@ -68,6 +100,7 @@ private:
 	bool isJumping_ = false;
 	bool jumpDirectionRight_ = true;
 	float jumpAirTime_ = 0.0f;
+	JumpPhase jumpPhase_ = JumpPhase::START;
 
 	// Patrol variables
 	float patrolOriginX_ = 0.0f;

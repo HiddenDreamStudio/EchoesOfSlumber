@@ -45,6 +45,46 @@ bool EnemyPlush::Start() {
 	isJumping_ = false;
 	lastJumpWasShort_ = false;
 
+	// Load XML animations
+	idleAnims_.LoadFromTSX("assets/textures/animations/jumpingPlushIdle.xml", { {0, "idle"} });
+	alertAnims_.LoadFromTSX("assets/textures/animations/jumpingPlushAlert.xml", { {0, "alert"} });
+	jumpStartAnims_.LoadFromTSX("assets/textures/animations/jumpingPlushJumpStart.xml", { {0, "jump_start"} });
+	jumpLoopAnims_.LoadFromTSX("assets/textures/animations/jumpingPlushJumpLoop.xml", { {0, "jump_loop"} });
+	jumpEndAnims_.LoadFromTSX("assets/textures/animations/jumpingPlushJumpEnd.xml", { {0, "jump_end"} });
+	dizzyAnims_.LoadFromTSX("assets/textures/animations/jumpingPlushDizzy.xml", { {0, "dizzy"} });
+	hitAnims_.LoadFromTSX("assets/textures/animations/jumpingPlushHit.xml", { {0, "hit"} });
+	dieAnims_.LoadFromTSX("assets/textures/animations/jumpingPlushDie.xml", { {0, "die"} });
+
+	// Set loop properties and defaults
+	idleAnims_.SetCurrent("idle");
+	alertAnims_.SetCurrent("alert");
+	
+	jumpStartAnims_.SetCurrent("jump_start");
+	jumpStartAnims_.SetLoop("jump_start", false);
+	
+	jumpLoopAnims_.SetCurrent("jump_loop");
+	
+	jumpEndAnims_.SetCurrent("jump_end");
+	jumpEndAnims_.SetLoop("jump_end", false);
+	
+	dizzyAnims_.SetCurrent("dizzy");
+	
+	hitAnims_.SetCurrent("hit");
+	hitAnims_.SetLoop("hit", false);
+	
+	dieAnims_.SetCurrent("die");
+	dieAnims_.SetLoop("die", false);
+
+	// Load spritesheet textures
+	idleTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/Spritesheet_Jumping_Plush_Idle.png");
+	alertTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Jumping_Plush_Alerta.png");
+	jumpStartTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Jumping_Plush_Jump_inicial.png");
+	jumpLoopTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Jump_Loop.png");
+	jumpEndTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Jumping_Plush_Jump final.png");
+	dizzyTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Jumping_Plush_Cansado.png");
+	hitTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Jumping_Plush_Hit.png");
+	dieTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Jumpin_Plush_Die.png");
+
 	return true;
 }
 
@@ -57,21 +97,30 @@ bool EnemyPlush::Update(float dt)
 		return true;
 	}
 
+	// Update hit timer
+	if (isHit_) {
+		hitTimer_ -= dt;
+		if (hitTimer_ <= 0.0f) {
+			isHit_ = false;
+			hitTimer_ = 0.0f;
+		}
+	}
+
 	// Update cooldowns
 	if (attackCooldown_ > 0.0f) attackCooldown_ -= dt;
 
-	// Process contact damage
-	if (isContactWithPlayer_ && playerListener_ != nullptr && attackCooldown_ <= 0.0f)
+	// Process contact damage (skip if dead)
+	if (currentState_ != State::DEATH && isContactWithPlayer_ && playerListener_ != nullptr && attackCooldown_ <= 0.0f)
 	{
 		playerListener_->TakeDamage(1);
 		attackCooldown_ = ATTACK_INTERVAL;
 	}
 
-	// Hide behavior: Stand still when player is hiding
+	// Hide behavior: Stand still when player is hiding (skip if dead)
 	auto playerShared = Engine::GetInstance().scene->player;
 	bool playerIsHiding = playerShared && playerShared->IsHiding();
 
-	if (playerIsHiding)
+	if (currentState_ != State::DEATH && playerIsHiding)
 	{
 		wasPlayerHiding_ = true;
 		GetPhysicsValues();
@@ -81,7 +130,7 @@ bool EnemyPlush::Update(float dt)
 		return true;
 	}
 
-	if (wasPlayerHiding_)
+	if (wasPlayerHiding_ && currentState_ != State::DEATH)
 	{
 		wasPlayerHiding_ = false;
 		EnterState(State::PATROL);
@@ -90,7 +139,42 @@ bool EnemyPlush::Update(float dt)
 	// FSM Update
 	UpdateFSM(dt);
 
-	// Render colored placeholder
+	// Update the animations
+	if (currentState_ == State::DEATH) {
+		dieAnims_.Update(dt);
+	}
+	else if (isHit_) {
+		hitAnims_.Update(dt);
+	}
+	else {
+		switch (currentState_) {
+		case State::PATROL:
+			idleAnims_.Update(dt);
+			break;
+		case State::TENSE:
+			alertAnims_.Update(dt);
+			break;
+		case State::JUMPING:
+			if (jumpPhase_ == JumpPhase::START) {
+				jumpStartAnims_.Update(dt);
+				if (jumpStartAnims_.HasFinishedOnce("jump_start")) {
+					jumpPhase_ = JumpPhase::LOOP;
+				}
+			}
+			else if (jumpPhase_ == JumpPhase::LOOP) {
+				jumpLoopAnims_.Update(dt);
+			}
+			else if (jumpPhase_ == JumpPhase::END) {
+				jumpEndAnims_.Update(dt);
+			}
+			break;
+		case State::DIZZY:
+			dizzyAnims_.Update(dt);
+			break;
+		}
+	}
+
+	// Render
 	Draw(dt);
 
 	return true;
@@ -112,6 +196,17 @@ float EnemyPlush::GetDistanceToPlayer() const
 
 void EnemyPlush::UpdateFSM(float dt)
 {
+	if (currentState_ == State::DEATH)
+	{
+		velocity.x = 0.0f;
+		ApplyPhysics();
+		if (dieAnims_.HasFinishedOnce("die"))
+		{
+			Destroy();
+		}
+		return;
+	}
+
 	float dist = GetDistanceToPlayer();
 
 	switch (currentState_)
@@ -157,12 +252,8 @@ void EnemyPlush::UpdateFSM(float dt)
 		pbody->GetPosition(bodyX, bodyY);
 		facingRight_ = (playerPos.getX() > (float)bodyX);
 
-		// Shake visual effect
-		tenseVisualOffset_ = (std::sin(tenseTimer_ * 0.1f) > 0.0f) ? 3.0f : -3.0f;
-
 		if (tenseTimer_ >= TENSE_DURATION)
 		{
-			tenseVisualOffset_ = 0.0f;
 			tenseTimer_ = 0.0f;
 
 			// Decide jump direction
@@ -198,27 +289,47 @@ void EnemyPlush::UpdateFSM(float dt)
 		jumpAirTime_ += dt;
 		GetPhysicsValues();
 
-		// Ensure horizontal jump velocity is maintained in mid-air
-		float targetVx = lastJumpWasShort_ ? JUMP_SPEED_X_SHORT : JUMP_SPEED_X_LONG;
-		velocity.x = jumpDirectionRight_ ? targetVx : -targetVx;
-		ApplyPhysics();
-
-		// Check if we have landed: y velocity is extremely small and we have been in air for at least 200ms
-		if (jumpAirTime_ > 200.0f && std::abs(velocity.y) < 0.02f)
+		if (jumpPhase_ == JumpPhase::START)
 		{
-			GetPhysicsValues();
+			// Maintain start jump physics
+			float targetVx = lastJumpWasShort_ ? JUMP_SPEED_X_SHORT : JUMP_SPEED_X_LONG;
+			velocity.x = jumpDirectionRight_ ? targetVx : -targetVx;
+			ApplyPhysics();
+		}
+		else if (jumpPhase_ == JumpPhase::LOOP)
+		{
+			// Maintain loop jump physics
+			float targetVx = lastJumpWasShort_ ? JUMP_SPEED_X_SHORT : JUMP_SPEED_X_LONG;
+			velocity.x = jumpDirectionRight_ ? targetVx : -targetVx;
+			ApplyPhysics();
+
+			// Check if we have landed: y velocity is extremely small and we have been in air for at least 200ms
+			if (jumpAirTime_ > 200.0f && std::abs(velocity.y) < 0.02f)
+			{
+				jumpPhase_ = JumpPhase::END;
+				jumpEndAnims_.ResetCurrent();
+				velocity.x = 0.0f;
+				ApplyPhysics();
+			}
+		}
+		else if (jumpPhase_ == JumpPhase::END)
+		{
+			// Keep still on land
 			velocity.x = 0.0f;
 			ApplyPhysics();
 
-			if (lastJumpWasShort_)
+			if (jumpEndAnims_.HasFinishedOnce("jump_end"))
 			{
-				// Chains immediately into a long jump as requested!
-				EnterState(State::TENSE);
-			}
-			else
-			{
-				// Long jump finishes, gets dizzy/dazed
-				EnterState(State::DIZZY);
+				if (lastJumpWasShort_)
+				{
+					// Chains immediately into a long jump as requested!
+					EnterState(State::TENSE);
+				}
+				else
+				{
+					// Long jump finishes, gets dizzy/dazed
+					EnterState(State::DIZZY);
+				}
 			}
 		}
 		break;
@@ -232,13 +343,9 @@ void EnemyPlush::UpdateFSM(float dt)
 
 		dizzyTimer_ += dt;
 
-		// Orbiting stars angle update
-		dizzyVisualAngle_ += dt * 0.3f;
-
 		if (dizzyTimer_ >= DIZZY_DURATION)
 		{
 			dizzyTimer_ = 0.0f;
-			dizzyVisualAngle_ = 0.0f;
 			// Reset and go back to charging/patrolling
 			EnterState(State::PATROL);
 		}
@@ -255,19 +362,30 @@ void EnemyPlush::EnterState(State newState)
 	{
 	case State::PATROL:
 		speed = PATROL_SPEED;
+		idleAnims_.ResetCurrent();
 		break;
 	case State::TENSE:
 		tenseTimer_ = 0.0f;
-		tenseVisualOffset_ = 0.0f;
+		alertAnims_.ResetCurrent();
 		break;
 	case State::JUMPING:
 		isJumping_ = true;
 		jumpAirTime_ = 0.0f;
+		jumpPhase_ = JumpPhase::START;
+		jumpStartAnims_.ResetCurrent();
+		jumpLoopAnims_.ResetCurrent();
+		jumpEndAnims_.ResetCurrent();
 		break;
 	case State::DIZZY:
 		isJumping_ = false;
 		dizzyTimer_ = 0.0f;
-		dizzyVisualAngle_ = 0.0f;
+		dizzyAnims_.ResetCurrent();
+		break;
+	case State::DEATH:
+		isJumping_ = false;
+		velocity.x = 0.0f;
+		ApplyPhysics();
+		dieAnims_.ResetCurrent();
 		break;
 	}
 }
@@ -290,82 +408,91 @@ void EnemyPlush::Draw(float dt)
 	position.setX((float)x);
 	position.setY((float)y);
 
-	// Colored shape dimensions
-	int rectW = 44;
-	int rectH = 68;
+	SDL_FlipMode flip = facingRight_ ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
 
-	// Visual offset for shaking in TENSE state
-	int drawX = x + (int)tenseVisualOffset_;
-	int drawY = y;
+	// Pick the correct active animation frame and texture
+	SDL_Texture* activeTexture = nullptr;
+	SDL_Rect frame = { 0, 0, 0, 0 };
 
-	SDL_Rect bodyRect = {
-		drawX - rectW / 2,
-		drawY - rectH / 2,
-		rectW,
-		rectH
-	};
-
-	// State colors (Red/Green/Orange/Purple)
-	Uint8 r = 50, g = 200, b = 100; // PATROL (Green)
-	if (currentState_ == State::TENSE) {
-		r = 255; g = 140; b = 0; // TENSE (Orange)
+	if (currentState_ == State::DEATH) {
+		activeTexture = dieTexture_;
+		frame = dieAnims_.GetCurrentFrame();
 	}
-	else if (currentState_ == State::JUMPING) {
-		r = 230; g = 40; b = 40; // JUMPING (Red)
+	else if (isHit_) {
+		activeTexture = hitTexture_;
+		frame = hitAnims_.GetCurrentFrame();
 	}
-	else if (currentState_ == State::DIZZY) {
-		r = 180; g = 100; b = 230; // DIZZY (Purple)
+	else {
+		switch (currentState_) {
+		case State::PATROL:
+			activeTexture = idleTexture_;
+			frame = idleAnims_.GetCurrentFrame();
+			break;
+		case State::TENSE:
+			activeTexture = alertTexture_;
+			frame = alertAnims_.GetCurrentFrame();
+			break;
+		case State::JUMPING:
+			if (jumpPhase_ == JumpPhase::START) {
+				activeTexture = jumpStartTexture_;
+				frame = jumpStartAnims_.GetCurrentFrame();
+			}
+			else if (jumpPhase_ == JumpPhase::LOOP) {
+				activeTexture = jumpLoopTexture_;
+				frame = jumpLoopAnims_.GetCurrentFrame();
+			}
+			else if (jumpPhase_ == JumpPhase::END) {
+				activeTexture = jumpEndTexture_;
+				frame = jumpEndAnims_.GetCurrentFrame();
+			}
+			break;
+		case State::DIZZY:
+			activeTexture = dizzyTexture_;
+			frame = dizzyAnims_.GetCurrentFrame();
+			break;
+		}
 	}
 
-	// 1. Draw main body rect
-	Engine::GetInstance().render->DrawRectangle(bodyRect, r, g, b, 230, true);
-
-	// 2. Draw border / stroke for sleek aesthetics
-	Engine::GetInstance().render->DrawRectangle(bodyRect, 20, 20, 20, 255, false);
-
-	// 3. Draw face/eyes details
-	int eyeY = drawY - 14;
-	int leftEyeX = drawX - 10;
-	int rightEyeX = drawX + 10;
-
-	if (currentState_ == State::DIZZY)
+	if (activeTexture != nullptr && frame.w > 0 && frame.h > 0)
 	{
-		// Draw crosses for dizzy eyes
-		int crossSize = 4;
-		Engine::GetInstance().render->DrawLine(leftEyeX - crossSize, eyeY - crossSize, leftEyeX + crossSize, eyeY + crossSize, 40, 20, 40, 255);
-		Engine::GetInstance().render->DrawLine(leftEyeX + crossSize, eyeY - crossSize, leftEyeX - crossSize, eyeY + crossSize, 40, 20, 40, 255);
+		// Center horizontally on the physics body, anchor vertically at the bottom of the physics body (which is 60px height capsule, so center + 30px)
+		int drawX = x - frame.w / 2;
+		int drawY = (y + 30) - frame.h;
 
-		Engine::GetInstance().render->DrawLine(rightEyeX - crossSize, eyeY - crossSize, rightEyeX + crossSize, eyeY + crossSize, 40, 20, 40, 255);
-		Engine::GetInstance().render->DrawLine(rightEyeX + crossSize, eyeY - crossSize, rightEyeX - crossSize, eyeY + crossSize, 40, 20, 40, 255);
+		// Add subtle shaking visual effect if in TENSE/alert state
+		if (currentState_ == State::TENSE)
+		{
+			tenseTimer_ += dt;
+			int shake = (std::sin(tenseTimer_ * 0.1f) > 0.0f) ? 3 : -3;
+			drawX += shake;
+		}
 
-		// Draw orbiting yellow stars above head
-		int headY = drawY - rectH / 2 - 12;
-		float angle1 = dizzyVisualAngle_;
-		float angle2 = dizzyVisualAngle_ + 120.0f;
-		float angle3 = dizzyVisualAngle_ + 240.0f;
-		int starRad = 4;
-		int orbitRad = 20;
-
-		Engine::GetInstance().render->DrawCircle(drawX + (int)(orbitRad * std::cos(angle1 * 0.01745f)), headY + (int)(5 * std::sin(angle1 * 0.01745f)), starRad, 255, 215, 0, 255);
-		Engine::GetInstance().render->DrawCircle(drawX + (int)(orbitRad * std::cos(angle2 * 0.01745f)), headY + (int)(5 * std::sin(angle2 * 0.01745f)), starRad, 255, 215, 0, 255);
-		Engine::GetInstance().render->DrawCircle(drawX + (int)(orbitRad * std::cos(angle3 * 0.01745f)), headY + (int)(5 * std::sin(angle3 * 0.01745f)), starRad, 255, 215, 0, 255);
-	}
-	else
-	{
-		// Draw normal eyes looking in the facing direction
-		int eyeRad = 5;
-		int gazeOffset = facingRight_ ? 3 : -3;
-		Engine::GetInstance().render->DrawCircle(leftEyeX + gazeOffset, eyeY, eyeRad, 30, 30, 30, 255);
-		Engine::GetInstance().render->DrawCircle(rightEyeX + gazeOffset, eyeY, eyeRad, 30, 30, 30, 255);
-
-		// Cute mouth button / stitches
-		Engine::GetInstance().render->DrawCircle(drawX, drawY + 2, 4, 30, 30, 30, 255);
+		Engine::GetInstance().render->DrawTexture(activeTexture, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
 	}
 }
 
 bool EnemyPlush::CleanUp()
 {
 	LOG("Cleanup EnemyPlush");
+
+	if (idleTexture_) Engine::GetInstance().textures->UnLoad(idleTexture_);
+	if (alertTexture_) Engine::GetInstance().textures->UnLoad(alertTexture_);
+	if (jumpStartTexture_) Engine::GetInstance().textures->UnLoad(jumpStartTexture_);
+	if (jumpLoopTexture_) Engine::GetInstance().textures->UnLoad(jumpLoopTexture_);
+	if (jumpEndTexture_) Engine::GetInstance().textures->UnLoad(jumpEndTexture_);
+	if (dizzyTexture_) Engine::GetInstance().textures->UnLoad(dizzyTexture_);
+	if (hitTexture_) Engine::GetInstance().textures->UnLoad(hitTexture_);
+	if (dieTexture_) Engine::GetInstance().textures->UnLoad(dieTexture_);
+
+	idleTexture_ = nullptr;
+	alertTexture_ = nullptr;
+	jumpStartTexture_ = nullptr;
+	jumpLoopTexture_ = nullptr;
+	jumpEndTexture_ = nullptr;
+	dizzyTexture_ = nullptr;
+	hitTexture_ = nullptr;
+	dieTexture_ = nullptr;
+
 	if (pbody) {
 		Engine::GetInstance().physics->DeletePhysBody(pbody);
 		pbody = nullptr;
@@ -409,7 +536,7 @@ void EnemyPlush::OnCollision(PhysBody* physA, PhysBody* physB)
 	{
 		isContactWithPlayer_ = true;
 		playerListener_ = physB->listener;
-		if (attackCooldown_ <= 0.0f)
+		if (attackCooldown_ <= 0.0f && currentState_ != State::DEATH)
 		{
 			playerListener_->TakeDamage(1);
 			attackCooldown_ = ATTACK_INTERVAL;
@@ -428,8 +555,14 @@ void EnemyPlush::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 
 void EnemyPlush::TakeDamage(int damage)
 {
+	if (currentState_ == State::DEATH) return;
+
 	health -= damage;
 	LOG("EnemyPlush took %d damage -> health: %d/%d", damage, health, maxHealth);
+
+	isHit_ = true;
+	hitTimer_ = 350.0f; // ms
+	hitAnims_.ResetCurrent();
 
 	// Knockback effect
 	Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
@@ -442,7 +575,7 @@ void EnemyPlush::TakeDamage(int damage)
 	if (health <= 0)
 	{
 		health = 0;
-		LOG("EnemyPlush dead");
-		Destroy();
+		LOG("EnemyPlush entering death sequence");
+		EnterState(State::DEATH);
 	}
 }
