@@ -81,6 +81,9 @@ public:
 	int gameOverFxId = -1;
 
 	PhysBody* pbody = nullptr;
+
+	float knockbackX_     = 0.0f;
+	float knockbackTimer_ = 0.0f;
 	float jumpForce = 10.0f;
 	bool isJumping = false;
 

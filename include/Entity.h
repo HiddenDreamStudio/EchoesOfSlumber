@@ -18,6 +18,8 @@ enum class EntityType
 	DOOR,
 	SLINGSHOT_PROJECTILE,
 	BOSS_2,
+	BOSS_1,
+	ROPE_ROCK,
 	UNKNOWN
 };
 

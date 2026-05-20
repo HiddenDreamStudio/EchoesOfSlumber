@@ -8,6 +8,8 @@
 #include "EnemyCarmel.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
+#include "Boss1.h"
+#include "RopedRock.h"
 #include "Checkpoint.h"
 #include "Box.h"
 #include "PushRock.h"
@@ -674,6 +676,30 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     enemyC->position = Vector2D(x, y);
                     enemyC->Start();
                     LOG("EnemyC spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "Boss1") {
+                    auto boss = std::dynamic_pointer_cast<Boss1>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOSS_1));
+                    boss->position = Vector2D(x, y);
+
+                    float arenaMin = x - 400.0f;
+                    float arenaMax = x + 400.0f;
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (auto prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string pname = prop.attribute("name").as_string();
+                            if (pname == "arena_min_x") arenaMin = prop.attribute("value").as_float();
+                            if (pname == "arena_max_x") arenaMax = prop.attribute("value").as_float();
+                        }
+                    }
+                    boss->SetArenaLimits(arenaMin, arenaMax);
+                    boss->Start();
+                    LOG("Boss1 spawned at: %f, %f (arena: %.0f-%.0f)", x, y, arenaMin, arenaMax);
+                }
+                else if (entityType == "RopedRock") {
+                    auto rr = std::dynamic_pointer_cast<RopedRock>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::ROPE_ROCK));
+                    rr->position = Vector2D(x, y);
+                    rr->Start();
                 }
                 else if (entityType == "Checkpoint") {
                     auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
