@@ -85,6 +85,7 @@ public:
 	float knockbackX_     = 0.0f;
 	float knockbackTimer_ = 0.0f;
 	float jumpForce = 10.0f;
+	bool suppressDamageAnim_ = false; // set by traps that skip the damage animation
 	bool isJumping = false;
 
 	bool isWakingUp = true;

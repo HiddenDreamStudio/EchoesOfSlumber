@@ -749,9 +749,16 @@ void Player::TakeDamage(int damage)
 	else
 	{
 		isHiding_ = false;
-		isShowingDamageAnim_ = true;
-		anims.SetCurrent("damage");
-		anims.ResetCurrent();
+		if (suppressDamageAnim_)
+		{
+			suppressDamageAnim_ = false;
+		}
+		else
+		{
+			isShowingDamageAnim_ = true;
+			anims.SetCurrent("damage");
+			anims.ResetCurrent();
+		}
 	}
 }
 
