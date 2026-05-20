@@ -13,6 +13,7 @@ enum class EntityType
 	PROJECTILE,
 	CHECKPOINT,
 	BOX,
+	PLATFORM,
 	PUSH_ROCK,
 	VFX,
 	KEY,

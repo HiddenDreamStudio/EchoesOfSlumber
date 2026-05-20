@@ -807,6 +807,8 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		int playerX, playerY, platX, platY;
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(platX, platY);
+
+		// Check if the player lands on top of the platform
 		if (playerY < platY) {
 			if (isJumping) {
 				// Spawn landing dust (Centered at bottom of capsule)
