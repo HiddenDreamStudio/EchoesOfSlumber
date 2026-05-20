@@ -95,17 +95,16 @@ void SlingshotProjectile::OnCollision(PhysBody* physA, PhysBody* physB)
 	switch (physB->ctype)
 	{
 	case ColliderType::ENEMY:
-		LOG("Slingshot rock hit enemy");
-		// Damage is handled by the enemy's OnCollision with SLINGSHOT_PROJ
+		Destroy();
+		break;
+	case ColliderType::ROPE:
 		Destroy();
 		break;
 	case ColliderType::PLATFORM:
-		LOG("Slingshot rock hit platform");
 		Destroy();
 		break;
 	case ColliderType::PUSH_ROCK:
 	case ColliderType::BOX:
-		LOG("Slingshot rock hit obstacle");
 		Destroy();
 		break;
 	default:
@@ -117,7 +116,6 @@ void SlingshotProjectile::OnCollisionEnd(PhysBody* physA, PhysBody* physB) {}
 
 bool SlingshotProjectile::CleanUp()
 {
-	LOG("Cleanup slingshot projectile");
 	if (texture) {
 		Engine::GetInstance().textures->UnLoad(texture);
 		texture = nullptr;
@@ -131,7 +129,6 @@ bool SlingshotProjectile::CleanUp()
 
 bool SlingshotProjectile::Destroy()
 {
-	LOG("Destroying slingshot projectile");
 	active = false;
 	pendingToDelete = true;
 	return true;
