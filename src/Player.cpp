@@ -36,23 +36,25 @@ bool Player::Start() {
 
 	std::unordered_map<int, std::string> aliases = {
 		{0, "idle"},
-		{14, "turnaround"},
-		{28, "run"},
-		{42, "jump"},
-		{56, "hide"},
-		{70, "damage"},
-		{84, "death"}
+		{35, "turnaround"},
+		{70, "run"},
+		{88, "stoprun"},
+		{105, "jump"},
+		{140, "damage"},
+		{175, "death"},
+		{209, "hide"}
 	};
-	anims.LoadFromTSX("assets/textures/animations/protagonistAnimation.xml", aliases);
+	anims.LoadFromTSX("assets/textures/animations/protagonistSpritesheetNew.xml", aliases);
 	anims.SetCurrent("idle");
 
 	anims.SetLoop("turnaround", false);
 	anims.SetLoop("jump", false);
 	anims.SetLoop("damage", false);
 	anims.SetLoop("death", false);
+	anims.SetLoop("stoprun", false);
 	anims.SetLoop("hide", false); // Play once and freeze on last frame
 
-	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheet.png");
+	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheetNew.png");
 
 	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
 	for (int i = 0; i < 51; ++i) {
@@ -64,7 +66,7 @@ bool Player::Start() {
 
 	texW = 128;
 	texH = 128;
-	drawScale = 1.0f;
+	drawScale = 0.5f;
 
 	// Load push animation spritesheet (256x256 tiles, 5 columns, 20 frames)
 	pushTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/spritesheetempujarcaja.png");
@@ -237,7 +239,16 @@ void Player::Move() {
 			if (anims.GetCurrentName() == "jump" && !anims.HasFinishedOnce("jump")) {
 				// let landing animation finish
 			}
-			else {
+			else if (anims.GetCurrentName() == "run") {
+				anims.SetCurrent("stoprun");
+				anims.ResetCurrent();
+			}
+			else if (anims.GetCurrentName() == "stoprun") {
+				if (anims.HasFinishedOnce("stoprun")) {
+					anims.SetCurrent("idle");
+				}
+			}
+			else if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
 				anims.SetCurrent("idle");
 			}
 		}
@@ -544,8 +555,8 @@ void Player::Draw(float dt) {
 	{
 		bool shouldUpdate = true;
 		if (isJumping && anims.GetCurrentName() == "jump") {
-			// Freeze on peak frame (tile 49 is the middle-ish frame)
-			if (anims.GetCurrentFrameIndex() >= 7) {
+			// Freeze on peak frame (tile 118 is the peak frame in the new spritesheet)
+			if (anims.GetCurrentFrameIndex() >= 13) {
 				shouldUpdate = false;
 			}
 		}
