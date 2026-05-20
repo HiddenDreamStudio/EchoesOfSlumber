@@ -116,6 +116,8 @@ struct DecorationObject
     double rotation = 0.0;
     bool  isFront = false;
     SDL_Texture* texture = nullptr; 
+    bool flipH = false;  
+    bool flipV = false; 
 };
 
 struct AnimatedPlantObject
