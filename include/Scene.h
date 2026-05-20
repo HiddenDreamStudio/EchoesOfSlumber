@@ -4,6 +4,8 @@
 #include "UIManager.h"
 #include "UIElement.h"
 
+class Boss; // forward declaration — full type in Scene.cpp
+
 enum class SceneID {
     INTRO,
     MAIN_MENU,
@@ -184,6 +186,17 @@ private:
     static constexpr int BTN_GAMEOVER_CONTINUE = 31;
 
 private:
+
+    // ── Boss fight ────────────────────────────────────────────────────────────
+    std::weak_ptr<Boss> activeBoss_;
+    bool  isBossFightActive_   = false;
+    float bossHealthDisplay_   = 1.0f;
+    SDL_Texture* texBossBarEmpty_     = nullptr;
+    SDL_Texture* texBossBarFull_      = nullptr;
+    SDL_Texture* texBossBarIndicator_ = nullptr;
+
+    void UpdateBossFight();
+    void DrawBossHUD(int winW, int winH);
 
     // Health HUD
     SDL_Texture* texHealth1_ = nullptr;

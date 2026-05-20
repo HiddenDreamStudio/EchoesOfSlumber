@@ -108,6 +108,11 @@ bool Player::Update(float dt)
 
 	GetPhysicsValues();
 
+	if (knockbackTimer_ > 0.0f) {
+		knockbackTimer_ -= dt;
+		velocity.x = knockbackX_;
+	}
+
 	// Tick hide cooldown
 	if (hideCooldown_ > 0.0f) hideCooldown_ -= dt;
 	if (slingshotCooldown_ > 0.0f) slingshotCooldown_ -= dt;
