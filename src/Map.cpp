@@ -54,7 +54,6 @@ bool Map::Update(float dt)
 
         Render* render = Engine::GetInstance().render.get();
         int scale = Engine::GetInstance().window->GetScale();
-
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
                 Engine::GetInstance().render->DrawTexture(
@@ -68,6 +67,10 @@ bool Map::Update(float dt)
         }
         for (const auto& deco : mapData.decorationObjects) {
             if (deco->texture && !deco->isFront) {
+                // Culling: check if object is visible on screen
+                if (!render->IsOnScreenWorldRect(deco->x, deco->y - deco->height, deco->width, deco->height))
+                    continue;
+
                 // Posició en coordenades de món (Tiled usa l'origen a baix-esquerra per objectes gid)
                 float worldX = deco->x;
                 float worldY = deco->y - deco->height;
@@ -84,14 +87,24 @@ bool Map::Update(float dt)
                 center.x = 0.0f;
                 center.y = dst.h;
 
+                SDL_FlipMode flip = SDL_FLIP_NONE;
+                if (deco->flipH && deco->flipV) flip = (SDL_FlipMode)(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
+                else if (deco->flipH) flip = SDL_FLIP_HORIZONTAL;
+                else if (deco->flipV) flip = SDL_FLIP_VERTICAL;
+              
                 SDL_RenderTextureRotated(render->renderer, deco->texture, nullptr, &dst,
-                    deco->rotation, &center, SDL_FLIP_NONE);
+                    deco->rotation, &center, flip);
             }
         }
 
         for (const auto& plant : mapData.animatedPlants) {
             if (plant->isFront) continue;
             plant->anim.Update(dt);
+
+            // Culling
+            if (!render->IsOnScreenWorldRect(plant->x, plant->y, plant->w, plant->h))
+                continue;
+
             const SDL_Rect& frame = plant->anim.GetCurrentFrame();
 
             SDL_FRect dst;
@@ -125,19 +138,13 @@ bool Map::Update(float dt)
             if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true) {
                 for (int i = startX; i < endX; i++) {
                     for (int j = startY; j < endY; j++) {
-
-                        //Get the gid from tile
                         int gid = mapLayer->Get(i, j);
-
-                        //Check if the gid is different from 0 - some tiles are empty
                         if (gid != 0) {
                             TileSet* tileSet = GetTilesetFromTileId(gid);
-                            if (tileSet != nullptr) {
-                                //Get the Rect from the tileSetTexture;
+                            if (tileSet != nullptr && tileSet->texture != nullptr) {
                                 SDL_Rect tileRect = tileSet->GetRect(gid);
-                                //Get the screen coordinates from the tile coordinates
                                 Vector2D mapCoord = MapToWorld(i, j);
-                                //Draw the texture
+                                // Stable rendering with DrawTexture
                                 render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect, mapLayer->parallaxFactorX);
                             }
                         }
@@ -175,8 +182,10 @@ bool Map::PostUpdate()
             center.x = 0.0f;
             center.y = dst.h;
 
-            SDL_RenderTextureRotated(render->renderer, deco->texture, nullptr, &dst,
-                deco->rotation, &center, SDL_FLIP_NONE);
+            SDL_FlipMode flip = SDL_FLIP_NONE;
+            if (deco->flipH && deco->flipV) flip = (SDL_FlipMode)(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
+            else if (deco->flipH) flip = SDL_FLIP_HORIZONTAL;
+            else if (deco->flipV) flip = SDL_FLIP_VERTICAL;
         }
     }
 
@@ -629,13 +638,13 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     auto enemy = std::dynamic_pointer_cast<EnemyCarmel>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
                     enemy->position = Vector2D(x, y);
 
-                    float patrolLeft  = x - 200.0f;
+                    float patrolLeft = x - 200.0f;
                     float patrolRight = x + 200.0f;
                     pugi::xml_node props = objectNode.child("properties");
                     if (props) {
                         for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
                             std::string propName = prop.attribute("name").as_string();
-                            if (propName == "patrol_left")  patrolLeft  = prop.attribute("value").as_float();
+                            if (propName == "patrol_left")  patrolLeft = prop.attribute("value").as_float();
                             if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
                         }
                     }
@@ -646,13 +655,13 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                 else if (entityType == "EnemyB") {
                     auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
                     enemyB->position = Vector2D(x, y);
-                    float patrolLeft  = x - 200.0f;
+                    float patrolLeft = x - 200.0f;
                     float patrolRight = x + 200.0f;
                     pugi::xml_node props = objectNode.child("properties");
                     if (props) {
                         for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
                             std::string propName = prop.attribute("name").as_string();
-                            if (propName == "patrol_left")  patrolLeft  = prop.attribute("value").as_float();
+                            if (propName == "patrol_left")  patrolLeft = prop.attribute("value").as_float();
                             if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
                         }
                     }
@@ -717,7 +726,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
-                
+
                 auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
                 checkpoint->position = Vector2D(x, y);
                 checkpoint->Start();
@@ -771,6 +780,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
     }
 }
 
+
 void Map::SaveEntities(std::shared_ptr<Player> player) {
 
     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
@@ -778,18 +788,25 @@ void Map::SaveEntities(std::shared_ptr<Player> player) {
         if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
 
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+
                 std::string entityType = objectNode.attribute("type").as_string();
-                if (entityType == "Player") {
-                    Vector2D playerPos = player->GetPosition();
-                    objectNode.attribute("x").set_value(playerPos.getX());
-                    objectNode.attribute("y").set_value(playerPos.getY());
+
+                if (entityType == "Player" && player != nullptr) {
+                    objectNode.attribute("x").set_value(player->position.getX() - 32);
+                    objectNode.attribute("y").set_value(player->position.getY() - 32);
+                    LOG("Player position saved to XML: %f, %f", player->position.getX() - 32, player->position.getY() - 32);
                 }
             }
         }
     }
 
     std::string mapPathName = mapPath + mapFileName;
-    mapFileXML.save_file(mapPathName.c_str());
+    if (mapFileXML.save_file(mapPathName.c_str())) {
+        LOG("Successfully saved entities to XML file: %s", mapFileName.c_str());
+    }
+    else {
+        LOG("Error saving entities to XML file: %s", mapPathName.c_str());
+    }
 
 }
 
@@ -881,7 +898,6 @@ void Map::LoadDecorationObjects()
                         if (!imgSrc.empty())
                         {
                             std::string fullPath = tsxFolder + imgSrc;
-                            LOG("Loading deco texture: %s", fullPath.c_str());
                             SDL_Texture* tex = Engine::GetInstance().textures->Load(fullPath.c_str());
                             ts->tileTextures[relativeId] = tex;
                         }
@@ -899,6 +915,8 @@ void Map::LoadDecorationObjects()
             deco->rotation = objNode.attribute("rotation").as_double(0.0);
             deco->isFront = (groupName == "Assets front");
             deco->gid = gid;
+            deco->flipH = (rawGid & FLIPPED_HORIZONTALLY_FLAG) != 0;
+            deco->flipV = (rawGid & FLIPPED_VERTICALLY_FLAG) != 0;
 
             auto it = ts->tileTextures.find(relativeId);
             deco->texture = (it != ts->tileTextures.end()) ? it->second : nullptr;
