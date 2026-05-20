@@ -5,6 +5,7 @@
 #include "Render.h"
 #include "Log.h"
 
+// Init vars to prevent C26495 warnings
 Door::Door() : Entity(EntityType::DOOR), texW(0), texH(0), texturePath(nullptr)
 {
 	name = "door";

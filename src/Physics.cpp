@@ -341,6 +341,16 @@ bool Physics::IsPendingToDelete(PhysBody* physBody) {
     return pendingToDelete;
 }
 
+void Physics::FlushPendingDeletes()
+{
+    for (PhysBody* physBody : bodiesToDelete) {
+        if (physBody && b2Body_IsValid(physBody->body))
+            b2DestroyBody(physBody->body);
+        delete physBody;
+    }
+    bodiesToDelete.clear();
+}
+
 b2Vec2 Physics::GetLinearVelocity(const PhysBody* p) const
 {
     return b2Body_GetLinearVelocity(p->body);
@@ -465,20 +475,49 @@ b2BodyType Physics::ToB2Type(bodyType t)
 void Physics::DrawSegmentCb(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* ctx)
 {
     auto& r = *Engine::GetInstance().render.get();
-    r.DrawLine(METERS_TO_PIXELS(p1.x), METERS_TO_PIXELS(p1.y),
-        METERS_TO_PIXELS(p2.x), METERS_TO_PIXELS(p2.y), 255, 255, 255);
+    float x1 = (float)METERS_TO_PIXELS(p1.x);
+    float y1 = (float)METERS_TO_PIXELS(p1.y);
+    float x2 = (float)METERS_TO_PIXELS(p2.x);
+    float y2 = (float)METERS_TO_PIXELS(p2.y);
+
+    // Camera culling (using world coordinates)
+    float minX = std::min(x1, x2), minY = std::min(y1, y2);
+    float width = std::abs(x1 - x2) + 1.0f, height = std::abs(y1 - y2) + 1.0f;
+    
+    if (!r.IsOnScreenWorldRect(minX, minY, width, height))
+        return;
+
+    r.DrawLine((int)x1, (int)y1, (int)x2, (int)y2, 255, 255, 255);
 }
 
 void Physics::DrawPolygonCb(const b2Vec2* v, int n, b2HexColor color, void* ctx)
 {
     auto& r = *Engine::GetInstance().render.get();
+    
+    // Quick camera culling for the whole polygon (using world coordinates)
+    float minX = 1e6f, minY = 1e6f, maxX = -1e6f, maxY = -1e6f;
+    for (int i = 0; i < n; ++i) {
+        float px = (float)METERS_TO_PIXELS(v[i].x);
+        float py = (float)METERS_TO_PIXELS(v[i].y);
+        if (px < minX) minX = px; if (py < minY) minY = py;
+        if (px > maxX) maxX = px; if (py > maxY) maxY = py;
+    }
+
+    if (!r.IsOnScreenWorldRect(minX, minY, maxX - minX + 1.0f, maxY - minY + 1.0f))
+        return;
+
+    std::vector<SDL_FPoint> points(n + 1);
+    int scale = Engine::GetInstance().window->GetScale();
     for (int i = 0; i < n; ++i)
     {
-        const b2Vec2 a = v[i];
-        const b2Vec2 b = v[(i + 1) % n];
-        r.DrawLine(METERS_TO_PIXELS(a.x), METERS_TO_PIXELS(a.y),
-            METERS_TO_PIXELS(b.x), METERS_TO_PIXELS(b.y), 255, 255, 100);
+        points[i].x = (float)(r.camera.x + METERS_TO_PIXELS(v[i].x) * scale);
+        points[i].y = (float)(r.camera.y + METERS_TO_PIXELS(v[i].y) * scale);
     }
+    points[n] = points[0];
+
+    SDL_SetRenderDrawBlendMode(r.renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(r.renderer, 255, 255, 100, 255);
+    SDL_RenderLines(r.renderer, points.data(), (int)points.size());
 }
 
 void Physics::DrawSolidPolygonCb(b2Transform xf, const b2Vec2* v, int n, float radius, b2HexColor color, void* ctx)
