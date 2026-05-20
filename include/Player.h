@@ -81,7 +81,11 @@ public:
 	int gameOverFxId = -1;
 
 	PhysBody* pbody = nullptr;
+
+	float knockbackX_     = 0.0f;
+	float knockbackTimer_ = 0.0f;
 	float jumpForce = 10.0f;
+	bool suppressDamageAnim_ = false; // set by traps that skip the damage animation
 	bool isJumping = false;
 
 	bool isWakingUp = true;
@@ -93,8 +97,10 @@ private:
 	AnimationSet anims;
 	Animation wakeUpAnim;
 	SDL_Texture* wakeUpTexture = nullptr;
-	float drawScale = 1.0f;
+	float drawScale = 0.5f;
 	bool facingRight = true;
+	PhysBody* currentGround = nullptr;
+
 	//  Hide cooldown 
 	static constexpr float HIDE_COOLDOWN = 15000.0f; // ms
 	float hideCooldown_ = 0.0f;
