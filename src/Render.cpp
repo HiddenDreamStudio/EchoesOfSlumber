@@ -88,6 +88,7 @@ bool Render::Start()
 // Called each loop iteration
 bool Render::PreUpdate()
 {
+	SDL_SetRenderDrawColor(renderer, background.r, background.g, background.b, background.a);
 	SDL_RenderClear(renderer);
 	return true;
 }
