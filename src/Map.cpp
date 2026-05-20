@@ -75,7 +75,7 @@ bool Map::Update(float dt)
                 if (!render->IsOnScreenWorldRect(deco->x, deco->y - deco->height, deco->width, deco->height))
                     continue;
 
-                // Posició en coordenades de món (Tiled usa l'origen a baix-esquerra per objectes gid)
+                // Posicio en coordenades de mon (Tiled usa l'origen a baix-esquerra per objectes gid)
                 float worldX = deco->x;
                 float worldY = deco->y - deco->height;
 
@@ -636,7 +636,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                         player->SetPosition(Vector2D(x, y));
                     }
                 }
-                else if (entityType == "Enemy") {
+                else if (entityType == "Enemy" || entityType == "SpiderCandy") {
                     auto enemy = std::dynamic_pointer_cast<EnemyCarmel>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
                     enemy->position = Vector2D(x, y);
 
@@ -652,7 +652,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     }
                     enemy->SetPatrolPoints(patrolLeft, patrolRight);
                     enemy->Start();
-                    LOG("Enemy spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
+                    LOG("Enemy (SpiderCandy) spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
                 }
                 else if (entityType == "EnemyB") {
                     auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
