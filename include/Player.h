@@ -82,6 +82,7 @@ public:
 
 	PhysBody* pbody = nullptr;
 	float jumpForce = 10.0f;
+	bool suppressDamageAnim_ = false; // set by traps that skip the damage animation
 	bool isJumping = false;
 
 	bool isWakingUp = true;
