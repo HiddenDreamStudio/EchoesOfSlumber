@@ -34,7 +34,10 @@ enum class ColliderType {
     BOX,
     PUSH_ROCK,
     PROJECTILE,
+    DOOR,
     SLINGSHOT_PROJ,
+    PUDDLE,
+    ROPE,
     UNKNOWN
     // ..
 };
@@ -86,6 +89,7 @@ public:
     void EndContact(b2ShapeId shapeA, b2ShapeId shapeB);
 
     void DeletePhysBody(PhysBody* physBody);
+    void FlushPendingDeletes();  // immediately destroy all queued bodies
     bool IsPendingToDelete(PhysBody* physBody);
     bool IsDebug() const { return debug; }
 
