@@ -16,6 +16,7 @@
 #include "SaveSystem.h"
 #include "DiscordManager.h"
 #include "Physics.h"
+#include "Boss.h"
 #include <cstdlib>
 #include <cmath>
 
@@ -933,6 +934,8 @@ void Scene::LoadGameplay()
 	isPaused_ = false;
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
+	isBossFightActive_ = false;
+	activeBoss_.reset();
 
 	Engine::GetInstance().discord->UpdatePresence("Playing: Level 1", "Alpha Phase");
     Engine::GetInstance().render->SetCameraSway(true);
@@ -1301,13 +1304,15 @@ void Scene::UpdateGameplay(float dt)
 		int slTexW = 0, slTexH = 0;
 		Engine::GetInstance().textures->GetSize(texSlingshotCollectible_, slTexW, slTexH);
 		float slFloatOffset = 6.0f * sinf(slingshotFloatTimer_ * 0.003f);
-		float slScale = 0.05f; // 2000x2000 * 0.05 = 100x100px
+		float slScale = 0.05f;
 		int slDrawX = (int)(slingshotX_ - (float)slTexW * slScale / 2.0f);
 		int slDrawY = (int)(slingshotY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
 
 		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
 		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
+
+	if (!isPaused_ && !isGameOver_) UpdateBossFight();
 
 	// Draw cape collectible in-world
 	if (!capaCollected_ && texCapaCollectible_)
@@ -1321,6 +1326,93 @@ void Scene::UpdateGameplay(float dt)
 		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
 		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
 	}
+}
+
+// ============================================================================
+//  BOSS FIGHT
+// ============================================================================
+
+void Scene::UpdateBossFight()
+{
+    auto boss = activeBoss_.lock();
+
+    // Lazy search: if no boss cached yet, look in the entity list
+    if (!boss) {
+        for (auto& e : Engine::GetInstance().entityManager->entities) {
+            if (e->type == EntityType::BOSS_1) {
+                boss = std::dynamic_pointer_cast<Boss>(e);
+                if (boss) { activeBoss_ = boss; break; }
+            }
+        }
+    }
+
+    if (!boss) {
+        // Boss has been removed from the entity list (dead + cleaned up)
+        if (isBossFightActive_) {
+            isBossFightActive_ = false;
+            Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 2.0f);
+            LOG("Boss fight ended — restoring gameplay music");
+        }
+        return;
+    }
+
+    if (boss->IsEngaged() && !isBossFightActive_)
+    {
+        isBossFightActive_ = true;
+        Engine::GetInstance().audio->PlayMusic("assets/audio/music/boss-battle.wav", 1.5f);
+        auto& tex = *Engine::GetInstance().textures;
+        texBossBarEmpty_     = tex.Load("assets/textures/UI/UI_Boss_HealthBar_Empty.png");
+        texBossBarFull_      = tex.Load("assets/textures/UI/UI_Boss_HealthBar_Full.png");
+        texBossBarIndicator_ = tex.Load("assets/textures/UI/UI_Boss_HealthBar_Indicator.png");
+    }
+
+    if (boss->IsDead() && isBossFightActive_)
+    {
+        isBossFightActive_ = false;
+        activeBoss_.reset();
+        Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 2.0f);
+        auto& tex = *Engine::GetInstance().textures;
+        tex.UnLoad(texBossBarEmpty_);     texBossBarEmpty_     = nullptr;
+        tex.UnLoad(texBossBarFull_);      texBossBarFull_      = nullptr;
+        tex.UnLoad(texBossBarIndicator_); texBossBarIndicator_ = nullptr;
+    }
+}
+
+void Scene::DrawBossHUD(int winW, int winH)
+{
+    auto boss = activeBoss_.lock();
+    if (!boss || !isBossFightActive_ || boss->IsDead()) return;
+    if (!texBossBarEmpty_ || !texBossBarFull_ || !texBossBarIndicator_) return;
+
+    auto& render = *Engine::GetInstance().render;
+
+    const int BAR_W  = 800;
+    const int BAR_H  = 50;
+    const int BAR_X  = (winW - BAR_W) / 2;
+    const int BAR_Y  = winH - 70;
+    const int IND_SZ = 50;
+
+    float realPct = boss->GetHealthPercent();
+    realPct = (realPct < 0.0f) ? 0.0f : (realPct > 1.0f) ? 1.0f : realPct;
+    bossHealthDisplay_ += (realPct - bossHealthDisplay_) * 0.08f;
+
+    render.DrawTextureAlpha(texBossBarEmpty_, BAR_X, BAR_Y, BAR_W, BAR_H);
+
+    int clipW = (int)(BAR_W * bossHealthDisplay_);
+    if (clipW > 0)
+    {
+        SDL_FRect src = { 0.0f, 0.0f, (float)clipW, (float)BAR_H };
+        SDL_FRect dst = { (float)BAR_X, (float)BAR_Y, (float)clipW, (float)BAR_H };
+        SDL_RenderTexture(render.renderer, texBossBarFull_, &src, &dst);
+    }
+
+    int indX = BAR_X + clipW - IND_SZ / 2;
+    indX = std::max(BAR_X + 4, std::min(indX, BAR_X + BAR_W - IND_SZ - 4));
+    int indY = BAR_Y + BAR_H / 2 - IND_SZ / 2;
+    render.DrawTextureAlpha(texBossBarIndicator_, indX, indY, IND_SZ, IND_SZ);
+
+    SDL_Rect nameArea = { BAR_X, BAR_Y - 55, BAR_W, 22 };
+    render.DrawMenuTextCentered(boss->GetBossName(), nameArea, { 230, 220, 200, 255 });
 }
 
 void Scene::UnloadGameplay()
@@ -1571,6 +1663,13 @@ void Scene::PostUpdateGameplay()
 			Uint8 slAlpha = player->IsAiming() ? (Uint8)255 : (Uint8)160;
 			Engine::GetInstance().render->DrawTextureAlpha(texSlingshotCollectible_, slHudX, slHudY, 48, 48, slAlpha);
 		}
+	}
+
+	// --- Boss health bar ---
+	{
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		DrawBossHUD(winW, winH);
 	}
 
 	// --- Game Over Screen ---
