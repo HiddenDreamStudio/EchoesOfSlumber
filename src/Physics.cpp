@@ -38,7 +38,7 @@ bool Physics::PreUpdate()
 {
     bool ret = true;
 
-    if (Engine::GetInstance().scene->isPaused_) return true;
+    if (Engine::GetInstance().scene->isPaused_ || Engine::GetInstance().scene->isGameOver_) return true;
 
     float dt = Engine::GetInstance().GetDt() / 1000.0f;
     b2World_Step(world, dt, 4);
