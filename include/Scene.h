@@ -147,6 +147,10 @@ public:
     static constexpr float CAPA_NOTIF_DURATION = 3000.0f;
     void ShowNoCapeNotification();
 
+    float noBearNotifTimer_ = 0.0f;
+    bool bearNotifHasStuffed_ = false;
+    void ShowNoBearNotification(bool hasStuffedAnimal);
+
 private:
     // Button IDs — pause menu
     static constexpr int BTN_PAUSE_CONTINUE = 20;

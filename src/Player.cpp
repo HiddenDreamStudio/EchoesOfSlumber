@@ -111,13 +111,13 @@ bool Player::Start() {
 	if (throwBearTexture_) {
 		SDL_SetTextureScaleMode(throwBearTexture_, SDL_SCALEMODE_NEAREST);
 	}
-	throwBearAnims_.LoadFromTSX("assets/textures/animations/protagonistThrowBear.xml", { {0, "ThrowStart"}, {24, "BearActiveIdle"}, {72, "FallAsleep"}, {48, "SleepIdle"} });
+	throwBearAnims_.LoadFromTSX("assets/textures/animations/protagonistThrowBear.xml", { {24, "ThrowStart"}, {0, "BearActiveIdle"}, {72, "FallAsleep"}, {48, "SleepIdle"} });
 	LOG("throwBearAnims_ loaded. Has ThrowStart: %d, BearActiveIdle: %d, FallAsleep: %d, SleepIdle: %d",
 		throwBearAnims_.Has("ThrowStart"), throwBearAnims_.Has("BearActiveIdle"),
 		throwBearAnims_.Has("FallAsleep"), throwBearAnims_.Has("SleepIdle"));
 	throwBearAnims_.SetCurrent("ThrowStart");
 	throwBearAnims_.SetLoop("ThrowStart", false);
-	throwBearAnims_.SetLoop("BearActiveIdle", true);
+	throwBearAnims_.SetLoop("BearActiveIdle", false);
 	throwBearAnims_.SetLoop("FallAsleep", false);
 	throwBearAnims_.SetLoop("SleepIdle", true);
 
@@ -128,8 +128,8 @@ bool Player::Start() {
 	yoyoTrapAnims_.SetLoop("yoyo", true);
 
 
-	hasStuffedAnimal_ = true;
-	equippedItem_ = EquippedItem::STUFFED_ANIMAL;
+	hasStuffedAnimal_ = false;
+	equippedItem_ = EquippedItem::NONE;
 
 	pbody = Engine::GetInstance().physics->CreateCapsule((int)position.getX(), (int)position.getY(), 40, 100, bodyType::DYNAMIC, 0.0f);
 
@@ -183,6 +183,15 @@ bool Player::Update(float dt)
 		// Toggle bear mode
 		bool bearToggleDown = input.GetKey(SDL_SCANCODE_O) == KEY_DOWN ||
 		                     input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN;
+
+		if (bearToggleDown) {
+			if (!hasStuffedAnimal_) {
+				Engine::GetInstance().scene->ShowNoBearNotification(false);
+			}
+			else if (equippedItem_ != EquippedItem::STUFFED_ANIMAL) {
+				Engine::GetInstance().scene->ShowNoBearNotification(true);
+			}
+		}
 
 		if (bearToggleDown && hasStuffedAnimal_ && equippedItem_ == EquippedItem::STUFFED_ANIMAL && 
 		    !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isAiming_) 
@@ -255,10 +264,11 @@ bool Player::Update(float dt)
 					isBearTransforming_ = false;
 					isBearMode_ = true;
 					bearIdleAnims_.ResetCurrent();
+					// Start the kid waving animation (plays once then transitions)
+					throwBearAnims_.SetCurrent("BearActiveIdle");
 					LOG("Player bear transformation complete! Now in bear mode.");
 				}
-				// Also update the throwing idle animation of the kid
-				throwBearAnims_.SetCurrent("BearActiveIdle");
+				// Update the kid animation during transformation
 				throwBearAnims_.Update(dt);
 			}
 			else if (isBearMode_) {
@@ -266,9 +276,16 @@ bool Player::Update(float dt)
 				Move();
 				Attack(dt);
 				Teleport();
-				// Also update the throwing idle animation of the kid
-				throwBearAnims_.SetCurrent("BearActiveIdle");
+				// Kid animation: wave once -> fall asleep -> sleep loop
 				throwBearAnims_.Update(dt);
+				if (throwBearAnims_.GetCurrentName() == "BearActiveIdle" && throwBearAnims_.HasFinishedOnce("BearActiveIdle")) {
+					throwBearAnims_.SetCurrent("FallAsleep");
+					LOG("Kid finished waving, now falling asleep");
+				}
+				else if (throwBearAnims_.GetCurrentName() == "FallAsleep" && throwBearAnims_.HasFinishedOnce("FallAsleep")) {
+					throwBearAnims_.SetCurrent("SleepIdle");
+					LOG("Kid now sleeping idle");
+				}
 			}
 			else {
 				// Standard human controls
@@ -289,7 +306,7 @@ bool Player::Update(float dt)
 
 	ApplyPhysics();
 
-	if (velocity.x != 0.0f && !isJumping && !isDead_ && !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isWakingUp) {
+	if (velocity.x != 0.0f && !isJumping && !isDead_ && !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isWakingUp && !isBearMode_) {
 		stepTimer_ -= dt;
 
 		
@@ -706,13 +723,13 @@ void Player::Draw(float dt) {
 	{
 		activeTex = throwBearTexture_;
 		animFrame = &throwBearAnims_.GetCurrentFrame();
-		currentDrawScale = 1.0f;
+		currentDrawScale = 0.5f;
 	}
 	else if (isKidSleeping_)
 	{
 		activeTex = throwBearTexture_;
 		animFrame = &throwBearAnims_.GetCurrentFrame();
-		currentDrawScale = 1.0f;
+		currentDrawScale = 0.5f;
 	}
 	else if (isDead_ && isBearMode_)
 	{
@@ -888,13 +905,14 @@ void Player::Draw(float dt) {
 
 	if (drawingBear && throwBearTexture_) {
 		const SDL_Rect& kidFrame = throwBearAnims_.GetCurrentFrame();
-		int kidDrawX = static_cast<int>(bearSummonPosition_.getX() - static_cast<float>(kidFrame.w) / 2.0f);
-		int kidDrawY = static_cast<int>(bearSummonPosition_.getY() - static_cast<float>(kidFrame.h) / 2.0f);
+		float kidScale = 0.5f;
+		int kidDrawX = static_cast<int>(bearSummonPosition_.getX() - (static_cast<float>(kidFrame.w) * kidScale) / 2.0f);
+		int kidDrawY = static_cast<int>(bearSummonPosition_.getY() - (static_cast<float>(kidFrame.h) * kidScale) / 2.0f);
 		
 		SDL_FlipMode kidFlip = bearSummonFacingRight_ ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
 		render->ApplyAmbientTint(throwBearTexture_);
-		render->DrawTexture(throwBearTexture_, kidDrawX, kidDrawY, &kidFrame, 1.0f, 0, INT_MAX, INT_MAX, kidFlip, 1.0f);
+		render->DrawTexture(throwBearTexture_, kidDrawX, kidDrawY, &kidFrame, 1.0f, 0, INT_MAX, INT_MAX, kidFlip, kidScale);
 		render->ResetAmbientTint(throwBearTexture_);
 	}
 

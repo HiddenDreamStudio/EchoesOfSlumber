@@ -1432,11 +1432,11 @@ void Scene::PostUpdateGameplay()
 			int miniY = winH - miniH - 20;
 
 			// Inner boundaries for terrain viewport (accounting for the ornate border thickness)
-			int borderThickness = 19;
+			int borderThickness = 12;
 			int innerX = miniX + borderThickness;
 			int innerY = miniY + borderThickness;
-			int innerW = miniW - borderThickness * 2; // 182px
-			int innerH = miniH - borderThickness * 2; // 182px
+			int innerW = miniW - borderThickness * 2;
+			int innerH = miniH - borderThickness * 2;
 			int centerX = innerX + innerW / 2;
 			int centerY = innerY + innerH / 2;
 
@@ -1756,6 +1756,43 @@ void Scene::PostUpdateGameplay()
 			"You cant do this you need an object",
 			{ ncpX, ncpY, ncpW, ncpH },
 			ncpColor,
+			0.35f
+		);
+	}
+
+	// --- No bear notification ---
+	if (noBearNotifTimer_ > 0.0f) {
+		noBearNotifTimer_ -= Engine::GetInstance().GetDt();
+
+		int winWBear = 0, winHBear = 0;
+		Engine::GetInstance().window->GetWindowSize(winWBear, winHBear);
+		auto& renderBear = *Engine::GetInstance().render;
+
+		Uint8 alphaBear = 255;
+		if (noBearNotifTimer_ < 800.0f)
+			alphaBear = (Uint8)(255.0f * (noBearNotifTimer_ / 800.0f));
+
+		// Panel dimensions
+		const int nbW = 380;
+		const int nbH = 36;
+		const int nbX = (winWBear - nbW) / 2;
+		const int nbY = 40;
+
+		// Black filled panel
+		SDL_Rect nbPanel = { nbX, nbY, nbW, nbH };
+		renderBear.DrawRectangle(nbPanel, 0, 0, 0, alphaBear, true, false);
+
+		// White border (outline) — 2px
+		SDL_Rect nbBorder = { nbX - 2, nbY - 2, nbW + 4, nbH + 4 };
+		renderBear.DrawRectangle(nbBorder, 255, 255, 255, alphaBear, false, false);
+
+		// Text centered inside the panel (scaled down)
+		SDL_Color nbColor = { 255, 255, 255, alphaBear };
+		const char* msg = bearNotifHasStuffed_ ? "Press 3 to equip the Teddy Bear!" : "You need to find the Teddy Bear first!";
+		renderBear.DrawMenuTextCentered(
+			msg,
+			{ nbX, nbY, nbW, nbH },
+			nbColor,
 			0.35f
 		);
 	}
@@ -2427,6 +2464,12 @@ void Scene::ResetHealthUI(int health)
 void Scene::ShowNoCapeNotification()
 {
 	noCapeNotifTimer_ = 3000.0f;
+}
+
+void Scene::ShowNoBearNotification(bool hasStuffedAnimal)
+{
+	noBearNotifTimer_ = 3000.0f;
+	bearNotifHasStuffed_ = hasStuffedAnimal;
 }
 
 void Scene::DrawPauseMenu()
