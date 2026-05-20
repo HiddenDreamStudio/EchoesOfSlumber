@@ -144385,7 +144385,7 @@
   <object id="14" name="EnemyC" type="EnemyC" x="17224" y="12920" width="32" height="32"/>
   <object id="397" name="Cape" type="Cape" x="19976" y="13578.7"/>
   <object id="999" name="EnemyPlush" type="EnemyPlush" x="19200" y="13508" width="32" height="32"/>
-  <object id="1000" name="EnemyStitchling" type="EnemyStitchling" x="19300" y="13508" width="32" height="32"/>
+  <object id="1000" name="EnemyStitchling" type="EnemyStitchling" x="19290" y="13602" width="32" height="32"/>
   <object id="401" name="Player" type="Player" x="19462" y="13508" width="96" height="96"/>
   <object id="403" name="Oso" type="Oso" x="19562" y="13508" width="96" height="96"/>
  </objectgroup>

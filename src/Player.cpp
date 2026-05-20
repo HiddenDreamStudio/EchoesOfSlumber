@@ -158,6 +158,7 @@ bool Player::Update(float dt)
 	// Tick hide cooldown
 	if (hideCooldown_ > 0.0f) hideCooldown_ -= dt;
 	if (slingshotCooldown_ > 0.0f) slingshotCooldown_ -= dt;
+	if (bearCooldownTimer_ > 0.0f) bearCooldownTimer_ -= dt;
 
 	if (!isDead_ && !isWakingUp)
 	{
@@ -186,8 +187,9 @@ bool Player::Update(float dt)
 		if (bearToggleDown && hasStuffedAnimal_ && equippedItem_ == EquippedItem::STUFFED_ANIMAL && 
 		    !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isAiming_) 
 		{
-			if (!isBearMode_ && !isBearTransforming_ && !isThrowingBear_ && !isKidSleeping_) {
+			if (!isBearMode_ && !isBearTransforming_ && !isThrowingBear_ && !isKidSleeping_ && bearCooldownTimer_ <= 0.0f) {
 				isThrowingBear_ = true;
+				bearHealth_ = 3;
 				throwBearAnims_.SetCurrent("ThrowStart");
 				throwBearAnims_.ResetCurrent();
 				velocity.x = 0.0f;
@@ -207,6 +209,7 @@ bool Player::Update(float dt)
 				isBearTransforming_ = false;
 				isKidSleeping_ = true;
 				bearSleepTimer_ = 2000.0f; // 2 seconds sleep
+				bearCooldownTimer_ = 5000.0f; // 5 seconds cooldown
 				throwBearAnims_.SetCurrent("FallAsleep");
 				throwBearAnims_.ResetCurrent();
 
@@ -776,7 +779,7 @@ void Player::Draw(float dt) {
 		yoyoTrapAnims_.Update(dt);
 		activeTex = yoyoTrapTexture_;
 		animFrame = &yoyoTrapAnims_.GetCurrentFrame();
-		// 484x480 frames → scale down to match ~128px character size
+		// 857x480 frames → scale down to match ~128px character height
 		currentDrawScale = 0.27f;
 	}
 	else if (isHiding_ || isExitingHide_)
@@ -1000,8 +1003,59 @@ void Player::Attack(float dt)
 
 void Player::TakeDamage(int damage)
 {
-	// Cannot take damage while hiding
-	if (isInvincible_ || isHiding_) return;
+	// Cannot take damage while hiding, sleeping, or waking up
+	if (isInvincible_ || isHiding_ || isKidSleeping_ || isWakingUp) return;
+
+	if (isBearMode_) {
+		bearHealth_ -= damage;
+		LOG("Bear took %d damage -> bearHealth: %d", damage, bearHealth_);
+
+		isInvincible_ = true;
+		iFrameTimer_ = IFRAME_DURATION;
+		damageFlashTimer_ = DAMAGE_FLASH_DURATION;
+
+		int playerX, playerY;
+		pbody->GetPosition(playerX, playerY);
+
+		float closestDist = 999999.0f;
+		float enemyDirX = 0.0f;
+		for (const auto& entity : Engine::GetInstance().entityManager->entities) {
+			if ((entity->type == EntityType::ENEMY || entity->type == EntityType::ENEMY_B || entity->type == EntityType::ENEMY_C) && entity->active) {
+				float dx = entity->position.getX() - (float)playerX;
+				float dy = entity->position.getY() - (float)playerY;
+				float dist = dx * dx + dy * dy;
+				if (dist < closestDist) {
+					closestDist = dist;
+					enemyDirX = dx;
+				}
+			}
+		}
+
+		if (enemyDirX < 0)      facingRight = true;
+		else if (enemyDirX > 0) facingRight = false;
+
+		float knockbackForce = 5.0f;
+		float dir = facingRight ? 1.0f : -1.0f;
+		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
+
+		if (bearHealth_ <= 0) {
+			bearHealth_ = 0;
+			isBearMode_ = false;
+			isBearTransforming_ = false;
+			isKidSleeping_ = true;
+			bearSleepTimer_ = 2000.0f; // 2 seconds sleep
+			bearCooldownTimer_ = 5000.0f; // 5 seconds cooldown
+			throwBearAnims_.SetCurrent("FallAsleep");
+			throwBearAnims_.ResetCurrent();
+
+			// Teleport player physics body back to kid position
+			pbody->SetPosition((int)bearSummonPosition_.getX(), (int)bearSummonPosition_.getY());
+			
+			Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+			LOG("Bear health depleted! Exiting bear mode, returning to kid.");
+		}
+		return;
+	}
 
 	health -= damage;
 	LOG("Player took %d damage -> health: %d", damage, health);

@@ -177,8 +177,10 @@ private:
 	bool         isThrowingBear_ = false;
 	bool         isKidSleeping_ = false;
 	float        bearSleepTimer_ = 0.0f;
+	float        bearCooldownTimer_ = 0.0f;
 	Vector2D     bearSummonPosition_;
 	bool         bearSummonFacingRight_ = false;
+	int          bearHealth_ = 3;
 	SDL_Texture* bearAppearTexture_ = nullptr;
 	SDL_Texture* bearIdleTexture_ = nullptr;
 	SDL_Texture* bearWalkTexture_ = nullptr;

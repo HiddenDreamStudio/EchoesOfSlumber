@@ -83,6 +83,12 @@ bool EnemyStitchling::Update(float dt) {
         position.setY((float)y);
     }
 
+    if (playerRef_ && currentState_ != State::DEATH) {
+        int px, py;
+        playerRef_->pbody->GetPosition(px, py);
+        facingRight_ = (px > position.getX());
+    }
+
     if (currentState_ == State::DEATH) {
         dieAnims_.Update(dt);
         Draw(dt);
@@ -100,6 +106,9 @@ bool EnemyStitchling::Update(float dt) {
         break;
     case State::IDLE:
         idleAnims_.Update(dt);
+        break;
+    case State::ALERT:
+        alertAnims_.Update(dt);
         break;
     case State::TRAP_ACTIVE:
         grabAnims_.Update(dt);
@@ -163,10 +172,26 @@ void EnemyStitchling::UpdateFSM(float dt) {
         break;
 
     case State::IDLE:
+        if (GetDistanceToPlayer() <= 200.0f) {
+            EnterState(State::ALERT);
+        }
+        break;
+
+    case State::ALERT:
+        if (GetDistanceToPlayer() > 250.0f) {
+            EnterState(State::IDLE);
+        }
         break;
 
     case State::TRAP_ACTIVE:
         if (playerRef_) {
+            // Auto-release trap if player teleports or is too far away
+            if (GetDistanceToPlayer() > 250.0f) {
+                RemovePlayerSlowdown();
+                EnterState(State::IDLE);
+                break;
+            }
+
             // Apply damage if stuck for too long
             trapDamageTimer_ += dt;
             if (trapDamageTimer_ >= TRAP_DAMAGE_INTERVAL) {
@@ -174,8 +199,8 @@ void EnemyStitchling::UpdateFSM(float dt) {
                 trapDamageTimer_ = 0.0f;
             }
 
-            // Player can mash SPACE to escape
-            if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN) {
+            // Player can mash E to escape
+            if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_E) == KEY_DOWN) {
                 escapeMashes_++;
                 if (escapeMashes_ >= MASHES_TO_ESCAPE) {
                     // Escaped!
@@ -225,6 +250,9 @@ void EnemyStitchling::EnterState(State newState) {
     case State::IDLE:
         idleAnims_.ResetCurrent();
         break;
+    case State::ALERT:
+        alertAnims_.ResetCurrent();
+        break;
     case State::TRAP_ACTIVE:
         grabAnims_.ResetCurrent();
         trapDamageTimer_ = 0.0f;
@@ -261,6 +289,7 @@ void EnemyStitchling::ApplyPlayerSlowdown() {
     if (playerRef_ && !playerWasSlowed_) {
         playerRef_->speed = 1.0f; 
         playerRef_->isYoyoTrapped_ = true;
+        Engine::GetInstance().physics->SetLinearVelocity(playerRef_->pbody, 0.0f, 0.0f);
         playerRef_->yoyoTrapAnims_.ResetCurrent();
         playerWasSlowed_ = true;
     }
@@ -279,7 +308,7 @@ void EnemyStitchling::OnCollision(PhysBody* physA, PhysBody* physB) {
     if (physA == trapSensor_ || physB == trapSensor_) {
         PhysBody* other = (physA == trapSensor_) ? physB : physA;
         LOG("Collision with trapSensor_! other ctype = %d, currentState_ = %d", (int)other->ctype, (int)currentState_);
-        if (other->ctype == ColliderType::PLAYER && currentState_ == State::IDLE) {
+        if (other->ctype == ColliderType::PLAYER && (currentState_ == State::IDLE || currentState_ == State::ALERT)) {
             LOG("Transitioning to TRAP_ACTIVE!");
             EnterState(State::TRAP_ACTIVE);
         }
@@ -338,6 +367,10 @@ void EnemyStitchling::Draw(float dt) {
         currentTexture = idleTexture_;
         frameRect = idleAnims_.GetCurrentFrame();
         break;
+    case State::ALERT:
+        currentTexture = alertTexture_;
+        frameRect = alertAnims_.GetCurrentFrame();
+        break;
     case State::TRAP_ACTIVE:
         currentTexture = grabTexture_;
         frameRect = grabAnims_.GetCurrentFrame();
@@ -371,4 +404,15 @@ void EnemyStitchling::Draw(float dt) {
         
         Engine::GetInstance().render->DrawTexture(currentTexture, px, py, &frameRect, 1.0f, 0, INT_MAX, INT_MAX, flip, scale);
     }
+}
+
+float EnemyStitchling::GetDistanceToPlayer() const {
+    if (!playerRef_ || !playerRef_->pbody || !pbody) return 9999.0f;
+    int px, py;
+    playerRef_->pbody->GetPosition(px, py);
+    int sx, sy;
+    pbody->GetPosition(sx, sy);
+    float dx = (float)(sx - px);
+    float dy = (float)(sy - py);
+    return std::sqrt(dx * dx + dy * dy);
 }

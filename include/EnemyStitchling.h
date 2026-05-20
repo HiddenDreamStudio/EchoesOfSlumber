@@ -13,6 +13,7 @@ public:
 	enum class State {
 		SETUP,         // Setting up the trap (releasing string)
 		IDLE,          // Waiting for player to step on trap
+		ALERT,         // Player is near, warning them
 		TRAP_ACTIVE,   // Player trapped, slowing them down and hurting them
 		REWIND_SLOW,   // Rewinding slowly (vulnerable)
 		REWIND_FAST,   // Rewinding fast (invulnerable/deflecting)
@@ -42,6 +43,7 @@ private:
 	void Draw(float dt);
 	void ApplyPlayerSlowdown();
 	void RemovePlayerSlowdown();
+	float GetDistanceToPlayer() const;
 
 private:
 	State currentState_ = State::SETUP;

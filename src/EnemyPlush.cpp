@@ -110,6 +110,25 @@ bool EnemyPlush::Update(float dt)
 	if (attackCooldown_ > 0.0f) attackCooldown_ -= dt;
 
 	// Process contact damage (skip if dead)
+	if (currentState_ != State::DEATH && isContactWithPlayer_ && playerListener_ != nullptr)
+	{
+		int enemyX, enemyY;
+		pbody->GetPosition(enemyX, enemyY);
+		int playerX, playerY;
+		auto pl = Engine::GetInstance().scene->player;
+		if (pl && pl->pbody)
+		{
+			pl->pbody->GetPosition(playerX, playerY);
+			float dx = (float)enemyX - (float)playerX;
+			float dy = (float)enemyY - (float)playerY;
+			float distSq = dx * dx + dy * dy;
+			if (distSq > 150.0f * 150.0f)
+			{
+				isContactWithPlayer_ = false;
+				playerListener_ = nullptr;
+			}
+		}
+	}
 	if (currentState_ != State::DEATH && isContactWithPlayer_ && playerListener_ != nullptr && attackCooldown_ <= 0.0f)
 	{
 		playerListener_->TakeDamage(1);
