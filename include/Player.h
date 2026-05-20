@@ -95,6 +95,8 @@ private:
 	SDL_Texture* wakeUpTexture = nullptr;
 	float drawScale = 0.5f;
 	bool facingRight = true;
+	PhysBody* currentGround = nullptr;
+
 	//  Hide cooldown 
 	static constexpr float HIDE_COOLDOWN = 15000.0f; // ms
 	float hideCooldown_ = 0.0f;
