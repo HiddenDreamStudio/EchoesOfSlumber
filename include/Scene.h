@@ -249,6 +249,7 @@ private:
     float mapViewDragOriginY_ = 0.0f;
 
     void DrawMapViewer(int winW, int winH);
+    void DrawBottomFog(int winW, int winH);
 
     // ── Main menu textures ────────────────────────────────────────────────────
     SDL_Texture* texMenuLogo_ = nullptr;
