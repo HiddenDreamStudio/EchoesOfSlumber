@@ -14,8 +14,12 @@
 #include "PushRock.h"
 #include "VFX.h"
 #include "SlingshotProjectile.h"
+#include "DropDoll.h"
 #include "Boss2.h"
+#include "Boss1.h"
+#include "RopedRock.h"
 #include "tracy/Tracy.hpp"
+#include "Platform.h"
 #include "Door.h"
 
 EntityManager::EntityManager() : Module()
@@ -101,6 +105,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 	case EntityType::BOX:
 		entity = std::make_shared<Box>();
 		break;
+	case EntityType::PLATFORM:
+		entity = std::make_shared<Platform>();
+		break;
 	case EntityType::PUSH_ROCK:
 		entity = std::make_shared<PushRock>();
 		break;
@@ -113,8 +120,17 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 	case EntityType::SLINGSHOT_PROJECTILE:
 		entity = std::make_shared<SlingshotProjectile>();
 		break;
+	case EntityType::DROP_DOLL:
+		entity = std::make_shared<DropDoll>();
+		break;
 	case EntityType::BOSS_2:
 		entity = std::make_shared<Boss2>();
+		break;
+	case EntityType::BOSS_1:
+		entity = std::make_shared<Boss1>();
+		break;
+	case EntityType::ROPE_ROCK:
+		entity = std::make_shared<RopedRock>();
 		break;
 	default:
 		break;

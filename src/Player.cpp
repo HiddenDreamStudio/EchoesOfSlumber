@@ -108,6 +108,11 @@ bool Player::Update(float dt)
 
 	GetPhysicsValues();
 
+	if (knockbackTimer_ > 0.0f) {
+		knockbackTimer_ -= dt;
+		velocity.x = knockbackX_;
+	}
+
 	// Tick hide cooldown
 	if (hideCooldown_ > 0.0f) hideCooldown_ -= dt;
 	if (slingshotCooldown_ > 0.0f) slingshotCooldown_ -= dt;
@@ -744,9 +749,16 @@ void Player::TakeDamage(int damage)
 	else
 	{
 		isHiding_ = false;
-		isShowingDamageAnim_ = true;
-		anims.SetCurrent("damage");
-		anims.ResetCurrent();
+		if (suppressDamageAnim_)
+		{
+			suppressDamageAnim_ = false;
+		}
+		else
+		{
+			isShowingDamageAnim_ = true;
+			anims.SetCurrent("damage");
+			anims.ResetCurrent();
+		}
 	}
 }
 
@@ -807,6 +819,8 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		int playerX, playerY, platX, platY;
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(platX, platY);
+
+		// Check if the player lands on top of the platform
 		if (playerY < platY) {
 			if (isJumping) {
 				// Spawn landing dust (Centered at bottom of capsule)

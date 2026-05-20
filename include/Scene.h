@@ -4,6 +4,8 @@
 #include "UIManager.h"
 #include "UIElement.h"
 
+class Boss; // forward declaration — full type in Scene.cpp
+
 enum class SceneID {
     INTRO,
     MAIN_MENU,
@@ -139,10 +141,12 @@ private:
     void UpdateGameplay(float dt);
     void PostUpdateGameplay();
 
-    // ── Map switching (F1 / F2) ──────────────────────────────────────────────
+    // ── Map switching (F1 / F2 / F3 / F4) ──────────────────────────────────────
     std::string currentMapFile_ = "MapTemplate.tmx";
     void LoadMap1();   // loads MapTemplate.tmx
     void LoadMap2();   // loads Map2.tmx
+    void LoadMap3();   // loads Map3.tmx
+    void LoadMap4();   // loads Map4.tmx
 
     void LoadPauseMenuButtons();
     void SetPauseMenuVisible(bool visible);
@@ -184,6 +188,17 @@ private:
     static constexpr int BTN_GAMEOVER_CONTINUE = 31;
 
 private:
+
+    // ── Boss fight ────────────────────────────────────────────────────────────
+    std::weak_ptr<Boss> activeBoss_;
+    bool  isBossFightActive_   = false;
+    float bossHealthDisplay_   = 1.0f;
+    SDL_Texture* texBossBarEmpty_     = nullptr;
+    SDL_Texture* texBossBarFull_      = nullptr;
+    SDL_Texture* texBossBarIndicator_ = nullptr;
+
+    void UpdateBossFight();
+    void DrawBossHUD(int winW, int winH);
 
     // Health HUD
     SDL_Texture* texHealth1_ = nullptr;
