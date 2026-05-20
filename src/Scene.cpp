@@ -892,6 +892,40 @@ void Scene::LoadGameplay()
 	texAbilitySlingshotIcon_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Ability_Slingshot.png");
 	texAbilityStuffedAnimalIcon_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Ability_Stuffed_Animal.png");
 	texAbilityAnchorIcon_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Ability_Anchor.png");
+
+	// Memories UI textures
+	texMemoria1Base_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_1_Base.png");
+	texMemoria1N1_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_1_N1.png");
+	texMemoria1N2_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_1_N2.png");
+
+	texMemoria2Base_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_2_Base.png");
+	texMemoria2N1_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_2_N1.png");
+	texMemoria2N2_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_2_N2.png");
+
+	texMemoria3Base_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_Base.png");
+	texMemoria3N1_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_N1.png");
+	texMemoria3N2_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_N2.png");
+	texMemoria3N3_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_N3.png");
+
+	// Fullscreen memories
+	texMemoriaFrameFullScreen_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Frame_Memoria_FullScreen.png");
+	texMemoria1Full1_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/Memoria1_1.png");
+	texMemoria1Full2_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/Memoria1_2.png");
+
+	texMemoria2Full1_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/memoria_2.1.jpg");
+	texMemoria2Full2_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/memoria_2.2.png");
+
+	texMemoria3Full1_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/memoria_3.1.jpg");
+	texMemoria3Full2_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/memoria_3.2.jpg");
+	texMemoria3Full3_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/memoria_3.3.jpg");
+
+	// Reset hover and fullscreen states
+	for (int i = 0; i < 3; i++) {
+		memoryHoverTimers_[i] = 0.0f;
+	}
+	showMemoryViewer_ = false;
+	activeMemoryIndex_ = -1;
+	activeMemoryPage_ = 0;
 	slingshotCollected_ = false;
 	slingshotFloatTimer_ = 0.0f;
 
@@ -1010,6 +1044,84 @@ void Scene::UpdateGameplay(float dt)
 	{
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
+
+		if (showMemoryViewer_)
+		{
+			// Handle Fullscreen Memory Viewer Input
+			auto& input = *Engine::GetInstance().input;
+			int pageCount = (activeMemoryIndex_ == 2) ? 3 : 2;
+
+			if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN)
+			{
+				Vector2D mousePos = input.GetMousePosition();
+				float mx = mousePos.getX();
+				float my = mousePos.getY();
+
+				// Calculate scaled frame boundaries
+				float scaleX = (float)winW / 1920.0f;
+				float scaleY = (float)winH / 1080.0f;
+				float fScale = std::min(scaleX, scaleY) * 0.95f;
+				float frameW = 1920.0f * fScale;
+				float frameH = 1080.0f * fScale;
+				float frameX = (winW - frameW) / 2.0f;
+				float frameY = (winH - frameH) / 2.0f;
+
+				// Check if clicked outside the frame to close
+				if (mx < frameX || mx > frameX + frameW || my < frameY || my > frameY + frameH)
+				{
+					showMemoryViewer_ = false;
+					activeMemoryIndex_ = -1;
+					Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				}
+				else
+				{
+					// Clicked inside the frame
+					// Left 30% goes to previous page, right 30% goes to next page, middle closes
+					if (mx < frameX + frameW * 0.3f)
+					{
+						activeMemoryPage_ = (activeMemoryPage_ - 1 + pageCount) % pageCount;
+						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+					}
+					else if (mx > frameX + frameW * 0.7f)
+					{
+						activeMemoryPage_ = (activeMemoryPage_ + 1) % pageCount;
+						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+					}
+					else
+					{
+						showMemoryViewer_ = false;
+						activeMemoryIndex_ = -1;
+						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+					}
+				}
+			}
+
+			// Key shortcuts to close
+			if (input.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+				input.GetKey(SDL_SCANCODE_I) == KEY_DOWN ||
+				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN ||
+				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN)
+			{
+				showMemoryViewer_ = false;
+				activeMemoryIndex_ = -1;
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+
+			// Arrow keys or D-pad to change pages
+			if (input.GetKey(SDL_SCANCODE_LEFT) == KEY_DOWN ||
+				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_LEFT) == KEY_DOWN)
+			{
+				activeMemoryPage_ = (activeMemoryPage_ - 1 + pageCount) % pageCount;
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+			if (input.GetKey(SDL_SCANCODE_RIGHT) == KEY_DOWN ||
+				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_RIGHT) == KEY_DOWN)
+			{
+				activeMemoryPage_ = (activeMemoryPage_ + 1) % pageCount;
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+		}
+
 		DrawInventory(winW, winH);
 		return;
 	}
@@ -1306,6 +1418,32 @@ void Scene::UnloadGameplay()
 	if (texAbilitySlingshotIcon_) { Engine::GetInstance().textures->UnLoad(texAbilitySlingshotIcon_); texAbilitySlingshotIcon_ = nullptr; }
 	if (texAbilityStuffedAnimalIcon_) { Engine::GetInstance().textures->UnLoad(texAbilityStuffedAnimalIcon_); texAbilityStuffedAnimalIcon_ = nullptr; }
 	if (texAbilityAnchorIcon_) { Engine::GetInstance().textures->UnLoad(texAbilityAnchorIcon_); texAbilityAnchorIcon_ = nullptr; }
+
+	// Unload Memories UI textures
+	if (texMemoria1Base_) { Engine::GetInstance().textures->UnLoad(texMemoria1Base_); texMemoria1Base_ = nullptr; }
+	if (texMemoria1N1_) { Engine::GetInstance().textures->UnLoad(texMemoria1N1_); texMemoria1N1_ = nullptr; }
+	if (texMemoria1N2_) { Engine::GetInstance().textures->UnLoad(texMemoria1N2_); texMemoria1N2_ = nullptr; }
+
+	if (texMemoria2Base_) { Engine::GetInstance().textures->UnLoad(texMemoria2Base_); texMemoria2Base_ = nullptr; }
+	if (texMemoria2N1_) { Engine::GetInstance().textures->UnLoad(texMemoria2N1_); texMemoria2N1_ = nullptr; }
+	if (texMemoria2N2_) { Engine::GetInstance().textures->UnLoad(texMemoria2N2_); texMemoria2N2_ = nullptr; }
+
+	if (texMemoria3Base_) { Engine::GetInstance().textures->UnLoad(texMemoria3Base_); texMemoria3Base_ = nullptr; }
+	if (texMemoria3N1_) { Engine::GetInstance().textures->UnLoad(texMemoria3N1_); texMemoria3N1_ = nullptr; }
+	if (texMemoria3N2_) { Engine::GetInstance().textures->UnLoad(texMemoria3N2_); texMemoria3N2_ = nullptr; }
+	if (texMemoria3N3_) { Engine::GetInstance().textures->UnLoad(texMemoria3N3_); texMemoria3N3_ = nullptr; }
+
+	// Unload Fullscreen memories
+	if (texMemoriaFrameFullScreen_) { Engine::GetInstance().textures->UnLoad(texMemoriaFrameFullScreen_); texMemoriaFrameFullScreen_ = nullptr; }
+	if (texMemoria1Full1_) { Engine::GetInstance().textures->UnLoad(texMemoria1Full1_); texMemoria1Full1_ = nullptr; }
+	if (texMemoria1Full2_) { Engine::GetInstance().textures->UnLoad(texMemoria1Full2_); texMemoria1Full2_ = nullptr; }
+
+	if (texMemoria2Full1_) { Engine::GetInstance().textures->UnLoad(texMemoria2Full1_); texMemoria2Full1_ = nullptr; }
+	if (texMemoria2Full2_) { Engine::GetInstance().textures->UnLoad(texMemoria2Full2_); texMemoria2Full2_ = nullptr; }
+
+	if (texMemoria3Full1_) { Engine::GetInstance().textures->UnLoad(texMemoria3Full1_); texMemoria3Full1_ = nullptr; }
+	if (texMemoria3Full2_) { Engine::GetInstance().textures->UnLoad(texMemoria3Full2_); texMemoria3Full2_ = nullptr; }
+	if (texMemoria3Full3_) { Engine::GetInstance().textures->UnLoad(texMemoria3Full3_); texMemoria3Full3_ = nullptr; }
 
 	// Unload Minimap Ornate Frame
 	if (texMinimapFrame_) { Engine::GetInstance().textures->UnLoad(texMinimapFrame_); texMinimapFrame_ = nullptr; }
@@ -2070,6 +2208,262 @@ void Scene::DrawInventory(int winW, int winH)
 	}
 
 
+
+	// =========================================================================
+	//  ANCHORED MEMORIES (Right column)
+	// =========================================================================
+	float cX = 3.0f * (float)winW / 4.0f;
+	float cY = (float)winH / 2.0f + 10.0f;
+
+	float scale = (winW < 1280) ? 0.58f : 0.72f;
+
+	// Fragment sizes
+	float w1 = 580.0f * scale, h1 = 360.0f * scale; // Fragment 1 landscape
+	float w2 = 360.0f * scale, h2 = 580.0f * scale; // Fragment 2 portrait
+	float w3 = 580.0f * scale, h3 = 360.0f * scale; // Fragment 3 landscape
+
+	// Layout matching reference: tight puzzle cluster with overlapping pieces
+	// Fragment 1 (top-left): landscape, upper-left of cluster
+	float x1 = cX - w1 * 0.55f;
+	float y1 = cY - h1 * 0.95f;
+
+	// Fragment 2 (right): portrait, overlaps fragment 1 on the right side
+	float x2 = cX + w2 * 0.15f;
+	float y2 = cY - h2 * 0.75f;
+
+	// Fragment 3 (bottom): landscape, below and overlapping both
+	float x3 = cX - w3 * 0.45f;
+	float y3 = cY + h3 * 0.05f;
+
+	SDL_FRect rect1 = { x1, y1, w1, h1 };
+	SDL_FRect rect2 = { x2, y2, w2, h2 };
+	SDL_FRect rect3 = { x3, y3, w3, h3 };
+
+	// Mouse hover checks
+	Vector2D mouseP = input->GetMousePosition();
+	float mx = mouseP.getX();
+	float my = mouseP.getY();
+
+	// Hover logic (ignore if showMemoryViewer_ is active)
+	bool hover1 = !showMemoryViewer_ && (mx >= rect1.x && mx <= rect1.x + rect1.w && my >= rect1.y && my <= rect1.y + rect1.h);
+	bool hover2 = !showMemoryViewer_ && (mx >= rect2.x && mx <= rect2.x + rect2.w && my >= rect2.y && my <= rect2.y + rect2.h);
+	bool hover3 = !showMemoryViewer_ && (mx >= rect3.x && mx <= rect3.x + rect3.w && my >= rect3.y && my <= rect3.y + rect3.h);
+
+	// Update timers
+	float invDt = Engine::GetInstance().GetDt();
+	const float invFadeSpeed = 0.005f;
+
+	if (hover1) memoryHoverTimers_[0] = std::min(1.0f, memoryHoverTimers_[0] + invFadeSpeed * invDt);
+	else        memoryHoverTimers_[0] = std::max(0.0f, memoryHoverTimers_[0] - invFadeSpeed * invDt);
+
+	if (hover2) memoryHoverTimers_[1] = std::min(1.0f, memoryHoverTimers_[1] + invFadeSpeed * invDt);
+	else        memoryHoverTimers_[1] = std::max(0.0f, memoryHoverTimers_[1] - invFadeSpeed * invDt);
+
+	if (hover3)
+	{
+		memoryHoverTimers_[2] += invFadeSpeed * invDt;
+		if (memoryHoverTimers_[2] > 3.0f) memoryHoverTimers_[2] -= 3.0f;
+	}
+	else
+	{
+		// Smoothly return back to page 0 (normal phase)
+		if (memoryHoverTimers_[2] > 0.0f)
+		{
+			if (memoryHoverTimers_[2] > 1.5f) {
+				memoryHoverTimers_[2] += invFadeSpeed * invDt;
+				if (memoryHoverTimers_[2] >= 3.0f) memoryHoverTimers_[2] = 0.0f;
+			} else {
+				memoryHoverTimers_[2] = std::max(0.0f, memoryHoverTimers_[2] - invFadeSpeed * invDt);
+			}
+		}
+	}
+
+	// Trigger full screen click handlers
+	if (input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN && !showMemoryViewer_)
+	{
+		if (hover1)
+		{
+			showMemoryViewer_ = true;
+			activeMemoryIndex_ = 0;
+			activeMemoryPage_ = 0;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (hover2)
+		{
+			showMemoryViewer_ = true;
+			activeMemoryIndex_ = 1;
+			activeMemoryPage_ = 0;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (hover3)
+		{
+			showMemoryViewer_ = true;
+			activeMemoryIndex_ = 2;
+			activeMemoryPage_ = 0;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+	}
+
+	// --- 1. RENDER FRAGMENTS ---
+	// Fragment 1 (Top-Left)
+	if (texMemoria1Base_ && texMemoria1N1_ && texMemoria1N2_)
+	{
+		render.DrawTextureAlphaF(texMemoria1Base_, rect1.x, rect1.y, rect1.w, rect1.h, 255);
+		Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[0]) * 255.0f);
+		Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[0] * 255.0f);
+
+		if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria1N1_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN1);
+		if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria1N2_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN2);
+	}
+
+	// Fragment 2 (Top-Right)
+	if (texMemoria2Base_ && texMemoria2N1_ && texMemoria2N2_)
+	{
+		render.DrawTextureAlphaF(texMemoria2Base_, rect2.x, rect2.y, rect2.w, rect2.h, 255);
+		Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[1]) * 255.0f);
+		Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[1] * 255.0f);
+
+		if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria2N1_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN1);
+		if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria2N2_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN2);
+	}
+
+	// Fragment 3 (Bottom)
+	if (texMemoria3Base_ && texMemoria3N1_ && texMemoria3N2_ && texMemoria3N3_)
+	{
+		render.DrawTextureAlphaF(texMemoria3Base_, rect3.x, rect3.y, rect3.w, rect3.h, 255);
+
+		float t = memoryHoverTimers_[2];
+		float a1 = 255.0f, a2 = 0.0f, a3 = 0.0f;
+		if (t > 0.0f)
+		{
+			if (t <= 1.0f) {
+				a1 = (1.0f - t) * 255.0f;
+				a2 = t * 255.0f;
+				a3 = 0.0f;
+			}
+			else if (t <= 2.0f) {
+				float progress = t - 1.0f;
+				a1 = 0.0f;
+				a2 = (1.0f - progress) * 255.0f;
+				a3 = progress * 255.0f;
+			}
+			else if (t <= 3.0f) {
+				float progress = t - 2.0f;
+				a1 = progress * 255.0f;
+				a2 = 0.0f;
+				a3 = (1.0f - progress) * 255.0f;
+			}
+		}
+
+		if (a1 > 0) render.DrawTextureAlphaF(texMemoria3N1_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a1);
+		if (a2 > 0) render.DrawTextureAlphaF(texMemoria3N2_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a2);
+		if (a3 > 0) render.DrawTextureAlphaF(texMemoria3N3_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a3);
+	}
+
+	// Outline/glow hover overlays for memory fragments
+	if (hover1) render.DrawRectangle({ (int)rect1.x, (int)rect1.y, (int)rect1.w, (int)rect1.h }, 255, 255, 255, 60, false, false);
+	if (hover2) render.DrawRectangle({ (int)rect2.x, (int)rect2.y, (int)rect2.w, (int)rect2.h }, 255, 255, 255, 60, false, false);
+	if (hover3) render.DrawRectangle({ (int)rect3.x, (int)rect3.y, (int)rect3.w, (int)rect3.h }, 255, 255, 255, 60, false, false);
+
+
+	// --- 2. FULLSCREEN VIEWER MODE OVERLAY ---
+	if (showMemoryViewer_ && activeMemoryIndex_ != -1)
+	{
+		// Render dim backdrop
+		SDL_Rect overlay = { 0, 0, winW, winH };
+		render.DrawRectangle(overlay, 0, 0, 0, 220, true, false);
+
+		// Calculate frame metrics
+		float scaleX = (float)winW / 1920.0f;
+		float scaleY = (float)winH / 1080.0f;
+		float fScale = std::min(scaleX, scaleY) * 0.95f;
+		float frameW = 1920.0f * fScale;
+		float frameH = 1080.0f * fScale;
+		float frameX = (winW - frameW) / 2.0f;
+		float frameY = (winH - frameH) / 2.0f;
+		float centerX = frameX + frameW / 2.0f;
+		float centerY = frameY + frameH / 2.0f;
+
+		// Select texture and original dimensions
+		SDL_Texture* activeTex = nullptr;
+		int imgW = 1920;
+		int imgH = 1080;
+		int pageCount = 0;
+
+		if (activeMemoryIndex_ == 0) // Memory 1
+		{
+			pageCount = 2;
+			if (activeMemoryPage_ == 0) { activeTex = texMemoria1Full1_; imgW = 1128; imgH = 716; }
+			else                       { activeTex = texMemoria1Full2_; imgW = 1005; imgH = 544; }
+		}
+		else if (activeMemoryIndex_ == 1) // Memory 2
+		{
+			pageCount = 2;
+			if (activeMemoryPage_ == 0) activeTex = texMemoria2Full1_;
+			else                       activeTex = texMemoria2Full2_;
+			imgW = 1920; imgH = 1080;
+		}
+		else if (activeMemoryIndex_ == 2) // Memory 3
+		{
+			pageCount = 3;
+			if (activeMemoryPage_ == 0)      activeTex = texMemoria3Full1_;
+			else if (activeMemoryPage_ == 1) activeTex = texMemoria3Full2_;
+			else                            activeTex = texMemoria3Full3_;
+			imgW = 1920; imgH = 1080;
+		}
+
+		// Draw Memory Artwork centered inside the frame coordinates
+		if (activeTex)
+		{
+			float drawW = (float)imgW * fScale;
+			float drawH = (float)imgH * fScale;
+			float drawX = centerX - drawW / 2.0f;
+			float drawY = centerY - drawH / 2.0f;
+			render.DrawTextureAlphaF(activeTex, drawX, drawY, drawW, drawH, 255);
+		}
+
+		// Draw Ornate Frame overlay on top of artwork
+		if (texMemoriaFrameFullScreen_)
+		{
+			render.DrawTextureAlphaF(texMemoriaFrameFullScreen_, frameX, frameY, frameW, frameH, 255);
+		}
+
+		// Draw pagination dots at the bottom of the frame
+		if (pageCount > 1)
+		{
+			int dotSpacing = 24;
+			float startDotX = centerX - ((pageCount - 1) * dotSpacing) / 2.0f;
+			float dotY = frameY + frameH - 60.0f * fScale;
+
+			for (int i = 0; i < pageCount; i++)
+			{
+				SDL_Rect dotRect = { (int)(startDotX + i * dotSpacing - 5), (int)(dotY - 5), 10, 10 };
+				if (i == activeMemoryPage_)
+				{
+					// Active dot: Glowing gold
+					render.DrawRectangle({dotRect.x-1, dotRect.y-1, dotRect.w+2, dotRect.h+2}, 255, 215, 0, 180, true, false);
+					render.DrawRectangle(dotRect, 255, 255, 255, 255, true, false);
+				}
+				else
+				{
+					// Inactive dot: Semi-translucent grey
+					render.DrawRectangle(dotRect, 120, 130, 140, 150, true, false);
+				}
+			}
+		}
+
+		// Visual arrow overlay hints on left/right edges for page switching
+		SDL_Color arrowColor = { 180, 210, 240, 180 };
+		if (pageCount > 1)
+		{
+			render.DrawText("<", (int)(frameX + 35.0f * fScale), (int)(centerY - 20.0f), 24, 40, arrowColor);
+			render.DrawText(">", (int)(frameX + frameW - 45.0f * fScale), (int)(centerY - 20.0f), 24, 40, arrowColor);
+		}
+
+		// Small helper instructions text in footer
+		SDL_Rect hintArea = { (int)frameX, (int)(frameY + frameH - 35.0f * fScale), (int)frameW, 20 };
+		render.DrawMenuTextCentered("Click bordes o Flechas para cambiar de pagina  |  ESC / Click fuera para cerrar", hintArea, { 180, 200, 220, 180 }, 0.28f);
+	}
 
 	// 5. Instructions Footer Overlay
 	SDL_Rect footer = { 0, winH - 45, winW, 30 };

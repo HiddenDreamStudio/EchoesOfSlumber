@@ -263,6 +263,38 @@ private:
     SDL_Texture* texAbilityStuffedAnimalIcon_ = nullptr;
     SDL_Texture* texAbilityAnchorIcon_ = nullptr;
 
+    // ── Memories UI ───────────────────────────────────────────────────────────
+    SDL_Texture* texMemoria1Base_ = nullptr;
+    SDL_Texture* texMemoria1N1_ = nullptr;
+    SDL_Texture* texMemoria1N2_ = nullptr;
+
+    SDL_Texture* texMemoria2Base_ = nullptr;
+    SDL_Texture* texMemoria2N1_ = nullptr;
+    SDL_Texture* texMemoria2N2_ = nullptr;
+
+    SDL_Texture* texMemoria3Base_ = nullptr;
+    SDL_Texture* texMemoria3N1_ = nullptr;
+    SDL_Texture* texMemoria3N2_ = nullptr;
+    SDL_Texture* texMemoria3N3_ = nullptr;
+
+    // Fullscreen memories
+    SDL_Texture* texMemoriaFrameFullScreen_ = nullptr;
+    SDL_Texture* texMemoria1Full1_ = nullptr;
+    SDL_Texture* texMemoria1Full2_ = nullptr;
+    SDL_Texture* texMemoria2Full1_ = nullptr;
+    SDL_Texture* texMemoria2Full2_ = nullptr;
+    SDL_Texture* texMemoria3Full1_ = nullptr;
+    SDL_Texture* texMemoria3Full2_ = nullptr;
+    SDL_Texture* texMemoria3Full3_ = nullptr;
+
+    // Hover fade states
+    float memoryHoverTimers_[3] = { 0.0f, 0.0f, 0.0f };
+
+    // Fullscreen state
+    bool showMemoryViewer_ = false;
+    int activeMemoryIndex_ = -1; // 0, 1, or 2
+    int activeMemoryPage_ = 0;   // index of active page
+
     // ── Main menu textures ────────────────────────────────────────────────────
     SDL_Texture* texMenuLogo_ = nullptr;
     SDL_Texture* texMenuChild_ = nullptr;
