@@ -20,6 +20,8 @@ enum class EntityType
 	SLINGSHOT_PROJECTILE,
 	DROP_DOLL,
 	BOSS_2,
+	BOSS_1,
+	ROPE_ROCK,
 	UNKNOWN
 };
 
