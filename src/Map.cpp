@@ -6,6 +6,7 @@
 #include "Physics.h"
 #include "EntityManager.h"
 #include "EnemyCarmel.h"
+#include "DropDoll.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
 #include "Checkpoint.h"
@@ -679,6 +680,28 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     box->position = Vector2D(x, y);
                     box->Start();
                     LOG("Box spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "DropDoll") {
+                    auto doll = std::dynamic_pointer_cast<DropDoll>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::DROP_DOLL));
+
+                    float objW = objectNode.attribute("width").as_float(80.0f);
+                    float objH = objectNode.attribute("height").as_float(56.0f);
+                    // Center of the Tiled object
+                    doll->position = Vector2D(x + objW * 0.5f, y + objH * 0.5f);
+
+                    // Optional custom property: trigger_width
+                    float triggerW = objW; // default: use object width as trigger zone
+                    for (pugi::xml_node prop = objectNode.child("properties").child("property");
+                         prop; prop = prop.next_sibling("property"))
+                    {
+                        if (std::string(prop.attribute("name").as_string()) == "trigger_width")
+                            triggerW = prop.attribute("value").as_float(objW);
+                    }
+                    doll->SetTriggerWidth(triggerW);
+                    doll->Start();
+                    LOG("DropDoll spawned at (%.0f, %.0f), trigger width %.0f",
+                        doll->position.getX(), doll->position.getY(), triggerW);
                 }
                 else if (entityType == "Cape") {
                     mapData.capeFound = true;
