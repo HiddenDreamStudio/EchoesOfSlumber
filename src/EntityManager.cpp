@@ -17,6 +17,7 @@
 #include "DropDoll.h"
 #include "Boss2.h"
 #include "tracy/Tracy.hpp"
+#include "Platform.h"
 #include "Door.h"
 
 EntityManager::EntityManager() : Module()
@@ -101,6 +102,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::BOX:
 		entity = std::make_shared<Box>();
+		break;
+	case EntityType::PLATFORM:
+		entity = std::make_shared<Platform>();
 		break;
 	case EntityType::PUSH_ROCK:
 		entity = std::make_shared<PushRock>();
