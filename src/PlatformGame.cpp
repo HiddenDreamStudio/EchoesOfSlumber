@@ -1,6 +1,3 @@
-// PlatformGame.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 #include <iostream>
 #include "Engine.h"
 #include "Log.h"
@@ -17,14 +14,14 @@ int main(int argc, char* argv[]) {
 	{
 		switch (state)
 		{
-			// Allocate the engine --------------------------------------------
+			// Allocate the engine
 		case Engine::EngineState::CREATE:
 			LOG("CREATION PHASE ===============================");
 			state = Engine::EngineState::AWAKE;
 
 			break;
 
-			// Awake all modules -----------------------------------------------
+			// Awake all modules
 		case Engine::EngineState::AWAKE:
 			LOG("AWAKE PHASE ===============================");
 			if (Engine::GetInstance().Awake() == true)
@@ -37,7 +34,7 @@ int main(int argc, char* argv[]) {
 
 			break;
 
-			// Call all modules before first frame  ----------------------------
+			// Call all modules before first frame
 		case Engine::EngineState::START:
 			LOG("START PHASE ===============================");
 			if (Engine::GetInstance().Start() == true )
@@ -52,13 +49,13 @@ int main(int argc, char* argv[]) {
 			}
 			break;
 
-			// Loop all modules until we are asked to leave ---------------------
+			// Loop all modules until we are asked to leave
 		case Engine::EngineState::LOOP:
 			if (Engine::GetInstance().Update() == false)
 				state = Engine::EngineState::CLEAN;
 			break;
 
-			// Cleanup allocated memory -----------------------------------------
+			// Cleanup allocated memory
 		case Engine::EngineState::CLEAN:
 			LOG("CLEANUP PHASE ===============================");
 			if (Engine::GetInstance().CleanUp() == true)
@@ -71,7 +68,7 @@ int main(int argc, char* argv[]) {
 
 			break;
 
-			// Exit with errors and shame ---------------------------------------
+			// Exit with errors and shame
 		case Engine::EngineState::FAIL:
 			LOG("Exiting with errors");
 			result = EXIT_FAILURE;
