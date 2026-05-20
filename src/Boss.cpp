@@ -52,6 +52,21 @@ bool Boss::CheckProximityTrigger() const
     return (dx * dx + dy * dy) < (triggerRadius_ * triggerRadius_);
 }
 
+void Boss::SetArenaLimits(float minX, float maxX)
+{
+    arenaMinX_ = minX;
+    arenaMaxX_ = maxX;
+}
+
+void Boss::ClampToArena()
+{
+    if (!pbody) return;
+    int bx, by;
+    pbody->GetPosition(bx, by);
+    if (bx < (int)arenaMinX_) pbody->SetPosition((int)arenaMinX_, by);
+    if (bx > (int)arenaMaxX_) pbody->SetPosition((int)arenaMaxX_, by);
+}
+
 void Boss::CheckPhaseTransition()
 {
     if (phase_ == 1 && GetHealthPercent() <= PHASE2_THRESHOLD)
