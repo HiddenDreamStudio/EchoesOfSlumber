@@ -14,6 +14,7 @@
 #include "PushRock.h"
 #include "VFX.h"
 #include "SlingshotProjectile.h"
+#include "Boss2.h"
 #include "tracy/Tracy.hpp"
 #include "Door.h"
 
@@ -74,7 +75,6 @@ bool EntityManager::CleanUp()
 std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 {
 	std::shared_ptr<Entity> entity = std::make_shared<Entity>();
-	//L04: TODO 3a: Instantiate entity according to the type and add the new entity to the list of Entities
 	switch (type)
 	{
 	case EntityType::PLAYER:
@@ -112,6 +112,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::SLINGSHOT_PROJECTILE:
 		entity = std::make_shared<SlingshotProjectile>();
+		break;
+	case EntityType::BOSS_2:
+		entity = std::make_shared<Boss2>();
 		break;
 	default:
 		break;
