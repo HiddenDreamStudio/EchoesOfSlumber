@@ -64,6 +64,29 @@ bool Scene::Update(float dt)
 		ChangeScene(pendingScene);
 	}
 
+	if (Engine::GetInstance().input->GetKey(konamiSequence[konamiIndex]) == KEY_DOWN) {
+
+		konamiIndex++;
+
+		if (konamiIndex >= 10) {
+			isKonamiActive = !isKonamiActive;
+
+			if (isKonamiActive) {
+				LOG("CODIGO KONAMI COMPLETADO Recompensa activada.");
+
+				if (player != nullptr) {
+					player->health = 999999; 
+					ResetHealthUI(3);
+				}
+			}
+			else {
+				LOG("Codigo Konami desactivado.");
+			}
+
+			konamiIndex = 0; 
+		}
+	}
+
 	switch (currentScene)
 	{
 	case SceneID::INTRO:
@@ -1468,6 +1491,12 @@ void Scene::PostUpdateGameplay()
 			LoadMap2();
 	}
 
+	{
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		DrawBottomFog(winW, winH);
+	}
+
 	// --- Draw Health HUD ---
 	if (!isPaused_ && !showMapViewer_ && player && !player->isWakingUp) {
 		SDL_Rect r;
@@ -2510,4 +2539,28 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 		sliderRepeatTimer_ -= dt;
 
 	return false;
+}
+
+void Scene::DrawBottomFog(int winW, int winH)
+{
+	if (currentMapFile_ != "MapTemplate.tmx") return;
+
+	auto& render = *Engine::GetInstance().render;
+
+	// Mesures on tiled for reference
+	SDL_Rect fogBottom = {
+		6000,
+		8636,
+		4200,
+		99999
+	};
+	render.DrawRectangle(fogBottom, 0, 0, 0, 255, true, true);
+
+	SDL_Rect fogDoor = {
+		1080,   // X 
+		8004,   // Y
+		912,    // W
+		1000     // H
+	};
+	render.DrawRectangle(fogDoor, 0, 0, 0, 255, true, true);
 }

@@ -15,6 +15,7 @@
 #include "VFX.h"
 #include "SlingshotProjectile.h"
 #include "DropDoll.h"
+#include "Boss2.h"
 #include "tracy/Tracy.hpp"
 #include "Door.h"
 
@@ -115,6 +116,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::DROP_DOLL:
 		entity = std::make_shared<DropDoll>();
+		break;
+	case EntityType::BOSS_2:
+		entity = std::make_shared<Boss2>();
 		break;
 	default:
 		break;
