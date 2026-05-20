@@ -12,6 +12,7 @@
 #include "Box.h"
 #include "Platform.h"
 #include "PushRock.h"
+#include "Boss2.h"
 #include "Window.h"
 #include "tracy/Tracy.hpp"
 #include "Door.h"
@@ -729,6 +730,21 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
 
                     platform->Start();
                     LOG("MovingPlatform spawned at: %f, %f with speed %f", baseX, baseY, platform->speed);
+                }
+                else if (entityType == "Boss2") {
+                    auto boss = std::dynamic_pointer_cast<Boss2>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::BOSS_2));
+                    boss->position = Vector2D(x, y);
+
+                    // Optional: trigger_radius custom property
+                    for (pugi::xml_node prop = objectNode.child("properties").child("property");
+                         prop; prop = prop.next_sibling("property"))
+                    {
+                        if (std::string(prop.attribute("name").as_string()) == "trigger_radius")
+                            boss->SetTriggerRadius(prop.attribute("value").as_float(500.0f));
+                    }
+                    boss->Start();
+                    LOG("Boss2 spawned at (%.0f, %.0f)", x, y);
                 }
                 else if (entityType == "Cape") {
                     mapData.capeFound = true;

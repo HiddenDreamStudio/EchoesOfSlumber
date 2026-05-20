@@ -88,8 +88,7 @@ bool Render::Start()
 
 bool Render::PreUpdate()
 {
-    // Set clear color BEFORE clearing the screen
-    SDL_SetRenderDrawColor(renderer, background.r, background.g, background.b, background.a);
+	SDL_SetRenderDrawColor(renderer, background.r, background.g, background.b, background.a);
 	SDL_RenderClear(renderer);
 	return true;
 }
