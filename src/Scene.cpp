@@ -79,7 +79,7 @@ bool Scene::Update(float dt)
 				}
 			}
 			else {
-				LOG("COdigo Konami desactivado.");
+				LOG("Codigo Konami desactivado.");
 			}
 
 			konamiIndex = 0; 
