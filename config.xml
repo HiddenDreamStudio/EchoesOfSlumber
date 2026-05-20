@@ -2,7 +2,7 @@
 <config>
   <engine>
     <title>Echoes of Slumber</title>
-    <targetFrameRate value="0"/>
+    <targetFrameRate value="60"/>
   </engine>
 
   <render>
