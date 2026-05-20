@@ -93,7 +93,7 @@ private:
 	AnimationSet anims;
 	Animation wakeUpAnim;
 	SDL_Texture* wakeUpTexture = nullptr;
-	float drawScale = 1.0f;
+	float drawScale = 0.5f;
 	bool facingRight = true;
 	//  Hide cooldown 
 	static constexpr float HIDE_COOLDOWN = 15000.0f; // ms
