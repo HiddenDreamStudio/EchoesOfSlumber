@@ -113,6 +113,15 @@ bool Audio::Awake() {
     return true;
 }
 
+bool Audio::Update(float dt) {
+    if (active && music_stream_ && music_data_.buf != nullptr) {
+        if (SDL_GetAudioStreamAvailable(music_stream_) < (int)music_data_.len) {
+            SDL_PutAudioStreamData(music_stream_, music_data_.buf, music_data_.len);
+        }
+    }
+    return true;
+}
+
 bool Audio::CleanUp() {
     // If audio is inactive or already quit elsewhere, don't touch SDL objects.
     if (!active || !SDL_WasInit(SDL_INIT_AUDIO)) {
@@ -164,6 +173,10 @@ bool Audio::PlayMusic(const char* path, float fadeTime) {
     }
     FreeSound(music_data_);
 
+    if (path == nullptr) {
+        return true;
+    }
+
     // Load WAV into memory
     if (!LoadWavFile(path, music_data_)) {
         LOG("Audio: cannot load music %s: %s", path, SDL_GetError());
@@ -212,6 +225,8 @@ bool Audio::PlayFx(int id, int repeat) {
         LOG("Audio: SDL_SetAudioStreamFormat(sfx) failed: %s", SDL_GetError());
         return false;
     }
+
+    SDL_ClearAudioStream(sfx_stream_);
 
     // Queue sound 'repeat+1' times
     for (int i = 0; i <= repeat; ++i) {

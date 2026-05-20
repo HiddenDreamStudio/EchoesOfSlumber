@@ -7,7 +7,7 @@ A 2D action-platformer with metroidvania elements, built on a custom C++ engine 
 In a dark, mysterious world woven from fragmented memories, the player explores interconnected environments through the **Anchor System** — a core mechanic centered on memory fragments that shape both narrative and gameplay. The game features melee combat, multiple enemy types, boss encounters, and environmental storytelling.
 
 **Key mechanics:**
-- Double jump and dash with i-frames
+- I-frames on damage and during special states
 - Melee combat system
 - Three enemy archetypes: melee rush, melee weapon, ranged projectile
 - Multi-phase boss encounters

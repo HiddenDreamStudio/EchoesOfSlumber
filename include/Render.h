@@ -1,5 +1,9 @@
 #pragma once
 
+#include <vector>
+#include <list>
+#include <string>
+
 #include "Module.h"
 #include "Vector2D.h"
 #include "SDL3/SDL.h"
@@ -43,6 +47,7 @@ public:
 	bool DrawTextureAlphaF(SDL_Texture* texture, float x, float y, float w, float h, Uint8 alpha = 255) const;
 	bool DrawMenuText(const char* text, int x, int y, int w, int h, SDL_Color color) const;
 	bool DrawMenuTextCentered(const char* text, SDL_Rect area, SDL_Color color) const;
+	bool DrawMenuTextCentered(const char* text, SDL_Rect area, SDL_Color color, float textScale) const;
 	SDL_Texture* CreateMenuTextTexture(const char* text, SDL_Color color) const;
 	SDL_Texture* RecolorTexture(SDL_Texture* src, Uint8 r, Uint8 g, Uint8 b) const;
 
@@ -52,6 +57,14 @@ public:
 	SDL_Color GetAmbientTint() const;
 	void ApplyAmbientTint(SDL_Texture* tex) const;
 	void ResetAmbientTint(SDL_Texture* tex) const;
+
+	// Resolution Scaling
+	void OnWindowResize(int newWidth, int newHeight);
+
+	// Cinematic Effects
+	void StartEyelidEffect(float duration);
+	void DrawEyelidEffect();
+	void SetCameraSway(bool active) { cameraSwayActive_ = active; }
 
 	// Fade overlay system
 	void StartFade(FadeDirection dir, float durationMs);
@@ -76,6 +89,11 @@ public:
 public:
 
 	SDL_Renderer* renderer;
+	SDL_GPUDevice* gpuDevice = nullptr;
+	SDL_GPUGraphicsPipeline* spritePipeline = nullptr;
+	SDL_GPUBuffer* vertexBuffer = nullptr;
+	SDL_GPUSampler* sampler = nullptr;
+
 	SDL_Rect camera;
 	SDL_Rect viewport;
 	SDL_Color background;
@@ -105,4 +123,15 @@ private:
 	Uint8 fadeAlpha_ = 0;
 	// Ambient tint — applied to entity sprites (GPU fragment shader multiply)
 	SDL_Color ambientTint_ = { 255, 255, 255, 255 }; // neutral = no tint
+
+	float totalTime_ = 0.0f;
+	float renderScale = 1.0f;
+
+	// Eyelid Effect
+	bool eyelidActive_ = false;
+	float eyelidDuration_ = 2000.0f;
+	float eyelidElapsed_ = 0.0f;
+
+	// Camera Sway
+	bool cameraSwayActive_ = false;
 };

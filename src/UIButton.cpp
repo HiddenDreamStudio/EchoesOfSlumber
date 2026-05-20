@@ -36,11 +36,42 @@ bool UIButton::Update(float dt)
 			if (Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_UP)
 				NotifyObserver();
 		}
+		else if (gamepadFocused)
+		{
+			// Gamepad focus — show as FOCUSED (same hover visual)
+			state = UIElementState::FOCUSED;
+
+			// Cross (×) / SOUTH button confirms
+			if (Engine::GetInstance().input->GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN)
+			{
+				state = UIElementState::PRESSED;
+				NotifyObserver();
+			}
+		}
 		else
 		{
 			state = UIElementState::NORMAL;
 		}
 	}
+
+	// Logic for animations
+	float targetT = 0.0f;
+	switch (state) {
+	case UIElementState::FOCUSED: targetT = 1.0f;  break;
+	case UIElementState::PRESSED: targetT = 0.5f;  break;
+	default:                      targetT = 0.0f;  break;
+	}
+
+	float lerpAmount = 0.01f * dt;
+	if (lerpAmount > 1.0f) lerpAmount = 1.0f;
+	animT += (targetT - animT) * lerpAmount;
+
+	return true;
+}
+
+bool UIButton::Draw()
+{
+	if (!isVisible) return false;
 
 	// Vertical centre: font is 25px tall
 	int textY = bounds.y + (bounds.h - FONT_H) / 2;
@@ -50,17 +81,6 @@ bool UIButton::Update(float dt)
 		auto& render = *Engine::GetInstance().render;
 
 		bool isHovered = (state == UIElementState::FOCUSED || state == UIElementState::PRESSED);
-
-		float targetT = 0.0f;
-		switch (state) {
-		case UIElementState::FOCUSED: targetT = 1.0f;  break;
-		case UIElementState::PRESSED: targetT = 0.5f;  break;
-		default:                      targetT = 0.0f;  break;
-		}
-
-		float lerpAmount = 0.01f * dt; // Slower transition (from 0.02f)
-		if (lerpAmount > 1.0f) lerpAmount = 1.0f;
-		animT += (targetT - animT) * lerpAmount;
 
 		float scaleAnim = 1.0f + (0.06f * animT);
 
@@ -94,7 +114,6 @@ bool UIButton::Update(float dt)
 		textColor.a = (Uint8)(255 * alphaMod);
 
 		// Transition: Pure White (Normal) -> Slightly Dark Grey (Hover)
-		// Request: "no canvii a negre, algo mes fosc" (e.g. 160-180 range)
 		Uint8 texR = (Uint8)(255 + (170 - 255) * animT);
 		Uint8 texG = (Uint8)(255 + (165 - 255) * animT);
 		Uint8 texB = (Uint8)(255 + (160 - 255) * animT);
@@ -157,7 +176,7 @@ bool UIButton::Update(float dt)
 		}
 	}
 
-	return false;
+	return true;
 }
 
 bool UIButton::CleanUp()

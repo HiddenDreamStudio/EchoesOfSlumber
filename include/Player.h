@@ -33,22 +33,38 @@ public:
 
 	void TakeDamage(int damage) override;
 	void Revive();
+	bool IsDead() const { return isDead_; }
 
-	// Map viewer helpers 
+	// Map viewer helpers
 	SDL_Rect GetCurrentAnimationRect() const;
 	bool     IsFacingRight() const;
+
+	// Hiding state queried by enemies to disable detection
+	bool IsHiding() const { return isHiding_; }
+
+	// Blanket (cape) collectible – must be collected before hiding is available
+	bool HasBlanket() const { return hasBlanket_; }
+	void SetHasBlanket(bool v) { hasBlanket_ = v; }
+
+	// Push rock state — queried externally if needed
+	bool IsPushing() const { return isPushing_; }
+
+	// Slingshot (tirachinas) collectible — must be collected before firing is available
+	bool HasSlingshot() const { return hasSlingshot_; }
+	void SetHasSlingshot(bool v) { hasSlingshot_ = v; }
+	bool IsAiming() const { return isAiming_; }
 
 private:
 
 	void GetPhysicsValues();
 	void Move();
 	void Jump();
-	void Dash(float dt);
 	void Attack(float dt);
+	void Hide(float dt);
+	void Slingshot(float dt);
 	void Teleport();
 	void ApplyPhysics();
 	void Draw(float dt);
-	void UpdateClimb(float dt);
 
 public:
 
@@ -60,41 +76,46 @@ public:
 
 	//Audio fx
 	int pickCoinFxId = -1;
+	int jumpFxId = -1;
+	int stepsFxId = -1;
+	int gameOverFxId = -1;
 
 	PhysBody* pbody = nullptr;
-	float jumpForce = 10.0f; // The force to apply when jumping
-	float doubleJumpForce = 11.0f; // The force to apply when double jumping
-	bool isJumping = false; // Flag to check if the player is currently jumping
-	bool canDoubleJump = false; // Flag to allow a second jump in the air
-	bool hasDoubleJumped = false; // Flag to track if double jump was already used
+	float jumpForce = 10.0f;
+	bool isJumping = false;
+
+	bool isWakingUp = true;
+
+	int keys = 0;
 
 private:
 	b2Vec2 velocity = { 0.0f, 0.0f };
 	AnimationSet anims;
 	Animation wakeUpAnim;
 	SDL_Texture* wakeUpTexture = nullptr;
-	// Walkthrough/Cinematic state (from main)
-	bool isWakingUp = true;
 	float drawScale = 1.0f;
 	bool facingRight = true;
 	PhysBody* currentGround = nullptr;
 
+	//  Hide cooldown 
+	static constexpr float HIDE_COOLDOWN = 15000.0f; // ms
+	float hideCooldown_ = 0.0f;
 	// Combat - attack
-	static constexpr float ATTACK_DURATION = 300.0f;  // ms hitbox active
-	static constexpr float ATTACK_COOLDOWN = 600.0f;  // ms between attacks
-	static constexpr int   ATTACK_DAMAGE   = 1;
-	static constexpr int   HITBOX_W        = 60;
-	static constexpr int   HITBOX_H        = 80;
-	static constexpr int   HITBOX_OFFSET   = 50;      // px from body center to hitbox center
-	bool      isAttacking_    = false;
-	float     attackTimer_    = 0.0f;
+	static constexpr float ATTACK_DURATION = 300.0f;
+	static constexpr float ATTACK_COOLDOWN = 600.0f;
+	static constexpr int   ATTACK_DAMAGE = 1;
+	static constexpr int   HITBOX_W = 60;
+	static constexpr int   HITBOX_H = 80;
+	static constexpr int   HITBOX_OFFSET = 50;
+	bool      isAttacking_ = false;
+	float     attackTimer_ = 0.0f;
 	float     attackCooldown_ = 0.0f;
-	PhysBody* attackHitbox_   = nullptr;
+	PhysBody* attackHitbox_ = nullptr;
 
 	// Combat - i-frames
-	static constexpr float IFRAME_DURATION = 1000.0f; // ms
+	static constexpr float IFRAME_DURATION = 1000.0f;
 	bool  isInvincible_ = false;
-	float iFrameTimer_  = 0.0f;
+	float iFrameTimer_ = 0.0f;
 
 	// Death state
 	bool isDead_ = false;
@@ -103,29 +124,40 @@ private:
 	bool isShowingDamageAnim_ = false;
 
 	// Combat - visual feedback
-	static constexpr float DAMAGE_FLASH_DURATION = 150.0f; // ms
+	static constexpr float DAMAGE_FLASH_DURATION = 150.0f;
 	float damageFlashTimer_ = 0.0f;
 
-	// Ledge climb
-	AnimationSet climbAnims;
-	SDL_Texture* climbTexture = nullptr;
-	static constexpr float CLIMB_DRAW_SCALE = 0.5f; // 256->128 visual match
-	bool isClimbing_ = false;
-	float climbTargetX_ = 0.0f;  // World X to teleport after climb
-	float climbTargetY_ = 0.0f;  // World Y to teleport after climb (top of ledge)
+	float stepTimer_ = 0.0f;
+	static constexpr float STEP_COOLDOWN = 350.0f;
 
-	// Ledge detection via raycasts (auto-detect, no Tiled objects needed)
-	void CheckLedge();
-	static constexpr int LEDGE_RAY_REACH   = 30;  // horizontal raycast distance (px)
-	static constexpr int LEDGE_HEAD_OFFSET = 40;   // how far above body center to cast the "head" ray
-	static constexpr int LEDGE_RAY_MARGIN  = 10;   // Margin for ledge detection raycasts
+	// Hide (press H to crouch behind rocks  enemies lose sight of player)
+	bool  isHiding_ = false;
+	bool  isExitingHide_ = false;
+	// Visual: gentle alpha pulse while hidden to signal stealth state
+	float hideAlphaTime_ = 0.0f;
 
-	// Dash
-	static constexpr float DASH_SPEED    = 15.0f;
-	static constexpr float DASH_DURATION = 200.0f; // ms
-	static constexpr float DASH_COOLDOWN = 800.0f; // ms after dash ends
-	bool  isDashing_    = false;
-	float dashTimer_    = 0.0f;
-	float dashCooldown_ = 0.0f;
-	float dashDirX_     = 1.0f;
+	// Blanket (cape) collectible flag
+	bool hasBlanket_ = false;
+
+	// Push rock state
+	bool  isPushing_ = false;
+	int   pushContactCount_ = 0;   // track overlapping push_rock contacts
+	float pushDir_ = 0.0f;         // -1 = left, +1 = right
+	PhysBody* pushedRockBody_ = nullptr;
+	SDL_Texture* pushTexture_ = nullptr;
+	Animation    pushAnim_;
+	static constexpr float PUSH_SPEED_FACTOR = 0.35f; // 35% of normal speed
+
+	// Slingshot (tirachinas) weapon
+	bool  hasSlingshot_ = false;
+	bool  isAiming_ = false;
+	float chargeTimer_ = 0.0f;
+	float aimAngle_ = 0.0f;
+	float slingshotCooldown_ = 0.0f;
+	static constexpr float MAX_CHARGE_TIME = 1500.0f;    // ms
+	static constexpr float MIN_LAUNCH_SPEED = 3.0f;
+	static constexpr float MAX_LAUNCH_SPEED = 12.0f;
+	static constexpr float SLINGSHOT_COOLDOWN = 500.0f;   // ms
+	SDL_Texture* slingshotShootTexture_ = nullptr;
+	Animation    slingshotAnim_;
 };

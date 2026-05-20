@@ -17,6 +17,7 @@ public:
     void Reset();
     bool HasFinishedOnce() const;
     void Update(float dt);
+    void UpdateBackwards(float dt);
     const SDL_Rect& GetCurrentFrame() const;
     int GetFrameCount() const;
     int GetCurrentFrameIndex() const;
@@ -46,6 +47,7 @@ public:
     void SetCurrent(const std::string& name);
     void ResetCurrent(); // Reset current animation to frame 0
     void Update(float dtSeconds);
+    void UpdateBackwards(float dtSeconds);
     const SDL_Rect& GetCurrentFrame() const;
     const std::string& GetCurrentName() const;
 

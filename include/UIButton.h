@@ -12,9 +12,13 @@ public:
 	virtual ~UIButton();
 
 	// Called each loop iteration
-	bool Update(float dt);
+	bool Update(float dt) override;
+	bool Draw() override;
 
 	bool CleanUp() override;
+
+	// Gamepad focus flag — set by UIManager navigation system
+	bool gamepadFocused = false;
 
 private:
 

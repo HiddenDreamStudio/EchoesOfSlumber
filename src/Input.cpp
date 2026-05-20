@@ -1,7 +1,9 @@
 #include "Engine.h"
 #include "Input.h"
+#include "Render.h"
 #include "Window.h"
 #include "Log.h"
+#include <cmath>
 
 #define MAX_KEYS 300
 
@@ -12,6 +14,7 @@ Input::Input() : Module()
 	keyboard = new KeyState[MAX_KEYS];
 	memset(keyboard, KEY_IDLE, sizeof(KeyState) * MAX_KEYS);
 	memset(mouseButtons, KEY_IDLE, sizeof(KeyState) * NUM_MOUSE_BUTTONS);
+	memset(padButtons, KEY_IDLE, sizeof(KeyState) * NUM_GAMEPAD_BUTTONS);
 	memset(windowEvents, 0, sizeof(windowEvents));
 	mouseMotionX = mouseMotionY = mouseX = mouseY = 0;
 }
@@ -34,7 +37,40 @@ bool Input::Awake()
 		ret = false;
 	}
 
+	if (SDL_InitSubSystem(SDL_INIT_GAMEPAD) != true)
+	{
+		LOG("SDL_GAMEPAD could not initialize! SDL_Error: %s\n", SDL_GetError());
+		// Not fatal — game works without gamepad
+	}
+	else
+	{
+		LOG("SDL Gamepad subsystem initialized");
+		OpenFirstGamepad();
+	}
+
 	return ret;
+}
+
+void Input::OpenFirstGamepad()
+{
+	if (gamepad != nullptr) return;
+
+	int count = 0;
+	SDL_JoystickID* joysticks = SDL_GetGamepads(&count);
+	if (joysticks && count > 0)
+	{
+		gamepad = SDL_OpenGamepad(joysticks[0]);
+		if (gamepad)
+		{
+			const char* name = SDL_GetGamepadName(gamepad);
+			LOG("Gamepad connected: %s", name ? name : "Unknown");
+		}
+		else
+		{
+			LOG("Failed to open gamepad: %s", SDL_GetError());
+		}
+	}
+	SDL_free(joysticks);
 }
 
 // Called before the first frame
@@ -79,6 +115,77 @@ bool Input::PreUpdate()
 			mouseButtons[i] = KEY_IDLE;
 	}
 
+	// ── Gamepad button states (polled, same logic as keyboard) ────────────
+	if (gamepad)
+	{
+		for (int i = 0; i < NUM_GAMEPAD_BUTTONS; ++i)
+		{
+			bool pressed = SDL_GetGamepadButton(gamepad, (SDL_GamepadButton)i);
+			if (pressed)
+			{
+				if (padButtons[i] == KEY_IDLE)
+					padButtons[i] = KEY_DOWN;
+				else
+					padButtons[i] = KEY_REPEAT;
+			}
+			else
+			{
+				if (padButtons[i] == KEY_REPEAT || padButtons[i] == KEY_DOWN)
+					padButtons[i] = KEY_UP;
+				else
+					padButtons[i] = KEY_IDLE;
+			}
+		}
+
+		// ── Analog sticks (normalized to -1..+1 with deadzone) ───────────
+		auto readAxis = [&](SDL_GamepadAxis axis) -> float {
+			Sint16 raw = SDL_GetGamepadAxis(gamepad, axis);
+			float normalized = (float)raw / 32767.0f;
+			if (std::fabs(normalized) < GAMEPAD_STICK_DEADZONE)
+				return 0.0f;
+			return normalized;
+		};
+
+		leftStickX  = readAxis(SDL_GAMEPAD_AXIS_LEFTX);
+		leftStickY  = readAxis(SDL_GAMEPAD_AXIS_LEFTY);
+		rightStickX = readAxis(SDL_GAMEPAD_AXIS_RIGHTX);
+		rightStickY = readAxis(SDL_GAMEPAD_AXIS_RIGHTY);
+
+		// Triggers (0..32767, normalize to 0..1)
+		auto readTrigger = [&](SDL_GamepadAxis axis) -> float {
+			Sint16 raw = SDL_GetGamepadAxis(gamepad, axis);
+			float normalized = (float)raw / 32767.0f;
+			if (normalized < 0.05f) return 0.0f;
+			return normalized;
+		};
+		leftTrigger  = readTrigger(SDL_GAMEPAD_AXIS_LEFT_TRIGGER);
+		rightTrigger = readTrigger(SDL_GAMEPAD_AXIS_RIGHT_TRIGGER);
+	}
+	else
+	{
+		// No gamepad — zero everything
+		memset(padButtons, KEY_IDLE, sizeof(KeyState) * NUM_GAMEPAD_BUTTONS);
+		leftStickX = leftStickY = rightStickX = rightStickY = 0.0f;
+		leftTrigger = rightTrigger = 0.0f;
+		touchpadRaw = false;
+	}
+
+	// ── Touchpad logic (poll) ──────────────────────────────────────────────
+	if (touchpadRaw)
+	{
+		if (touchpadState == KEY_IDLE)
+			touchpadState = KEY_DOWN;
+		else
+			touchpadState = KEY_REPEAT;
+	}
+	else
+	{
+		if (touchpadState == KEY_REPEAT || touchpadState == KEY_DOWN)
+			touchpadState = KEY_UP;
+		else
+			touchpadState = KEY_IDLE;
+	}
+
 	while (SDL_PollEvent(&event))
 	{
 		switch (event.type)
@@ -112,13 +219,69 @@ bool Input::PreUpdate()
 
 		case SDL_EVENT_MOUSE_MOTION:
 		{
-			int scale = Engine::GetInstance().window->GetScale();
-			mouseMotionX = (int)(event.motion.xrel / scale);
-			mouseMotionY = (int)(event.motion.yrel / scale);
-			mouseX = (int)(event.motion.x / scale);
-			mouseY = (int)(event.motion.y / scale);
+			// Convert window-space mouse coordinates to the renderer's logical
+			// coordinate system (1280x720) so that UI hit-testing works correctly
+			// in all display modes (windowed, fullscreen, borderless).
+			SDL_Renderer* rend = Engine::GetInstance().render->renderer;
+			float lx, ly;
+			SDL_RenderCoordinatesFromWindow(rend, event.motion.x, event.motion.y, &lx, &ly);
+			mouseX = (int)lx;
+			mouseY = (int)ly;
+
+			// Convert relative deltas to logical coordinates.
+			// We map xrel/yrel through SDL_RenderCoordinatesFromWindow and subtract
+			// the origin mapping to isolate the pure scale factor. This is correct
+			// for uniform linear transforms (letterbox/integer-scale presentations).
+			float ldx, ldy;
+			SDL_RenderCoordinatesFromWindow(rend, event.motion.xrel, event.motion.yrel, &ldx, &ldy);
+			float ox, oy;
+			SDL_RenderCoordinatesFromWindow(rend, 0.0f, 0.0f, &ox, &oy);
+			mouseMotionX = (int)(ldx - ox);
+			mouseMotionY = (int)(ldy - oy);
 		}
 		break;
+
+		// ── Gamepad hot-plug ─────────────────────────────────────────────
+		case SDL_EVENT_GAMEPAD_ADDED:
+			if (gamepad == nullptr)
+			{
+				gamepad = SDL_OpenGamepad(event.gdevice.which);
+				if (gamepad)
+				{
+					const char* gpName = SDL_GetGamepadName(gamepad);
+					LOG("Gamepad connected: %s", gpName ? gpName : "Unknown");
+				}
+			}
+			break;
+
+		case SDL_EVENT_GAMEPAD_REMOVED:
+			if (gamepad != nullptr)
+			{
+				SDL_JoystickID removedId = event.gdevice.which;
+				SDL_JoystickID currentId = SDL_GetJoystickID(SDL_GetGamepadJoystick(gamepad));
+				if (removedId == currentId)
+				{
+					LOG("Gamepad disconnected");
+					SDL_CloseGamepad(gamepad);
+					gamepad = nullptr;
+					memset(padButtons, KEY_IDLE, sizeof(KeyState) * NUM_GAMEPAD_BUTTONS);
+					leftStickX = leftStickY = rightStickX = rightStickY = 0.0f;
+					leftTrigger = rightTrigger = 0.0f;
+					touchpadRaw = false;
+
+					// Try to open another gamepad if available
+					OpenFirstGamepad();
+				}
+			}
+			break;
+
+		// ── Touchpad events ──────────────────────────────────────────────
+		case SDL_EVENT_GAMEPAD_TOUCHPAD_DOWN:
+			touchpadRaw = true;
+			break;
+		case SDL_EVENT_GAMEPAD_TOUCHPAD_UP:
+			touchpadRaw = false;
+			break;
 		}
 	}
 
@@ -129,6 +292,14 @@ bool Input::PreUpdate()
 bool Input::CleanUp()
 {
 	LOG("Quitting SDL event subsystem");
+
+	if (gamepad != nullptr)
+	{
+		SDL_CloseGamepad(gamepad);
+		gamepad = nullptr;
+	}
+
+	SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
 	SDL_QuitSubSystem(SDL_INIT_EVENTS);
 	return true;
 }

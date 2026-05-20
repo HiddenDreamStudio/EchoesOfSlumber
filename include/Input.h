@@ -6,6 +6,8 @@
 #include "Vector2D.h"
 
 #define NUM_MOUSE_BUTTONS 5
+#define NUM_GAMEPAD_BUTTONS SDL_GAMEPAD_BUTTON_COUNT
+#define GAMEPAD_STICK_DEADZONE 0.15f
 
 enum EventWindow
 {
@@ -56,6 +58,22 @@ public:
 		return mouseButtons[id - 1];
 	}
 
+	// ── Gamepad ──────────────────────────────────────────────────────────────
+	KeyState GetGamepadButton(int btn) const
+	{
+		if (btn < 0 || btn >= NUM_GAMEPAD_BUTTONS) return KEY_IDLE;
+		return padButtons[btn];
+	}
+
+	float GetLeftStickX()  const { return leftStickX; }
+	float GetLeftStickY()  const { return leftStickY; }
+	float GetRightStickX() const { return rightStickX; }
+	float GetRightStickY() const { return rightStickY; }
+	float GetLeftTrigger()  const { return leftTrigger; }
+	float GetRightTrigger() const { return rightTrigger; }
+	KeyState GetTouchpadPressed() const { return touchpadState; }
+	bool  IsGamepadConnected() const { return gamepad != nullptr; }
+
 	// Check if a certain window event happened
 	bool GetWindowEvent(EventWindow ev);
 
@@ -71,4 +89,20 @@ private:
 	int mouseMotionY;
 	int mouseX;
 	int mouseY;
+
+	// ── Gamepad state ────────────────────────────────────────────────────────
+	SDL_Gamepad* gamepad = nullptr;
+	KeyState padButtons[NUM_GAMEPAD_BUTTONS];
+	float leftStickX  = 0.0f;
+	float leftStickY  = 0.0f;
+	float rightStickX = 0.0f;
+	float rightStickY = 0.0f;
+	float leftTrigger  = 0.0f;
+	float rightTrigger = 0.0f;
+
+	// Touchpad state (event-driven for PS5 compatibility)
+	KeyState touchpadState = KEY_IDLE;
+	bool     touchpadRaw   = false;
+
+	void OpenFirstGamepad();
 };

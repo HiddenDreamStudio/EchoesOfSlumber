@@ -46,6 +46,8 @@ private:
     // ── Shared volume state (main menu + pause) ───────────────────────────────
     float musicVolume_ = 0.8f;
     float sfxVolume_ = 0.8f;
+    int menuClickFxId = -1;
+    bool isFullscreen_ = false;
 
     // =========================================================================
     //  MAIN MENU
@@ -53,12 +55,27 @@ private:
     bool showSettings_ = false;
     int  settingsCooldown_ = 0;
 
+    // ── Settings in-place animation (main menu) ──────────────────────────────
+    enum class SettingsAnimState {
+        NONE,               // normal main menu buttons visible
+        FADE_OUT_BUTTONS,   // fading out Play/Options/Exit
+        FADE_IN_OPTIONS,    // fading in volume sliders + display mode + back
+        OPTIONS_ACTIVE,     // options fully visible and interactive
+        FADE_OUT_OPTIONS,   // fading out options
+        FADE_IN_BUTTONS     // fading in Play/Options/Exit
+    };
+    SettingsAnimState settingsAnimState_ = SettingsAnimState::NONE;
+    float settingsAnimTimer_ = 0.0f;
+    float settingsButtonsAlpha_ = 1.0f;   // alpha for Play/Options/Exit
+    float settingsOptionsAlpha_ = 0.0f;   // alpha for options controls
+    int   windowModeIndex_ = 0;           // 0=Windowed, 1=Fullscreen, 2=Borderless
+
     void LoadMainMenu();
     void UnloadMainMenu();
     void UpdateMainMenu(float dt);
     void PostUpdateMainMenu();
     void HandleMainMenuUIEvents(UIElement* uiElement);
-    void DrawSettingsPanel(int winW, int winH);
+    void DrawSettingsInPlace(int winW, int winH);
     void SetSettingsPanelVisible(bool visible);
 
     enum class MenuAnimState {
@@ -81,6 +98,7 @@ private:
     static constexpr int BTN_MUSIC_DOWN = 12;
     static constexpr int BTN_SFX_UP = 13;
     static constexpr int BTN_SFX_DOWN = 14;
+    static constexpr int BTN_FULLSCREEN = 15;
 
     // =========================================================================
     //  INTRO (Splash Logos)
@@ -121,16 +139,32 @@ private:
     void UpdateGameplay(float dt);
     void PostUpdateGameplay();
 
+    // ── Map switching (F1 / F2) ──────────────────────────────────────────────
+    std::string currentMapFile_ = "MapTemplate.tmx";
+    void LoadMap1();   // loads MapTemplate.tmx
+    void LoadMap2();   // loads Map2.tmx
+
     void LoadPauseMenuButtons();
     void SetPauseMenuVisible(bool visible);
     void SetPauseOptionsPanelVisible(bool visible);
     void DrawPauseMenu();
     void DrawPauseOptionsPanel(int winW, int winH);
     void HandlePauseMenuUIEvents(UIElement* uiElement);
+    bool HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH);
+
+    // Gamepad slider navigation (0 = music, 1 = sfx)
+    int   optionsSliderSel_ = 0;
+    float sliderRepeatTimer_ = 0.0f;
 
 public:
     void SetGameOverVisible(bool visible);
     void ResetHealthUI(int health);
+    float wakeUpNotifTimer_ = 0.0f;
+    static constexpr float WAKEUP_NOTIF_DURATION = 4000.0f;
+    float checkpointSaveTimer_ = 0.0f;
+    float noCapeNotifTimer_ = 0.0f;
+    static constexpr float CAPA_NOTIF_DURATION = 3000.0f;
+    void ShowNoCapeNotification();
 
 private:
     // Button IDs — pause menu
@@ -144,6 +178,7 @@ private:
     static constexpr int BTN_PAUSE_OPT_SFX_UP = 27;
     static constexpr int BTN_PAUSE_OPT_SFX_DOWN = 28;
     static constexpr int BTN_PAUSE_OPT_BACK = 29;
+    static constexpr int BTN_PAUSE_OPT_FULLSCREEN = 33;
     static constexpr int BTN_PAUSE_MAP = 32;
     static constexpr int BTN_GAMEOVER_MAINMENU = 30;
     static constexpr int BTN_GAMEOVER_CONTINUE = 31;
@@ -160,7 +195,29 @@ private:
     int currentHealthUI_ = 3;
     int activeHealthAnim_ = 0; // 0=None, 1=animHealth1_, 2=animHealth2_, 3=animHealth3_
     SDL_Texture* texGameOver_ = nullptr;
-    
+
+    // Blanket ability HUD icon
+    SDL_Texture* texBlanketActive_ = nullptr;   // full opacity — shown while hiding
+    SDL_Texture* texBlanketInactive_ = nullptr;  // low opacity — shown when not hiding
+
+    // Cape collectible (AS_capa.png)
+    SDL_Texture* texCapaCollectible_ = nullptr;
+    PhysBody* capaBody_ = nullptr;
+    float capaX_ = 300.0f;
+    float capaY_ = 600.0f;
+    bool  capaCollected_ = false;
+    float capaFloatTimer_ = 0.0f; // floating animation timer
+    float capaNotifTimer_ = 0.0f; // cape pickup notification timer
+
+    // Slingshot (tirachinas) collectible
+    SDL_Texture* texSlingshotCollectible_ = nullptr;
+    float slingshotX_ = 300.0f;
+    float slingshotY_ = 600.0f;
+    bool  slingshotCollected_ = false;
+    float slingshotFloatTimer_ = 0.0f;
+    float slingshotNotifTimer_ = 0.0f;
+    static constexpr float SLINGSHOT_NOTIF_DURATION = 3000.0f;
+
     // Game Over Menu Assets
     SDL_Texture* texGameOverBg_ = nullptr;
     SDL_Texture* texGameOverBtn_ = nullptr;
@@ -169,6 +226,10 @@ private:
     SDL_Texture* texGameOverFrag3_ = nullptr;
     SDL_Texture* texGameOverFrag4_ = nullptr;
     SDL_Texture* texGameOverFrag5_ = nullptr;
+
+    // Checkpoint notification
+    SDL_Texture* texCheckpointSaved_ = nullptr;
+    SDL_Texture* texNoCapeNotif_ = nullptr;
 
     // Pause menu textures
     SDL_Texture* texPauseBackground_ = nullptr;
@@ -188,6 +249,7 @@ private:
     float mapViewDragOriginY_ = 0.0f;
 
     void DrawMapViewer(int winW, int winH);
+    void DrawBottomFog(int winW, int winH);
 
     // ── Main menu textures ────────────────────────────────────────────────────
     SDL_Texture* texMenuLogo_ = nullptr;
@@ -197,6 +259,7 @@ private:
     std::shared_ptr<UIElement> btnPlay_;
     std::shared_ptr<UIElement> btnSettings_;
     std::shared_ptr<UIElement> btnExit_;
+    std::shared_ptr<UIElement> btnBack_;
 
     // ── Fade orchestration ────────────────────────────────────────────────────
     bool    waitingForFade_ = false;
@@ -226,4 +289,17 @@ private:
 
     void InitFragments(int winW, int winH, int childX, int childW);
     void DrawFragments(bool front, int winW, int winH);
+
+private:
+        
+    int konamiIndex = 0;
+    bool isKonamiActive = false;
+
+    const int konamiSequence[10] = {
+        SDL_SCANCODE_UP, SDL_SCANCODE_UP,
+        SDL_SCANCODE_DOWN, SDL_SCANCODE_DOWN,
+        SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT,
+        SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT,
+        SDL_SCANCODE_B, SDL_SCANCODE_A
+        };
 };
