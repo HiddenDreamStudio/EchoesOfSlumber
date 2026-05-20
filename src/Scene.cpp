@@ -213,7 +213,7 @@ void Scene::LoadMainMenu()
 	Engine::GetInstance().discord->UpdatePresence("In Main Menu", "Alpha Phase");
     Engine::GetInstance().render->SetCameraSway(false);
 
-	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Game-Menu.wav", 1.0f);
+	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_Main_Menu.wav", 1.0f);
 
 	/*Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);*/
 
@@ -937,7 +937,7 @@ void Scene::LoadGameplay()
 	Engine::GetInstance().discord->UpdatePresence("Playing: Level 1", "Alpha Phase");
     Engine::GetInstance().render->SetCameraSway(true);
 
-	Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 1.0f);
+	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 1.0f);
 
 	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
 	Engine::GetInstance().map->LoadEntities(player);
