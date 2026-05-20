@@ -17,6 +17,7 @@ enum class EntityType
 	VFX,
 	DOOR,
 	SLINGSHOT_PROJECTILE,
+	BOSS_2,
 	UNKNOWN
 };
 
