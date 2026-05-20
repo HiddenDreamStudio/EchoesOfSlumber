@@ -53,7 +53,6 @@ bool Map::Update(float dt)
 
         Render* render = Engine::GetInstance().render.get();
         int scale = Engine::GetInstance().window->GetScale();
-
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
                 Engine::GetInstance().render->DrawTexture(
@@ -87,8 +86,13 @@ bool Map::Update(float dt)
                 center.x = 0.0f;
                 center.y = dst.h;
 
+                SDL_FlipMode flip = SDL_FLIP_NONE;
+                if (deco->flipH && deco->flipV) flip = (SDL_FlipMode)(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
+                else if (deco->flipH) flip = SDL_FLIP_HORIZONTAL;
+                else if (deco->flipV) flip = SDL_FLIP_VERTICAL;
+              
                 SDL_RenderTextureRotated(render->renderer, deco->texture, nullptr, &dst,
-                    deco->rotation, &center, SDL_FLIP_NONE);
+                    deco->rotation, &center, flip);
             }
         }
 
@@ -177,8 +181,10 @@ bool Map::PostUpdate()
             center.x = 0.0f;
             center.y = dst.h;
 
-            SDL_RenderTextureRotated(render->renderer, deco->texture, nullptr, &dst,
-                deco->rotation, &center, SDL_FLIP_NONE);
+            SDL_FlipMode flip = SDL_FLIP_NONE;
+            if (deco->flipH && deco->flipV) flip = (SDL_FlipMode)(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
+            else if (deco->flipH) flip = SDL_FLIP_HORIZONTAL;
+            else if (deco->flipV) flip = SDL_FLIP_VERTICAL;
         }
     }
 
@@ -766,18 +772,25 @@ void Map::SaveEntities(std::shared_ptr<Player> player) {
         if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
 
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+
                 std::string entityType = objectNode.attribute("type").as_string();
-                if (entityType == "Player") {
-                    Vector2D playerPos = player->GetPosition();
-                    objectNode.attribute("x").set_value(playerPos.getX());
-                    objectNode.attribute("y").set_value(playerPos.getY());
+
+                if (entityType == "Player" && player != nullptr) {
+                    objectNode.attribute("x").set_value(player->position.getX() - 32);
+                    objectNode.attribute("y").set_value(player->position.getY() - 32);
+                    LOG("Player position saved to XML: %f, %f", player->position.getX() - 32, player->position.getY() - 32);
                 }
             }
         }
     }
 
     std::string mapPathName = mapPath + mapFileName;
-    mapFileXML.save_file(mapPathName.c_str());
+    if (mapFileXML.save_file(mapPathName.c_str())) {
+        LOG("Successfully saved entities to XML file: %s", mapFileName.c_str());
+    }
+    else {
+        LOG("Error saving entities to XML file: %s", mapPathName.c_str());
+    }
 
 }
 
@@ -869,7 +882,6 @@ void Map::LoadDecorationObjects()
                         if (!imgSrc.empty())
                         {
                             std::string fullPath = tsxFolder + imgSrc;
-                            LOG("Loading deco texture: %s", fullPath.c_str());
                             SDL_Texture* tex = Engine::GetInstance().textures->Load(fullPath.c_str());
                             ts->tileTextures[relativeId] = tex;
                         }
@@ -887,6 +899,8 @@ void Map::LoadDecorationObjects()
             deco->rotation = objNode.attribute("rotation").as_double(0.0);
             deco->isFront = (groupName == "Assets front");
             deco->gid = gid;
+            deco->flipH = (rawGid & FLIPPED_HORIZONTALLY_FLAG) != 0;
+            deco->flipV = (rawGid & FLIPPED_VERTICALLY_FLAG) != 0;
 
             auto it = ts->tileTextures.find(relativeId);
             deco->texture = (it != ts->tileTextures.end()) ? it->second : nullptr;
