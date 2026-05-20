@@ -613,7 +613,8 @@ MapLayer* Map::GetNavigationLayer() {
 void Map::LoadEntities(std::shared_ptr<Player>& player) {
 
     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
-        if (objectGroupNode.attribute("name").as_string() == std::string("MovingPlatform")) {
+        std::string groupName = objectGroupNode.attribute("name").as_string();
+        if (groupName == "MovingPlatform" || groupName == "Entities") {
 
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
 
