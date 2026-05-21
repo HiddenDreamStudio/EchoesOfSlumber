@@ -697,6 +697,50 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     LOG("DropDoll spawned at (%.0f, %.0f), trigger width %.0f",
                         doll->position.getX(), doll->position.getY(), triggerW);
                 }
+                else if (entityType == "Platform") {
+                    auto platform = std::dynamic_pointer_cast<Platform>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));
+
+                    float baseX = objectNode.attribute("x").as_float();
+                    float baseY = objectNode.attribute("y").as_float();
+
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string pname = prop.attribute("name").as_string();
+
+                            if (pname == "speed")
+                                platform->speed = prop.attribute("value").as_float();
+
+                            if (pname == "texture")
+                                platform->texturePath = prop.attribute("value").as_string();
+
+                            if (pname == "trigger")                                         
+                                platform->triggerOnPlayer = prop.attribute("value").as_bool();
+
+                            if (pname == "path") {
+                                std::string pathStr = prop.attribute("value").as_string();
+                                std::stringstream ss(pathStr);
+                                std::string pair;
+                                while (std::getline(ss, pair, ';')) {
+                                    std::stringstream ssPair(pair);
+                                    std::string xStr, yStr;
+                                    if (std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
+                                        platform->AddWaypoint(Vector2D(std::stof(xStr), std::stof(yStr)));
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (!platform->waypoints.empty())
+                        platform->position = platform->waypoints[0];
+                    else
+                        platform->position = Vector2D(baseX, baseY);
+
+                    platform->Start();
+                    LOG("Platform spawned at: %f, %f", baseX, baseY);
+                    }
                 // Parse MovingPlatform from Tiled polylines
                 else if (entityType == "MovingPlatform") {
                     auto platform = std::dynamic_pointer_cast<Platform>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));
