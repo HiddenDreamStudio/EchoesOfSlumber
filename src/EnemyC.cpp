@@ -1,4 +1,4 @@
-﻿#include "EnemyC.h"
+#include "EnemyC.h"
 #include "Engine.h"
 #include "Textures.h"
 #include "Audio.h"
@@ -76,6 +76,25 @@ bool EnemyC::Update(float dt)
 	if (attackCooldown_ > 0.0f) attackCooldown_ -= dt;
 
 	// Contact damage while touching player
+	if (isContactWithPlayer_ && playerListener_ != nullptr)
+	{
+		int enemyX, enemyY;
+		pbody->GetPosition(enemyX, enemyY);
+		int playerX, playerY;
+		auto pl = Engine::GetInstance().scene->player;
+		if (pl && pl->pbody)
+		{
+			pl->pbody->GetPosition(playerX, playerY);
+			float dx = (float)enemyX - (float)playerX;
+			float dy = (float)enemyY - (float)playerY;
+			float distSq = dx * dx + dy * dy;
+			if (distSq > 150.0f * 150.0f)
+			{
+				isContactWithPlayer_ = false;
+				playerListener_ = nullptr;
+			}
+		}
+	}
 	if (isContactWithPlayer_ && playerListener_ != nullptr && attackCooldown_ <= 0.0f)
 	{
 		playerListener_->TakeDamage(1);
