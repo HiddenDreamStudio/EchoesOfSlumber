@@ -822,6 +822,7 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 		// Check if the player lands on top of the platform
 		if (playerY < platY) {
+			platformBelow = physB;
 			if (isJumping) {
 				// Spawn landing dust (Centered at bottom of capsule)
 				Engine::GetInstance().entityManager->SpawnVFX(
@@ -899,6 +900,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 {
+	if (physB->ctype == ColliderType::PLATFORM)
+		platformBelow = nullptr;
+
 	if (physB->ctype == ColliderType::PUSH_ROCK) {
 		pushContactCount_--;
 		if (pushContactCount_ <= 0) {
