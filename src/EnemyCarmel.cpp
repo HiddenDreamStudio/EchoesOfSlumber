@@ -18,30 +18,26 @@ bool EnemyCarmel::Start()
 	std::unordered_map<int, std::string> idleAliases = { {0, "idle"} };
 	anims_.LoadFromTSX("assets/textures/animations/carmelAnimation.xml", idleAliases);
 	anims_.SetCurrent("idle");
-	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS enemics C/spritesheet_Carmel_idle.png");
+	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Carmel_idle.png");
 
 	std::unordered_map<int, std::string> rollAliases = { {0, "roll"} };
 	rollAnims_.LoadFromTSX("assets/textures/animations/carmelRollAnimation.xml", rollAliases);
 	rollAnims_.SetCurrent("roll");
-	rollAnims_.SetLoop("roll", false);
-	rollTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS enemics C/spritesheet_Carmel_Roll.png");
+	rollTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Carmel_Roll.png");
 
-	pbody = Engine::GetInstance().physics->CreateCapsule(
-		(int)position.getX() + texW / 2,
-		(int)position.getY() + texH / 2,
-		20, 50, bodyType::DYNAMIC);
+	std::unordered_map<int, std::string> scaredAliases = { {0, "scared"} };
+	scaredAnims_.LoadFromTSX("assets/textures/animations/carmelScaredAnimation.xml", scaredAliases);
+	scaredAnims_.SetCurrent("scared");
+	scaredAnims_.SetLoop("scared", false);
+	scaredTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Carmel_scared.png");
 
-	pbody->listener = this;
-	pbody->ctype    = ColliderType::ENEMY;
+	std::unordered_map<int, std::string> blowupAliases = { {0, "blowup"} };
+	blowupAnims_.LoadFromTSX("assets/textures/animations/carmelBlowupAnimation.xml", blowupAliases);
+	blowupAnims_.SetCurrent("blowup");
+	blowupAnims_.SetLoop("blowup", false);
+	blowupTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Carmel_Blowup.png");
 
-	int bodyX, bodyY;
-	pbody->GetPosition(bodyX, bodyY);
-	if (patrolLeftX_ == 0.0f && patrolRightX_ == 0.0f)
-	{
-		patrolLeftX_  = (float)bodyX - 200.0f;
-		patrolRightX_ = (float)bodyX + 200.0f;
-	}
-
+	UpdatePhysicsBody(false); // Start small
 	TransitionTo(EnemyCarmelState::IDLE);
 	return true;
 }
@@ -49,13 +45,38 @@ bool EnemyCarmel::Start()
 bool EnemyCarmel::CleanUp()
 {
 	Engine::GetInstance().textures->UnLoad(rollTexture_);
+	Engine::GetInstance().textures->UnLoad(scaredTexture_);
+	Engine::GetInstance().textures->UnLoad(blowupTexture_);
 	return Enemy::CleanUp();
 }
 
 void EnemyCarmel::SetPatrolPoints(float leftX, float rightX)
 {
-	patrolLeftX_  = leftX;
-	patrolRightX_ = rightX;
+	// Unused for Spider Candy since it stays still until activated
+}
+
+void EnemyCarmel::UpdatePhysicsBody(bool big)
+{
+	int bx = (int)position.getX();
+	int by = (int)position.getY();
+
+	if (pbody != nullptr) {
+		pbody->GetPosition(bx, by);
+		Engine::GetInstance().physics->DeletePhysBody(pbody);
+	} else {
+		// First time creation, adjust to center of 64x64 idle sprite
+		bx += 32;
+		by += 32;
+	}
+	
+	if (big) {
+		pbody = Engine::GetInstance().physics->CreateCapsule(bx, by, 50, 100, bodyType::DYNAMIC);
+	} else {
+		pbody = Engine::GetInstance().physics->CreateCapsule(bx, by, 20, 50, bodyType::DYNAMIC);
+	}
+	
+	pbody->listener = this;
+	pbody->ctype = ColliderType::ENEMY;
 }
 
 void EnemyCarmel::UpdateFSM(float dt)
@@ -75,65 +96,65 @@ void EnemyCarmel::UpdateFSM(float dt)
 	Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
 	float dx           = playerPos.getX() - (float)bodyX;
 	float distToPlayer = std::abs(dx);
+	float totalDist = playerPos.distanceEuclidean(Vector2D((float)bodyX, (float)bodyY));
 
 	switch (state_)
 	{
 	case EnemyCarmelState::IDLE:
 		velocity.x = 0.0f;
-		stateTimer_ -= dt;
-		if (stateTimer_ <= 0.0f)
-			TransitionTo(EnemyCarmelState::PATROL);
-		if (distToPlayer < DETECTION_RADIUS)
-			TransitionTo(EnemyCarmelState::CHASE);
+		if (totalDist < DETECTION_RADIUS) {
+			TransitionTo(EnemyCarmelState::SCARED);
+		}
 		break;
 
-	case EnemyCarmelState::PATROL:
-		if (distToPlayer < DETECTION_RADIUS)
-		{
-			TransitionTo(EnemyCarmelState::CHASE);
-			break;
+	case EnemyCarmelState::SCARED:
+		velocity.x = 0.0f;
+		stateTimer_ -= dt;
+		if (stateTimer_ <= 0.0f) {
+			TransitionTo(EnemyCarmelState::BLOWUP);
 		}
-		if (patrolDirX_ > 0.0f && (float)bodyX >= patrolRightX_)
-			patrolDirX_ = -1.0f;
-		else if (patrolDirX_ < 0.0f && (float)bodyX <= patrolLeftX_)
-			patrolDirX_ = 1.0f;
+		break;
 
-		velocity.x    = patrolDirX_ * speed;
-		facingRight_  = (patrolDirX_ < 0.0f);
+	case EnemyCarmelState::BLOWUP:
+		velocity.x = 0.0f;
+		stateTimer_ -= dt;
+		if (stateTimer_ <= 0.0f) {
+			TransitionTo(EnemyCarmelState::CHASE);
+		}
 		break;
 
 	case EnemyCarmelState::CHASE:
-		if (distToPlayer > DETECTION_RADIUS * 1.5f)
+		if (totalDist > LOSE_RADIUS)
 		{
-			TransitionTo(EnemyCarmelState::PATROL);
-			break;
+			stateTimer_ -= dt;
+			if (stateTimer_ <= 0.0f) {
+				TransitionTo(EnemyCarmelState::DEFLATE);
+			}
 		}
-		if (distToPlayer < ATTACK_RANGE)
-		{
-			TransitionTo(EnemyCarmelState::ATTACK);
-			break;
+		else {
+			stateTimer_ = 2000.0f; // Reset lose timer as long as player is in range
 		}
-		velocity.x   = (dx > 0.0f) ? speed : -speed;
-		facingRight_ = (dx < 0.0f);
-		break;
+		
+		if (state_ == EnemyCarmelState::CHASE) {
+			float desiredDir = (dx > 0.0f) ? 1.0f : -1.0f;
+			
+			if (desiredDir != currentDirX_) {
+				turnDelayTimer_ -= dt;
+				if (turnDelayTimer_ <= 0.0f) {
+					currentDirX_ = desiredDir;
+					turnDelayTimer_ = TURN_DELAY;
+				}
+			} else {
+				turnDelayTimer_ = TURN_DELAY;
+			}
 
-	case EnemyCarmelState::ATTACK:
-		stateTimer_ -= dt;
-		velocity.x = attackDirX_ * ATTACK_SPEED;
-		if (stateTimer_ <= 0.0f)
-			TransitionTo(EnemyCarmelState::STUNNED);
-		break;
-
-	case EnemyCarmelState::STUNNED:
-		velocity.x = 0.0f;
-		stateTimer_ -= dt;
-		if (stateTimer_ <= 0.0f)
-		{
-			if (distToPlayer < DETECTION_RADIUS)
-				TransitionTo(EnemyCarmelState::CHASE);
-			else
-				TransitionTo(EnemyCarmelState::PATROL);
+			velocity.x   = currentDirX_ * CHASE_SPEED;
+			facingRight_ = (currentDirX_ > 0.0f);
 		}
+		break;
+		
+	case EnemyCarmelState::DEFLATE:
+		TransitionTo(EnemyCarmelState::IDLE);
 		break;
 
 	case EnemyCarmelState::DEATH:
@@ -148,30 +169,29 @@ void EnemyCarmel::TransitionTo(EnemyCarmelState newState)
 	switch (newState)
 	{
 	case EnemyCarmelState::IDLE:
-		stateTimer_ = IDLE_DURATION;
+		UpdatePhysicsBody(false);
 		break;
 
-	case EnemyCarmelState::ATTACK:
-	{
-		stateTimer_ = ATTACK_DURATION;
-		int bodyX, bodyY;
-		pbody->GetPosition(bodyX, bodyY);
-		Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
-		attackDirX_  = (playerPos.getX() > (float)bodyX) ? 1.0f : -1.0f;
-		facingRight_ = (attackDirX_ < 0.0f);
-		rollAnims_.ResetCurrent();
-		LOG("EnemyCarmel: ATTACK");
+	case EnemyCarmelState::SCARED:
+		stateTimer_ = SCARED_DURATION;
+		scaredAnims_.ResetCurrent();
+		LOG("SpiderCandy: SCARED");
 		break;
-	}
-
-	case EnemyCarmelState::STUNNED:
-		stateTimer_ = STUN_DURATION;
-		velocity.x  = 0.0f;
-		LOG("EnemyCarmel: STUNNED");
+		
+	case EnemyCarmelState::BLOWUP:
+		stateTimer_ = BLOWUP_DURATION;
+		blowupAnims_.ResetCurrent();
+		UpdatePhysicsBody(true);
+		LOG("SpiderCandy: BLOWUP");
 		break;
 
+	case EnemyCarmelState::CHASE:
+		stateTimer_ = 2000.0f;
+		LOG("SpiderCandy: CHASE");
+		break;
+		
 	case EnemyCarmelState::DEATH:
-		LOG("EnemyCarmel: DEATH");
+		LOG("SpiderCandy: DEATH");
 		Destroy();
 		break;
 
@@ -185,7 +205,7 @@ void EnemyCarmel::TakeDamage(int damage)
 	if (state_ == EnemyCarmelState::DEATH) return;
 
 	health -= damage;
-	LOG("EnemyCarmel took %d damage -> health: %d/%d", damage, health, maxHealth);
+	LOG("SpiderCandy took %d damage -> health: %d/%d", damage, health, maxHealth);
 
 	int bodyX, bodyY;
 	pbody->GetPosition(bodyX, bodyY);
@@ -198,10 +218,6 @@ void EnemyCarmel::TakeDamage(int damage)
 		health = 0;
 		TransitionTo(EnemyCarmelState::DEATH);
 	}
-	else
-	{
-		TransitionTo(EnemyCarmelState::STUNNED);
-	}
 }
 
 void EnemyCarmel::Draw(float dt)
@@ -213,7 +229,7 @@ void EnemyCarmel::Draw(float dt)
 
 	SDL_FlipMode flip = facingRight_ ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
 
-	if (state_ == EnemyCarmelState::ATTACK)
+	if (state_ == EnemyCarmelState::CHASE)
 	{
 		rollAnims_.Update(dt);
 		const SDL_Rect& frame = rollAnims_.GetCurrentFrame();
@@ -221,10 +237,25 @@ void EnemyCarmel::Draw(float dt)
 		int drawY = y - (int)(256.0f * ROLL_DRAW_SCALE) / 2;
 		Engine::GetInstance().render->DrawTexture(rollTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, ROLL_DRAW_SCALE);
 	}
+	else if (state_ == EnemyCarmelState::SCARED)
+	{
+		scaredAnims_.Update(dt);
+		const SDL_Rect& frame = scaredAnims_.GetCurrentFrame();
+		Engine::GetInstance().render->DrawTexture(scaredTexture_, x - 32, y - 32, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+	}
+	else if (state_ == EnemyCarmelState::BLOWUP)
+	{
+		blowupAnims_.Update(dt);
+		const SDL_Rect& frame = blowupAnims_.GetCurrentFrame();
+		int drawX = x - (int)(256.0f * ROLL_DRAW_SCALE) / 2;
+		int drawY = y - (int)(256.0f * ROLL_DRAW_SCALE) / 2;
+		Engine::GetInstance().render->DrawTexture(blowupTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, ROLL_DRAW_SCALE);
+	}
 	else
 	{
+		// IDLE
 		anims_.Update(dt);
 		const SDL_Rect& frame = anims_.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(texture, x - 32, y - 32, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
 	}
 }
