@@ -206,6 +206,8 @@ void SaveSystem::CollectPlayerState()
 	gameState_.playerJumpForce = 2.5f;
 	gameState_.playerIsJumping = false;
 	gameState_.playerHealth = scene->player->health;
+	gameState_.playerHasBlanket = scene->player ? scene->player->HasBlanket() : false;
+	gameState_.playerHasSlingshot = scene->player ? scene->player->HasSlingshot() : false;
 
 	LOG("SaveSystem: Player position saved (%.1f, %.1f)", 
 		gameState_.playerPosX, gameState_.playerPosY);
@@ -221,6 +223,30 @@ void SaveSystem::CollectSceneState()
 
 	// Get current map path (use public members)
 	gameState_.currentMapPath = map->mapPath + map->mapFileName;
+
+	// Serialize visited cells: "mapName:cx,cy;cx,cy|mapName2:cx,cy"
+	std::string cellsStr;
+	for (auto const& [mapName, cells] : scene->visitedCells_) {
+		if (!cellsStr.empty()) cellsStr += "|";
+		cellsStr += mapName + ":";
+		bool first = true;
+		for (auto const& [cx, cy] : cells) {
+			if (!first) cellsStr += ";";
+			cellsStr += std::to_string(cx) + "," + std::to_string(cy);
+			first = false;
+		}
+	}
+	gameState_.visitedRoomsStr = cellsStr;
+
+	// Serialize map purchase flags: "mapName1|mapName2"
+	std::string purchasedStr;
+	for (auto const& [mapName, revealed] : scene->mapRevealed_) {
+		if (revealed) {
+			if (!purchasedStr.empty()) purchasedStr += "|";
+			purchasedStr += mapName;
+		}
+	}
+	gameState_.mapPurchasedStr = purchasedStr;
 
 	LOG("SaveSystem: Scene state saved (scene=%d, map=%s)", 
 		gameState_.currentSceneId, gameState_.currentMapPath.c_str());
@@ -247,9 +273,14 @@ void SaveSystem::ApplyPlayerState()
 
 	if (scene->player) {
 		scene->player->health = gameState_.playerHealth;
+		scene->player->SetHasBlanket(gameState_.playerHasBlanket);
+		scene->player->SetHasSlingshot(gameState_.playerHasSlingshot);
 		scene->player->Revive();
 		scene->ResetHealthUI(scene->player->health);
 	}
+
+	scene->capaCollected_ = gameState_.playerHasBlanket;
+	scene->slingshotCollected_ = gameState_.playerHasSlingshot;
 
 	LOG("SaveSystem: Player position restored (%.1f, %.1f)", 
 		gameState_.playerPosX, gameState_.playerPosY);
@@ -257,9 +288,57 @@ void SaveSystem::ApplyPlayerState()
 
 void SaveSystem::ApplySceneState()
 {
-	// For now, we assume the scene/map is already loaded elsewhere.
-	// Full scene/map restoration (including transitions) is not implemented yet.
-	LOG("SaveSystem: Scene state restoration not implemented yet (saved scene=%d)", gameState_.currentSceneId);
+	auto& scene = Engine::GetInstance().scene;
+
+	scene->visitedCells_.clear();
+	scene->mapRevealed_.clear();
+
+	// Deserialize visited cells
+	std::string cellsStr = gameState_.visitedRoomsStr;
+	size_t pos = 0;
+	while (pos < cellsStr.size()) {
+		size_t pipe = cellsStr.find('|', pos);
+		std::string token = (pipe == std::string::npos) ? cellsStr.substr(pos) : cellsStr.substr(pos, pipe - pos);
+		if (!token.empty()) {
+			size_t colon = token.find(':');
+			if (colon != std::string::npos) {
+				std::string mapName = token.substr(0, colon);
+				std::string coordsStr = token.substr(colon + 1);
+				size_t cpos = 0;
+				while (cpos < coordsStr.size()) {
+					size_t semi = coordsStr.find(';', cpos);
+					std::string coordToken = (semi == std::string::npos) ? coordsStr.substr(cpos) : coordsStr.substr(cpos, semi - cpos);
+					if (!coordToken.empty()) {
+						size_t comma = coordToken.find(',');
+						if (comma != std::string::npos) {
+							int cx = std::stoi(coordToken.substr(0, comma));
+							int cy = std::stoi(coordToken.substr(comma + 1));
+							scene->visitedCells_[mapName].insert({ cx, cy });
+						}
+					}
+					if (semi == std::string::npos) break;
+					cpos = semi + 1;
+				}
+			}
+		}
+		if (pipe == std::string::npos) break;
+		pos = pipe + 1;
+	}
+
+	// Deserialize map reveals
+	std::string purchasedStr = gameState_.mapPurchasedStr;
+	pos = 0;
+	while (pos < purchasedStr.size()) {
+		size_t pipe = purchasedStr.find('|', pos);
+		std::string token = (pipe == std::string::npos) ? purchasedStr.substr(pos) : purchasedStr.substr(pos, pipe - pos);
+		if (!token.empty()) {
+			scene->mapRevealed_[token] = true;
+		}
+		if (pipe == std::string::npos) break;
+		pos = pipe + 1;
+	}
+
+	LOG("SaveSystem: Scene state restored (saved scene=%d)", gameState_.currentSceneId);
 }
 
 void SaveSystem::ApplyEntityStates()
@@ -284,6 +363,8 @@ bool SaveSystem::WriteXML(const std::string& filename)
 	pugi::xml_node sceneNode = root.append_child("scene");
 	sceneNode.append_attribute("id") = gameState_.currentSceneId;
 	sceneNode.append_attribute("map") = gameState_.currentMapPath.c_str();
+	sceneNode.append_attribute("visitedRooms") = gameState_.visitedRoomsStr.c_str();
+	sceneNode.append_attribute("mapPurchased") = gameState_.mapPurchasedStr.c_str();
 
 	// Player state
 	pugi::xml_node playerNode = root.append_child("player");
@@ -297,6 +378,8 @@ bool SaveSystem::WriteXML(const std::string& filename)
 	stateNode.append_attribute("jumpForce") = gameState_.playerJumpForce;
 	stateNode.append_attribute("isJumping") = gameState_.playerIsJumping;
 	stateNode.append_attribute("health") = gameState_.playerHealth;
+	stateNode.append_attribute("hasBlanket") = gameState_.playerHasBlanket;
+	stateNode.append_attribute("hasSlingshot") = gameState_.playerHasSlingshot;
 
 	// Entities node (placeholder for future)
 	pugi::xml_node entitiesNode = root.append_child("entities");
@@ -345,6 +428,8 @@ bool SaveSystem::ReadXML(const std::string& filename)
 	{
 		gameState_.currentSceneId = sceneNode.attribute("id").as_int();
 		gameState_.currentMapPath = sceneNode.attribute("map").as_string();
+		gameState_.visitedRoomsStr = sceneNode.attribute("visitedRooms").as_string("");
+		gameState_.mapPurchasedStr = sceneNode.attribute("mapPurchased").as_string("");
 	}
 
 	// Read player state
@@ -365,6 +450,8 @@ bool SaveSystem::ReadXML(const std::string& filename)
 			gameState_.playerJumpForce = stateNode.attribute("jumpForce").as_float(2.5f);
 			gameState_.playerIsJumping = stateNode.attribute("isJumping").as_bool(false);
 			gameState_.playerHealth = stateNode.attribute("health").as_int(3);
+			gameState_.playerHasBlanket = stateNode.attribute("hasBlanket").as_bool(false);
+			gameState_.playerHasSlingshot = stateNode.attribute("hasSlingshot").as_bool(false);
 		}
 	}
 
