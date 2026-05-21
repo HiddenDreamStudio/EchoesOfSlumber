@@ -196,6 +196,15 @@ bool EntityManager::Update(float dt)
 }
 
 bool EntityManager::PostUpdate() {
-	// Entity deletion is already handled in Update() — no need to double-check here
-	return true;
+	ZoneScoped;
+	bool ret = true;
+
+	for (const auto entity : entities)
+	{
+		if (entity->active == false) continue;
+		ret = entity->PostUpdate();
+		if (!ret) break;
+	}
+
+	return ret;
 }
