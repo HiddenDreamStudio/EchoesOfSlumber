@@ -103,6 +103,7 @@ bool AnimationSet::LoadFromTSX(const char* tsxPath,
         else {
             name = "tile_" + std::to_string(baseId);
         }
+        std::printf("[ANIMATION DEBUG] tsx=%s, tile_id=%d, matched_name=%s\n", tsxPath, baseId, name.c_str());
 
         Animation clip;
         clip.SetLoop(true);
