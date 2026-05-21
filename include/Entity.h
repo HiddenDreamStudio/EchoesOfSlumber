@@ -10,6 +10,7 @@ enum class EntityType
 	ENEMY,
 	ENEMY_B,
 	ENEMY_C,
+	BOUNCER,
 	PROJECTILE,
 	CHECKPOINT,
 	BOX,

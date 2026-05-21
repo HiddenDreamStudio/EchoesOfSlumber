@@ -9,6 +9,7 @@
 #include "DropDoll.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
+#include "Bouncer.h"
 #include "Boss1.h"
 #include "RopedRock.h"
 #include "Checkpoint.h"
@@ -573,6 +574,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
 
                 std::string entityType = objectNode.attribute("type").as_string();
+                if (entityType.empty()) entityType = objectNode.attribute("class").as_string();
                 if (entityType.empty()) {
                     entityType = objectNode.attribute("class").as_string();
                 }
@@ -630,6 +632,15 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     enemyC->position = Vector2D(x, y);
                     enemyC->Start();
                     LOG("EnemyC spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "Bouncer") {
+                    float w = objectNode.attribute("width").as_float(96.0f);
+                    float h = objectNode.attribute("height").as_float(96.0f);
+                    auto bouncer = std::dynamic_pointer_cast<Bouncer>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOUNCER));
+                    bouncer->position = Vector2D(x, y);
+                    bouncer->SetSpawnSize(w, h);
+                    bouncer->Start();
+                    LOG("Bouncer spawned at: %f, %f (size: %.0fx%.0f)", x, y, w, h);
                 }
                 else if (entityType == "Boss1") {
                     auto boss = std::dynamic_pointer_cast<Boss1>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOSS_1));
