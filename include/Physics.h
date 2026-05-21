@@ -81,6 +81,7 @@ public:
     PhysBody* CreateCircle(int x, int y, int radious, bodyType type);
     PhysBody* CreateCapsule(int x, int y, int width, int height, bodyType type, float friction = 0.6f);
     PhysBody* CreateRectangleSensor(int x, int y, int width, int height, bodyType type);
+    PhysBody* CreateCircleSensor(int x, int y, int radious, bodyType type);
     PhysBody* CreateChain(int x, int y, int* points, int size, bodyType type, float friction = 0.6f);
     PhysBody* CreateConvexPolygon(int x, int y, int* points, int size, bodyType type, float friction = 0.6f);
 
