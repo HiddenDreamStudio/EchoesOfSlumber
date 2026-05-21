@@ -9,6 +9,8 @@
 #include "DropDoll.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
+#include "EnemyPlush.h"
+#include "EnemyStitchling.h"
 #include "Bouncer.h"
 #include "Boss1.h"
 #include "RopedRock.h"
@@ -553,6 +555,16 @@ bool Map::GetSlingshotPosition(float& outX, float& outY) const
     return false;
 }
 
+bool Map::GetStuffedAnimalPosition(float& outX, float& outY) const
+{
+    if (mapData.stuffedAnimalFound) {
+        outX = mapData.stuffedAnimalX;
+        outY = mapData.stuffedAnimalY;
+        return true;
+    }
+    return false;
+}
+
 MapLayer* Map::GetNavigationLayer() {
     for (const auto& layer : mapData.layers) {
         if (layer->properties.GetProperty("Navigation") != NULL &&
@@ -631,6 +643,18 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     enemyC->position = Vector2D(x, y);
                     enemyC->Start();
                     LOG("EnemyC spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "EnemyPlush") {
+                    auto enemyPlush = std::dynamic_pointer_cast<EnemyPlush>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_PLUSH));
+                    enemyPlush->position = Vector2D(x, y);
+                    enemyPlush->Start();
+                    LOG("EnemyPlush spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "EnemyStitchling") {
+                    auto stitchling = std::dynamic_pointer_cast<EnemyStitchling>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_STITCHLING));
+                    stitchling->position = Vector2D(x, y);
+                    stitchling->Start();
+                    LOG("EnemyStitchling spawned at: %f, %f", x, y);
                 }
                 else if (entityType == "Bouncer") {
                     float w = objectNode.attribute("width").as_float(96.0f);
@@ -819,6 +843,12 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     mapData.slingshotY = y;
                     LOG("Slingshot position loaded from TMX at: %f, %f", x, y);
                 }
+                else if (entityType == "Oso" || entityType == "Peluche" || entityType == "StuffedAnimal") {
+                    mapData.stuffedAnimalFound = true;
+                    mapData.stuffedAnimalX = x;
+                    mapData.stuffedAnimalY = y;
+                    LOG("StuffedAnimal position loaded from TMX at: %f, %f", x, y);
+                }
             }
         }
         else if (objectGroupNode.attribute("name").as_string() == std::string("Checkpoint")) {
@@ -859,6 +889,14 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     mapData.slingshotY = y;
                     LOG("Slingshot position loaded from InteractiveAssets at: %f, %f", x, y);
                 }
+                else if (objClass == "Oso" || objClass == "Peluche" || objClass == "StuffedAnimal") {
+                    float x = objectNode.attribute("x").as_float();
+                    float y = objectNode.attribute("y").as_float();
+                    mapData.stuffedAnimalFound = true;
+                    mapData.stuffedAnimalX = x;
+                    mapData.stuffedAnimalY = y;
+                    LOG("StuffedAnimal position loaded from InteractiveAssets at: %f, %f", x, y);
+                }
             }
         }
         else if (objectGroupNode.attribute("name").as_string() == std::string("Weapons")) {
@@ -873,6 +911,14 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     mapData.slingshotX = x;
                     mapData.slingshotY = y;
                     LOG("Slingshot position loaded from Weapons at: %f, %f", x, y);
+                }
+                else if (objClass == "Oso" || objClass == "Peluche" || objClass == "StuffedAnimal") {
+                    float x = objectNode.attribute("x").as_float();
+                    float y = objectNode.attribute("y").as_float();
+                    mapData.stuffedAnimalFound = true;
+                    mapData.stuffedAnimalX = x;
+                    mapData.stuffedAnimalY = y;
+                    LOG("StuffedAnimal position loaded from Weapons at: %f, %f", x, y);
                 }
             }
         }
