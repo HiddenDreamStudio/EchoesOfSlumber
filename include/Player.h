@@ -77,6 +77,7 @@ public:
 	//Audio fx
 	int pickCoinFxId = -1;
 	int jumpFxId = -1;
+	int landFxId = -1;
 	int stepsFxId = -1;
 	int gameOverFxId = -1;
 
