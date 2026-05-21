@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="301" height="158" tilewidth="64" tileheight="64" infinite="0" nextlayerid="18" nextobjectid="384">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="301" height="158" tilewidth="64" tileheight="64" infinite="0" nextlayerid="19" nextobjectid="385">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 2/TL_Nivell_2_01.png" width="640" height="640"/>
   <tile id="0">
@@ -285,6 +285,9 @@
  <imagelayer id="14" name="Background" parallaxx="0" parallaxy="0" repeatx="1" repeaty="1">
   <image source="Nivell 2/F_Nivell_2.png" width="1920" height="1080"/>
  </imagelayer>
+ <objectgroup id="18" name="Weapons">
+  <object id="384" name="Tirachinas" type="Tiraxines" x="7305.21" y="5238.42" width="69.697" height="72.7273"/>
+ </objectgroup>
  <objectgroup id="11" name="Background">
   <object id="28" gid="1530" x="16734.7" y="9710" width="341" height="519.025"/>
   <object id="29" gid="1533" x="14632" y="9688" width="505" height="907"/>
@@ -357,7 +360,7 @@
   <object id="118" gid="1551" x="7140" y="1398.85" width="163" height="270.85"/>
  </objectgroup>
  <objectgroup id="12" name="Entities">
-  <object id="258" name="Player" type="Player" x="16384" y="9568" width="96" height="96"/>
+  <object id="258" name="Player" type="Player" x="16469.3" y="9562.67" width="96" height="96"/>
   <object id="343" type="Platform" x="13876.1" y="7320.97" width="273.333" height="92">
    <properties>
     <property name="path" value="13887,7380;13887,5800"/>
@@ -389,52 +392,52 @@
   <object id="362" type="RopedRock" x="10694" y="3586.5" width="110" height="148"/>
   <object id="365" type="RopedRock" x="11022.5" y="3609.75" width="110" height="148"/>
   <object id="366" type="RopedRock" x="11374.5" y="3689.75" width="110" height="148"/>
-  <object id="368" name="EnemyB" type="EnemyB" x="13994.7" y="9644" width="32" height="32">
+  <object id="368" name="EnemyStitchling" type="EnemyStitchling" x="14078.7" y="9621.33" width="61.3333" height="53.3333">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="369" name="EnemyB" type="EnemyB" x="12100" y="9644" width="32" height="32">
+  <object id="369" name="EnemyPlush" type="EnemyPlush" x="12100" y="9644" width="32" height="32">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="370" name="EnemyB" type="EnemyB" x="8399" y="9445" width="32" height="32">
+  <object id="370" name="EnemyStitchling" type="EnemyStitchling" x="8399" y="9445" width="32" height="32">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="371" name="EnemyB" type="EnemyB" x="3774.67" y="10020" width="32" height="32">
+  <object id="371" name="EnemyPlush" type="EnemyPlush" x="3774.67" y="10020" width="32" height="32">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="372" name="EnemyB" type="EnemyB" x="6619" y="6637" width="32" height="32">
+  <object id="372" name="EnemyStitchling" type="EnemyStitchling" x="6619" y="6637" width="32" height="32">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="373" name="EnemyB" type="EnemyB" x="16296.3" y="5799.06" width="32" height="32">
+  <object id="373" name="EnemyPlush" type="EnemyPlush" x="16296.3" y="5799.06" width="32" height="32">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="374" name="EnemyC" type="EnemyC" x="12641.1" y="7392.24" width="32" height="32"/>
-  <object id="375" name="EnemyC" type="EnemyC" x="5157.33" y="7898.67" width="32" height="32"/>
-  <object id="376" name="EnemyC" type="EnemyC" x="16123.4" y="2071.88" width="32" height="32"/>
-  <object id="377" name="EnemyC" type="EnemyC" x="18205.2" y="4017.33" width="32" height="32"/>
-  <object id="378" name="EnemyC" type="EnemyC" x="2847.64" y="2344.61" width="32" height="32"/>
-  <object id="379" name="Enemy" type="Enemy" x="360" y="2312" width="32" height="32"/>
-  <object id="380" name="Enemy" type="Enemy" x="4374" y="5028" width="32" height="32"/>
-  <object id="381" name="Enemy" type="Enemy" x="14820" y="5788" width="32" height="32"/>
-  <object id="382" name="Enemy" type="Enemy" x="17860" y="2832" width="32" height="32"/>
-  <object id="383" name="Enemy" type="Enemy" x="13272" y="2056" width="32" height="32"/>
+  <object id="374" name="EnemyStitchling" type="EnemyStitchling" x="12641.1" y="7392.24" width="32" height="32"/>
+  <object id="375" name="EnemyPlush" type="EnemyPlush" x="5157.33" y="7898.67" width="32" height="32"/>
+  <object id="376" name="EnemyStitchling" type="EnemyStitchling" x="16123.4" y="2071.88" width="32" height="32"/>
+  <object id="377" name="EnemyPlush" type="EnemyPlush" x="18205.2" y="4017.33" width="32" height="32"/>
+  <object id="378" name="EnemyStitchling" type="EnemyStitchling" x="2847.64" y="2344.61" width="32" height="32"/>
+  <object id="379" name="EnemyPlush" type="EnemyPlush" x="360" y="2312" width="32" height="32"/>
+  <object id="380" name="EnemyStitchling" type="EnemyStitchling" x="4374" y="5028" width="32" height="32"/>
+  <object id="381" name="EnemyPlush" type="EnemyPlush" x="14820" y="5788" width="32" height="32"/>
+  <object id="382" name="EnemyStitchling" type="EnemyStitchling" x="17860" y="2832" width="32" height="32"/>
+  <object id="383" name="EnemyPlush" type="EnemyPlush" x="13272" y="2056" width="32" height="32"/>
  </objectgroup>
  <objectgroup id="9" name="Middleground">
   <object id="119" gid="1501" x="16514" y="9683.67" width="342.31" height="323.667"/>
@@ -443,7 +446,7 @@
   <object id="123" gid="1499" x="12433.8" y="9703" width="514.189" height="349"/>
   <object id="124" gid="1488" x="11326.7" y="9514.33" width="194.333" height="374.125"/>
   <object id="125" gid="1486" x="11564" y="9695.67" width="445.855" height="263.667"/>
-  <object id="126" gid="1500" x="10468" y="9490" width="203.667" height="190.964"/>
+  <object id="126" gid="1500" x="10564" y="9474" width="531.667" height="190.964"/>
   <object id="127" gid="1494" x="9872" y="9491.67" width="261" height="362.992"/>
   <object id="128" gid="1490" x="8530.67" y="9497" width="538.126" height="469"/>
   <object id="131" gid="1491" x="7604" y="9506.33" width="311.667" height="246.124"/>
