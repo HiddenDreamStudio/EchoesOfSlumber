@@ -22,6 +22,12 @@ struct GameState
 	float playerJumpForce = 2.5f;
 	bool playerIsJumping = false;
 	int playerHealth = 3;
+	bool playerHasBlanket = false;
+	bool playerHasSlingshot = false;
+
+	// Map fog registry
+	std::string visitedRoomsStr;
+	std::string mapPurchasedStr;
 
 	// Timestamp
 	long long saveTimestamp = 0;

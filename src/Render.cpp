@@ -67,6 +67,16 @@ bool Render::Awake()
         // Ensure eyelid effect is reset
         eyelidActive_ = false;
         eyelidElapsed_ = 0.0f;
+
+		// Create scene target texture for post processing (1280x720 logical size)
+		sceneTargetTex_ = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 1280, 720);
+		if (!sceneTargetTex_) {
+			LOG("Error: sceneTargetTex_ could not be created! SDL_Error: %s", SDL_GetError());
+		}
+
+		// Create warm gold radial glow texture (300px radius)
+		SDL_Color goldColor = { 255, 230, 180, 255 };
+		glowTex_ = CreateRadialGlowTexture(300, goldColor);
 	}
 
 	TTF_Init();
@@ -88,6 +98,9 @@ bool Render::Start()
 
 bool Render::PreUpdate()
 {
+	if (sceneTargetTex_) {
+		SDL_SetRenderTarget(renderer, sceneTargetTex_);
+	}
 	SDL_SetRenderDrawColor(renderer, background.r, background.g, background.b, background.a);
 	SDL_RenderClear(renderer);
 	return true;
@@ -110,6 +123,44 @@ bool Render::Update(float dt)
 
 bool Render::PostUpdate()
 {
+	if (sceneTargetTex_) {
+		// Reset target to default screen backbuffer
+		SDL_SetRenderTarget(renderer, nullptr);
+
+		// Clear screen backbuffer to background color
+		SDL_SetRenderDrawColor(renderer, background.r, background.g, background.b, background.a);
+		SDL_RenderClear(renderer);
+
+		float blurVal = blurIntensity;
+
+		if (blurVal > 0.0f) {
+			// Draw base scene
+			SDL_SetTextureBlendMode(sceneTargetTex_, SDL_BLENDMODE_BLEND);
+			SDL_SetTextureAlphaMod(sceneTargetTex_, 255);
+			SDL_RenderTexture(renderer, sceneTargetTex_, nullptr, nullptr);
+
+			// Enhanced Soft Focus (8-tap star pattern) for a deeper cinematic feel
+			float offset = 5.0f * blurVal;
+			SDL_FRect dOffsets[8] = {
+				{ -offset, -offset, 1280.0f, 720.0f }, {  offset, -offset, 1280.0f, 720.0f },
+				{ -offset,  offset, 1280.0f, 720.0f }, {  offset,  offset, 1280.0f, 720.0f },
+				{ -offset * 1.5f, 0, 1280.0f, 720.0f }, { offset * 1.5f, 0, 1280.0f, 720.0f },
+				{ 0, -offset * 1.5f, 1280.0f, 720.0f }, { 0, offset * 1.5f, 1280.0f, 720.0f }
+			};
+
+			SDL_SetTextureAlphaMod(sceneTargetTex_, (Uint8)(55)); // Increased opacity for stronger effect
+			for (int i = 0; i < 8; ++i) {
+				SDL_RenderTexture(renderer, sceneTargetTex_, nullptr, &dOffsets[i]);
+			}
+		}
+		else {
+			// Draw native 1:1 scene
+			SDL_SetTextureBlendMode(sceneTargetTex_, SDL_BLENDMODE_BLEND);
+			SDL_SetTextureAlphaMod(sceneTargetTex_, 255);
+			SDL_RenderTexture(renderer, sceneTargetTex_, nullptr, nullptr);
+		}
+	}
+
 	DrawFade();
     DrawEyelidEffect();
 	SDL_RenderPresent(renderer);
@@ -152,19 +203,21 @@ void Render::StartEyelidEffect(float duration)
 
 void Render::FollowTarget(float dt)
 {
-    float viewW = GetWorldViewportWidth();
+	if (!cameraMovementActive_) return; // Skip movement if disabled (e.g. during cinematic intro)
+
+	float viewW = GetWorldViewportWidth();
     float viewH = GetWorldViewportHeight();
 
     // Snap camera on first call instead of lerping from (0,0)
     if (!cameraInitialized_) {
         camera.x = static_cast<int>(-(cameraTargetX_ - viewW / 2.0f));
-        camera.y = static_cast<int>(-(cameraTargetY_ - viewH / 2.0f));
+        camera.y = static_cast<int>(-(cameraTargetY_ - viewH * 0.75f)); // RAISED: Player at 75% of screen height
         cameraInitialized_ = true;
         return;
     }
 
     float currentX = -camera.x + viewW / 2.0f;
-    float currentY = -camera.y + viewH / 2.0f;
+    float currentY = -camera.y + viewH * 0.75f; // RAISED anchor point
 
     float targetX = cameraTargetX_;
     float targetY = cameraTargetY_;
@@ -189,7 +242,7 @@ void Render::FollowTarget(float dt)
     float newY = currentY + (targetY - currentY) * lerpFactor;
 
     camera.x = static_cast<int>(-(newX - viewW / 2.0f));
-    camera.y = static_cast<int>(-(newY - viewH / 2.0f));
+    camera.y = static_cast<int>(-(newY - viewH * 0.75f)); // RAISED
 }
 
 bool Render::CleanUp()
@@ -203,6 +256,14 @@ bool Render::CleanUp()
 		if (window) SDL_ReleaseWindowFromGPUDevice(gpuDevice, window);
 		SDL_DestroyGPUDevice(gpuDevice);
 	}
+	if (sceneTargetTex_) {
+		SDL_DestroyTexture(sceneTargetTex_);
+		sceneTargetTex_ = nullptr;
+	}
+	if (glowTex_) {
+		SDL_DestroyTexture(glowTex_);
+		glowTex_ = nullptr;
+	}
 	if (renderer) SDL_DestroyRenderer(renderer);
 	return true;
 }
@@ -215,18 +276,22 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 {
 	bool ret = true;
 	int scale = Engine::GetInstance().window->GetScale();
+	float s = cameraZoom;
+	if (speed == 0.0f) s = 1.0f; // UI elements don't zoom
+
 	SDL_FRect rect;
-	rect.x = (float)((int)(camera.x * speed) + x * scale);
-	rect.y = (float)((int)(camera.y * speed) + y * scale);
+	// Apply world-space zoom centered at the dynamic zoomCenter
+	rect.x = (float)((zoomCenterX + s * ((float)camera.x * speed + (float)x - zoomCenterX)) * scale);
+	rect.y = (float)((zoomCenterY + s * ((float)camera.y * speed + (float)y - zoomCenterY)) * scale);
 
 	if (section != NULL) {
-		rect.w = (float)(section->w * scale * drawScale);
-		rect.h = (float)(section->h * scale * drawScale);
+		rect.w = (float)(section->w * scale * drawScale * s);
+		rect.h = (float)(section->h * scale * drawScale * s);
 	} else {
 		int tw, th;
 		Engine::GetInstance().textures->GetSize(texture, tw, th);
-		rect.w = (float)tw * scale;
-		rect.h = (float)th * scale;
+		rect.w = (float)tw * scale * s;
+		rect.h = (float)th * scale * s;
 	}
 
 	SDL_FRect srcRect;
@@ -239,7 +304,7 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 	SDL_FPoint pivot;
 	SDL_FPoint* p = NULL;
 	if (pivotX != INT_MAX && pivotY != INT_MAX) {
-		pivot = { (float)pivotX, (float)pivotY };
+		pivot = { (float)pivotX * s, (float)pivotY * s }; // Scale pivot for rotated textures
 		p = &pivot;
 	}
 
@@ -253,13 +318,21 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 bool Render::DrawRectangle(const SDL_Rect& rect, Uint8 r, Uint8 g, Uint8 b, Uint8 a, bool filled, bool use_camera) const
 {
 	int scale = Engine::GetInstance().window->GetScale();
+	float s = cameraZoom;
+	if (!use_camera) s = 1.0f;
+
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(renderer, r, g, b, a);
 
 	SDL_FRect rec;
 	float camX = use_camera ? (float)camera.x : 0.0f;
 	float camY = use_camera ? (float)camera.y : 0.0f;
-	rec = { camX + rect.x * scale, camY + rect.y * scale, (float)rect.w * scale, (float)rect.h * scale };
+	
+	// Apply world-space zoom centered at the dynamic zoomCenter
+	rec.x = (float)((zoomCenterX + s * (camX + (float)rect.x - zoomCenterX)) * scale);
+	rec.y = (float)((zoomCenterY + s * (camY + (float)rect.y - zoomCenterY)) * scale);
+	rec.w = (float)rect.w * scale * s;
+	rec.h = (float)rect.h * scale * s;
 
 	bool result = (filled ? SDL_RenderFillRect(renderer, &rec) : SDL_RenderRect(renderer, &rec));
 	if (!result) LOG("DrawRectangle error: %s", SDL_GetError());
@@ -269,11 +342,20 @@ bool Render::DrawRectangle(const SDL_Rect& rect, Uint8 r, Uint8 g, Uint8 b, Uint
 bool Render::DrawLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a, bool use_camera) const
 {
 	int scale = Engine::GetInstance().window->GetScale();
+	float s = cameraZoom;
+	if (!use_camera) s = 1.0f;
+
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(renderer, r, g, b, a);
 	float camX = use_camera ? (float)camera.x : 0.0f;
 	float camY = use_camera ? (float)camera.y : 0.0f;
-	bool result = SDL_RenderLine(renderer, camX + (float)x1 * scale, camY + (float)y1 * scale, camX + (float)x2 * scale, camY + (float)y2 * scale);
+
+	float fx1 = (float)((zoomCenterX + s * (camX + (float)x1 - zoomCenterX)) * scale);
+	float fy1 = (float)((zoomCenterY + s * (camY + (float)y1 - zoomCenterY)) * scale);
+	float fx2 = (float)((zoomCenterX + s * (camX + (float)x2 - zoomCenterX)) * scale);
+	float fy2 = (float)((zoomCenterY + s * (camY + (float)y2 - zoomCenterY)) * scale);
+
+	bool result = SDL_RenderLine(renderer, fx1, fy1, fx2, fy2);
 	if (!result) LOG("DrawLine error: %s", SDL_GetError());
 	return result;
 }
@@ -281,16 +363,22 @@ bool Render::DrawLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b,
 bool Render::DrawCircle(int x, int y, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a, bool use_camera) const
 {
 	int scale = Engine::GetInstance().window->GetScale();
+	float s = cameraZoom;
+	if (!use_camera) s = 1.0f;
+
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(renderer, r, g, b, a);
-	float cx = (float)((use_camera ? camera.x : 0) + x * scale);
-	float cy = (float)((use_camera ? camera.y : 0) + y * scale);
+	float camX = use_camera ? (float)camera.x : 0.0f;
+	float camY = use_camera ? (float)camera.y : 0.0f;
+
+	float cx = (float)((zoomCenterX + s * (camX + (float)x - zoomCenterX)) * scale);
+	float cy = (float)((zoomCenterY + s * (camY + (float)y - zoomCenterY)) * scale);
 	
 	SDL_FPoint points[361]; // Use stack array for performance
 	float factor = (float)M_PI / 180.0f;
 	for (int i = 0; i < 360; ++i) {
-		points[i].x = cx + (float)(radius * cos(i * factor) * scale);
-		points[i].y = cy + (float)(radius * sin(i * factor) * scale);
+		points[i].x = cx + (float)(radius * cos(i * factor) * scale * s);
+		points[i].y = cy + (float)(radius * sin(i * factor) * scale * s);
 	}
 	points[360] = points[0];
 	bool result = SDL_RenderLines(renderer, points, 361);
@@ -316,8 +404,8 @@ bool Render::DrawText(const char* text, int x, int y, int w, int h, SDL_Color co
 bool Render::IsOnScreenWorldRect(float x, float y, float w, float h, int margin) const
 {
 	float camX = -(float)camera.x, camY = -(float)camera.y;
-	float sw = (float)camera.w, sh = (float)camera.h;
-	return !(x + w + margin < camX || x - margin > camX + sw || y + h + margin < camY || y - margin > camY + sh);
+	float vW = GetWorldViewportWidth(), vH = GetWorldViewportHeight();
+	return !(x + w + margin < camX || x - margin > camX + vW || y + h + margin < camY || y - margin > camY + vH);
 }
 
 void Render::SetCameraTarget(float x, float y)
@@ -335,23 +423,39 @@ void Render::SetCameraTarget(float x, float y)
 }
 void Render::SetCameraPosition(float x, float y)
 {
-	float vW = GetWorldViewportWidth();
-	float vH = GetWorldViewportHeight();
-	camera.x = (int)(-x + vW / 2);
-	camera.y = (int)(-y + vH / 2);
+	// LOGIC FIX: In Silksong, we want the player to stay at logical (640, 540) 
+	// which is the center-X and 75%-Y of the 1280x720 screen.
+	// This keeps Hornet in the lower third of the viewport.
+	camera.x = (int)(-x + 640.0f);
+	camera.y = (int)(-y + 540.0f); // RAISED: 720 * 0.75 = 540
 	cameraTargetX_ = x;
 	cameraTargetY_ = y;
 	cameraInitialized_ = true;
+
+	LOG("RENDER: SetCameraPosition to (%.2f, %.2f). Result camera.x/y: (%d, %d). Player Screen Pos: (%.2f, %.2f)", 
+		x, y, camera.x, camera.y, (float)camera.x + x, (float)camera.y + y);
 }
 
 void Render::ClampCameraToMapBounds(float mapWidth, float mapHeight)
 {
+	if (!cameraClampingActive_) {
+		// LOG("RENDER: ClampCameraToMapBounds SKIPPED (clamping inactive)");
+		return;
+	}
+
 	float vW = GetWorldViewportWidth();
 	float vH = GetWorldViewportHeight();
+	int oldX = camera.x;
+	int oldY = camera.y;
+
 	if (camera.x > 0) camera.x = 0;
 	if (camera.x < -(mapWidth - vW)) camera.x = (int)-(mapWidth - vW);
 	if (camera.y > 0) camera.y = 0;
 	if (camera.y < -(mapHeight - vH)) camera.y = (int)-(mapHeight - vH);
+
+	if (oldX != camera.x || oldY != camera.y) {
+		LOG("RENDER: Camera CLAMPED from (%d, %d) to (%d, %d). Map: %.2f x %.2f. Viewport: %.2f x %.2f", oldX, oldY, camera.x, camera.y, mapWidth, mapHeight, vW, vH);
+	}
 }
 
 void Render::SetDeadZone(float w, float h)
@@ -369,17 +473,18 @@ Vector2D Render::GetCameraPosition() const
 {
 	float vW = GetWorldViewportWidth();
 	float vH = GetWorldViewportHeight();
-	return Vector2D((float)(-camera.x + vW / 2), (float)(-camera.y + vH / 2));
+	// Return the logical world point the camera is looking at (center-X, 75%-Y)
+	return Vector2D((float)(-camera.x + vW / 2.0f), (float)(-camera.y + vH * 0.75f));
 }
 
 float Render::GetWorldViewportWidth() const
 {
-	return (float)camera.w / Engine::GetInstance().window->GetScale();
+	return 1280.0f / cameraZoom;
 }
 
 float Render::GetWorldViewportHeight() const
 {
-	return (float)camera.h / Engine::GetInstance().window->GetScale();
+	return 720.0f / cameraZoom;
 }
 
 bool Render::DrawTextureAlpha(SDL_Texture* t, int x, int y, int w, int h, Uint8 a) const
@@ -554,3 +659,61 @@ SDL_Color Render::GetAmbientTint() const { return ambientTint_; }
 void Render::ApplyAmbientTint(SDL_Texture* t) const { if (t) SDL_SetTextureColorMod(t, ambientTint_.r, ambientTint_.g, ambientTint_.b); }
 void Render::ResetAmbientTint(SDL_Texture* t) const { if (t) SDL_SetTextureColorMod(t, 255, 255, 255); }
 
+SDL_Texture* Render::CreateRadialGlowTexture(int radius, SDL_Color centerColor)
+{
+	int size = radius * 2;
+	SDL_Texture* tex = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, size, size);
+	if (!tex) return nullptr;
+
+	SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+
+	void* pixels;
+	int pitch;
+	if (SDL_LockTexture(tex, nullptr, &pixels, &pitch) == 0) {
+		Uint8* bytes = (Uint8*)pixels;
+		float maxDist = (float)radius;
+		for (int y = 0; y < size; ++y) {
+			float dy = (float)(y - radius);
+			for (int x = 0; x < size; ++x) {
+				float dx = (float)(x - radius);
+				float dist = std::sqrt(dx * dx + dy * dy);
+				float factor = 1.0f - (dist / maxDist);
+				if (factor < 0.0f) factor = 0.0f;
+				factor = factor * factor * factor;
+
+				Uint8 r = (Uint8)(centerColor.r * factor);
+				Uint8 g = (Uint8)(centerColor.g * factor);
+				Uint8 b = (Uint8)(centerColor.b * factor);
+				Uint8 a = (Uint8)(centerColor.a * factor);
+
+				Uint8* pixel = bytes + y * pitch + x * 4;
+				pixel[0] = r;
+				pixel[1] = g;
+				pixel[2] = b;
+				pixel[3] = a;
+			}
+		}
+		SDL_UnlockTexture(tex);
+	}
+	return tex;
+}
+
+void Render::DrawPlayerGlow(int worldX, int worldY, float radiusScale, Uint8 alpha)
+{
+	if (!glowTex_) return;
+	int scale = Engine::GetInstance().window->GetScale();
+	float s = cameraZoom;
+	float radius = 300.0f * radiusScale;
+	float size = radius * 2.0f;
+
+	SDL_FRect dst;
+	// Apply world-space zoom centered at the dynamic zoomCenter
+	dst.x = (float)((zoomCenterX + s * ((float)camera.x + (float)worldX - radius - zoomCenterX)) * scale);
+	dst.y = (float)((zoomCenterY + s * ((float)camera.y + (float)worldY - radius - zoomCenterY)) * scale);
+	dst.w = size * scale * s;
+	dst.h = size * scale * s;
+
+	SDL_SetTextureBlendMode(glowTex_, SDL_BLENDMODE_ADD);
+	SDL_SetTextureAlphaMod(glowTex_, alpha);
+	SDL_RenderTexture(renderer, glowTex_, nullptr, &dst);
+}

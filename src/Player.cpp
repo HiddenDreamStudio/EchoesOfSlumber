@@ -596,11 +596,13 @@ void Player::Draw(float dt) {
 	}
 
 	if (isWakingUp) {
-		wakeUpAnim.Update(dt);
-		if (wakeUpAnim.HasFinishedOnce()) {
-			isWakingUp = false;
+		if (wakeUpAnimStarted) {
+			wakeUpAnim.Update(dt);
+			if (wakeUpAnim.HasFinishedOnce()) {
+				isWakingUp = false;
+			}
 		}
-		else {
+		if (isWakingUp) {
 			const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
 			float wakeScale = 0.65f;
 			int wakeWidth = (int)(258.0f * wakeScale);
