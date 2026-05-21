@@ -1420,7 +1420,7 @@ void Scene::UpdateGameplay(float dt)
 				float radiusScale = 0.85f * pulse;
 				Uint8 alpha = (Uint8)(230.0f * (1.0f - smoothT));
 				if (alpha > 0) {
-					Engine::GetInstance().render->DrawPlayerGlow((int)pX, (int)pY, radiusScale, alpha);
+					Engine::GetInstance().render->DrawWhiteGlow((int)pX, (int)pY, radiusScale, alpha);
 				}
 			}
 		}
@@ -2575,7 +2575,7 @@ void Scene::DrawMapViewer(int winW, int winH)
 			drawH * (float)scale
 		};
 
-		bool spriteNativeRight = (src.y / 128 == 3 || src.y / 128 == 1);
+		bool spriteNativeRight = (src.y / 128 == 3 || src.y / 128 == 1 || src.y / 128 == 0);
 		bool facingRight = player->IsFacingRight();
 		SDL_FlipMode flip;
 		if (spriteNativeRight)
