@@ -39,6 +39,18 @@ bool Cinematics::Update(float dt)
 {
 	if (!playing) return true;
 
+	// Check if player wants to skip the cinematic
+	auto& input = *Engine::GetInstance().input;
+	if (input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN || 
+		input.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+		input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+		input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN) 
+	{
+		LOG("Cinematics: Skip requested by user.");
+		skipRequested = true;
+		return true;
+	}
+
 	// Accumulate time
 	elapsedMs += dt;
 	double elapsedSec = elapsedMs / 1000.0;
