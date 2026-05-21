@@ -9,6 +9,7 @@
 #include "DropDoll.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
+#include "Bouncer.h"
 #include "Boss1.h"
 #include "RopedRock.h"
 #include "Checkpoint.h"
@@ -572,6 +573,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
 
                 std::string entityType = objectNode.attribute("type").as_string();
+                if (entityType.empty()) entityType = objectNode.attribute("class").as_string();
                 if (entityType.empty()) {
                     entityType = objectNode.attribute("class").as_string();
                 }
@@ -589,7 +591,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                         player->SetPosition(Vector2D(x, y));
                     }
                 }
-                else if (entityType == "Enemy") {
+                else if (entityType == "Enemy" || entityType == "SpiderCandy") {
                     auto enemy = std::dynamic_pointer_cast<EnemyCarmel>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
                     enemy->position = Vector2D(x, y);
 
@@ -605,7 +607,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     }
                     enemy->SetPatrolPoints(patrolLeft, patrolRight);
                     enemy->Start();
-                    LOG("Enemy spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
+                    LOG("Enemy (SpiderCandy) spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
                 }
                 else if (entityType == "EnemyB") {
                     auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
@@ -629,6 +631,15 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     enemyC->position = Vector2D(x, y);
                     enemyC->Start();
                     LOG("EnemyC spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "Bouncer") {
+                    float w = objectNode.attribute("width").as_float(96.0f);
+                    float h = objectNode.attribute("height").as_float(96.0f);
+                    auto bouncer = std::dynamic_pointer_cast<Bouncer>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOUNCER));
+                    bouncer->position = Vector2D(x, y);
+                    bouncer->SetSpawnSize(w, h);
+                    bouncer->Start();
+                    LOG("Bouncer spawned at: %f, %f (size: %.0fx%.0f)", x, y, w, h);
                 }
                 else if (entityType == "Boss1") {
                     auto boss = std::dynamic_pointer_cast<Boss1>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOSS_1));
@@ -686,6 +697,50 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     LOG("DropDoll spawned at (%.0f, %.0f), trigger width %.0f",
                         doll->position.getX(), doll->position.getY(), triggerW);
                 }
+                else if (entityType == "Platform") {
+                    auto platform = std::dynamic_pointer_cast<Platform>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));
+
+                    float baseX = objectNode.attribute("x").as_float();
+                    float baseY = objectNode.attribute("y").as_float();
+
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string pname = prop.attribute("name").as_string();
+
+                            if (pname == "speed")
+                                platform->speed = prop.attribute("value").as_float();
+
+                            if (pname == "texture")
+                                platform->texturePath = prop.attribute("value").as_string();
+
+                            if (pname == "trigger")                                         
+                                platform->triggerOnPlayer = prop.attribute("value").as_bool();
+
+                            if (pname == "path") {
+                                std::string pathStr = prop.attribute("value").as_string();
+                                std::stringstream ss(pathStr);
+                                std::string pair;
+                                while (std::getline(ss, pair, ';')) {
+                                    std::stringstream ssPair(pair);
+                                    std::string xStr, yStr;
+                                    if (std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
+                                        platform->AddWaypoint(Vector2D(std::stof(xStr), std::stof(yStr)));
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (!platform->waypoints.empty())
+                        platform->position = platform->waypoints[0];
+                    else
+                        platform->position = Vector2D(baseX, baseY);
+
+                    platform->Start();
+                    LOG("Platform spawned at: %f, %f", baseX, baseY);
+                    }
                 // Parse MovingPlatform from Tiled polylines
                 else if (entityType == "MovingPlatform") {
                     auto platform = std::dynamic_pointer_cast<Platform>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));

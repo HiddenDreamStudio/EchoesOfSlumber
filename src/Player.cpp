@@ -721,7 +721,8 @@ void Player::TakeDamage(int damage)
 	float closestDist = 999999.0f;
 	float enemyDirX = 0.0f;
 	for (const auto& entity : Engine::GetInstance().entityManager->entities) {
-		if ((entity->type == EntityType::ENEMY || entity->type == EntityType::ENEMY_B || entity->type == EntityType::ENEMY_C) && entity->active) {
+		if ((entity->type == EntityType::ENEMY || entity->type == EntityType::ENEMY_B ||
+			entity->type == EntityType::ENEMY_C || entity->type == EntityType::BOUNCER) && entity->active) {
 			float dx = entity->position.getX() - (float)playerX;
 			float dy = entity->position.getY() - (float)playerY;
 			float dist = dx * dx + dy * dy;
@@ -825,6 +826,7 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 		// Check if the player lands on top of the platform
 		if (playerY < platY) {
+			platformBelow = physB;
 			if (isJumping) {
 				// Play landing sound effect
 				Engine::GetInstance().audio->PlayFx(landFxId);
@@ -908,6 +910,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 {
+	if (physB->ctype == ColliderType::PLATFORM)
+		platformBelow = nullptr;
+
 	if (physB->ctype == ColliderType::PUSH_ROCK) {
 		pushContactCount_--;
 		if (pushContactCount_ <= 0) {
