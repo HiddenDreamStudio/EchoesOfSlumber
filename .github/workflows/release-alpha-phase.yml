@@ -1,4 +1,4 @@
-name: Build and Release Vertical Slice
+name: Build and Release Alpha Phase
 
 on:
   workflow_dispatch: # Allows manual trigger from the Actions tab
@@ -36,19 +36,21 @@ jobs:
         if (Test-Path "bin\Release\*.dll") { copy bin\Release\*.dll release_build\ }
         # Copy assets
         xcopy /E /I assets release_build\assets
+        # Copy config.xml
+        xcopy config.xml release_build\
         # Create ZIP
-        Compress-Archive -Path release_build\* -DestinationPath EchoesOfSlumber_VerticalSlice.zip
+        Compress-Archive -Path release_build\* -DestinationPath EchoesOfSlumber_AlphaPhase.zip
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: vertical-slice-${{ github.run_number }}
-        name: Vertical Slice Release
+        tag_name: alpha-phase-${{ github.run_number }}
+        name: Alpha Phase Release
         body: |
-          Automatic build of the Vertical Slice.
+          Automatic build of the Alpha Phase.
           Generated from commit: ${{ github.sha }}
         draft: false
         prerelease: false
-        files: EchoesOfSlumber_VerticalSlice.zip
+        files: EchoesOfSlumber_AlphaPhase.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
