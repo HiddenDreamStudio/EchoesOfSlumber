@@ -270,12 +270,10 @@ bool Render::CleanUp()
 	LOG("Destroying SDL render");
 	if (font) TTF_CloseFont(font);
 	if (menuFont) TTF_CloseFont(menuFont);
-	if (gpuDevice) {
-		// Release the window before destroying the GPU device
-		SDL_Window* window = Engine::GetInstance().window->window;
-		if (window) SDL_ReleaseWindowFromGPUDevice(gpuDevice, window);
-		SDL_DestroyGPUDevice(gpuDevice);
-	}
+	
+	// Note: gpuDevice is extracted from SDL_Renderer properties and is owned by it.
+	// It will be destroyed automatically when SDL_DestroyRenderer is called.
+
 	if (sceneTargetTex_) {
 		SDL_DestroyTexture(sceneTargetTex_);
 		sceneTargetTex_ = nullptr;
@@ -284,7 +282,14 @@ bool Render::CleanUp()
 		SDL_DestroyTexture(glowTex_);
 		glowTex_ = nullptr;
 	}
-	if (renderer) SDL_DestroyRenderer(renderer);
+	if (whiteGlowTex_) {
+		SDL_DestroyTexture(whiteGlowTex_);
+		whiteGlowTex_ = nullptr;
+	}
+	if (renderer) {
+		SDL_DestroyRenderer(renderer);
+		renderer = nullptr;
+	}
 	return true;
 }
 
