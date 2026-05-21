@@ -2199,7 +2199,38 @@ void Scene::PostUpdateGameplay()
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F6) == KEY_DOWN)
 			Engine::GetInstance().saveSystem->QuickSave();
 
-		// F1 / F2 / F3 / F4: switch maps with loading screen & tutorial card
+		// F7: Unlock all abilities
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F7) == KEY_DOWN)
+		{
+			if (player) {
+				capaCollected_ = true;
+				player->SetHasBlanket(true);
+				capaNotifTimer_ = CAPA_NOTIF_DURATION;
+
+				slingshotCollected_ = true;
+				player->SetHasSlingshot(true);
+				slingshotNotifTimer_ = SLINGSHOT_NOTIF_DURATION;
+
+				stuffedAnimalCollected_ = true;
+				player->SetHasStuffedAnimal(true);
+				stuffedAnimalNotifTimer_ = STUFFED_ANIMAL_NOTIF_DURATION;
+
+				LOG("DEBUG: All abilities unlocked (Cape, Slingshot, Stuffed Animal)!");
+				Engine::GetInstance().audio->PlayFx(player->pickCoinFxId);
+			}
+		}
+
+		// F8: Give 10 keys
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F8) == KEY_DOWN)
+		{
+			if (player) {
+				player->keys += 10;
+				LOG("DEBUG: Gave 10 keys to player (Total: %d)", player->keys);
+				Engine::GetInstance().audio->PlayFx(player->pickCoinFxId);
+			}
+		}
+
+		// F1 / F2 / F3 / F4: switch maps
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F1) == KEY_DOWN)
 			LoadMap1();
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F2) == KEY_DOWN)
