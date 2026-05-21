@@ -3,17 +3,24 @@
 #include "Player.h"
 #include "UIManager.h"
 #include "UIElement.h"
+#include <map>
+#include <set>
+#include <utility>
+
+class Boss; // forward declaration — full type in Scene.cpp
 
 enum class SceneID {
     INTRO,
     MAIN_MENU,
     INTRO_CINEMATIC,
+    TUTORIAL_TEXT_CARD,
     GAMEPLAY
 };
 
 class Scene : public Module
 {
 public:
+	friend class SaveSystem;
     Scene();
     ~Scene();
 
@@ -56,12 +63,27 @@ private:
     bool showSettings_ = false;
     int  settingsCooldown_ = 0;
 
+    // ── Settings in-place animation (main menu) ──────────────────────────────
+    enum class SettingsAnimState {
+        NONE,               // normal main menu buttons visible
+        FADE_OUT_BUTTONS,   // fading out Play/Options/Exit
+        FADE_IN_OPTIONS,    // fading in volume sliders + display mode + back
+        OPTIONS_ACTIVE,     // options fully visible and interactive
+        FADE_OUT_OPTIONS,   // fading out options
+        FADE_IN_BUTTONS     // fading in Play/Options/Exit
+    };
+    SettingsAnimState settingsAnimState_ = SettingsAnimState::NONE;
+    float settingsAnimTimer_ = 0.0f;
+    float settingsButtonsAlpha_ = 1.0f;   // alpha for Play/Options/Exit
+    float settingsOptionsAlpha_ = 0.0f;   // alpha for options controls
+    int   windowModeIndex_ = 0;           // 0=Windowed, 1=Fullscreen, 2=Borderless
+
     void LoadMainMenu();
     void UnloadMainMenu();
     void UpdateMainMenu(float dt);
     void PostUpdateMainMenu();
     void HandleMainMenuUIEvents(UIElement* uiElement);
-    void DrawSettingsPanel(int winW, int winH);
+    void DrawSettingsInPlace(int winW, int winH);
     void SetSettingsPanelVisible(bool visible);
 
     enum class MenuAnimState {
@@ -107,9 +129,45 @@ private:
     // =========================================================================
     //  INTRO CINEMATIC
     // =========================================================================
+    enum class IntroCinState {
+        PRE_VIDEO_LOADING,    // Pulsing "Loading..."
+        FADING_OUT_TO_VIDEO,  // Fade to black, fixed "Loading..."
+        PLAYING_VIDEO,        // Video starts with Fade In
+        FADING_OUT_FROM_VIDEO,// Fade to black after video, fixed "Loading..."
+        POST_VIDEO_LOADING    // Pulsing "Loading..." before title card
+    };
+    IntroCinState introCinState_ = IntroCinState::PRE_VIDEO_LOADING;
+
     void LoadIntroCinematic();
     void UnloadIntroCinematic();
     void UpdateIntroCinematic(float dt);
+    void DrawLoadingText(bool pulsing, float timer);
+    bool cinematicVideoStarted_ = false;
+    float introLoadingDelay_ = 0.0f;
+    bool introLoadingDelayActive_ = false;
+    static constexpr float INTRO_PRE_VIDEO_DELAY = 1500.0f;
+    static constexpr float INTRO_POST_VIDEO_DELAY = 2000.0f;
+
+    // =========================================================================
+    //  TUTORIAL TEXT CARD
+    // =========================================================================
+    void LoadTutorialTextCard();
+    void UnloadTutorialTextCard();
+    void UpdateTutorialTextCard(float dt);
+    float tutorialTimer_ = 0.0f;
+    SDL_Texture* texTutorialSeparator_ = nullptr;
+    int fxTitleCardPt1_ = -1;
+    int fxTitleCardPt2_ = -1;
+    bool pt1Played_ = false;
+    bool pt2Played_ = false;
+
+    // In-game intro sequence variables (Silksong-style phased transition)
+    float inGameIntroTimer_ = 0.0f;
+    bool inGameIntroActive_ = false;
+    float introEntryDelay_ = 0.0f;          // Phase B: brief pause after zoom before hero wakes
+    bool introEntryDelayActive_ = false;
+    static constexpr float IN_GAME_INTRO_DURATION = 4500.0f;  // Phase A: cinematic zoom
+    static constexpr float INTRO_ENTRY_DELAY    = 800.0f;     // Phase B: Silksong-style entryDelay
 
     // =========================================================================
     //  GAMEPLAY + PAUSE MENU
@@ -124,6 +182,13 @@ private:
     void UnloadGameplay();
     void UpdateGameplay(float dt);
     void PostUpdateGameplay();
+
+    // ── Map switching (F1 / F2 / F3 / F4) ──────────────────────────────────────
+    std::string currentMapFile_ = "MapTemplate.tmx";
+    void LoadMap1();   // loads MapTemplate.tmx
+    void LoadMap2();   // loads Map2.tmx
+    void LoadMap3();   // loads Map3.tmx
+    void LoadMap4();   // loads Map4.tmx
 
     void LoadPauseMenuButtons();
     void SetPauseMenuVisible(bool visible);
@@ -169,6 +234,17 @@ private:
     static constexpr int BTN_GAMEOVER_CONTINUE = 31;
 
 private:
+
+    // ── Boss fight ────────────────────────────────────────────────────────────
+    std::weak_ptr<Boss> activeBoss_;
+    bool  isBossFightActive_   = false;
+    float bossHealthDisplay_   = 1.0f;
+    SDL_Texture* texBossBarEmpty_     = nullptr;
+    SDL_Texture* texBossBarFull_      = nullptr;
+    SDL_Texture* texBossBarIndicator_ = nullptr;
+
+    void UpdateBossFight();
+    void DrawBossHUD(int winW, int winH);
 
     // Health HUD
     SDL_Texture* texHealth1_ = nullptr;
@@ -245,7 +321,11 @@ private:
     float mapViewDragOriginX_ = 0.0f;
     float mapViewDragOriginY_ = 0.0f;
 
+    std::map<std::string, std::set<std::pair<int, int>>> visitedCells_;
+    std::map<std::string, bool> mapRevealed_;
+
     void DrawMapViewer(int winW, int winH);
+    void DrawBottomFog(int winW, int winH);
 
     // ── Inventory ─────────────────────────────────────────────────────────────
     bool  showInventory_ = false;
@@ -303,6 +383,7 @@ private:
     std::shared_ptr<UIElement> btnPlay_;
     std::shared_ptr<UIElement> btnSettings_;
     std::shared_ptr<UIElement> btnExit_;
+    std::shared_ptr<UIElement> btnBack_;
 
     // ── Fade orchestration ────────────────────────────────────────────────────
     bool    waitingForFade_ = false;
@@ -332,4 +413,17 @@ private:
 
     void InitFragments(int winW, int winH, int childX, int childW);
     void DrawFragments(bool front, int winW, int winH);
+
+private:
+        
+    int konamiIndex = 0;
+    bool isKonamiActive = false;
+
+    const int konamiSequence[10] = {
+        SDL_SCANCODE_UP, SDL_SCANCODE_UP,
+        SDL_SCANCODE_DOWN, SDL_SCANCODE_DOWN,
+        SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT,
+        SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT,
+        SDL_SCANCODE_B, SDL_SCANCODE_A
+        };
 };

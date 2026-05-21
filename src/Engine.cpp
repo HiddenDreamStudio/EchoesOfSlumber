@@ -16,6 +16,7 @@
 #include "UIManager.h"
 #include "Cinematics.h"
 #include "SaveSystem.h"
+#include "DiscordManager.h"
 #include "tracy/Tracy.hpp"
 
 // Constructor
@@ -42,6 +43,7 @@ Engine::Engine() {
 	uiManager = std::make_shared<UIManager>(); 
 	cinematics = std::make_shared<Cinematics>();
 	saveSystem = std::make_shared<SaveSystem>();
+	discord = std::make_shared<DiscordManager>();
 
     // Ordered for awake / Start / Update
     // Reverse order of CleanUp
@@ -56,6 +58,7 @@ Engine::Engine() {
 	AddModule(std::static_pointer_cast<Module>(uiManager)); 
 	AddModule(std::static_pointer_cast<Module>(cinematics));
 	AddModule(std::static_pointer_cast<Module>(saveSystem));
+	AddModule(std::static_pointer_cast<Module>(discord));
 
     // Render last 
     AddModule(std::static_pointer_cast<Module>(render));
@@ -131,6 +134,14 @@ bool Engine::Update() {
     if (input->GetWindowEvent(WE_QUIT) == true)
         ret = false;
 
+    // F11 Fullscreen cycle: Windowed → Fullscreen → Borderless → Windowed
+    if (input->GetKey(SDL_SCANCODE_F11) == KEY_DOWN) {
+        WindowMode current = window->GetWindowMode();
+        if (current == WindowMode::WINDOWED)        window->SetWindowMode(WindowMode::FULLSCREEN);
+        else if (current == WindowMode::FULLSCREEN)  window->SetWindowMode(WindowMode::BORDERLESS);
+        else                                         window->SetWindowMode(WindowMode::WINDOWED);
+    }
+
     if (ret == true)
         ret = PreUpdate();
 
@@ -145,17 +156,22 @@ bool Engine::Update() {
 }
 
 // Called before quitting
-bool Engine::CleanUp() {
-
+bool Engine::CleanUp()
+{
     Timer timer = Timer();
 
     LOG("Engine::CleanUp");
 
     bool result = true;
-    for (const auto& module : moduleList) {
-        result = module->CleanUp();
+    // CRITICAL FIX: Iterate the module list in REVERSE order during CleanUp.
+    // This ensures that high-level modules and resource managers (Render, Textures, etc.)
+    // are cleaned up BEFORE the foundational modules like Window (which calls SDL_Quit).
+    // This prevents "Access Violation" crashes on exit when trying to use SDL after it's quit.
+    for (auto it = moduleList.rbegin(); it != moduleList.rend(); ++it) {
+        result = (*it)->CleanUp();
         if (!result) {
-            break;
+            LOG("CleanUp failed for module: %s", (*it)->name.c_str());
+            // We continue cleaning up other modules even if one fails
         }
     }
 

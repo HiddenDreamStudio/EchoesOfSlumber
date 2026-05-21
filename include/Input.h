@@ -74,6 +74,29 @@ public:
 	KeyState GetTouchpadPressed() const { return touchpadState; }
 	bool  IsGamepadConnected() const { return gamepad != nullptr; }
 
+	bool IsAnyKeyPressed() const
+	{
+		for (int i = 0; i < 300; ++i)
+		{
+			if (keyboard[i] == KEY_DOWN) return true;
+		}
+		for (int i = 0; i < NUM_MOUSE_BUTTONS; ++i)
+		{
+			if (mouseButtons[i] == KEY_DOWN) return true;
+		}
+		return false;
+	}
+
+	bool IsAnyGamepadButtonPressed() const
+	{
+		if (!gamepad) return false;
+		for (int i = 0; i < NUM_GAMEPAD_BUTTONS; ++i)
+		{
+			if (padButtons[i] == KEY_DOWN) return true;
+		}
+		return false;
+	}
+
 	// Check if a certain window event happened
 	bool GetWindowEvent(EventWindow ev);
 

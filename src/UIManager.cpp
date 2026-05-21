@@ -42,30 +42,46 @@ std::shared_ptr<UIElement> UIManager::CreateUIElement(UIElementType type, int id
 
 bool UIManager::Update(float dt)
 {
-	// ── Gamepad navigation (before button updates) ───────────────────────
+	// ── Gamepad navigation (logical update) ──────────────────────────────
 	UpdateGamepadNavigation(dt);
 	ApplyFocusToButtons();
 
-	//List to store entities pending deletion
+	// List to store entities pending deletion
 	std::list<std::shared_ptr<UIElement>> pendingDelete;
 
 	for (const auto& uiElement : UIElementsList)
 	{
-		//If the entity is marked for deletion, add it to the pendingDelete list
 		if (uiElement->pendingToDelete)
 		{
 			pendingDelete.push_back(uiElement);
 		}
-		else {
+		else
+		{
+			// In Update we only handle logic (timers, inputs, states)
 			uiElement->Update(dt);
 		}
 	}
 
-	//Now iterates over the pendingDelete list and destroys the uiElement
+	// Cleanup
 	for (const auto uiElement : pendingDelete)
 	{
 		uiElement->CleanUp();
 		UIElementsList.remove(uiElement);
+	}
+
+	return true;
+}
+
+bool UIManager::PostUpdate()
+{
+	// ── Draw all UI Elements ─────────────────────────────────────────────
+	for (const auto& uiElement : UIElementsList)
+	{
+		if (!uiElement->pendingToDelete)
+		{
+			// Render UI elements in PostUpdate (on top of everything else)
+			uiElement->Draw();
+		}
 	}
 
 	return true;

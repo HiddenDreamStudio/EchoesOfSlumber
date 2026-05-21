@@ -1,5 +1,9 @@
 #pragma once
 
+#include <vector>
+#include <list>
+#include <string>
+
 #include "Module.h"
 #include "Vector2D.h"
 #include "SDL3/SDL.h"
@@ -54,12 +58,22 @@ public:
 	void ApplyAmbientTint(SDL_Texture* tex) const;
 	void ResetAmbientTint(SDL_Texture* tex) const;
 
+	// Resolution Scaling
+	void OnWindowResize(int newWidth, int newHeight);
+
+	// Cinematic Effects
+	void StartEyelidEffect(float duration);
+	void DrawEyelidEffect();
+	void SetCameraSway(bool active) { cameraSwayActive_ = active; }
+
 	// Fade overlay system
 	void StartFade(FadeDirection dir, float durationMs);
 	void UpdateFade(float dt);
 	void DrawFade();
 	bool IsFadeComplete() const;
 	Uint8 GetFadeAlpha() const;
+	bool IsFadingIn() const { return fadeActive_ && fadeDir_ == FadeDirection::FADE_IN; }
+	bool IsFadingOut() const { return fadeActive_ && fadeDir_ == FadeDirection::FADE_OUT; }
 
 	// Set background color
 	void SetBackgroundColor(SDL_Color color);
@@ -73,10 +87,34 @@ public:
 	void SetDeadZone(float width, float height);
 	void SetCameraSmoothSpeed(float speed);
 	Vector2D GetCameraPosition() const;
+	float GetWorldViewportWidth() const;
+	float GetWorldViewportHeight() const;
+
+	// In-game intro effects
+	SDL_Texture* sceneTargetTex_ = nullptr;
+	SDL_Texture* glowTex_ = nullptr;
+	SDL_Texture* whiteGlowTex_ = nullptr;
+	float cameraZoom = 1.0f;
+	float blurIntensity = 0.0f;
+	float zoomCenterX = 640.0f;
+	float zoomCenterY = 360.0f;
+	bool cameraClampingActive_ = true;
+	bool cameraMovementActive_ = true;
+
+	SDL_Texture* CreateRadialGlowTexture(int radius, SDL_Color centerColor);
+	void DrawPlayerGlow(int worldX, int worldY, float radiusScale, Uint8 alpha);
+	void DrawWhiteGlow(int worldX, int worldY, float radiusScale, Uint8 alpha);
+	void SetCameraClamping(bool active) { cameraClampingActive_ = active; }
+	void SetCameraMovement(bool active) { cameraMovementActive_ = active; }
 
 public:
 
 	SDL_Renderer* renderer;
+	SDL_GPUDevice* gpuDevice = nullptr;
+	SDL_GPUGraphicsPipeline* spritePipeline = nullptr;
+	SDL_GPUBuffer* vertexBuffer = nullptr;
+	SDL_GPUSampler* sampler = nullptr;
+
 	SDL_Rect camera;
 	SDL_Rect viewport;
 	SDL_Color background;
@@ -94,10 +132,6 @@ private:
 	float deadZoneHeight_ = 32.0f;    // Dead zone half-height (world pixels)
 	bool cameraInitialized_ = false;
 
-	// Helper to get world-space camera viewport dimensions (accounts for window scale)
-	float GetWorldViewportWidth() const;
-	float GetWorldViewportHeight() const;
-
 	// Fade overlay
 	bool fadeActive_ = false;
 	FadeDirection fadeDir_ = FadeDirection::FADE_IN;
@@ -106,4 +140,15 @@ private:
 	Uint8 fadeAlpha_ = 0;
 	// Ambient tint — applied to entity sprites (GPU fragment shader multiply)
 	SDL_Color ambientTint_ = { 255, 255, 255, 255 }; // neutral = no tint
+
+	float totalTime_ = 0.0f;
+	float renderScale = 1.0f;
+
+	// Eyelid Effect
+	bool eyelidActive_ = false;
+	float eyelidDuration_ = 2000.0f;
+	float eyelidElapsed_ = 0.0f;
+
+	// Camera Sway
+	bool cameraSwayActive_ = false;
 };

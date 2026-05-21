@@ -34,7 +34,10 @@ enum class ColliderType {
     BOX,
     PUSH_ROCK,
     PROJECTILE,
+    DOOR,
     SLINGSHOT_PROJ,
+    PUDDLE,
+    ROPE,
     UNKNOWN
     // ..
 };
@@ -87,8 +90,10 @@ public:
     void EndContact(b2ShapeId shapeA, b2ShapeId shapeB);
 
     void DeletePhysBody(PhysBody* physBody);
+    void FlushPendingDeletes();  // immediately destroy all queued bodies
     bool IsPendingToDelete(PhysBody* physBody);
     bool IsDebug() const { return debug; }
+    void PreSimulateScene(float totalSimulationTime);
 
     // --- Velocity helpers (thin wrappers over Box2D 3.x C API)
     b2Vec2 GetLinearVelocity(const PhysBody* p) const;

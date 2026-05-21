@@ -11,6 +11,7 @@
 #include "Map.h"
 #include "SlingshotProjectile.h"
 #include "tracy/Tracy.hpp"
+#include "Door.h"
 
 Player::Player() : Entity(EntityType::PLAYER),
 texW(128), texH(128),
@@ -35,25 +36,27 @@ bool Player::Start() {
 
 	std::unordered_map<int, std::string> aliases = {
 		{0, "idle"},
-		{14, "turnaround"},
-		{28, "run"},
-		{42, "jump"},
-		{56, "hide"},
-		{70, "damage"},
-		{84, "death"}
+		{35, "turnaround"},
+		{70, "run"},
+		{88, "stoprun"},
+		{105, "jump"},
+		{140, "damage"},
+		{175, "death"},
+		{209, "hide"}
 	};
-	anims.LoadFromTSX("assets/textures/animations/protagonistAnimation.xml", aliases);
+	anims.LoadFromTSX("assets/textures/animations/protagonistSpritesheetNew.xml", aliases);
 	anims.SetCurrent("idle");
 
 	anims.SetLoop("turnaround", false);
 	anims.SetLoop("jump", false);
 	anims.SetLoop("damage", false);
 	anims.SetLoop("death", false);
+	anims.SetLoop("stoprun", false);
 	anims.SetLoop("hide", false); // Play once and freeze on last frame
 
-	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheet.png");
+	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheetNew.png");
 
-	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
+	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/Aixecant-se/ss_despertantse.png");
 	for (int i = 0; i < 51; ++i) {
 		SDL_Rect r = { i * 258, 0, 258, 258 };
 		wakeUpAnim.AddFrame(r, 120);
@@ -63,7 +66,7 @@ bool Player::Start() {
 
 	texW = 128;
 	texH = 128;
-	drawScale = 1.0f;
+	drawScale = 0.5f;
 
 	// Load push animation spritesheet (256x256 tiles, 5 columns, 20 frames)
 	pushTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/spritesheetempujarcaja.png");
@@ -137,7 +140,8 @@ bool Player::Start() {
 	pbody->ctype = ColliderType::PLAYER;
 
 	pickCoinFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/coin-collision-sound-342335.wav");
-	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump.wav");
+	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump2.wav"); 
+	landFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/land.wav");
 	stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");
 	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
 
@@ -154,6 +158,11 @@ bool Player::Update(float dt)
 	}
 
 	GetPhysicsValues();
+
+	if (knockbackTimer_ > 0.0f) {
+		knockbackTimer_ -= dt;
+		velocity.x = knockbackX_;
+	}
 
 	// Tick hide cooldown
 	if (hideCooldown_ > 0.0f) hideCooldown_ -= dt;
@@ -399,7 +408,16 @@ void Player::Move() {
 			if (anims.GetCurrentName() == "jump" && !anims.HasFinishedOnce("jump")) {
 				// let landing animation finish
 			}
-			else {
+			else if (anims.GetCurrentName() == "run") {
+				anims.SetCurrent("stoprun");
+				anims.ResetCurrent();
+			}
+			else if (anims.GetCurrentName() == "stoprun") {
+				if (anims.HasFinishedOnce("stoprun")) {
+					anims.SetCurrent("idle");
+				}
+			}
+			else if (anims.GetCurrentName() != "turnaround" || anims.HasFinishedOnce("turnaround")) {
 				anims.SetCurrent("idle");
 			}
 		}
@@ -826,8 +844,8 @@ void Player::Draw(float dt) {
 	{
 		bool shouldUpdate = true;
 		if (isJumping && anims.GetCurrentName() == "jump") {
-			// Freeze on peak frame (tile 49 is the middle-ish frame)
-			if (anims.GetCurrentFrameIndex() >= 7) {
+			// Freeze on peak frame (tile 118 is the peak frame in the new spritesheet)
+			if (anims.GetCurrentFrameIndex() >= 13) {
 				shouldUpdate = false;
 			}
 		}
@@ -867,7 +885,7 @@ void Player::Draw(float dt) {
 
 	bool spriteNativeRight = false;
 	const std::string& animName = anims.GetCurrentName();
-	if (animName == "jump" || animName == "turnaround") {
+	if (animName == "jump" || animName == "turnaround" || animName == "idle") {
 		spriteNativeRight = true;
 	}
 
@@ -885,11 +903,13 @@ void Player::Draw(float dt) {
 	}
 
 	if (isWakingUp) {
-		wakeUpAnim.Update(dt);
-		if (wakeUpAnim.HasFinishedOnce()) {
-			isWakingUp = false;
+		if (wakeUpAnimStarted) {
+			wakeUpAnim.Update(dt);
+			if (wakeUpAnim.HasFinishedOnce()) {
+				isWakingUp = false;
+			}
 		}
-		else {
+		if (isWakingUp) {
 			const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
 			float wakeScale = 0.65f;
 			int wakeWidth = (int)(258.0f * wakeScale);
@@ -937,6 +957,13 @@ void Player::Draw(float dt) {
 		}
 
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+
+		// Add subtle permanent white circular glow to the player
+		if (!isDead_ && !isWakingUp) {
+			float radiusScale = 0.55f;
+			Uint8 alpha = 255; // MAX ALPHA for troubleshooting
+			render->DrawWhiteGlow(xInt, yInt, radiusScale, alpha);
+		}
 
 		// Restore alpha and color modulation
 		if (isHiding_ || isExitingHide_) {
@@ -1088,7 +1115,8 @@ void Player::TakeDamage(int damage)
 	float closestDist = 999999.0f;
 	float enemyDirX = 0.0f;
 	for (const auto& entity : Engine::GetInstance().entityManager->entities) {
-		if ((entity->type == EntityType::ENEMY || entity->type == EntityType::ENEMY_B || entity->type == EntityType::ENEMY_C) && entity->active) {
+		if ((entity->type == EntityType::ENEMY || entity->type == EntityType::ENEMY_B ||
+			entity->type == EntityType::ENEMY_C || entity->type == EntityType::BOUNCER) && entity->active) {
 			float dx = entity->position.getX() - (float)playerX;
 			float dy = entity->position.getY() - (float)playerY;
 			float dist = dx * dx + dy * dy;
@@ -1119,9 +1147,16 @@ void Player::TakeDamage(int damage)
 	else
 	{
 		isHiding_ = false;
-		isShowingDamageAnim_ = true;
-		anims.SetCurrent("damage");
-		anims.ResetCurrent();
+		if (suppressDamageAnim_)
+		{
+			suppressDamageAnim_ = false;
+		}
+		else
+		{
+			isShowingDamageAnim_ = true;
+			anims.SetCurrent("damage");
+			anims.ResetCurrent();
+		}
 	}
 }
 
@@ -1211,8 +1246,14 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		int playerX, playerY, platX, platY;
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(platX, platY);
+
+		// Check if the player lands on top of the platform
 		if (playerY < platY) {
+			platformBelow = physB;
 			if (isJumping) {
+				// Play landing sound effect
+				Engine::GetInstance().audio->PlayFx(landFxId);
+
 				// Spawn landing dust (Centered at bottom of capsule)
 				Engine::GetInstance().entityManager->SpawnVFX(
 					Vector2D(position.getX(), position.getY() + 50.0f),
@@ -1233,7 +1274,18 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 	case ColliderType::ITEM:
 		Engine::GetInstance().audio->PlayFx(pickCoinFxId);
 		physB->listener->Destroy();
+		keys++;
 		break;
+
+	case ColliderType::DOOR:
+	{
+		Door* door = (Door*)physB->listener;
+		if (door != nullptr && !door->isOpen && keys > 0) {
+			door->Open();
+			keys--;
+		}
+		break;
+	}
 	case ColliderType::PROJECTILE:
 		TakeDamage(1);
 		if (physB->listener != nullptr)
@@ -1261,6 +1313,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 			// Player is above the rock — treat as platform for landing
 			if (playerY < rockY) {
 				if (isJumping) {
+					// Play landing sound effect when landing on a rock
+					Engine::GetInstance().audio->PlayFx(landFxId);
+
 					if (anims.GetCurrentName() != "jump") {
 						anims.SetCurrent("idle");
 					}
@@ -1278,6 +1333,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 {
+	if (physB->ctype == ColliderType::PLATFORM)
+		platformBelow = nullptr;
+
 	if (physB->ctype == ColliderType::PUSH_ROCK) {
 		pushContactCount_--;
 		if (pushContactCount_ <= 0) {
