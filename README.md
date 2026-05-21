@@ -1,5 +1,7 @@
 # Echoes of Slumber
 
+<img width="2172" height="724" alt="image" src="https://github.com/user-attachments/assets/3c5c1269-c2d9-4e2e-810d-7d0763dc3364" />
+
 A 2D action-platformer with metroidvania elements, built on a custom C++ engine using SDL3 and Box2D. Developed by **Hidden Dream Studio** (Group 4) for Projecte II at CITM — UPC (2025–2026).
 
 ## About the Game
@@ -164,8 +166,9 @@ premake5 vs2022 --sdl_backend=d3d12    # Windows only
 | Key | Function |
 |-----|----------|
 | `H` | Help overlay |
-| `F1` / `F2` | Jump to level 1 / 2 |
+| `F1` / `F2` / `F3` / `F4` | Jump to level 1 / 2 / 3 / 4|
 | `F5` / `F6` | Save / Load |
+| `F7` | Enable all the unlockables |
 | `F8` | GUI bounds |
 | `F9` | Colliders & pathfinding |
 | `F10` | God mode |
