@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tileset version="1.10" tiledversion="1.11.2" name="protagonistThrowBear" tilewidth="256" tileheight="256" tilecount="96" columns="24">
+ <image source="../spritesheets/Spritesheets Prota i Oso color/SS_llencar_oso.png" width="6144" height="1024"/>
+ <tile id="24" type="ThrowStart">
+  <animation>
+   <frame tileid="24" duration="100"/>
+   <frame tileid="25" duration="100"/>
+   <frame tileid="26" duration="100"/>
+   <frame tileid="27" duration="100"/>
+   <frame tileid="28" duration="100"/>
+  </animation>
+ </tile>
+ <tile id="0" type="BearActiveIdle">
+  <animation>
+   <frame tileid="0" duration="100"/>
+   <frame tileid="1" duration="100"/>
+   <frame tileid="2" duration="100"/>
+   <frame tileid="3" duration="100"/>
+   <frame tileid="4" duration="100"/>
+   <frame tileid="5" duration="100"/>
+  </animation>
+ </tile>
+ <tile id="72" type="FallAsleep">
+  <animation>
+   <frame tileid="72" duration="100"/>
+   <frame tileid="73" duration="100"/>
+   <frame tileid="74" duration="100"/>
+   <frame tileid="75" duration="100"/>
+   <frame tileid="76" duration="100"/>
+  </animation>
+ </tile>
+ <tile id="48" type="SleepIdle">
+  <animation>
+   <frame tileid="48" duration="120"/>
+   <frame tileid="49" duration="120"/>
+   <frame tileid="50" duration="120"/>
+   <frame tileid="51" duration="120"/>
+   <frame tileid="52" duration="120"/>
+   <frame tileid="53" duration="120"/>
+   <frame tileid="54" duration="120"/>
+   <frame tileid="55" duration="120"/>
+   <frame tileid="56" duration="120"/>
+   <frame tileid="57" duration="120"/>
+   <frame tileid="58" duration="120"/>
+   <frame tileid="59" duration="120"/>
+   <frame tileid="60" duration="120"/>
+   <frame tileid="61" duration="120"/>
+   <frame tileid="62" duration="120"/>
+   <frame tileid="63" duration="120"/>
+   <frame tileid="64" duration="120"/>
+   <frame tileid="65" duration="120"/>
+   <frame tileid="66" duration="120"/>
+   <frame tileid="67" duration="120"/>
+   <frame tileid="68" duration="120"/>
+   <frame tileid="69" duration="120"/>
+   <frame tileid="70" duration="120"/>
+   <frame tileid="71" duration="120"/>
+  </animation>
+ </tile>
+</tileset>
