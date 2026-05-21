@@ -14,6 +14,7 @@ enum class SceneID {
     MAIN_MENU,
     INTRO_CINEMATIC,
     TUTORIAL_TEXT_CARD,
+    LOADING,
     GAMEPLAY
 };
 
@@ -161,6 +162,30 @@ private:
     bool pt1Played_ = false;
     bool pt2Played_ = false;
 
+    // ── Loading Screen ────────────────────────────────────────────────────────
+    void LoadLoading();
+    void UnloadLoading();
+    void UpdateLoading(float dt);
+    void DrawLoading();
+    float loadingTimer_ = 0.0f;
+    bool  mapLoadingFinished_ = false;
+    int   targetLevelIndex_ = -1;
+
+    // ── Level Data ────────────────────────────────────────────────────────────
+    struct LevelInfo {
+        std::string number;
+        std::string name;
+        std::string file;
+    };
+    std::vector<LevelInfo> levels_;
+    int currentLevelIndex_ = 0;
+
+    // Automatic entry movement (Level 2+)
+    bool  isAutoEntering_ = false;
+    float autoEntryStartX_ = 0.0f;
+    float autoEntryTargetX_ = 0.0f;
+    float autoEntryProgress_ = 0.0f;
+
     // In-game intro sequence variables (Silksong-style phased transition)
     float inGameIntroTimer_ = 0.0f;
     bool inGameIntroActive_ = false;
@@ -185,6 +210,7 @@ private:
 
     // ── Map switching (F1 / F2 / F3 / F4) ──────────────────────────────────────
     std::string currentMapFile_ = "MapTemplate.tmx";
+    void LoadMap(int index);
     void LoadMap1();   // loads MapTemplate.tmx
     void LoadMap2();   // loads Map2.tmx
     void LoadMap3();   // loads Map3.tmx
