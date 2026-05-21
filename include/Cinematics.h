@@ -35,6 +35,9 @@ public:
 	// Returns true while a cinematic is playing
 	bool IsPlaying() const;
 
+	// Returns true if the skip key/button has been pressed
+	bool HasSkipBeenRequested() const { return skipRequested; }
+
 private:
 
 	// Internal helpers
