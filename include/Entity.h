@@ -10,6 +10,7 @@ enum class EntityType
 	ENEMY,
 	ENEMY_B,
 	ENEMY_C,
+	BOUNCER,
 	PROJECTILE,
 	CHECKPOINT,
 	BOX,
@@ -44,6 +45,11 @@ public:
 	}
 
 	virtual bool Update(float dt)
+	{
+		return true;
+	}
+
+	virtual bool PostUpdate()
 	{
 		return true;
 	}
