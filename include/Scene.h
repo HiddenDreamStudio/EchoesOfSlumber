@@ -37,6 +37,7 @@ public:
     void     SetPlayerPosition(Vector2D pos);
     SceneID  GetCurrentScene() const { return currentScene; }
     std::string GetTilePosDebug() const { return ""; }
+    int GetMenuClickFxId() const { return menuClickFxId; }
 
     std::shared_ptr<Player> player = nullptr;
 
@@ -211,6 +212,10 @@ public:
     static constexpr float CAPA_NOTIF_DURATION = 3000.0f;
     void ShowNoCapeNotification();
 
+    float noBearNotifTimer_ = 0.0f;
+    bool bearNotifHasStuffed_ = false;
+    void ShowNoBearNotification(bool hasStuffedAnimal);
+
 private:
     // Button IDs — pause menu
     static constexpr int BTN_PAUSE_CONTINUE = 20;
@@ -274,6 +279,18 @@ private:
     float slingshotNotifTimer_ = 0.0f;
     static constexpr float SLINGSHOT_NOTIF_DURATION = 3000.0f;
 
+    // Stuffed Animal (oso) collectible
+    SDL_Texture* texStuffedAnimalCollectible_ = nullptr;
+    float stuffedAnimalX_ = 300.0f;
+    float stuffedAnimalY_ = 600.0f;
+    bool  stuffedAnimalCollected_ = false;
+    float stuffedAnimalFloatTimer_ = 0.0f;
+    float stuffedAnimalNotifTimer_ = 0.0f;
+    static constexpr float STUFFED_ANIMAL_NOTIF_DURATION = 3000.0f;
+
+    // Minimap Ornate Frame Border
+    SDL_Texture* texMinimapFrame_ = nullptr;
+
     // Game Over Menu Assets
     SDL_Texture* texGameOverBg_ = nullptr;
     SDL_Texture* texGameOverBtn_ = nullptr;
@@ -309,6 +326,54 @@ private:
 
     void DrawMapViewer(int winW, int winH);
     void DrawBottomFog(int winW, int winH);
+
+    // ── Inventory ─────────────────────────────────────────────────────────────
+    bool  showInventory_ = false;
+    int   inventorySel_ = -1;
+    void DrawInventory(int winW, int winH);
+
+    SDL_Texture* texInventoryBg_ = nullptr;
+    SDL_Texture* texAbilitiesLocked_ = nullptr;
+    SDL_Texture* texAbilitiesBlanket_ = nullptr;
+    SDL_Texture* texAbilitiesBlanketSling_ = nullptr;
+    SDL_Texture* texAbilitiesAll_ = nullptr;
+
+    SDL_Texture* texAbilityBlanketIcon_ = nullptr;
+    SDL_Texture* texAbilitySlingshotIcon_ = nullptr;
+    SDL_Texture* texAbilityStuffedAnimalIcon_ = nullptr;
+    SDL_Texture* texAbilityAnchorIcon_ = nullptr;
+
+    // ── Memories UI ───────────────────────────────────────────────────────────
+    SDL_Texture* texMemoria1Base_ = nullptr;
+    SDL_Texture* texMemoria1N1_ = nullptr;
+    SDL_Texture* texMemoria1N2_ = nullptr;
+
+    SDL_Texture* texMemoria2Base_ = nullptr;
+    SDL_Texture* texMemoria2N1_ = nullptr;
+    SDL_Texture* texMemoria2N2_ = nullptr;
+
+    SDL_Texture* texMemoria3Base_ = nullptr;
+    SDL_Texture* texMemoria3N1_ = nullptr;
+    SDL_Texture* texMemoria3N2_ = nullptr;
+    SDL_Texture* texMemoria3N3_ = nullptr;
+
+    // Fullscreen memories
+    SDL_Texture* texMemoriaFrameFullScreen_ = nullptr;
+    SDL_Texture* texMemoria1Full1_ = nullptr;
+    SDL_Texture* texMemoria1Full2_ = nullptr;
+    SDL_Texture* texMemoria2Full1_ = nullptr;
+    SDL_Texture* texMemoria2Full2_ = nullptr;
+    SDL_Texture* texMemoria3Full1_ = nullptr;
+    SDL_Texture* texMemoria3Full2_ = nullptr;
+    SDL_Texture* texMemoria3Full3_ = nullptr;
+
+    // Hover fade states
+    float memoryHoverTimers_[3] = { 0.0f, 0.0f, 0.0f };
+
+    // Fullscreen state
+    bool showMemoryViewer_ = false;
+    int activeMemoryIndex_ = -1; // 0, 1, or 2
+    int activeMemoryPage_ = 0;   // index of active page
 
     // ── Main menu textures ────────────────────────────────────────────────────
     SDL_Texture* texMenuLogo_ = nullptr;
