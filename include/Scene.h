@@ -3,6 +3,9 @@
 #include "Player.h"
 #include "UIManager.h"
 #include "UIElement.h"
+#include <map>
+#include <set>
+#include <utility>
 
 class Boss; // forward declaration — full type in Scene.cpp
 
@@ -10,12 +13,14 @@ enum class SceneID {
     INTRO,
     MAIN_MENU,
     INTRO_CINEMATIC,
+    TUTORIAL_TEXT_CARD,
     GAMEPLAY
 };
 
 class Scene : public Module
 {
 public:
+	friend class SaveSystem;
     Scene();
     ~Scene();
 
@@ -123,9 +128,45 @@ private:
     // =========================================================================
     //  INTRO CINEMATIC
     // =========================================================================
+    enum class IntroCinState {
+        PRE_VIDEO_LOADING,    // Pulsing "Loading..."
+        FADING_OUT_TO_VIDEO,  // Fade to black, fixed "Loading..."
+        PLAYING_VIDEO,        // Video starts with Fade In
+        FADING_OUT_FROM_VIDEO,// Fade to black after video, fixed "Loading..."
+        POST_VIDEO_LOADING    // Pulsing "Loading..." before title card
+    };
+    IntroCinState introCinState_ = IntroCinState::PRE_VIDEO_LOADING;
+
     void LoadIntroCinematic();
     void UnloadIntroCinematic();
     void UpdateIntroCinematic(float dt);
+    void DrawLoadingText(bool pulsing, float timer);
+    bool cinematicVideoStarted_ = false;
+    float introLoadingDelay_ = 0.0f;
+    bool introLoadingDelayActive_ = false;
+    static constexpr float INTRO_PRE_VIDEO_DELAY = 1500.0f;
+    static constexpr float INTRO_POST_VIDEO_DELAY = 2000.0f;
+
+    // =========================================================================
+    //  TUTORIAL TEXT CARD
+    // =========================================================================
+    void LoadTutorialTextCard();
+    void UnloadTutorialTextCard();
+    void UpdateTutorialTextCard(float dt);
+    float tutorialTimer_ = 0.0f;
+    SDL_Texture* texTutorialSeparator_ = nullptr;
+    int fxTitleCardPt1_ = -1;
+    int fxTitleCardPt2_ = -1;
+    bool pt1Played_ = false;
+    bool pt2Played_ = false;
+
+    // In-game intro sequence variables (Silksong-style phased transition)
+    float inGameIntroTimer_ = 0.0f;
+    bool inGameIntroActive_ = false;
+    float introEntryDelay_ = 0.0f;          // Phase B: brief pause after zoom before hero wakes
+    bool introEntryDelayActive_ = false;
+    static constexpr float IN_GAME_INTRO_DURATION = 4500.0f;  // Phase A: cinematic zoom
+    static constexpr float INTRO_ENTRY_DELAY    = 800.0f;     // Phase B: Silksong-style entryDelay
 
     // =========================================================================
     //  GAMEPLAY + PAUSE MENU
@@ -141,10 +182,12 @@ private:
     void UpdateGameplay(float dt);
     void PostUpdateGameplay();
 
-    // ── Map switching (F1 / F2) ──────────────────────────────────────────────
+    // ── Map switching (F1 / F2 / F3 / F4) ──────────────────────────────────────
     std::string currentMapFile_ = "MapTemplate.tmx";
     void LoadMap1();   // loads MapTemplate.tmx
     void LoadMap2();   // loads Map2.tmx
+    void LoadMap3();   // loads Map3.tmx
+    void LoadMap4();   // loads Map4.tmx
 
     void LoadPauseMenuButtons();
     void SetPauseMenuVisible(bool visible);
@@ -260,6 +303,9 @@ private:
     float mapViewDragStartY_ = 0.0f;
     float mapViewDragOriginX_ = 0.0f;
     float mapViewDragOriginY_ = 0.0f;
+
+    std::map<std::string, std::set<std::pair<int, int>>> visitedCells_;
+    std::map<std::string, bool> mapRevealed_;
 
     void DrawMapViewer(int winW, int winH);
     void DrawBottomFog(int winW, int winH);

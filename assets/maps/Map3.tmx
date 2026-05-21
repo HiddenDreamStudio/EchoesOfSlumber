@@ -553,6 +553,9 @@
   <object id="271" gid="181" x="10676.1" y="9008.55" width="272" height="308"/>
   <object id="272" gid="187" x="10794.5" y="9036.42" width="508" height="588"/>
  </objectgroup>
+ <objectgroup id="9" name="Entities">
+  <object id="273" name="Player" type="Player" x="7424" y="11704" width="70" height="76"/>
+ </objectgroup>
  <objectgroup id="8" name="middleground">
   <object id="77" gid="170" x="6126.58" y="13973.1" width="863" height="327"/>
   <object id="78" gid="1073741994" x="7859.91" y="13551.9" width="863" height="327"/>

@@ -9,6 +9,7 @@
 #include "DropDoll.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
+#include "Bouncer.h"
 #include "Boss1.h"
 #include "RopedRock.h"
 #include "Checkpoint.h"
@@ -23,6 +24,14 @@
 #include <math.h>
 #include <algorithm>
 #include <sstream>
+
+// Helper for SDL flip flags
+static SDL_FlipMode flipMode(bool h, bool v) {
+    if (h && v) return (SDL_FlipMode)(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
+    if (h) return SDL_FLIP_HORIZONTAL;
+    if (v) return SDL_FLIP_VERTICAL;
+    return SDL_FLIP_NONE;
+}
 
 Map::Map() : Module(), mapLoaded(false)
 {
@@ -58,6 +67,7 @@ bool Map::Update(float dt)
 
         Render* render = Engine::GetInstance().render.get();
         int scale = Engine::GetInstance().window->GetScale();
+
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
                 Engine::GetInstance().render->DrawTexture(
@@ -75,27 +85,8 @@ bool Map::Update(float dt)
                 if (!render->IsOnScreenWorldRect(deco->x, deco->y - deco->height, deco->width, deco->height))
                     continue;
 
-                // Posició en coordenades de món (Tiled usa l'origen a baix-esquerra per objectes gid)
-                float worldX = deco->x;
-                float worldY = deco->y - deco->height;
-
-                SDL_FRect dst;
-                dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
-                dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
-                dst.w = deco->width * scale;
-                dst.h = deco->height * scale;
-
-                SDL_FPoint center;
-                center.x = 0.0f;
-                center.y = dst.h;
-
-                SDL_FlipMode flip = SDL_FLIP_NONE;
-                if (deco->flipH && deco->flipV) flip = (SDL_FlipMode)(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
-                else if (deco->flipH) flip = SDL_FLIP_HORIZONTAL;
-                else if (deco->flipV) flip = SDL_FLIP_VERTICAL;
-              
-                SDL_RenderTextureRotated(render->renderer, deco->texture, nullptr, &dst,
-                    deco->rotation, &center, flip);
+                // Stable rendering with DrawTexture (supports world-space zoom)
+                render->DrawTexture(deco->texture, (int)deco->x, (int)(deco->y - deco->height), nullptr, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV));
             }
         }
 
@@ -108,32 +99,19 @@ bool Map::Update(float dt)
                 continue;
 
             const SDL_Rect& frame = plant->anim.GetCurrentFrame();
-
-            SDL_FRect dst;
-            dst.x = (float)(render->camera.x + plant->x * scale);
-            dst.y = (float)(render->camera.y + plant->y * scale);           
-            dst.w = plant->w * scale;
-            dst.h = plant->h * scale;
-
-            SDL_FRect src;
-            src.x = (float)frame.x;
-            src.y = (float)frame.y;
-            src.w = (float)frame.w;
-            src.h = (float)frame.h;
-
-            SDL_RenderTexture(render->renderer, plant->texture, &src, &dst);
+            render->DrawTexture(plant->texture, (int)plant->x, (int)plant->y, &frame);
         }
         
-        // Calculate camera bounds in tiles
-        float camX = -render->camera.x;
-        float camY = -render->camera.y;
-        float camW = (float)render->camera.w / scale;
-        float camH = (float)render->camera.h / scale;
+        // Calculate camera bounds in tiles using the correctly zoomed world viewport
+        float camX = -(float)render->camera.x;
+        float camY = -(float)render->camera.y;
+        float camW = render->GetWorldViewportWidth();
+        float camH = render->GetWorldViewportHeight();
 
-        int startX = std::max(0, static_cast<int>(camX / static_cast<float>(mapData.tileWidth)) - 2);
-        int startY = std::max(0, static_cast<int>(camY / static_cast<float>(mapData.tileHeight)) - 2);
-        int endX = std::min(mapData.width, static_cast<int>((camX + camW) / static_cast<float>(mapData.tileWidth)) + 2);
-        int endY = std::min(mapData.height, static_cast<int>((camY + camH) / static_cast<float>(mapData.tileHeight)) + 2);
+        int startX = std::max(0, static_cast<int>(camX / static_cast<float>(mapData.tileWidth)) - 35);
+        int startY = std::max(0, static_cast<int>(camY / static_cast<float>(mapData.tileHeight)) - 35);
+        int endX = std::min(mapData.width, static_cast<int>((camX + camW) / static_cast<float>(mapData.tileWidth)) + 35);
+        int endY = std::min(mapData.height, static_cast<int>((camY + camH) / static_cast<float>(mapData.tileHeight)) + 35);
 
         for (const auto& mapLayer : mapData.layers) {
             if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true) {
@@ -164,48 +142,24 @@ bool Map::PostUpdate()
     if (mapLoaded == false)
         return true;
 
-    float scale = (float)Engine::GetInstance().window->GetScale();
     Render* render = Engine::GetInstance().render.get();
 
     for (const auto& deco : mapData.decorationObjects) {
         if (deco->texture && deco->isFront) {
-            float worldX = deco->x;
-            float worldY = deco->y - deco->height;
+            if (!render->IsOnScreenWorldRect(deco->x, deco->y - deco->height, deco->width, deco->height))
+                continue;
 
-            SDL_FRect dst;
-            dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
-            dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
-            dst.w = deco->width * scale;
-            dst.h = deco->height * scale;
-
-            SDL_FPoint center;
-            center.x = 0.0f;
-            center.y = dst.h;
-
-            SDL_FlipMode flip = SDL_FLIP_NONE;
-            if (deco->flipH && deco->flipV) flip = (SDL_FlipMode)(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
-            else if (deco->flipH) flip = SDL_FLIP_HORIZONTAL;
-            else if (deco->flipV) flip = SDL_FLIP_VERTICAL;
+            render->DrawTexture(deco->texture, (int)deco->x, (int)(deco->y - deco->height), nullptr, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV));
         }
     }
 
     for (const auto& plant : mapData.animatedPlants) {
         if (!plant->isFront) continue;
+        if (!render->IsOnScreenWorldRect(plant->x, plant->y, plant->w, plant->h))
+            continue;
+
         const SDL_Rect& frame = plant->anim.GetCurrentFrame();
-
-        SDL_FRect dst;
-        dst.x = (float)(render->camera.x + plant->x * scale);
-        dst.y = (float)(render->camera.y + plant->y * scale);
-        dst.w = plant->w * scale;
-        dst.h = plant->h * scale;
-
-        SDL_FRect src;
-        src.x = (float)frame.x;
-        src.y = (float)frame.y;
-        src.w = (float)frame.w;
-        src.h = (float)frame.h;
-
-        SDL_RenderTexture(render->renderer, plant->texture, &src, &dst);
+        render->DrawTexture(plant->texture, (int)plant->x, (int)plant->y, &frame);
     }
 
     return true;
@@ -613,11 +567,13 @@ MapLayer* Map::GetNavigationLayer() {
 void Map::LoadEntities(std::shared_ptr<Player>& player) {
 
     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
-        if (objectGroupNode.attribute("name").as_string() == std::string("Entities")) {
+        std::string groupName = objectGroupNode.attribute("name").as_string();
+        if (groupName == "MovingPlatform" || groupName == "Entities") {
 
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
 
                 std::string entityType = objectNode.attribute("type").as_string();
+                if (entityType.empty()) entityType = objectNode.attribute("class").as_string();
                 if (entityType.empty()) {
                     entityType = objectNode.attribute("class").as_string();
                 }
@@ -635,7 +591,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                         player->SetPosition(Vector2D(x, y));
                     }
                 }
-                else if (entityType == "Enemy") {
+                else if (entityType == "Enemy" || entityType == "SpiderCandy") {
                     auto enemy = std::dynamic_pointer_cast<EnemyCarmel>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
                     enemy->position = Vector2D(x, y);
 
@@ -651,7 +607,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     }
                     enemy->SetPatrolPoints(patrolLeft, patrolRight);
                     enemy->Start();
-                    LOG("Enemy spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
+                    LOG("Enemy (SpiderCandy) spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
                 }
                 else if (entityType == "EnemyB") {
                     auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
@@ -675,6 +631,15 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     enemyC->position = Vector2D(x, y);
                     enemyC->Start();
                     LOG("EnemyC spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "Bouncer") {
+                    float w = objectNode.attribute("width").as_float(96.0f);
+                    float h = objectNode.attribute("height").as_float(96.0f);
+                    auto bouncer = std::dynamic_pointer_cast<Bouncer>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOUNCER));
+                    bouncer->position = Vector2D(x, y);
+                    bouncer->SetSpawnSize(w, h);
+                    bouncer->Start();
+                    LOG("Bouncer spawned at: %f, %f (size: %.0fx%.0f)", x, y, w, h);
                 }
                 else if (entityType == "Boss1") {
                     auto boss = std::dynamic_pointer_cast<Boss1>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOSS_1));

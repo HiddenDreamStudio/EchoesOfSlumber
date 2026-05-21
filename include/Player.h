@@ -90,6 +90,7 @@ public:
 	bool isJumping = false;
 
 	bool isWakingUp = true;
+	bool wakeUpAnimStarted = false;
 
 	int keys = 0;
 

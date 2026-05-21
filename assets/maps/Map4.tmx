@@ -347,6 +347,9 @@
   <object id="73" gid="256" x="4063" y="9542" width="599" height="398.298"/>
   <object id="74" gid="245" x="4768" y="10465" width="529" height="1024.42"/>
  </objectgroup>
+ <objectgroup id="3" name="Entities">
+  <object id="29" name="Player" type="Player" x="4543" y="7870" width="68" height="71"/>
+ </objectgroup>
  <layer id="1" name="Map" width="173" height="178">
   <properties>
    <property name="Draw" type="bool" value="true"/>
