@@ -108,6 +108,11 @@ bool Player::Update(float dt)
 
 	GetPhysicsValues();
 
+	if (knockbackTimer_ > 0.0f) {
+		knockbackTimer_ -= dt;
+		velocity.x = knockbackX_;
+	}
+
 	// Tick hide cooldown
 	if (hideCooldown_ > 0.0f) hideCooldown_ -= dt;
 	if (slingshotCooldown_ > 0.0f) slingshotCooldown_ -= dt;
@@ -591,11 +596,13 @@ void Player::Draw(float dt) {
 	}
 
 	if (isWakingUp) {
-		wakeUpAnim.Update(dt);
-		if (wakeUpAnim.HasFinishedOnce()) {
-			isWakingUp = false;
+		if (wakeUpAnimStarted) {
+			wakeUpAnim.Update(dt);
+			if (wakeUpAnim.HasFinishedOnce()) {
+				isWakingUp = false;
+			}
 		}
-		else {
+		if (isWakingUp) {
 			const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
 			float wakeScale = 0.65f;
 			int wakeWidth = (int)(258.0f * wakeScale);
@@ -713,7 +720,8 @@ void Player::TakeDamage(int damage)
 	float closestDist = 999999.0f;
 	float enemyDirX = 0.0f;
 	for (const auto& entity : Engine::GetInstance().entityManager->entities) {
-		if ((entity->type == EntityType::ENEMY || entity->type == EntityType::ENEMY_B || entity->type == EntityType::ENEMY_C) && entity->active) {
+		if ((entity->type == EntityType::ENEMY || entity->type == EntityType::ENEMY_B ||
+			entity->type == EntityType::ENEMY_C || entity->type == EntityType::BOUNCER) && entity->active) {
 			float dx = entity->position.getX() - (float)playerX;
 			float dy = entity->position.getY() - (float)playerY;
 			float dist = dx * dx + dy * dy;
@@ -744,9 +752,16 @@ void Player::TakeDamage(int damage)
 	else
 	{
 		isHiding_ = false;
-		isShowingDamageAnim_ = true;
-		anims.SetCurrent("damage");
-		anims.ResetCurrent();
+		if (suppressDamageAnim_)
+		{
+			suppressDamageAnim_ = false;
+		}
+		else
+		{
+			isShowingDamageAnim_ = true;
+			anims.SetCurrent("damage");
+			anims.ResetCurrent();
+		}
 	}
 }
 
@@ -807,7 +822,10 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		int playerX, playerY, platX, platY;
 		physA->GetPosition(playerX, playerY);
 		physB->GetPosition(platX, platY);
+
+		// Check if the player lands on top of the platform
 		if (playerY < platY) {
+			platformBelow = physB;
 			if (isJumping) {
 				// Spawn landing dust (Centered at bottom of capsule)
 				Engine::GetInstance().entityManager->SpawnVFX(
@@ -885,6 +903,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 {
+	if (physB->ctype == ColliderType::PLATFORM)
+		platformBelow = nullptr;
+
 	if (physB->ctype == ColliderType::PUSH_ROCK) {
 		pushContactCount_--;
 		if (pushContactCount_ <= 0) {

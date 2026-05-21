@@ -8,14 +8,19 @@
 #include "EnemyCarmel.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
+#include "Bouncer.h"
 #include "Projectile.h"
 #include "Checkpoint.h"
 #include "Box.h"
 #include "PushRock.h"
 #include "VFX.h"
 #include "SlingshotProjectile.h"
+#include "DropDoll.h"
 #include "Boss2.h"
+#include "Boss1.h"
+#include "RopedRock.h"
 #include "tracy/Tracy.hpp"
+#include "Platform.h"
 #include "Door.h"
 
 EntityManager::EntityManager() : Module()
@@ -92,6 +97,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 	case EntityType::ENEMY_C:
 		entity = std::make_shared<EnemyC>();
 		break;
+	case EntityType::BOUNCER:
+		entity = std::make_shared<Bouncer>();
+		break;
 	case EntityType::PROJECTILE:
 		entity = std::make_shared<Projectile>();
 		break;
@@ -100,6 +108,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::BOX:
 		entity = std::make_shared<Box>();
+		break;
+	case EntityType::PLATFORM:
+		entity = std::make_shared<Platform>();
 		break;
 	case EntityType::PUSH_ROCK:
 		entity = std::make_shared<PushRock>();
@@ -113,8 +124,17 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 	case EntityType::SLINGSHOT_PROJECTILE:
 		entity = std::make_shared<SlingshotProjectile>();
 		break;
+	case EntityType::DROP_DOLL:
+		entity = std::make_shared<DropDoll>();
+		break;
 	case EntityType::BOSS_2:
 		entity = std::make_shared<Boss2>();
+		break;
+	case EntityType::BOSS_1:
+		entity = std::make_shared<Boss1>();
+		break;
+	case EntityType::ROPE_ROCK:
+		entity = std::make_shared<RopedRock>();
 		break;
 	default:
 		break;
@@ -176,6 +196,15 @@ bool EntityManager::Update(float dt)
 }
 
 bool EntityManager::PostUpdate() {
-	// Entity deletion is already handled in Update() — no need to double-check here
-	return true;
+	ZoneScoped;
+	bool ret = true;
+
+	for (const auto entity : entities)
+	{
+		if (entity->active == false) continue;
+		ret = entity->PostUpdate();
+		if (!ret) break;
+	}
+
+	return ret;
 }
