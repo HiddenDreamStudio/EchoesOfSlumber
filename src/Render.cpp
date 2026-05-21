@@ -17,7 +17,7 @@ Render::Render() : Module()
 	background.r = 0;
 	background.g = 0;
 	background.b = 0;
-	background.a = 0;
+	background.a = 255; // Opaque background to ensure additive glow visibility in post-processing
 }
 
 Render::~Render() {}
@@ -30,16 +30,20 @@ bool Render::Awake()
 	int scale = Engine::GetInstance().window->GetScale();
 	SDL_Window* window = Engine::GetInstance().window->window;
 
-	// NOTE: SDL_RENDER_SCALE_QUALITY is SDL2-only and has no effect in SDL3.
-	// Per-texture filtering is set via SDL_SetTextureScaleMode instead.
+	// ── VULKAN ARCHITECTURE PLAN: STEP 1 ────────────────────────────────
+	// Try to create a renderer using the new SDL3 GPU API backend.
+	// This ensures we have a Vulkan-capable device that we can also use for custom shaders.
+	renderer = SDL_CreateRenderer(window, "gpu");
 
-	// Try to create a Vulkan renderer first
-	renderer = SDL_CreateRenderer(window, "vulkan");
+	if (renderer == NULL) {
+		LOG("SDL_GPU renderer failed: %s. Falling back to explicit Vulkan renderer.", SDL_GetError());
+		renderer = SDL_CreateRenderer(window, "vulkan");
+	}
 
 	// Fallback to default if Vulkan fails
 	if (renderer == NULL) {
-		LOG("Vulkan renderer failed: %s. Falling back to default GPU renderer.", SDL_GetError());
-	renderer = SDL_CreateRenderer(window, nullptr);
+		LOG("Vulkan renderer failed: %s. Falling back to default renderer.", SDL_GetError());
+		renderer = SDL_CreateRenderer(window, nullptr);
 	}
 
 	if (renderer == NULL)
@@ -50,6 +54,17 @@ bool Render::Awake()
 	else
 	{
 		LOG("Using render driver: %s", SDL_GetRendererName(renderer));
+
+		// Extract the shared GPUDevice from the renderer properties.
+		// This avoids the VK_ERROR_NATIVE_WINDOW_IN_USE_KHR conflict by sharing the same Vulkan surface.
+		gpuDevice = (SDL_GPUDevice*)SDL_GetPointerProperty(SDL_GetRendererProperties(renderer), SDL_PROP_RENDERER_GPU_DEVICE_POINTER, NULL);
+		
+		if (gpuDevice) {
+			LOG("Vulkan SDL_GPU device shared successfully via Renderer.");
+		} else {
+			LOG("Warning: Could not extract SDL_GPU device from renderer. Advanced shaders may fail.");
+		}
+		// ───────────────────────────────────────────────────────────────────
 
 		// Render at 1280x720 logical resolution, auto-scale to fill display with letterbox
 		SDL_SetRenderLogicalPresentation(renderer, 1280, 720, SDL_LOGICAL_PRESENTATION_LETTERBOX);
@@ -74,9 +89,14 @@ bool Render::Awake()
 			LOG("Error: sceneTargetTex_ could not be created! SDL_Error: %s", SDL_GetError());
 		}
 
-		// Create warm gold radial glow texture (300px radius)
+		// Create radial glow textures
 		SDL_Color goldColor = { 255, 230, 180, 255 };
 		glowTex_ = CreateRadialGlowTexture(300, goldColor);
+		if (glowTex_) LOG("Gold radial glow texture created.");
+
+		SDL_Color whiteColor = { 255, 255, 255, 255 };
+		whiteGlowTex_ = CreateRadialGlowTexture(300, whiteColor);
+		if (whiteGlowTex_) LOG("White radial glow texture created.");
 	}
 
 	TTF_Init();
@@ -679,7 +699,8 @@ SDL_Texture* Render::CreateRadialGlowTexture(int radius, SDL_Color centerColor)
 				float dist = std::sqrt(dx * dx + dy * dy);
 				float factor = 1.0f - (dist / maxDist);
 				if (factor < 0.0f) factor = 0.0f;
-				factor = factor * factor * factor;
+				// Smoother falloff (squared) instead of cubed for more "body" in the glow
+				factor = factor * factor;
 
 				Uint8 r = (Uint8)(centerColor.r * factor);
 				Uint8 g = (Uint8)(centerColor.g * factor);
@@ -716,4 +737,23 @@ void Render::DrawPlayerGlow(int worldX, int worldY, float radiusScale, Uint8 alp
 	SDL_SetTextureBlendMode(glowTex_, SDL_BLENDMODE_ADD);
 	SDL_SetTextureAlphaMod(glowTex_, alpha);
 	SDL_RenderTexture(renderer, glowTex_, nullptr, &dst);
+}
+
+void Render::DrawWhiteGlow(int worldX, int worldY, float radiusScale, Uint8 alpha)
+{
+	if (!whiteGlowTex_) return;
+	int scale = Engine::GetInstance().window->GetScale();
+	float s = cameraZoom;
+	float radius = 300.0f * radiusScale;
+	float size = radius * 2.0f;
+
+	SDL_FRect dst;
+	dst.x = (float)((zoomCenterX + s * ((float)camera.x + (float)worldX - radius - zoomCenterX)) * scale);
+	dst.y = (float)((zoomCenterY + s * ((float)camera.y + (float)worldY - radius - zoomCenterY)) * scale);
+	dst.w = size * scale * s;
+	dst.h = size * scale * s;
+
+	SDL_SetTextureBlendMode(whiteGlowTex_, SDL_BLENDMODE_ADD);
+	SDL_SetTextureAlphaMod(whiteGlowTex_, alpha);
+	SDL_RenderTexture(renderer, whiteGlowTex_, nullptr, &dst);
 }
