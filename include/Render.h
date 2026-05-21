@@ -93,6 +93,7 @@ public:
 	// In-game intro effects
 	SDL_Texture* sceneTargetTex_ = nullptr;
 	SDL_Texture* glowTex_ = nullptr;
+	SDL_Texture* whiteGlowTex_ = nullptr;
 	float cameraZoom = 1.0f;
 	float blurIntensity = 0.0f;
 	float zoomCenterX = 640.0f;
@@ -102,6 +103,7 @@ public:
 
 	SDL_Texture* CreateRadialGlowTexture(int radius, SDL_Color centerColor);
 	void DrawPlayerGlow(int worldX, int worldY, float radiusScale, Uint8 alpha);
+	void DrawWhiteGlow(int worldX, int worldY, float radiusScale, Uint8 alpha);
 	void SetCameraClamping(bool active) { cameraClampingActive_ = active; }
 	void SetCameraMovement(bool active) { cameraMovementActive_ = active; }
 
