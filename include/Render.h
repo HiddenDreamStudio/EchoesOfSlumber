@@ -72,6 +72,8 @@ public:
 	void DrawFade();
 	bool IsFadeComplete() const;
 	Uint8 GetFadeAlpha() const;
+	bool IsFadingIn() const { return fadeActive_ && fadeDir_ == FadeDirection::FADE_IN; }
+	bool IsFadingOut() const { return fadeActive_ && fadeDir_ == FadeDirection::FADE_OUT; }
 
 	// Set background color
 	void SetBackgroundColor(SDL_Color color);
@@ -85,6 +87,23 @@ public:
 	void SetDeadZone(float width, float height);
 	void SetCameraSmoothSpeed(float speed);
 	Vector2D GetCameraPosition() const;
+	float GetWorldViewportWidth() const;
+	float GetWorldViewportHeight() const;
+
+	// In-game intro effects
+	SDL_Texture* sceneTargetTex_ = nullptr;
+	SDL_Texture* glowTex_ = nullptr;
+	float cameraZoom = 1.0f;
+	float blurIntensity = 0.0f;
+	float zoomCenterX = 640.0f;
+	float zoomCenterY = 360.0f;
+	bool cameraClampingActive_ = true;
+	bool cameraMovementActive_ = true;
+
+	SDL_Texture* CreateRadialGlowTexture(int radius, SDL_Color centerColor);
+	void DrawPlayerGlow(int worldX, int worldY, float radiusScale, Uint8 alpha);
+	void SetCameraClamping(bool active) { cameraClampingActive_ = active; }
+	void SetCameraMovement(bool active) { cameraMovementActive_ = active; }
 
 public:
 
@@ -110,10 +129,6 @@ private:
 	float deadZoneWidth_ = 64.0f;     // Dead zone half-width (world pixels)
 	float deadZoneHeight_ = 32.0f;    // Dead zone half-height (world pixels)
 	bool cameraInitialized_ = false;
-
-	// Helper to get world-space camera viewport dimensions (accounts for window scale)
-	float GetWorldViewportWidth() const;
-	float GetWorldViewportHeight() const;
 
 	// Fade overlay
 	bool fadeActive_ = false;
