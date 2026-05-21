@@ -3,6 +3,7 @@
 #include "Textures.h"
 #include "Render.h"
 #include "Physics.h"
+#include "Log.h"
 
 Platform::Platform() : Entity(EntityType::PLATFORM) {
     name = "Platform";
@@ -16,8 +17,9 @@ bool Platform::Awake() {
 
 bool Platform::Start() {
     // Load the platform texture
-    texture = Engine::GetInstance().textures->Load("assets/textures/TL_environment/plat_4tiles.png");
-    
+    LOG("Platform loading texture: %s", texturePath.c_str());
+    texture = Engine::GetInstance().textures->Load(texturePath.c_str());
+
     // Create a kinematic body so it can move and carry other objects
     pbody = Engine::GetInstance().physics->CreateRectangle((int)position.getX(), (int)position.getY(), texW, texH, bodyType::KINEMATIC);
     pbody->ctype = ColliderType::PLATFORM; 
@@ -28,6 +30,12 @@ bool Platform::Start() {
 
 bool Platform::Update(float dt) {
     if (!active || waypoints.empty() || !pbody) return true;
+
+    if (triggerOnPlayer && !playerOnTop) {
+        pbody->GetPosition(bx, by);
+        Engine::GetInstance().render->DrawTexture(texture, bx - texW / 2, by - texH / 2);
+        return true;
+    }
 
     int bx, by;
     pbody->GetPosition(bx, by);
@@ -65,4 +73,14 @@ bool Platform::CleanUp() {
 
 void Platform::AddWaypoint(Vector2D point) {
     waypoints.push_back(point);
+}
+
+void Platform::OnCollision(PhysBody* physA, PhysBody* physB) {
+    if (physB->ctype == ColliderType::PLAYER)
+        playerOnTop = true;
+}
+
+void Platform::OnCollisionEnd(PhysBody* physA, PhysBody* physB) {
+    if (physB->ctype == ColliderType::PLAYER)
+        playerOnTop = false;
 }
