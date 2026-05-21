@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="173" height="204" tilewidth="64" tileheight="64" infinite="0" nextlayerid="45" nextobjectid="882">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="173" height="204" tilewidth="64" tileheight="64" infinite="0" nextlayerid="45" nextobjectid="900">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -35984,38 +35984,122 @@
  </layer>
  <objectgroup id="33" name="AnimatedPlants Front"/>
  <objectgroup id="9" name="Entities">
-  <object id="772" name="EnemyC" type="EnemyC" x="6628.61" y="9340.73" width="32" height="32"/>
-  <object id="877" name="EnemyC" type="EnemyC" x="3224.61" y="9396.73" width="32" height="32"/>
-  <object id="878" name="EnemyC" type="EnemyC" x="2134.61" y="8536.73" width="32" height="32"/>
-  <object id="773" name="EnemyB" type="EnemyB" x="4669.03" y="6319.82" width="32" height="32">
+  <object id="875" name="Enemy" type="Bouncer" x="7241.03" y="8487.82" width="108" height="100">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="881" name="EnemyB" type="EnemyB" x="4177.03" y="4375.15" width="32" height="32">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="875" name="EnemyB" type="EnemyB" x="7225.03" y="8459.82" width="32" height="32">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="876" name="EnemyB" type="EnemyB" x="4857.06" y="9382.88" width="32" height="32">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="774" name="Enemy" type="Enemy" x="1892" y="6474" width="32" height="32"/>
-  <object id="879" name="Enemy" type="Enemy" x="2316" y="3530" width="32" height="32"/>
-  <object id="880" name="Enemy" type="Enemy" x="4302" y="3485" width="32" height="32"/>
   <object id="775" name="Player" type="Player" x="8588.36" y="8491.39" width="96" height="96"/>
   <object id="776" name="Cape" type="Cape" x="5546.06" y="1579.27"/>
+  <object id="882" name="Enemy" type="SpiderCandy" x="6318" y="9366" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="883" name="Enemy" type="SpiderCandy" x="5602" y="8494" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="884" name="Enemy" type="Bouncer" x="9162" y="10294" width="108" height="84">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="885" name="Enemy" type="SpiderCandy" x="6554" y="10278" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="886" name="Enemy" type="Bouncer" x="4554" y="11894" width="108" height="84">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="887" name="Enemy" type="SpiderCandy" x="1130" y="11102" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="888" name="Enemy" type="Bouncer" x="1962" y="12654" width="108" height="84">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="889" name="Enemy" type="Bouncer" x="2402" y="8494" width="108" height="84">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="890" name="Enemy" type="Bouncer" x="6634" y="6326" width="108" height="84">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="891" name="Enemy" type="Bouncer" x="1722" y="6454" width="108" height="84">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="892" name="Enemy" type="Bouncer" x="2306" y="4342" width="108" height="84">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="893" name="Enemy" type="SpiderCandy" x="3938" y="7510" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="894" name="Enemy" type="Bouncer" x="4884" y="5234" width="108" height="84">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="895" name="Enemy" type="SpiderCandy" x="4018" y="4382" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="896" name="Enemy" type="SpiderCandy" x="4210" y="3494" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="897" name="Enemy" type="Bouncer" x="1514" y="3306" width="108" height="84">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="898" name="Enemy" type="Bouncer" x="4570.24" y="2606.48" width="108" height="84">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="899" name="Enemy" type="SpiderCandy" x="4715.7" y="550" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
  </objectgroup>
  <objectgroup id="28" name="Background">
   <object id="734" gid="204" x="7191" y="10468" width="495" height="736"/>
