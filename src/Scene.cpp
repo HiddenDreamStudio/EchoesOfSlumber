@@ -1174,8 +1174,7 @@ void Scene::UpdateTutorialTextCard(float dt)
 			pt2Played_ = true;
 		}
 		float elapsed = tutorialTimer_ - pt2Start;
-		float alpha = std::min(1.0f, elapsed / 1000.0f);
-		SDL_Color mainColor = { white.r, white.g, white.b, (Uint8)(255 * alpha) };
+		SDL_Color mainColor = { white.r, white.g, white.b, 255 };
 		render.DrawMenuTextCentered("Rock Bottom", { 0, winH / 2 - 10, winW, 60 }, mainColor, 2.0f);
 	}
 }
@@ -1189,6 +1188,7 @@ void Scene::LoadGameplay()
 	isPaused_ = false;
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
+	showInventory_ = false;
 	isBossFightActive_ = false;
 	activeBoss_.reset();
 
@@ -1338,33 +1338,95 @@ void Scene::LoadGameplay()
 	texBlanketActive_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability.png");
 	texBlanketInactive_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Blanket_Ability_low_opacity.png");
 
-	// Cape collectible (AS_capa.png)
-	texCapaCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/AS_capa.png");
-	if (texCapaCollectible_) {
-		SDL_SetTextureColorMod(texCapaCollectible_, 100, 100, 120);
-	}
+	// Cape collectible (Colectible manta.png - high quality folded blue blanket)
+	texCapaCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/Colectible manta.png");
 	capaCollected_ = false;
 	capaFloatTimer_ = 0.0f;
 
-	// Read cape position from TMX Entities layer instead of hardcoding
+	// Read cape position from TMX Entities layer. If not found, use a fallback spawn position
 	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
-		LOG("WARNING: No Cape entity found in TMX Entities layer, cape will not spawn");
-		capaCollected_ = true;
+		LOG("WARNING: No Cape entity found in TMX Entities layer, using default fallback position");
+		capaX_ = 450.0f;
+		capaY_ = 650.0f;
+		capaCollected_ = false;
 	}
 
 	capaBody_ = nullptr;
 
 	// Slingshot (Tirachinas) collectible
 	texSlingshotCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/Colectible tirachinas.png");
+
+	// Inventory textures
+	texInventoryBg_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Inventory_Menu_Base.png");
+	texAbilitiesLocked_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Abilities_Locked.png");
+	texAbilitiesBlanket_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Abilities_Blanket_Unlocked.png");
+	texAbilitiesBlanketSling_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Abilities_Blanket_Slingshot_Unlocked.png");
+	texAbilitiesAll_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Abilities_ALL_Unlocked.png");
+
+	texAbilityBlanketIcon_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Ability_Blanket.png");
+	texAbilitySlingshotIcon_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Ability_Slingshot.png");
+	texAbilityStuffedAnimalIcon_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Ability_Stuffed_Animal.png");
+	texAbilityAnchorIcon_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Ability_Anchor.png");
+
+	// Memories UI textures
+	texMemoria1Base_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_1_Base.png");
+	texMemoria1N1_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_1_N1.png");
+	texMemoria1N2_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_1_N2.png");
+
+	texMemoria2Base_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_2_Base.png");
+	texMemoria2N1_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_2_N1.png");
+	texMemoria2N2_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_2_N2.png");
+
+	texMemoria3Base_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_Base.png");
+	texMemoria3N1_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_N1.png");
+	texMemoria3N2_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_N2.png");
+	texMemoria3N3_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_N3.png");
+
+	// Fullscreen memories
+	texMemoriaFrameFullScreen_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Frame_Memoria_FullScreen.png");
+	texMemoria1Full1_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/Memoria1_1.png");
+	texMemoria1Full2_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/Memoria1_2.png");
+
+	texMemoria2Full1_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/memoria_2.1.jpg");
+	texMemoria2Full2_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/memoria_2.2.png");
+
+	texMemoria3Full1_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/memoria_3.1.jpg");
+	texMemoria3Full2_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/memoria_3.2.jpg");
+	texMemoria3Full3_ = Engine::GetInstance().textures->Load("assets/textures/Memorias_Full_Screen/memoria_3.3.jpg");
+
+	// Reset hover and fullscreen states
+	for (int i = 0; i < 3; i++) {
+		memoryHoverTimers_[i] = 0.0f;
+	}
+	showMemoryViewer_ = false;
+	activeMemoryIndex_ = -1;
+	activeMemoryPage_ = 0;
 	slingshotCollected_ = false;
 	slingshotFloatTimer_ = 0.0f;
 
-	// Read slingshot position from TMX
+	// Read slingshot position from TMX. If not found, use a fallback spawn position
 	if (!Engine::GetInstance().map->GetSlingshotPosition(slingshotX_, slingshotY_)) {
-		LOG("WARNING: No Tirachinas entity found in TMX, slingshot will not spawn");
-		slingshotCollected_ = true;
+		LOG("WARNING: No Tirachinas entity found in TMX, using default fallback position");
+		slingshotX_ = 750.0f;
+		slingshotY_ = 650.0f;
+		slingshotCollected_ = false;
 	}
 
+	// Stuffed Animal (Oso) collectible
+	texStuffedAnimalCollectible_ = Engine::GetInstance().textures->Load("assets/textures/AS_props/Colectible oso.png");
+	stuffedAnimalCollected_ = false;
+	stuffedAnimalFloatTimer_ = 0.0f;
+
+	// Read stuffed animal position from TMX. If not found, use default fallback next to player
+	if (!Engine::GetInstance().map->GetStuffedAnimalPosition(stuffedAnimalX_, stuffedAnimalY_)) {
+		LOG("WARNING: No Oso/Peluche/StuffedAnimal entity found in TMX, using default fallback position next to player");
+		stuffedAnimalX_ = 200.0f;
+		stuffedAnimalY_ = 672.0f;
+		stuffedAnimalCollected_ = false;
+	}
+
+	// Load Minimap Ornate Frame Texture
+	texMinimapFrame_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Minimap.png");
 	// Pre-simulate physics to settle all dynamic bodies
 	Engine::GetInstance().physics->PreSimulateScene(3.0f);
 }
@@ -1442,13 +1504,54 @@ void Scene::UpdateGameplay(float dt)
 		gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN;
 	bool backBtn = gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN;
 
-	if (!isGameOver_ && (pauseToggle || (backBtn && (showMapViewer_ || showPauseOptions_ || isPaused_))))
+	// Toggle Inventory with 'I' or Gamepad D-pad UP
+	bool inventoryToggle = gpInput.GetKey(SDL_SCANCODE_I) == KEY_DOWN ||
+		gpInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_UP) == KEY_DOWN;
+
+	if (!isGameOver_ && inventoryToggle)
+	{
+		if (showInventory_) {
+			showInventory_ = false;
+			isPaused_ = false;
+			SetPauseMenuVisible(false);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (!isPaused_ && !showMapViewer_) {
+			showInventory_ = true;
+			isPaused_ = true;
+			SetPauseMenuVisible(false);
+
+			// Initialize gamepad selection to currently equipped item
+			Player::EquippedItem eq = player ? player->GetEquippedItem() : Player::EquippedItem::NONE;
+			bool blanket = player && player->HasBlanket();
+			bool slingshot = player && player->HasSlingshot();
+			bool stuffed = player && player->HasStuffedAnimal();
+
+			if (eq == Player::EquippedItem::BLANKET && blanket) inventorySel_ = 0;
+			else if (eq == Player::EquippedItem::SLINGSHOT && slingshot) inventorySel_ = 1;
+			else if (eq == Player::EquippedItem::STUFFED_ANIMAL && stuffed) inventorySel_ = 2;
+			else if (blanket) inventorySel_ = 0;
+			else if (slingshot) inventorySel_ = 1;
+			else if (stuffed) inventorySel_ = 2;
+			else inventorySel_ = -1;
+
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+	}
+
+	if (!isGameOver_ && (pauseToggle || (backBtn && (showMapViewer_ || showInventory_ || showPauseOptions_ || isPaused_))))
 	{
 		if (showMapViewer_) {
 			showMapViewer_ = false;
 			// If no pause menu buttons are visible, map was opened via touchpad -- unpause
 			isPaused_ = false;
 			SetPauseMenuVisible(false);
+		}
+		else if (showInventory_) {
+			showInventory_ = false;
+			isPaused_ = false;
+			SetPauseMenuVisible(false);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
 		}
 		else if (showPauseOptions_) {
 			showPauseOptions_ = false;
@@ -1477,6 +1580,92 @@ void Scene::UpdateGameplay(float dt)
 		Vector2D playerPos = player ? player->GetPosition() : Vector2D(0, 0);
 		mapViewOffsetX_ = (float)viewW / 2.0f - (playerPos.getX() * mapViewZoom_);
 		mapViewOffsetY_ = (float)viewH / 2.0f - (playerPos.getY() * mapViewZoom_);
+	}
+
+	if (showInventory_)
+	{
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+
+		if (showMemoryViewer_)
+		{
+			// Handle Fullscreen Memory Viewer Input
+			auto& input = *Engine::GetInstance().input;
+			int pageCount = (activeMemoryIndex_ == 2) ? 3 : 2;
+
+			if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN)
+			{
+				Vector2D mousePos = input.GetMousePosition();
+				float mx = mousePos.getX();
+				float my = mousePos.getY();
+
+				// Calculate scaled frame boundaries
+				float scaleX = (float)winW / 1920.0f;
+				float scaleY = (float)winH / 1080.0f;
+				float fScale = std::min(scaleX, scaleY) * 0.95f;
+				float frameW = 1920.0f * fScale;
+				float frameH = 1080.0f * fScale;
+				float frameX = (winW - frameW) / 2.0f;
+				float frameY = (winH - frameH) / 2.0f;
+
+				// Check if clicked outside the frame to close
+				if (mx < frameX || mx > frameX + frameW || my < frameY || my > frameY + frameH)
+				{
+					showMemoryViewer_ = false;
+					activeMemoryIndex_ = -1;
+					Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				}
+				else
+				{
+					// Clicked inside the frame
+					// Left 30% goes to previous page, right 30% goes to next page, middle closes
+					if (mx < frameX + frameW * 0.3f)
+					{
+						activeMemoryPage_ = (activeMemoryPage_ - 1 + pageCount) % pageCount;
+						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+					}
+					else if (mx > frameX + frameW * 0.7f)
+					{
+						activeMemoryPage_ = (activeMemoryPage_ + 1) % pageCount;
+						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+					}
+					else
+					{
+						showMemoryViewer_ = false;
+						activeMemoryIndex_ = -1;
+						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+					}
+				}
+			}
+
+			// Key shortcuts to close
+			if (input.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+				input.GetKey(SDL_SCANCODE_I) == KEY_DOWN ||
+				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN ||
+				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN)
+			{
+				showMemoryViewer_ = false;
+				activeMemoryIndex_ = -1;
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+
+			// Arrow keys or D-pad to change pages
+			if (input.GetKey(SDL_SCANCODE_LEFT) == KEY_DOWN ||
+				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_LEFT) == KEY_DOWN)
+			{
+				activeMemoryPage_ = (activeMemoryPage_ - 1 + pageCount) % pageCount;
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+			if (input.GetKey(SDL_SCANCODE_RIGHT) == KEY_DOWN ||
+				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_RIGHT) == KEY_DOWN)
+			{
+				activeMemoryPage_ = (activeMemoryPage_ + 1) % pageCount;
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+		}
+
+		DrawInventory(winW, winH);
+		return;
 	}
 
 	if (showMapViewer_)
@@ -1656,6 +1845,26 @@ void Scene::UpdateGameplay(float dt)
 				LOG("Slingshot collected! Ranged attack unlocked.");
 			}
 		}
+
+		// Stuffed Animal collectible pickup (proximity check)
+		if (!stuffedAnimalCollected_ && player)
+		{
+			stuffedAnimalFloatTimer_ += dt;
+
+			float sdx = player->position.getX() - stuffedAnimalX_;
+			float sdy = player->position.getY() - (stuffedAnimalY_ - 50.0f);
+			float sdistSq = sdx * sdx + sdy * sdy;
+			float spickupRadius = 60.0f;
+
+			if (sdistSq < spickupRadius * spickupRadius)
+			{
+				stuffedAnimalCollected_ = true;
+				player->SetHasStuffedAnimal(true);
+				Engine::GetInstance().audio->PlayFx(player->pickCoinFxId);
+				stuffedAnimalNotifTimer_ = STUFFED_ANIMAL_NOTIF_DURATION;
+				LOG("Stuffed Animal collected! Bear transformation unlocked.");
+			}
+		}
 	}
 
 	// Draw slingshot collectible in-world
@@ -1672,6 +1881,19 @@ void Scene::UpdateGameplay(float dt)
 		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
 
+	// Draw stuffed animal collectible in-world
+	if (!stuffedAnimalCollected_ && texStuffedAnimalCollectible_)
+	{
+		int slTexW = 0, slTexH = 0;
+		Engine::GetInstance().textures->GetSize(texStuffedAnimalCollectible_, slTexW, slTexH);
+		float slFloatOffset = 6.0f * sinf(stuffedAnimalFloatTimer_ * 0.003f);
+		float slScale = 0.05f; 
+		int slDrawX = (int)(stuffedAnimalX_ - (float)slTexW * slScale / 2.0f);
+		int slDrawY = (int)(stuffedAnimalY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
+
+		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
+		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
+	}
 	if (!isPaused_ && !isGameOver_) UpdateBossFight();
 
 	// Draw cape collectible in-world
@@ -1680,11 +1902,12 @@ void Scene::UpdateGameplay(float dt)
 		int capaTexW = 0, capaTexH = 0;
 		Engine::GetInstance().textures->GetSize(texCapaCollectible_, capaTexW, capaTexH);
 		float floatOffset = 6.0f * sinf(capaFloatTimer_ * 0.003f);
-		int drawX = (int)(capaX_ - (float)capaTexW * 0.5f / 2.0f);
-		int drawY = (int)(capaY_ - (float)capaTexH * 0.5f / 2.0f + floatOffset);
+		float capaScale = 0.06f; // Perfect floating scale for the high-res blue blanket!
+		int drawX = (int)(capaX_ - (float)capaTexW * capaScale / 2.0f);
+		int drawY = (int)(capaY_ - (float)capaTexH * capaScale / 2.0f + floatOffset);
 
 		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
-		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, capaScale);
 	}
 }
 
@@ -1784,6 +2007,7 @@ void Scene::UnloadGameplay()
 	isPaused_ = false;
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
+	showInventory_ = false;
 
 	if (texHealth1_) { Engine::GetInstance().textures->UnLoad(texHealth1_); texHealth1_ = nullptr; }
 	if (texHealth2_) { Engine::GetInstance().textures->UnLoad(texHealth2_); texHealth2_ = nullptr; }
@@ -1811,6 +2035,49 @@ void Scene::UnloadGameplay()
 
 	if (texSlingshotCollectible_) { Engine::GetInstance().textures->UnLoad(texSlingshotCollectible_); texSlingshotCollectible_ = nullptr; }
 	slingshotCollected_ = false;
+
+	if (texStuffedAnimalCollectible_) { Engine::GetInstance().textures->UnLoad(texStuffedAnimalCollectible_); texStuffedAnimalCollectible_ = nullptr; }
+	stuffedAnimalCollected_ = false;
+
+	if (texInventoryBg_) { Engine::GetInstance().textures->UnLoad(texInventoryBg_); texInventoryBg_ = nullptr; }
+	if (texAbilitiesLocked_) { Engine::GetInstance().textures->UnLoad(texAbilitiesLocked_); texAbilitiesLocked_ = nullptr; }
+	if (texAbilitiesBlanket_) { Engine::GetInstance().textures->UnLoad(texAbilitiesBlanket_); texAbilitiesBlanket_ = nullptr; }
+	if (texAbilitiesBlanketSling_) { Engine::GetInstance().textures->UnLoad(texAbilitiesBlanketSling_); texAbilitiesBlanketSling_ = nullptr; }
+	if (texAbilitiesAll_) { Engine::GetInstance().textures->UnLoad(texAbilitiesAll_); texAbilitiesAll_ = nullptr; }
+
+	if (texAbilityBlanketIcon_) { Engine::GetInstance().textures->UnLoad(texAbilityBlanketIcon_); texAbilityBlanketIcon_ = nullptr; }
+	if (texAbilitySlingshotIcon_) { Engine::GetInstance().textures->UnLoad(texAbilitySlingshotIcon_); texAbilitySlingshotIcon_ = nullptr; }
+	if (texAbilityStuffedAnimalIcon_) { Engine::GetInstance().textures->UnLoad(texAbilityStuffedAnimalIcon_); texAbilityStuffedAnimalIcon_ = nullptr; }
+	if (texAbilityAnchorIcon_) { Engine::GetInstance().textures->UnLoad(texAbilityAnchorIcon_); texAbilityAnchorIcon_ = nullptr; }
+
+	// Unload Memories UI textures
+	if (texMemoria1Base_) { Engine::GetInstance().textures->UnLoad(texMemoria1Base_); texMemoria1Base_ = nullptr; }
+	if (texMemoria1N1_) { Engine::GetInstance().textures->UnLoad(texMemoria1N1_); texMemoria1N1_ = nullptr; }
+	if (texMemoria1N2_) { Engine::GetInstance().textures->UnLoad(texMemoria1N2_); texMemoria1N2_ = nullptr; }
+
+	if (texMemoria2Base_) { Engine::GetInstance().textures->UnLoad(texMemoria2Base_); texMemoria2Base_ = nullptr; }
+	if (texMemoria2N1_) { Engine::GetInstance().textures->UnLoad(texMemoria2N1_); texMemoria2N1_ = nullptr; }
+	if (texMemoria2N2_) { Engine::GetInstance().textures->UnLoad(texMemoria2N2_); texMemoria2N2_ = nullptr; }
+
+	if (texMemoria3Base_) { Engine::GetInstance().textures->UnLoad(texMemoria3Base_); texMemoria3Base_ = nullptr; }
+	if (texMemoria3N1_) { Engine::GetInstance().textures->UnLoad(texMemoria3N1_); texMemoria3N1_ = nullptr; }
+	if (texMemoria3N2_) { Engine::GetInstance().textures->UnLoad(texMemoria3N2_); texMemoria3N2_ = nullptr; }
+	if (texMemoria3N3_) { Engine::GetInstance().textures->UnLoad(texMemoria3N3_); texMemoria3N3_ = nullptr; }
+
+	// Unload Fullscreen memories
+	if (texMemoriaFrameFullScreen_) { Engine::GetInstance().textures->UnLoad(texMemoriaFrameFullScreen_); texMemoriaFrameFullScreen_ = nullptr; }
+	if (texMemoria1Full1_) { Engine::GetInstance().textures->UnLoad(texMemoria1Full1_); texMemoria1Full1_ = nullptr; }
+	if (texMemoria1Full2_) { Engine::GetInstance().textures->UnLoad(texMemoria1Full2_); texMemoria1Full2_ = nullptr; }
+
+	if (texMemoria2Full1_) { Engine::GetInstance().textures->UnLoad(texMemoria2Full1_); texMemoria2Full1_ = nullptr; }
+	if (texMemoria2Full2_) { Engine::GetInstance().textures->UnLoad(texMemoria2Full2_); texMemoria2Full2_ = nullptr; }
+
+	if (texMemoria3Full1_) { Engine::GetInstance().textures->UnLoad(texMemoria3Full1_); texMemoria3Full1_ = nullptr; }
+	if (texMemoria3Full2_) { Engine::GetInstance().textures->UnLoad(texMemoria3Full2_); texMemoria3Full2_ = nullptr; }
+	if (texMemoria3Full3_) { Engine::GetInstance().textures->UnLoad(texMemoria3Full3_); texMemoria3Full3_ = nullptr; }
+
+	// Unload Minimap Ornate Frame
+	if (texMinimapFrame_) { Engine::GetInstance().textures->UnLoad(texMinimapFrame_); texMinimapFrame_ = nullptr; }
 }
 
 // ============================================================================
@@ -2072,7 +2339,7 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Draw Health HUD ---
-	if (!isPaused_ && !showMapViewer_ && player && !player->isWakingUp) {
+	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_) {
 		SDL_Rect r;
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
@@ -2120,30 +2387,222 @@ void Scene::PostUpdateGameplay()
 				}
 			}
 		}
+         if (texToDraw && frame) {
+             Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+         }
 
-		if (texToDraw && frame) {
-			Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
-		}
+         Player::EquippedItem eq = player->GetEquippedItem();
 
+         // --- Blanket HUD Icon ---
+         if (player->HasBlanket())
+         {
+             int blHudX = 220;
+             int blHudY = 72;
 
-		if (player->HasBlanket())
-		{
-			// --- Blanket Ability HUD Icon ---
-			SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
-			if (blanketTex)
-			{
-				Engine::GetInstance().render->DrawTextureAlpha(blanketTex, 220, 72, 64, 64, 255);
-			}
-		}
+             // 1. Draw Golden Neon Border if currently equipped (from HEAD)
+             if (eq == Player::EquippedItem::BLANKET)
+             {
+                 // Border sized to fit the 64x64 ability icon
+                 SDL_Rect hudBorder = { blHudX - 4, blHudY - 4, 72, 72 };
+                 Engine::GetInstance().render->DrawRectangle(hudBorder, 255, 195, 0, 255, false, false);
+             }
 
-		// --- Slingshot HUD Icon ---
-		if (player->HasSlingshot() && texSlingshotCollectible_)
-		{
+             // 2. Draw the Ability Icon based on Hiding state (from fcdb9746)
+             SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
+
+             if (blanketTex)
+             {
+                 // Draw the high-quality ability texture
+                 Engine::GetInstance().render->DrawTextureAlpha(blanketTex, blHudX, blHudY, 64, 64, 255);
+             }
+             else if (texCapaCollectible_)
+             {
+                 // Fallback to the collectible icon if special ability textures aren't loaded
+                 Uint8 blAlpha = player->IsHiding() ? (Uint8)255 : (Uint8)160;
+                 Engine::GetInstance().render->DrawTextureAlpha(texCapaCollectible_, blHudX, blHudY, 48, 48, blAlpha);
+             }
+         }
+
+         // --- Slingshot HUD Icon ---
+         if (player->HasSlingshot() && texSlingshotCollectible_)
+         {
 			// Position to the right of the blanket icon (or in its spot if no blanket)
 			int slHudX = player->HasBlanket() ? 290 : 220;
 			int slHudY = 72;
 			Uint8 slAlpha = player->IsAiming() ? (Uint8)255 : (Uint8)160;
+
+			if (eq == Player::EquippedItem::SLINGSHOT)
+			{
+				// Draw a gorgeous golden neon border around equipped Slingshot HUD slot
+				SDL_Rect hudBorder = { slHudX - 4, slHudY - 4, 56, 56 };
+				Engine::GetInstance().render->DrawRectangle(hudBorder, 255, 195, 0, 255, false, false);
+			}
 			Engine::GetInstance().render->DrawTextureAlpha(texSlingshotCollectible_, slHudX, slHudY, 48, 48, slAlpha);
+		}
+
+		// --- Draw Dynamic Minimap ---
+		if (!texMinimapFrame_)
+		{
+			texMinimapFrame_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Minimap.png");
+		}
+
+		if (texMinimapFrame_)
+		{
+			auto& render = *Engine::GetInstance().render;
+			int winW = 0, winH = 0;
+			Engine::GetInstance().window->GetWindowSize(winW, winH);
+			
+			// Position: Bottom-Right corner of the screen
+			int miniW = 220;
+			int miniH = 220;
+			int miniX = winW - miniW - 20;
+			int miniY = winH - miniH - 20;
+
+			// Inner boundaries for terrain viewport (accounting for the ornate border thickness)
+			int borderThickness = 12;
+			int innerX = miniX + borderThickness;
+			int innerY = miniY + borderThickness;
+			int innerW = miniW - borderThickness * 2;
+			int innerH = miniH - borderThickness * 2;
+			int centerX = innerX + innerW / 2;
+			int centerY = innerY + innerH / 2;
+
+			// Draw a dark solid container background behind the scrolling map terrain
+			SDL_Rect miniBg = { innerX, innerY, innerW, innerH };
+			render.DrawRectangle(miniBg, 12, 16, 26, 210, true, false);
+
+			// Center the map viewport around the player's pixel position
+			float pWorldX = player->position.getX();
+			float pWorldY = player->position.getY();
+
+			// 1 minimap pixel = 4 world pixels (perfect for 64px / 32px tiles to show context)
+			int tileWidth = Engine::GetInstance().map->GetTileWidth();
+			int tileHeight = Engine::GetInstance().map->GetTileHeight();
+			if (tileWidth <= 0) tileWidth = 64;
+			if (tileHeight <= 0) tileHeight = 64;
+
+			float worldToMiniScale = 4.0f / (float)tileWidth;
+
+			// Scan local tile neighborhood around the player's tile position
+			int pTileX = (int)(pWorldX / (float)tileWidth);
+			int pTileY = (int)(pWorldY / (float)tileHeight);
+			int radius = 25; // Scan range of 25 tiles out to fill the larger viewport
+
+			for (int dy = -radius; dy <= radius; dy++)
+			{
+				for (int dx = -radius; dx <= radius; dx++)
+				{
+					int tx = pTileX + dx;
+					int ty = pTileY + dy;
+
+					// Draw all layers that have "Draw" enabled (so we see the actual level visuals!)
+					for (const auto& mapLayer : Engine::GetInstance().map->mapData.layers)
+					{
+						if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true)
+						{
+							if (tx >= 0 && tx < mapLayer->width && ty >= 0 && ty < mapLayer->height)
+							{
+								int gid = mapLayer->Get(tx, ty);
+								if (gid != 0)
+								{
+									TileSet* tileSet = Engine::GetInstance().map->GetTilesetFromTileId(gid);
+									if (tileSet != nullptr && tileSet->texture != nullptr)
+									{
+										SDL_Rect tileRect = tileSet->GetRect(gid);
+
+										// Calculate sub-pixel world position offset from player
+										float wTileX = (float)tx * (float)tileWidth;
+										float wTileY = (float)ty * (float)tileHeight;
+
+										float offsetWorldX = wTileX - pWorldX;
+										float offsetWorldY = wTileY - pWorldY;
+
+										// Convert offset to minimap coordinates
+										float offsetMiniX = offsetWorldX * worldToMiniScale;
+										float offsetMiniY = offsetWorldY * worldToMiniScale;
+
+										int drawTileX = (int)(centerX + offsetMiniX);
+										int drawTileY = (int)(centerY + offsetMiniY);
+
+										// Viewport Clipping - only render if inside the inner frame boundary
+										// Standard tiles are 4px wide in our minimap scale
+										if (drawTileX >= innerX && drawTileX + 4 <= innerX + innerW &&
+											drawTileY >= innerY && drawTileY + 4 <= innerY + innerH)
+										{
+											// Draw the real tile texture scaled down, speed=0.0f to lock to HUD space!
+											float drawScale = 4.0f / (float)tileWidth;
+											render.DrawTexture(tileSet->texture, drawTileX, drawTileY, &tileRect, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// --- Draw Collectibles on Radar if not yet picked up ---
+			// Cape / Blanket Collectible (Blue Dot)
+			if (!capaCollected_)
+			{
+				float offsetWorldX = capaX_ - pWorldX;
+				float offsetWorldY = (capaY_ - 50.0f) - pWorldY; // account for float offset center
+				float offsetMiniX = offsetWorldX * worldToMiniScale;
+				float offsetMiniY = offsetWorldY * worldToMiniScale;
+
+				int drawX = (int)(centerX + offsetMiniX);
+				int drawY = (int)(centerY + offsetMiniY);
+
+				if (drawX >= innerX + 3 && drawX <= innerX + innerW - 3 &&
+					drawY >= innerY + 3 && drawY <= innerY + innerH - 3)
+				{
+					SDL_Rect dot = { drawX - 3, drawY - 3, 6, 6 };
+					// High-contrast neon blue color for the Cape!
+					render.DrawRectangle(dot, 0, 190, 255, 255, true, false);
+					SDL_Rect dotOutline = { drawX - 4, drawY - 4, 8, 8 };
+					render.DrawRectangle(dotOutline, 255, 255, 255, 200, false, false);
+				}
+			}
+
+			// Slingshot / Tirachinas Collectible (Orange Dot)
+			if (!slingshotCollected_)
+			{
+				float offsetWorldX = slingshotX_ - pWorldX;
+				float offsetWorldY = (slingshotY_ - 50.0f) - pWorldY; // account for float offset center
+				float offsetMiniX = offsetWorldX * worldToMiniScale;
+				float offsetMiniY = offsetWorldY * worldToMiniScale;
+
+				int drawX = (int)(centerX + offsetMiniX);
+				int drawY = (int)(centerY + offsetMiniY);
+
+				if (drawX >= innerX + 3 && drawX <= innerX + innerW - 3 &&
+					drawY >= innerY + 3 && drawY <= innerY + innerH - 3)
+				{
+					SDL_Rect dot = { drawX - 3, drawY - 3, 6, 6 };
+					// High-contrast neon orange color for the Slingshot!
+					render.DrawRectangle(dot, 255, 120, 0, 255, true, false);
+					SDL_Rect dotOutline = { drawX - 4, drawY - 4, 8, 8 };
+					render.DrawRectangle(dotOutline, 255, 255, 255, 200, false, false);
+				}
+			}
+
+			// --- Draw Player Indicator (Blinking glowing yellow dot in the exact center) ---
+			float gameTime = (float)SDL_GetTicks();
+			Uint8 pAlpha = (Uint8)(170 + 85.0f * sinf(gameTime * 0.007f));
+			SDL_Rect playerDot = { centerX - 3, centerY - 3, 6, 6 };
+			render.DrawRectangle(playerDot, 255, 235, 30, pAlpha, true, false);
+			SDL_Rect playerBorder = { centerX - 4, centerY - 4, 8, 8 };
+			render.DrawRectangle(playerBorder, 255, 255, 255, 255, false, false);
+
+			// --- Draw Ornate Frame Overlay right on top ---
+			int frameW = 0, frameH = 0;
+			Engine::GetInstance().textures->GetSize(texMinimapFrame_, frameW, frameH);
+			if (frameW > 0)
+			{
+				SDL_Rect frameSec = { 0, 0, frameW, frameH };
+				float scaleFrame = 220.0f / (float)frameW;
+				render.DrawTexture(texMinimapFrame_, miniX, miniY, &frameSec, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, scaleFrame);
+			}
 		}
 	}
 
@@ -2301,6 +2760,43 @@ void Scene::PostUpdateGameplay()
 		render3.DrawMenuTextCentered("You can't do this; you need an object", { ncpX, ncpY, ncpW, ncpH }, ncpColor, 0.35f);
 	}
 
+	// --- No bear notification ---
+	if (noBearNotifTimer_ > 0.0f) {
+		noBearNotifTimer_ -= Engine::GetInstance().GetDt();
+
+		int winWBear = 0, winHBear = 0;
+		Engine::GetInstance().window->GetWindowSize(winWBear, winHBear);
+		auto& renderBear = *Engine::GetInstance().render;
+
+		Uint8 alphaBear = 255;
+		if (noBearNotifTimer_ < 800.0f)
+			alphaBear = (Uint8)(255.0f * (noBearNotifTimer_ / 800.0f));
+
+		// Panel dimensions
+		const int nbW = 380;
+		const int nbH = 36;
+		const int nbX = (winWBear - nbW) / 2;
+		const int nbY = 40;
+
+		// Black filled panel
+		SDL_Rect nbPanel = { nbX, nbY, nbW, nbH };
+		renderBear.DrawRectangle(nbPanel, 0, 0, 0, alphaBear, true, false);
+
+		// White border (outline) — 2px
+		SDL_Rect nbBorder = { nbX - 2, nbY - 2, nbW + 4, nbH + 4 };
+		renderBear.DrawRectangle(nbBorder, 255, 255, 255, alphaBear, false, false);
+
+		// Text centered inside the panel (scaled down)
+		SDL_Color nbColor = { 255, 255, 255, alphaBear };
+		const char* msg = bearNotifHasStuffed_ ? "Press 3 to equip the Teddy Bear!" : "You need to find the Teddy Bear first!";
+		renderBear.DrawMenuTextCentered(
+			msg,
+			{ nbX, nbY, nbW, nbH },
+			nbColor,
+			0.35f
+		);
+	}
+
 	// --- Slingshot pickup notification ---
 	if (slingshotNotifTimer_ > 0.0f) {
 		slingshotNotifTimer_ -= Engine::GetInstance().GetDt();
@@ -2337,14 +2833,516 @@ void Scene::PostUpdateGameplay()
 		);
 	}
 
-	// -- Final rendering passes (CRITICAL: Must be on top of EVERYTHING) ----
+	// --- Stuffed Animal pickup notification ---
+	if (stuffedAnimalNotifTimer_ > 0.0f) {
+		stuffedAnimalNotifTimer_ -= Engine::GetInstance().GetDt();
+
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		auto& render = *Engine::GetInstance().render;
+
+		Uint8 alpha = 255;
+		if (stuffedAnimalNotifTimer_ < 800.0f)
+			alpha = (Uint8)(255.0f * (stuffedAnimalNotifTimer_ / 800.0f));
+
+		// Panel dimensions
+		const int spW = 340;
+		const int spH = 36;
+		const int spX = (winW - spW) / 2;
+		const int spY = 80;
+
+		// Black filled panel
+		SDL_Rect spPanel = { spX, spY, spW, spH };
+		render.DrawRectangle(spPanel, 0, 0, 0, alpha, true, false);
+
+		// White border (outline)
+		SDL_Rect spBorder = { spX - 2, spY - 2, spW + 4, spH + 4 };
+		render.DrawRectangle(spBorder, 255, 255, 255, alpha, false, false);
+
+		// Text
+		SDL_Color spColor = { 255, 255, 255, alpha };
+		render.DrawMenuTextCentered(
+			"Teddy Bear found! Press O to Summon",
+			{ spX, spY, spW, spH },
+			spColor,
+			0.35f
+		);
+	}
+
 	if (showMapViewer_) {
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
 		DrawMapViewer(winW, winH);
 	}
-	else if (isPaused_) {
+	else if (isPaused_ && !showInventory_) {
 		DrawPauseMenu();
+	}
+} 
+		// ── Inventory ─────────────────────────────────────────────────────────────────
+void Scene::DrawInventory(int winW, int winH)
+{
+	auto& render = *Engine::GetInstance().render;
+
+	// 1. Draw the split-screen background template texture
+	if (texInventoryBg_)
+	{
+		render.DrawTextureAlpha(texInventoryBg_, 0, 0, winW, winH, 255);
+	}
+	else
+	{
+		// Fallback dim background if texture not loaded
+		SDL_Rect dimBg = { 0, 0, winW, winH };
+		render.DrawRectangle(dimBg, 5, 8, 15, 230, true, false);
+	}
+
+	// 2. Compute left section (Abilities) layout & draw the active Diamond Graphic
+	int diamSize = (winW < 1280) ? 440 : 520;
+	int diamX = (winW / 2 - diamSize) / 2;
+	int diamY = (winH - diamSize) / 2;
+
+	bool blanket = player && player->HasBlanket();
+	bool slingshot = player && player->HasSlingshot();
+	bool stuffed = player && player->HasStuffedAnimal();
+
+	SDL_Texture* diamTex = texAbilitiesLocked_;
+	if (blanket && slingshot && stuffed)
+	{
+		diamTex = texAbilitiesAll_;
+	}
+	else if (blanket && slingshot)
+	{
+		diamTex = texAbilitiesBlanketSling_;
+	}
+	else if (blanket)
+	{
+		diamTex = texAbilitiesBlanket_;
+	}
+	else
+	{
+		diamTex = texAbilitiesLocked_;
+	}
+
+	if (diamTex)
+	{
+		render.DrawTextureAlpha(diamTex, diamX, diamY, diamSize, diamSize, 255);
+	}
+
+	// 2b. Compute exact slot centers on the wheel texture
+	// In the wheel, the slots form an inner diamond with a 0.15 radius (0.35f to 0.65f)
+	int topX = diamX + diamSize / 2;
+	int topY = diamY + (int)(diamSize * 0.35f);
+
+	int leftX = diamX + (int)(diamSize * 0.35f);
+	int leftY = diamY + diamSize / 2;
+
+	int rightX_diam = diamX + (int)(diamSize * 0.65f);
+	int rightY_diam = diamY + diamSize / 2;
+
+	int bottomX = diamX + diamSize / 2;
+	int bottomY = diamY + (int)(diamSize * 0.65f);
+
+	// Dynamic icon size (100px when diamSize=520, which covers the lock diamond completely!)
+	int iconSize = (int)(diamSize * 0.192f);
+
+	// Mouse detection based on the true slot centers!
+	auto& input = Engine::GetInstance().input;
+	Vector2D mousePos = input->GetMousePosition();
+
+	// Hover radius is half of iconSize plus some padding
+	int hoverRadius = iconSize / 2;
+
+	bool hoverTop = (mousePos.getX() >= topX - hoverRadius && mousePos.getX() <= topX + hoverRadius &&
+					 mousePos.getY() >= topY - hoverRadius && mousePos.getY() <= topY + hoverRadius);
+
+	bool hoverLeft = (mousePos.getX() >= leftX - hoverRadius && mousePos.getX() <= leftX + hoverRadius &&
+					  mousePos.getY() >= leftY - hoverRadius && mousePos.getY() <= leftY + hoverRadius);
+
+	bool hoverRight = (mousePos.getX() >= rightX_diam - hoverRadius && mousePos.getX() <= rightX_diam + hoverRadius &&
+					   mousePos.getY() >= rightY_diam - hoverRadius && mousePos.getY() <= rightY_diam + hoverRadius);
+
+	bool hoverBottom = (mousePos.getX() >= bottomX - hoverRadius && mousePos.getX() <= bottomX + hoverRadius &&
+						mousePos.getY() >= bottomY - hoverRadius && mousePos.getY() <= bottomY + hoverRadius);
+
+	// Gamepad navigation for inventory diamond
+	if (input->IsGamepadConnected())
+	{
+		static Uint64 lastTick = SDL_GetTicks();
+		Uint64 currentTick = SDL_GetTicks();
+		float frameTime = (float)(currentTick - lastTick);
+		lastTick = currentTick;
+
+		static float invRepeatTimer = 0.0f;
+		if (invRepeatTimer > 0.0f) invRepeatTimer -= frameTime;
+
+		bool pressLeft = input->GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_LEFT) == KEY_DOWN ||
+		                 (input->GetLeftStickX() < -0.5f && invRepeatTimer <= 0.0f);
+		bool pressRight = input->GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_RIGHT) == KEY_DOWN ||
+		                  (input->GetLeftStickX() > 0.5f && invRepeatTimer <= 0.0f);
+		bool pressUp = input->GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_UP) == KEY_DOWN ||
+		               (input->GetLeftStickY() < -0.5f && invRepeatTimer <= 0.0f);
+
+		if (pressLeft && blanket)
+		{
+			inventorySel_ = 0;
+			invRepeatTimer = 250.0f;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (pressUp && slingshot)
+		{
+			inventorySel_ = 1;
+			invRepeatTimer = 250.0f;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (pressRight && stuffed)
+		{
+			inventorySel_ = 2;
+			invRepeatTimer = 250.0f;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+
+		// Equip on A/SOUTH press
+		if (input->GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN)
+		{
+			if (inventorySel_ == 0 && blanket)
+			{
+				player->SetEquippedItem(Player::EquippedItem::BLANKET);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+			else if (inventorySel_ == 1 && slingshot)
+			{
+				player->SetEquippedItem(Player::EquippedItem::SLINGSHOT);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+			else if (inventorySel_ == 2 && stuffed)
+			{
+				player->SetEquippedItem(Player::EquippedItem::STUFFED_ANIMAL);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			}
+		}
+	}
+
+	// Handle item equipping clicks!
+	if (input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN)
+	{
+		if (hoverLeft && blanket)
+		{
+			player->SetEquippedItem(Player::EquippedItem::BLANKET);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (hoverTop && slingshot)
+		{
+			player->SetEquippedItem(Player::EquippedItem::SLINGSHOT);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (hoverRight && stuffed)
+		{
+			player->SetEquippedItem(Player::EquippedItem::STUFFED_ANIMAL);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+	}
+
+	// Draw hover overlays inside the diamond (feedback for active slots)
+	if ((hoverLeft || (input->IsGamepadConnected() && inventorySel_ == 0)) && blanket)
+	{
+		SDL_Rect hov = { leftX - iconSize/2 - 2, leftY - iconSize/2 - 2, iconSize + 4, iconSize + 4 };
+		render.DrawRectangle(hov, 255, 255, 255, 120, false, false);
+	}
+	if ((hoverTop || (input->IsGamepadConnected() && inventorySel_ == 1)) && slingshot)
+	{
+		SDL_Rect hov = { topX - iconSize/2 - 2, topY - iconSize/2 - 2, iconSize + 4, iconSize + 4 };
+		render.DrawRectangle(hov, 255, 255, 255, 120, false, false);
+	}
+	if ((hoverRight || (input->IsGamepadConnected() && inventorySel_ == 2)) && stuffed)
+	{
+		SDL_Rect hov = { rightX_diam - iconSize/2 - 2, rightY_diam - iconSize/2 - 2, iconSize + 4, iconSize + 4 };
+		render.DrawRectangle(hov, 255, 255, 255, 120, false, false);
+	}
+
+	// Draw active equipping golden frame overlays inside the diamond
+	Player::EquippedItem eq = player ? player->GetEquippedItem() : Player::EquippedItem::NONE;
+	if (eq != Player::EquippedItem::NONE)
+	{
+		int eqX = 0, eqY = 0;
+		if (eq == Player::EquippedItem::BLANKET && blanket) { eqX = leftX; eqY = leftY; }
+		else if (eq == Player::EquippedItem::SLINGSHOT && slingshot) { eqX = topX; eqY = topY; }
+		else if (eq == Player::EquippedItem::STUFFED_ANIMAL && stuffed) { eqX = rightX_diam; eqY = rightY_diam; }
+
+		if (eqX != 0)
+		{
+			SDL_Rect eqBorder = { eqX - iconSize/2 - 3, eqY - iconSize/2 - 3, iconSize + 6, iconSize + 6 };
+			render.DrawRectangle(eqBorder, 255, 195, 0, 255, false, false);
+			SDL_Rect eqBorder2 = { eqX - iconSize/2 - 5, eqY - iconSize/2 - 5, iconSize + 10, iconSize + 10 };
+			render.DrawRectangle(eqBorder2, 255, 215, 80, 160, false, false);
+		}
+	}
+
+
+
+	// =========================================================================
+	//  ANCHORED MEMORIES (Right column)
+	// =========================================================================
+	float cX = 3.0f * (float)winW / 4.0f;
+	float cY = (float)winH / 2.0f + 10.0f;
+
+	float scale = (winW < 1280) ? 0.58f : 0.72f;
+
+	// Fragment sizes
+	float w1 = 580.0f * scale, h1 = 360.0f * scale; // Fragment 1 landscape
+	float w2 = 360.0f * scale, h2 = 580.0f * scale; // Fragment 2 portrait
+	float w3 = 580.0f * scale, h3 = 360.0f * scale; // Fragment 3 landscape
+
+	// Layout matching reference: tight puzzle cluster with overlapping pieces
+	// Fragment 1 (top-left): landscape, upper-left of cluster
+	float x1 = cX - w1 * 0.55f;
+	float y1 = cY - h1 * 0.95f;
+
+	// Fragment 2 (right): portrait, overlaps fragment 1 on the right side
+	float x2 = cX + w2 * 0.15f;
+	float y2 = cY - h2 * 0.75f;
+
+	// Fragment 3 (bottom): landscape, below and overlapping both
+	float x3 = cX - w3 * 0.45f;
+	float y3 = cY + h3 * 0.05f;
+
+	SDL_FRect rect1 = { x1, y1, w1, h1 };
+	SDL_FRect rect2 = { x2, y2, w2, h2 };
+	SDL_FRect rect3 = { x3, y3, w3, h3 };
+
+	// Mouse hover checks
+	Vector2D mouseP = input->GetMousePosition();
+	float mx = mouseP.getX();
+	float my = mouseP.getY();
+
+	// Hover logic (ignore if showMemoryViewer_ is active)
+	bool hover1 = !showMemoryViewer_ && (mx >= rect1.x && mx <= rect1.x + rect1.w && my >= rect1.y && my <= rect1.y + rect1.h);
+	bool hover2 = !showMemoryViewer_ && (mx >= rect2.x && mx <= rect2.x + rect2.w && my >= rect2.y && my <= rect2.y + rect2.h);
+	bool hover3 = !showMemoryViewer_ && (mx >= rect3.x && mx <= rect3.x + rect3.w && my >= rect3.y && my <= rect3.y + rect3.h);
+
+	// Update timers
+	float invDt = Engine::GetInstance().GetDt();
+	const float invFadeSpeed = 0.005f;
+
+	if (hover1) memoryHoverTimers_[0] = std::min(1.0f, memoryHoverTimers_[0] + invFadeSpeed * invDt);
+	else        memoryHoverTimers_[0] = std::max(0.0f, memoryHoverTimers_[0] - invFadeSpeed * invDt);
+
+	if (hover2) memoryHoverTimers_[1] = std::min(1.0f, memoryHoverTimers_[1] + invFadeSpeed * invDt);
+	else        memoryHoverTimers_[1] = std::max(0.0f, memoryHoverTimers_[1] - invFadeSpeed * invDt);
+
+	if (hover3)
+	{
+		memoryHoverTimers_[2] += invFadeSpeed * invDt;
+		if (memoryHoverTimers_[2] > 3.0f) memoryHoverTimers_[2] -= 3.0f;
+	}
+	else
+	{
+		// Smoothly return back to page 0 (normal phase)
+		if (memoryHoverTimers_[2] > 0.0f)
+		{
+			if (memoryHoverTimers_[2] > 1.5f) {
+				memoryHoverTimers_[2] += invFadeSpeed * invDt;
+				if (memoryHoverTimers_[2] >= 3.0f) memoryHoverTimers_[2] = 0.0f;
+			} else {
+				memoryHoverTimers_[2] = std::max(0.0f, memoryHoverTimers_[2] - invFadeSpeed * invDt);
+			}
+		}
+	}
+
+	// Trigger full screen click handlers
+	if (input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN && !showMemoryViewer_)
+	{
+		if (hover1)
+		{
+			showMemoryViewer_ = true;
+			activeMemoryIndex_ = 0;
+			activeMemoryPage_ = 0;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (hover2)
+		{
+			showMemoryViewer_ = true;
+			activeMemoryIndex_ = 1;
+			activeMemoryPage_ = 0;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		else if (hover3)
+		{
+			showMemoryViewer_ = true;
+			activeMemoryIndex_ = 2;
+			activeMemoryPage_ = 0;
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+	}
+
+	// --- 1. RENDER FRAGMENTS ---
+	// Fragment 1 (Top-Left)
+	if (texMemoria1Base_ && texMemoria1N1_ && texMemoria1N2_)
+	{
+		render.DrawTextureAlphaF(texMemoria1Base_, rect1.x, rect1.y, rect1.w, rect1.h, 255);
+		Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[0]) * 255.0f);
+		Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[0] * 255.0f);
+
+		if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria1N1_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN1);
+		if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria1N2_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN2);
+	}
+
+	// Fragment 2 (Top-Right)
+	if (texMemoria2Base_ && texMemoria2N1_ && texMemoria2N2_)
+	{
+		render.DrawTextureAlphaF(texMemoria2Base_, rect2.x, rect2.y, rect2.w, rect2.h, 255);
+		Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[1]) * 255.0f);
+		Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[1] * 255.0f);
+
+		if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria2N1_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN1);
+		if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria2N2_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN2);
+	}
+
+	// Fragment 3 (Bottom)
+	if (texMemoria3Base_ && texMemoria3N1_ && texMemoria3N2_ && texMemoria3N3_)
+	{
+		render.DrawTextureAlphaF(texMemoria3Base_, rect3.x, rect3.y, rect3.w, rect3.h, 255);
+
+		float t = memoryHoverTimers_[2];
+		float a1 = 255.0f, a2 = 0.0f, a3 = 0.0f;
+		if (t > 0.0f)
+		{
+			if (t <= 1.0f) {
+				a1 = (1.0f - t) * 255.0f;
+				a2 = t * 255.0f;
+				a3 = 0.0f;
+			}
+			else if (t <= 2.0f) {
+				float progress = t - 1.0f;
+				a1 = 0.0f;
+				a2 = (1.0f - progress) * 255.0f;
+				a3 = progress * 255.0f;
+			}
+			else if (t <= 3.0f) {
+				float progress = t - 2.0f;
+				a1 = progress * 255.0f;
+				a2 = 0.0f;
+				a3 = (1.0f - progress) * 255.0f;
+			}
+		}
+
+		if (a1 > 0) render.DrawTextureAlphaF(texMemoria3N1_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a1);
+		if (a2 > 0) render.DrawTextureAlphaF(texMemoria3N2_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a2);
+		if (a3 > 0) render.DrawTextureAlphaF(texMemoria3N3_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a3);
+	}
+
+	// Outline/glow hover overlays for memory fragments
+	if (hover1) render.DrawRectangle({ (int)rect1.x, (int)rect1.y, (int)rect1.w, (int)rect1.h }, 255, 255, 255, 60, false, false);
+	if (hover2) render.DrawRectangle({ (int)rect2.x, (int)rect2.y, (int)rect2.w, (int)rect2.h }, 255, 255, 255, 60, false, false);
+	if (hover3) render.DrawRectangle({ (int)rect3.x, (int)rect3.y, (int)rect3.w, (int)rect3.h }, 255, 255, 255, 60, false, false);
+
+
+	// --- 2. FULLSCREEN VIEWER MODE OVERLAY ---
+	if (showMemoryViewer_ && activeMemoryIndex_ != -1)
+	{
+		// Render dim backdrop
+		SDL_Rect overlay = { 0, 0, winW, winH };
+		render.DrawRectangle(overlay, 0, 0, 0, 220, true, false);
+
+		// Calculate frame metrics
+		float scaleX = (float)winW / 1920.0f;
+		float scaleY = (float)winH / 1080.0f;
+		float fScale = std::min(scaleX, scaleY) * 0.95f;
+		float frameW = 1920.0f * fScale;
+		float frameH = 1080.0f * fScale;
+		float frameX = (winW - frameW) / 2.0f;
+		float frameY = (winH - frameH) / 2.0f;
+		float centerX = frameX + frameW / 2.0f;
+		float centerY = frameY + frameH / 2.0f;
+
+		// Select texture and original dimensions
+		SDL_Texture* activeTex = nullptr;
+		int imgW = 1920;
+		int imgH = 1080;
+		int pageCount = 0;
+
+		if (activeMemoryIndex_ == 0) // Memory 1
+		{
+			pageCount = 2;
+			if (activeMemoryPage_ == 0) { activeTex = texMemoria1Full1_; imgW = 1128; imgH = 716; }
+			else                       { activeTex = texMemoria1Full2_; imgW = 1005; imgH = 544; }
+		}
+		else if (activeMemoryIndex_ == 1) // Memory 2
+		{
+			pageCount = 2;
+			if (activeMemoryPage_ == 0) activeTex = texMemoria2Full1_;
+			else                       activeTex = texMemoria2Full2_;
+			imgW = 1920; imgH = 1080;
+		}
+		else if (activeMemoryIndex_ == 2) // Memory 3
+		{
+			pageCount = 3;
+			if (activeMemoryPage_ == 0)      activeTex = texMemoria3Full1_;
+			else if (activeMemoryPage_ == 1) activeTex = texMemoria3Full2_;
+			else                            activeTex = texMemoria3Full3_;
+			imgW = 1920; imgH = 1080;
+		}
+
+		// Draw Memory Artwork centered inside the frame coordinates
+		if (activeTex)
+		{
+			float drawW = (float)imgW * fScale;
+			float drawH = (float)imgH * fScale;
+			float drawX = centerX - drawW / 2.0f;
+			float drawY = centerY - drawH / 2.0f;
+			render.DrawTextureAlphaF(activeTex, drawX, drawY, drawW, drawH, 255);
+		}
+
+		// Draw Ornate Frame overlay on top of artwork
+		if (texMemoriaFrameFullScreen_)
+		{
+			render.DrawTextureAlphaF(texMemoriaFrameFullScreen_, frameX, frameY, frameW, frameH, 255);
+		}
+
+		// Draw pagination dots at the bottom of the frame
+		if (pageCount > 1)
+		{
+			int dotSpacing = 24;
+			float startDotX = centerX - ((pageCount - 1) * dotSpacing) / 2.0f;
+			float dotY = frameY + frameH - 60.0f * fScale;
+
+			for (int i = 0; i < pageCount; i++)
+			{
+				SDL_Rect dotRect = { (int)(startDotX + i * dotSpacing - 5), (int)(dotY - 5), 10, 10 };
+				if (i == activeMemoryPage_)
+				{
+					// Active dot: Glowing gold
+					render.DrawRectangle({dotRect.x-1, dotRect.y-1, dotRect.w+2, dotRect.h+2}, 255, 215, 0, 180, true, false);
+					render.DrawRectangle(dotRect, 255, 255, 255, 255, true, false);
+				}
+				else
+				{
+					// Inactive dot: Semi-translucent grey
+					render.DrawRectangle(dotRect, 120, 130, 140, 150, true, false);
+				}
+			}
+		}
+
+		// Visual arrow overlay hints on left/right edges for page switching
+		SDL_Color arrowColor = { 180, 210, 240, 180 };
+		if (pageCount > 1)
+		{
+			render.DrawText("<", (int)(frameX + 35.0f * fScale), (int)(centerY - 20.0f), 24, 40, arrowColor);
+			render.DrawText(">", (int)(frameX + frameW - 45.0f * fScale), (int)(centerY - 20.0f), 24, 40, arrowColor);
+		}
+
+		// Small helper instructions text in footer
+		SDL_Rect hintArea = { (int)frameX, (int)(frameY + frameH - 35.0f * fScale), (int)frameW, 20 };
+		render.DrawMenuTextCentered("Click bordes o Flechas para cambiar de pagina  |  ESC / Click fuera para cerrar", hintArea, { 180, 200, 220, 180 }, 0.28f);
+	}
+
+	// 5. Instructions Footer Overlay
+	SDL_Rect footer = { 0, winH - 45, winW, 30 };
+	if (Engine::GetInstance().input->IsGamepadConnected())
+	{
+		render.DrawMenuTextCentered("Clic en slots para Equipar  |  ARRIBA o 'I' para cerrar", footer, { 180, 210, 240, 200 }, 0.35f);
+	}
+	else
+	{
+		render.DrawMenuTextCentered("Clic en slots para Equipar (Teclas 1, 2, 3 en juego)  |  'I' para cerrar", footer, { 180, 210, 240, 200 }, 0.35f);
 	}
 }
 
@@ -2684,32 +3682,10 @@ void Scene::LoadPauseMenuButtons()
 		btnMenu->SetHoverTexture(texButtonFragmented_);
 		btnCont->SetHoverTexture(texButtonFragmented_);
 	}
-
-
-
-
-
-
-
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = winH / 2 - 100;
-
-
 	const int rowH = 52;
-
-
-
-
-
-
-
-
-
-
-
-
-
 	SetPauseMenuVisible(false);
 }
 
@@ -2774,6 +3750,12 @@ void Scene::ResetHealthUI(int health)
 void Scene::ShowNoCapeNotification()
 {
 	noCapeNotifTimer_ = 3000.0f;
+}
+
+void Scene::ShowNoBearNotification(bool hasStuffedAnimal)
+{
+	noBearNotifTimer_ = 3000.0f;
+	bearNotifHasStuffed_ = hasStuffedAnimal;
 }
 
 void Scene::DrawPauseMenu()
