@@ -1935,6 +1935,116 @@ void Scene::LoadMap2()
 	LOG("Map 2 loaded successfully");
 }
 
+void Scene::LoadMap3()
+{
+	if (currentMapFile_ == "Map3.tmx") return; // already on map 3
+
+	LOG("=== Switching to Map 3 (Map3.tmx) ===");
+
+	// Save player state before transition
+	int playerHealth = player ? player->health : 3;
+	bool playerHasBlanket = player ? player->HasBlanket() : false;
+
+	// 1. Release Scene's player reference
+	player.reset();
+
+	// 2. Destroy all entities (enemies, checkpoints, etc.) — they hold raw ptrs to map layers
+	Engine::GetInstance().entityManager->CleanUp();
+
+	// 3. Immediately flush queued physics body deletions so Box2D world is clean
+	Engine::GetInstance().physics->FlushPendingDeletes();
+
+	// 4. Now safe to destroy map data (layers, tilesets, colliders)
+	Engine::GetInstance().map->CleanUp();
+
+	// 5. Flush map collider deletions too
+	Engine::GetInstance().physics->FlushPendingDeletes();
+
+	// 6. Load the new map
+	currentMapFile_ = "Map3.tmx";
+	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
+	Engine::GetInstance().map->LoadEntities(player);
+
+	// 7. Ensure player exists
+	if (player == nullptr) {
+		player = std::dynamic_pointer_cast<Player>(
+			Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+		player->position = Vector2D(96.0f, 672.0f);
+		player->Start();
+	}
+
+	// 8. Restore player state & skip wake-up animation (this is a transition, not a fresh start)
+	player->health = playerHealth;
+	player->SetHasBlanket(playerHasBlanket);
+	player->isWakingUp = false;
+	currentHealthUI_ = playerHealth;
+	activeHealthAnim_ = 0;
+	isGameOver_ = false;
+
+	// 9. Re-read cape position for this map
+	capaCollected_ = false;
+	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
+		capaCollected_ = true; // No cape on this map
+	}
+
+	LOG("Map 3 loaded successfully");
+}
+
+void Scene::LoadMap4()
+{
+	if (currentMapFile_ == "Map4.tmx") return; // already on map 4
+
+	LOG("=== Switching to Map 4 (Map4.tmx) ===");
+
+	// Save player state before transition
+	int playerHealth = player ? player->health : 3;
+	bool playerHasBlanket = player ? player->HasBlanket() : false;
+
+	// 1. Release Scene's player reference
+	player.reset();
+
+	// 2. Destroy all entities (enemies, checkpoints, etc.) — they hold raw ptrs to map layers
+	Engine::GetInstance().entityManager->CleanUp();
+
+	// 3. Immediately flush queued physics body deletions so Box2D world is clean
+	Engine::GetInstance().physics->FlushPendingDeletes();
+
+	// 4. Now safe to destroy map data (layers, tilesets, colliders)
+	Engine::GetInstance().map->CleanUp();
+
+	// 5. Flush map collider deletions too
+	Engine::GetInstance().physics->FlushPendingDeletes();
+
+	// 6. Load the new map
+	currentMapFile_ = "Map4.tmx";
+	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
+	Engine::GetInstance().map->LoadEntities(player);
+
+	// 7. Ensure player exists
+	if (player == nullptr) {
+		player = std::dynamic_pointer_cast<Player>(
+			Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+		player->position = Vector2D(96.0f, 672.0f);
+		player->Start();
+	}
+
+	// 8. Restore player state & skip wake-up animation (this is a transition, not a fresh start)
+	player->health = playerHealth;
+	player->SetHasBlanket(playerHasBlanket);
+	player->isWakingUp = false;
+	currentHealthUI_ = playerHealth;
+	activeHealthAnim_ = 0;
+	isGameOver_ = false;
+
+	// 9. Re-read cape position for this map
+	capaCollected_ = false;
+	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
+		capaCollected_ = true; // No cape on this map
+	}
+
+	LOG("Map 4 loaded successfully");
+}
+
 void Scene::PostUpdateGameplay()
 {
 	// Quick save/load shortcuts (only when not paused)
@@ -1944,11 +2054,15 @@ void Scene::PostUpdateGameplay()
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F6) == KEY_DOWN)
 			Engine::GetInstance().saveSystem->QuickSave();
 
-		// F1 / F2: switch maps
+		// F1 / F2 / F3 / F4: switch maps
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F1) == KEY_DOWN)
 			LoadMap1();
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F2) == KEY_DOWN)
 			LoadMap2();
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F3) == KEY_DOWN)
+			LoadMap3();
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F4) == KEY_DOWN)
+			LoadMap4();
 	}
 
 	{
