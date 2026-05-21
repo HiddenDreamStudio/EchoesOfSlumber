@@ -90,7 +90,8 @@ bool Player::Start() {
 	pbody->ctype = ColliderType::PLAYER;
 
 	pickCoinFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/coin-collision-sound-342335.wav");
-	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump.wav");
+	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump2.wav"); 
+	landFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/land.wav");
 	stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");
 	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
 
@@ -827,6 +828,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		if (playerY < platY) {
 			platformBelow = physB;
 			if (isJumping) {
+				// Play landing sound effect
+				Engine::GetInstance().audio->PlayFx(landFxId);
+
 				// Spawn landing dust (Centered at bottom of capsule)
 				Engine::GetInstance().entityManager->SpawnVFX(
 					Vector2D(position.getX(), position.getY() + 50.0f),
@@ -886,6 +890,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 			// Player is above the rock — treat as platform for landing
 			if (playerY < rockY) {
 				if (isJumping) {
+					// Play landing sound effect when landing on a rock
+					Engine::GetInstance().audio->PlayFx(landFxId);
+
 					if (anims.GetCurrentName() != "jump") {
 						anims.SetCurrent("idle");
 					}
