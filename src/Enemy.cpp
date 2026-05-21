@@ -30,6 +30,25 @@ bool Enemy::Update(float dt)
 	ApplyPhysics();
 
 	if (contactDamageCooldown_ > 0.0f) contactDamageCooldown_ -= dt;
+	if (isContactWithPlayer_ && playerListener_ != nullptr)
+	{
+		int enemyX, enemyY;
+		pbody->GetPosition(enemyX, enemyY);
+		int playerX, playerY;
+		auto pl = Engine::GetInstance().scene->player;
+		if (pl && pl->pbody)
+		{
+			pl->pbody->GetPosition(playerX, playerY);
+			float dx = (float)enemyX - (float)playerX;
+			float dy = (float)enemyY - (float)playerY;
+			float distSq = dx * dx + dy * dy;
+			if (distSq > 150.0f * 150.0f)
+			{
+				isContactWithPlayer_ = false;
+				playerListener_ = nullptr;
+			}
+		}
+	}
 	if (isContactWithPlayer_ && playerListener_ != nullptr && contactDamageCooldown_ <= 0.0f)
 	{
 		playerListener_->TakeDamage(1);
