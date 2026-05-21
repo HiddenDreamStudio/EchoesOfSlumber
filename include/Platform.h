@@ -17,6 +17,11 @@ public:
     void AddWaypoint(Vector2D point);
 
     float speed = 2.0f;
+    bool triggerOnPlayer = false;
+    bool playerOnTop = false;
+
+    void OnCollision(PhysBody* physA, PhysBody* physB) override;
+    void OnCollisionEnd(PhysBody* physA, PhysBody* physB) override;
 
     std::vector<Vector2D> waypoints;
 
@@ -27,6 +32,7 @@ public:
 private:
     int currentWaypoint = 0;
     int direction = 1;
+    int bx = 0, by = 0;
 
     SDL_Texture* texture = nullptr;
     PhysBody* pbody = nullptr;
