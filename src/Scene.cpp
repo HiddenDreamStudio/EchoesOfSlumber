@@ -36,6 +36,13 @@ static constexpr int BTN_SFX_DOWN = 14;
 Scene::Scene() : Module()
 {
 	name = "scene";
+
+	levels_ = {
+		{"LEVEL 1", "Rock Bottom", "MapTemplate.tmx"},
+		{"LEVEL 2", "Shattered Ruins", "Map2.tmx"},
+		{"LEVEL 3", "Forest Borderlines", "Map3.tmx"},
+		{"LEVEL 4", "Forgotten Playground", "Map4.tmx"}
+	};
 }
 
 Scene::~Scene() {}
@@ -119,6 +126,9 @@ bool Scene::Update(float dt)
 	case SceneID::TUTORIAL_TEXT_CARD:
 		UpdateTutorialTextCard(dt);
 		break;
+	case SceneID::LOADING:
+		UpdateLoading(dt);
+		break;
 	case SceneID::GAMEPLAY:
 		UpdateGameplay(dt);
 		break;
@@ -188,6 +198,7 @@ void Scene::LoadScene(SceneID s)
 	case SceneID::MAIN_MENU:       LoadMainMenu();        break;
 	case SceneID::INTRO_CINEMATIC: LoadIntroCinematic();  break;
 	case SceneID::TUTORIAL_TEXT_CARD: LoadTutorialTextCard();  break;
+	case SceneID::LOADING:         LoadLoading();          break;
 	case SceneID::GAMEPLAY:        LoadGameplay();         break;
 	}
 }
@@ -207,10 +218,10 @@ void Scene::UnloadCurrentScene()
 	case SceneID::MAIN_MENU:       UnloadMainMenu();        break;
 	case SceneID::INTRO_CINEMATIC: UnloadIntroCinematic();  break;
 	case SceneID::TUTORIAL_TEXT_CARD: UnloadTutorialTextCard();  break;
+	case SceneID::LOADING:         UnloadLoading();          break;
 	case SceneID::GAMEPLAY:        UnloadGameplay();         break;
 	}
 }
-
 // ============================================================================
 //  MAIN MENU
 // ============================================================================
@@ -946,6 +957,8 @@ void Scene::DrawLoadingText(bool pulsing, float timer)
 
 void Scene::UpdateIntroCinematic(float dt)
 {
+	if (waitingForFade_) return;
+
 	auto& render = *Engine::GetInstance().render;
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
@@ -1028,13 +1041,13 @@ void Scene::UpdateIntroCinematic(float dt)
 		introLoadingDelay_ += dt;
 		DrawLoadingText(true, introLoadingDelay_);
 
-		// Final transition to Title Card
+		// Final transition to LOADING screen
 		if (introLoadingDelay_ > INTRO_POST_VIDEO_DELAY) {
-			LOG("SCENE: INTRO - Post-video loading complete. Starting FINAL FADE to Title Card.");
-			introCinState_ = IntroCinState::POST_VIDEO_LOADING; // Stay here until fade out starts
+			LOG("SCENE: INTRO - Post-video loading complete. Transitioning to LOADING.");
 			if (!waitingForFade_) {
 				waitingForFade_ = true;
-				fadeTargetScene_ = SceneID::TUTORIAL_TEXT_CARD;
+				targetLevelIndex_ = 0; // Level 1
+				fadeTargetScene_ = SceneID::LOADING;
 				render.StartFade(FadeDirection::FADE_OUT, 1000.0f);
 			}
 		}
@@ -1042,14 +1055,13 @@ void Scene::UpdateIntroCinematic(float dt)
 	}
 	}
 }
-
 // ============================================================================
 //  TUTORIAL TEXT CARD
 // ============================================================================
 
 void Scene::LoadTutorialTextCard()
 {
-	LOG("Loading Tutorial Text Card...");
+	LOG("Loading Tutorial Text Card for Level %d...", currentLevelIndex_ + 1);
 	tutorialTimer_ = 0.0f;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
 	texTutorialSeparator_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Separator.png");
@@ -1059,9 +1071,10 @@ void Scene::LoadTutorialTextCard()
 	pt1Played_ = false;
 	pt2Played_ = false;
 
-	// FADE IN from black (Silksong title card entry)
+	// FADE IN from black
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 1000.0f);
 }
+
 void Scene::UnloadTutorialTextCard()
 {
 	LOG("Unloading Tutorial Text Card");
@@ -1078,19 +1091,13 @@ void Scene::UpdateTutorialTextCard(float dt)
 	auto& input = *Engine::GetInstance().input;
 	bool skipRequested = false;
 
-	// Timings based on SFX lengths
 	const float pt1Start = 500.0f;
 	const float pt1Duration = 4600.0f; 
 	const float pt2Start = pt1Start + pt1Duration;
-	const float pt2Duration = 6000.0f; // Estimated 6s for Part 2
+	const float pt2Duration = 6000.0f; 
+	const float autoFadeStart = pt2Start + pt2Duration + 1000.0f;
 
-	// Total sequence duration before automatic fade out begins
-	const float autoFadeStart = pt2Start + pt2Duration + 1000.0f; // 1 second after pt2 finishes
-
-	// ── PHASE 1 (Silksong: WaitForSceneTransitionCameraFade) ────────────────
-	// Block input until the title card is fully revealed (approx 2s after Pt 2 starts).
 	if (tutorialTimer_ > pt2Start + 2000.0f) {
-		// Only check keyboard keys (ignoring mouse) and gamepad to prevent accidental instant skips on start
 		bool explicitSkip = false;
 		for (int i = 0; i < 300; ++i) {
 			if (input.GetKey(i) == KEY_DOWN) { explicitSkip = true; break; }
@@ -1098,39 +1105,33 @@ void Scene::UpdateTutorialTextCard(float dt)
 		if (!explicitSkip && input.IsAnyGamepadButtonPressed()) explicitSkip = true;
 
 		if (explicitSkip) {
-			LOG("SCENE: Tutorial Text Card SKIP requested via input at %.2f ms", tutorialTimer_);
 			skipRequested = true;
 		}
 	}
 	
-	// Automatic trigger for fade out when sequence completes
 	if (tutorialTimer_ >= autoFadeStart && !waitingForFade_) {
-		LOG("SCENE: Tutorial Text Card AUTO-ADVANCE triggered at %.2f ms", tutorialTimer_);
 		skipRequested = true;
 	}
 
-	// ── PHASE 2 (Silksong: screenFader_fsm "SCENE FADE OUT" + actorSnapshotPaused) ─
 	if (skipRequested && !waitingForFade_) {
-		LOG("SCENE: Tutorial Text Card FADING OUT");
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::GAMEPLAY;
-		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1500.0f); // Slower 1.5s fade to black
-		// We DO NOT return here, we must let it draw so the fade overlay can draw on top of it.
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1500.0f);
 	}
 
 	auto& render = *Engine::GetInstance().render;
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
-	int scale = Engine::GetInstance().window->GetScale();
 
-	// Background
 	SDL_Rect bg = { 0, 0, winW, winH };
 	render.DrawRectangle(bg, 0, 0, 0, 255, true, false);
+
+	if (currentLevelIndex_ < 0 || (size_t)currentLevelIndex_ >= levels_.size()) return;
+	const auto& level = levels_[currentLevelIndex_];
 
 	SDL_Color white = { 255, 255, 255, 255 };
 	SDL_Color gold  = { 218, 165, 32, 255 };
 
-	// 1. "LEVEL 1" — appears at 500ms
 	if (tutorialTimer_ > pt1Start) {
 		if (!pt1Played_) {
 			Engine::GetInstance().audio->PlayFx(fxTitleCardPt1_);
@@ -1139,44 +1140,107 @@ void Scene::UpdateTutorialTextCard(float dt)
 		float elapsed = tutorialTimer_ - pt1Start;
 		float alpha = std::min(1.0f, elapsed / 800.0f);
 		SDL_Color subColor = { gold.r, gold.g, gold.b, (Uint8)(255 * alpha) };
-		render.DrawMenuTextCentered("LEVEL 1", { 0, winH / 2 - 130, winW, 40 }, subColor, 1.0f);
+		render.DrawMenuTextCentered(level.number.c_str(), { 0, winH / 2 - 130, winW, 40 }, subColor, 1.0f);
 	}
 
-	// 2. UI Separator — opens from center at 500ms (synced with LEVEL 1, 2x speed)
 	if (tutorialTimer_ > pt1Start && texTutorialSeparator_) {
 		float elapsed = tutorialTimer_ - pt1Start;
-		float progress = std::min(1.0f, elapsed / 500.0f); // 0.5s opening duration (fast)
-		
+		float progress = std::min(1.0f, elapsed / 500.0f); 
 		int tw, th;
 		Engine::GetInstance().textures->GetSize(texTutorialSeparator_, tw, th);
-		
-		// Source clip: expands from center
-		SDL_Rect src = { 
-			(int)((float)tw * (1.0f - progress) / 2.0f), 
-			0, 
-			(int)((float)tw * progress), 
-			th 
-		};
-		
-		// Destination: centered below LEVEL 1
-		float drawW = (float)tw * progress * 0.8f; // scale slightly
+		SDL_Rect src = { (int)((float)tw * (1.0f - progress) / 2.0f), 0, (int)((float)tw * progress), th };
+		float drawW = (float)tw * progress * 0.8f;
 		float drawH = (float)th * 0.8f;
 		int dx = (winW - (int)drawW) / 2;
 		int dy = winH / 2 - 70;
-
 		render.DrawTexture(texTutorialSeparator_, dx, dy, &src, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.8f);
 	}
 
-	// 3. "Rock Bottom" — appears after Part 1 finished
 	if (tutorialTimer_ > pt2Start) {
 		if (!pt2Played_) {
 			Engine::GetInstance().audio->PlayFx(fxTitleCardPt2_);
 			pt2Played_ = true;
 		}
-		float elapsed = tutorialTimer_ - pt2Start;
 		SDL_Color mainColor = { white.r, white.g, white.b, 255 };
-		render.DrawMenuTextCentered("Rock Bottom", { 0, winH / 2 - 10, winW, 60 }, mainColor, 2.0f);
+		render.DrawMenuTextCentered(level.name.c_str(), { 0, winH / 2 - 10, winW, 60 }, mainColor, 2.0f);
 	}
+}
+
+// ============================================================================
+//  LOADING SCREEN
+// ============================================================================
+
+void Scene::LoadLoading()
+{
+	LOG("SCENE: Loading screen active for Level %d", targetLevelIndex_ + 1);
+	loadingTimer_ = 0.0f;
+	mapLoadingFinished_ = false;
+	Engine::GetInstance().audio->PlayMusic(nullptr);
+}
+
+void Scene::UnloadLoading() {}
+
+void Scene::UpdateLoading(float dt)
+{
+	loadingTimer_ += dt;
+
+	if (loadingTimer_ > 800.0f && !mapLoadingFinished_) {
+		int index = targetLevelIndex_;
+		if (index >= 0 && (size_t)index < levels_.size()) {
+			player.reset();
+			Engine::GetInstance().entityManager->CleanUp();
+			Engine::GetInstance().physics->FlushPendingDeletes();
+			Engine::GetInstance().map->CleanUp();
+			Engine::GetInstance().physics->FlushPendingDeletes();
+
+			currentMapFile_ = levels_[index].file;
+			currentLevelIndex_ = index;
+
+			Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
+			Engine::GetInstance().map->LoadEntities(player);
+
+			if (player == nullptr) {
+				player = std::dynamic_pointer_cast<Player>(
+					Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+
+				// LEVEL 1: Start at bed
+				// LEVEL 2+: Start off-screen right
+				if (currentLevelIndex_ == 0)
+					player->position = Vector2D(96.0f, 672.0f);
+				else
+					player->position = Vector2D(1280.0f + 100.0f, 672.0f); 
+
+				player->Start();
+			}
+
+			currentHealthUI_ = 3;
+			activeHealthAnim_ = 0;
+			isGameOver_ = false;
+			inGameIntroActive_ = false;
+
+			mapLoadingFinished_ = true;
+			LOG("SCENE: Map %s loaded", currentMapFile_.c_str());
+		} else {
+			mapLoadingFinished_ = true;
+		}
+	}
+
+	if (mapLoadingFinished_ && loadingTimer_ > 2000.0f) {
+		ChangeScene(SceneID::TUTORIAL_TEXT_CARD);
+	}
+
+	DrawLoading();
+}
+void Scene::DrawLoading()
+{
+	auto& render = *Engine::GetInstance().render;
+	int winW, winH;
+	Engine::GetInstance().window->GetWindowSize(winW, winH);
+
+	SDL_Rect bg = { 0, 0, winW, winH };
+	render.DrawRectangle(bg, 0, 0, 0, 255, true, false);
+
+	DrawLoadingText(true, loadingTimer_);
 }
 
 // ============================================================================
@@ -1192,43 +1256,48 @@ void Scene::LoadGameplay()
 	isBossFightActive_ = false;
 	activeBoss_.reset();
 
-	Engine::GetInstance().discord->UpdatePresence("Playing: Level 1", "Alpha Phase");
+	if (currentLevelIndex_ < 0 || (size_t)currentLevelIndex_ >= levels_.size()) currentLevelIndex_ = 0;
+	std::string presenceStr = "Playing: " + levels_[currentLevelIndex_].name;
+	Engine::GetInstance().discord->UpdatePresence(presenceStr.c_str(), "Alpha Phase");
 
-	// ── Silksong Phase 3: Load & Activate ───────────────────────────────────
-	// (sceneLoad.Begin → UnloadScene → RefreshTilemapInfo → SetupSceneRefs)
-	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
-	Engine::GetInstance().map->LoadEntities(player);
-
-	if (player == nullptr) {
-		player = std::dynamic_pointer_cast<Player>(
-			Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-		player->position = Vector2D(96.0f, 672.0f);
-		player->Start();
-	}
-
-	// ── Silksong: CompleteAction → SetupSceneRefs + BeginScene ──────────────
-	// Hero placed but frozen. Camera at native 1.0x — NO zoom, NO blur.
-	// Silksong uses clean black fades, not post-process zoom effects.
-
-	inGameIntroTimer_ = 0.0f;
-	inGameIntroActive_ = true;
-	introEntryDelay_ = 0.0f;
-	introEntryDelayActive_ = false;
 	if (player) {
-		player->isWakingUp = true;
-		player->wakeUpAnimStarted = false;
+		if (currentLevelIndex_ == 0) {
+			// LEVEL 1: Trigger Wake Up animation and cinematic effects
+			player->isWakingUp = true;
+			player->wakeUpAnimStarted = false;
+			inGameIntroActive_ = true;
+			inGameIntroTimer_ = 0.0f;
+			isAutoEntering_ = false;
+		}
+		else {
+			// LEVEL 2+: Skip wake up, trigger automatic entry from right
+			player->isWakingUp = false;
+			player->wakeUpAnimStarted = true;
+			inGameIntroActive_ = false;
+			
+			isAutoEntering_ = true;
+			autoEntryProgress_ = 0.0f;
+			autoEntryStartX_ = player->position.getX();
+			autoEntryTargetX_ = 960.0f; 
+		}
 	}
 
 	auto* render = Engine::GetInstance().render.get();
-
-	// ACERCAMIENTO CINEMÁTICO SUAVE E INVERSIÓN DE BLUR
-	render->cameraZoom = 0.45f;
-	render->blurIntensity = 2.5f;
-
-	// Disable camera sway AND clamping during intro to keep player dead-center
-	render->SetCameraSway(false);
-	render->SetCameraClamping(false);
-	render->SetCameraMovement(false); // NEW: Completely lock camera during intro
+	
+	if (inGameIntroActive_) {
+		render->cameraZoom = 0.45f;
+		render->blurIntensity = 2.5f;
+		render->SetCameraSway(false);
+		render->SetCameraClamping(false);
+		render->SetCameraMovement(false);
+	}
+	else {
+		render->cameraZoom = 1.0f;
+		render->blurIntensity = 0.0f;
+		render->SetCameraSway(true);
+		render->SetCameraClamping(true);
+		render->SetCameraMovement(true);
+	}
 
 	// Snap camera to hero position using the fixed logic centering (640, 360)
 	render->SetCameraPosition(player->position.getX(), player->position.getY());
@@ -1433,6 +1502,21 @@ void Scene::LoadGameplay()
 
 void Scene::UpdateGameplay(float dt)
 {
+	// ── Automatic Entry Movement (Levels 2, 3, 4) ───────────────────────────
+	if (isAutoEntering_ && player) {
+		autoEntryProgress_ += dt * 0.001f; // ~1 second entry
+		if (autoEntryProgress_ >= 1.0f) {
+			autoEntryProgress_ = 1.0f;
+			isAutoEntering_ = false;
+		}
+		
+		float currentX = autoEntryStartX_ + (autoEntryTargetX_ - autoEntryStartX_) * autoEntryProgress_;
+		player->position.setX(currentX);
+		
+		if (!isAutoEntering_) LOG("SCENE: Auto Entry Finished.");
+		return; // Lock input during auto-entry
+	}
+
 	// =========================================================================
 	// SILKSONG-STYLE SCENE ENTRY (from BeginSceneTransitionRoutine)
 	//
@@ -2081,236 +2165,30 @@ void Scene::UnloadGameplay()
 }
 
 // ============================================================================
-//  Map switching helpers (F1 / F2)
+//  Map switching logic (F1 / F2 / F3 / F4)
 // ============================================================================
 
-void Scene::LoadMap1()
+void Scene::LoadMap(int index)
 {
-	if (currentMapFile_ == "MapTemplate.tmx") return; // already on map 1
+	if (index < 0 || (size_t)index >= levels_.size()) return;
+	
+	// Prevent double trigger if already loading
+	if (waitingForFade_ && fadeTargetScene_ == SceneID::LOADING && targetLevelIndex_ == index) return;
 
-	LOG("=== Switching to Map 1 (MapTemplate.tmx) ===");
+	LOG("=== Initiating Transition to Map %d: %s ===", index + 1, levels_[index].name.c_str());
 
-	// Save player state before transition
-	int playerHealth = player ? player->health : 3;
-	bool playerHasBlanket = player ? player->HasBlanket() : false;
-
-	// 1. Release Scene's player reference
-	player.reset();
-
-	// 2. Destroy all entities (enemies, checkpoints, etc.) — they hold raw ptrs to map layers
-	Engine::GetInstance().entityManager->CleanUp();
-
-	// 3. Immediately flush queued physics body deletions so Box2D world is clean
-	Engine::GetInstance().physics->FlushPendingDeletes();
-
-	// 4. Now safe to destroy map data (layers, tilesets, colliders)
-	Engine::GetInstance().map->CleanUp();
-
-	// 5. Flush map collider deletions too
-	Engine::GetInstance().physics->FlushPendingDeletes();
-
-	// 6. Load the new map
-	currentMapFile_ = "MapTemplate.tmx";
-	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
-	Engine::GetInstance().map->LoadEntities(player);
-
-	// 7. Ensure player exists
-	if (player == nullptr) {
-		player = std::dynamic_pointer_cast<Player>(
-			Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-		player->position = Vector2D(96.0f, 672.0f);
-		player->Start();
-	}
-
-	// 8. Restore player state & skip wake-up animation (this is a transition, not a fresh start)
-	player->health = playerHealth;
-	player->SetHasBlanket(playerHasBlanket);
-	player->isWakingUp = false;
-	player->wakeUpAnimStarted = true;
-	inGameIntroActive_ = false;
-	Engine::GetInstance().render->cameraZoom = 1.0f;
-	Engine::GetInstance().render->blurIntensity = 0.0f;
-	currentHealthUI_ = playerHealth;
-	activeHealthAnim_ = 0;
-	isGameOver_ = false;
-
-	// 9. Re-read cape position for this map
-	capaCollected_ = false;
-	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
-		capaCollected_ = true; // No cape on this map
-	}
-
-	LOG("Map 1 loaded successfully");
+	targetLevelIndex_ = index;
+	waitingForFade_ = true;
+	fadeTargetScene_ = SceneID::LOADING;
+	
+	// Start fade out before showing loading screen
+	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 600.0f);
 }
 
-void Scene::LoadMap2()
-{
-	if (currentMapFile_ == "Map2.tmx") return; // already on map 2
-
-	LOG("=== Switching to Map 2 (Map2.tmx) ===");
-
-	// Save player state before transition
-	int playerHealth = player ? player->health : 3;
-	bool playerHasBlanket = player ? player->HasBlanket() : false;
-
-	// 1. Release Scene's player reference
-	player.reset();
-
-	// 2. Destroy all entities (enemies, checkpoints, etc.) — they hold raw ptrs to map layers
-	Engine::GetInstance().entityManager->CleanUp();
-
-	// 3. Immediately flush queued physics body deletions so Box2D world is clean
-	Engine::GetInstance().physics->FlushPendingDeletes();
-
-	// 4. Now safe to destroy map data (layers, tilesets, colliders)
-	Engine::GetInstance().map->CleanUp();
-
-	// 5. Flush map collider deletions too
-	Engine::GetInstance().physics->FlushPendingDeletes();
-
-	// 6. Load the new map
-	currentMapFile_ = "Map2.tmx";
-	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
-	Engine::GetInstance().map->LoadEntities(player);
-
-	// 7. Ensure player exists
-	if (player == nullptr) {
-		player = std::dynamic_pointer_cast<Player>(
-			Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-		player->position = Vector2D(96.0f, 672.0f);
-		player->Start();
-	}
-
-	// 8. Restore player state & skip wake-up animation (this is a transition, not a fresh start)
-	player->health = playerHealth;
-	player->SetHasBlanket(playerHasBlanket);
-	player->isWakingUp = false;
-	player->wakeUpAnimStarted = true;
-	inGameIntroActive_ = false;
-	Engine::GetInstance().render->cameraZoom = 1.0f;
-	Engine::GetInstance().render->blurIntensity = 0.0f;
-	currentHealthUI_ = playerHealth;
-	activeHealthAnim_ = 0;
-	isGameOver_ = false;
-
-	// 9. Re-read cape position for this map
-	capaCollected_ = false;
-	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
-		capaCollected_ = true; // No cape on this map
-	}
-
-	LOG("Map 2 loaded successfully");
-}
-
-void Scene::LoadMap3()
-{
-	if (currentMapFile_ == "Map3.tmx") return; // already on map 3
-
-	LOG("=== Switching to Map 3 (Map3.tmx) ===");
-
-	// Save player state before transition
-	int playerHealth = player ? player->health : 3;
-	bool playerHasBlanket = player ? player->HasBlanket() : false;
-
-	// 1. Release Scene's player reference
-	player.reset();
-
-	// 2. Destroy all entities (enemies, checkpoints, etc.) — they hold raw ptrs to map layers
-	Engine::GetInstance().entityManager->CleanUp();
-
-	// 3. Immediately flush queued physics body deletions so Box2D world is clean
-	Engine::GetInstance().physics->FlushPendingDeletes();
-
-	// 4. Now safe to destroy map data (layers, tilesets, colliders)
-	Engine::GetInstance().map->CleanUp();
-
-	// 5. Flush map collider deletions too
-	Engine::GetInstance().physics->FlushPendingDeletes();
-
-	// 6. Load the new map
-	currentMapFile_ = "Map3.tmx";
-	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
-	Engine::GetInstance().map->LoadEntities(player);
-
-	// 7. Ensure player exists
-	if (player == nullptr) {
-		player = std::dynamic_pointer_cast<Player>(
-			Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-		player->position = Vector2D(96.0f, 672.0f);
-		player->Start();
-	}
-
-	// 8. Restore player state & skip wake-up animation (this is a transition, not a fresh start)
-	player->health = playerHealth;
-	player->SetHasBlanket(playerHasBlanket);
-	player->isWakingUp = false;
-	currentHealthUI_ = playerHealth;
-	activeHealthAnim_ = 0;
-	isGameOver_ = false;
-
-	// 9. Re-read cape position for this map
-	capaCollected_ = false;
-	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
-		capaCollected_ = true; // No cape on this map
-	}
-
-	LOG("Map 3 loaded successfully");
-}
-
-void Scene::LoadMap4()
-{
-	if (currentMapFile_ == "Map4.tmx") return; // already on map 4
-
-	LOG("=== Switching to Map 4 (Map4.tmx) ===");
-
-	// Save player state before transition
-	int playerHealth = player ? player->health : 3;
-	bool playerHasBlanket = player ? player->HasBlanket() : false;
-
-	// 1. Release Scene's player reference
-	player.reset();
-
-	// 2. Destroy all entities (enemies, checkpoints, etc.) — they hold raw ptrs to map layers
-	Engine::GetInstance().entityManager->CleanUp();
-
-	// 3. Immediately flush queued physics body deletions so Box2D world is clean
-	Engine::GetInstance().physics->FlushPendingDeletes();
-
-	// 4. Now safe to destroy map data (layers, tilesets, colliders)
-	Engine::GetInstance().map->CleanUp();
-
-	// 5. Flush map collider deletions too
-	Engine::GetInstance().physics->FlushPendingDeletes();
-
-	// 6. Load the new map
-	currentMapFile_ = "Map4.tmx";
-	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
-	Engine::GetInstance().map->LoadEntities(player);
-
-	// 7. Ensure player exists
-	if (player == nullptr) {
-		player = std::dynamic_pointer_cast<Player>(
-			Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-		player->position = Vector2D(96.0f, 672.0f);
-		player->Start();
-	}
-
-	// 8. Restore player state & skip wake-up animation (this is a transition, not a fresh start)
-	player->health = playerHealth;
-	player->SetHasBlanket(playerHasBlanket);
-	player->isWakingUp = false;
-	currentHealthUI_ = playerHealth;
-	activeHealthAnim_ = 0;
-	isGameOver_ = false;
-
-	// 9. Re-read cape position for this map
-	capaCollected_ = false;
-	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
-		capaCollected_ = true; // No cape on this map
-	}
-
-	LOG("Map 4 loaded successfully");
-}
+void Scene::LoadMap1() { LoadMap(0); }
+void Scene::LoadMap2() { LoadMap(1); }
+void Scene::LoadMap3() { LoadMap(2); }
+void Scene::LoadMap4() { LoadMap(3); }
 
 void Scene::PostUpdateGameplay()
 {
@@ -2321,7 +2199,7 @@ void Scene::PostUpdateGameplay()
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F6) == KEY_DOWN)
 			Engine::GetInstance().saveSystem->QuickSave();
 
-		// F1 / F2 / F3 / F4: switch maps
+		// F1 / F2 / F3 / F4: switch maps with loading screen & tutorial card
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F1) == KEY_DOWN)
 			LoadMap1();
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F2) == KEY_DOWN)
