@@ -56,7 +56,7 @@ bool Player::Start() {
 
 	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheetNew.png");
 
-	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
+	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/Aixecant-se/ss_despertantse.png");
 	for (int i = 0; i < 51; ++i) {
 		SDL_Rect r = { i * 258, 0, 258, 258 };
 		wakeUpAnim.AddFrame(r, 120);
@@ -579,7 +579,7 @@ void Player::Draw(float dt) {
 
 	bool spriteNativeRight = false;
 	const std::string& animName = anims.GetCurrentName();
-	if (animName == "jump" || animName == "turnaround") {
+	if (animName == "jump" || animName == "turnaround" || animName == "idle") {
 		spriteNativeRight = true;
 	}
 
@@ -638,6 +638,13 @@ void Player::Draw(float dt) {
 		}
 
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+
+		// Add subtle permanent white circular glow to the player
+		if (!isDead_ && !isWakingUp) {
+			float radiusScale = 0.55f;
+			Uint8 alpha = 255; // MAX ALPHA for troubleshooting
+			render->DrawWhiteGlow(xInt, yInt, radiusScale, alpha);
+		}
 
 		// Restore alpha and color modulation
 		if (isHiding_ || isExitingHide_) {
