@@ -557,3 +557,14 @@ void Physics::DrawSolidCapsuleStub(b2Vec2 p1, b2Vec2 p2, float radius, b2HexColo
 void Physics::DrawPointStub(b2Vec2, float, b2HexColor, void*) {}
 void Physics::DrawStringStub(b2Vec2, const char*, b2HexColor, void*) {}
 void Physics::DrawTransformStub(b2Transform, void*) {}
+
+void Physics::PreSimulateScene(float totalSimulationTime)
+{
+	float step = 1.0f / 60.0f;
+	float accumulated = 0.0f;
+	while (accumulated < totalSimulationTime)
+	{
+		b2World_Step(world, step, 4);
+		accumulated += step;
+	}
+}

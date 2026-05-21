@@ -54,10 +54,26 @@ bool Scene::PreUpdate() { return true; }
 
 bool Scene::Update(float dt)
 {
-	if (waitingForFade_ && Engine::GetInstance().render->IsFadeComplete()) {
-		waitingForFade_ = false;
-		ChangeScene(fadeTargetScene_);
-		Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
+	if (waitingForFade_) {
+		float fadeAlpha = Engine::GetInstance().render->GetFadeAlpha();
+		// If FADE_OUT, fadeAlpha goes 0 -> 255.
+		// Scale the master volumes down based on the user's settings.
+		if (Engine::GetInstance().render->IsFadingOut()) {
+			float fadeMultiplier = 1.0f - (fadeAlpha / 255.0f);
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_ * fadeMultiplier);
+			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_ * fadeMultiplier);
+		}
+
+		if (Engine::GetInstance().render->IsFadeComplete()) {
+			waitingForFade_ = false;
+			
+			// Restore the standard volumes for the next scene
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
+			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
+			
+			ChangeScene(fadeTargetScene_);
+			Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
+		}
 	}
 
 	if (hasPendingSceneChange) {
@@ -99,6 +115,9 @@ bool Scene::Update(float dt)
 		break;
 	case SceneID::INTRO_CINEMATIC:
 		UpdateIntroCinematic(dt);
+		break;
+	case SceneID::TUTORIAL_TEXT_CARD:
+		UpdateTutorialTextCard(dt);
 		break;
 	case SceneID::GAMEPLAY:
 		UpdateGameplay(dt);
@@ -168,6 +187,7 @@ void Scene::LoadScene(SceneID s)
 	case SceneID::INTRO:           LoadIntro();           break;
 	case SceneID::MAIN_MENU:       LoadMainMenu();        break;
 	case SceneID::INTRO_CINEMATIC: LoadIntroCinematic();  break;
+	case SceneID::TUTORIAL_TEXT_CARD: LoadTutorialTextCard();  break;
 	case SceneID::GAMEPLAY:        LoadGameplay();         break;
 	}
 }
@@ -186,6 +206,7 @@ void Scene::UnloadCurrentScene()
 	case SceneID::INTRO:           UnloadIntro();           break;
 	case SceneID::MAIN_MENU:       UnloadMainMenu();        break;
 	case SceneID::INTRO_CINEMATIC: UnloadIntroCinematic();  break;
+	case SceneID::TUTORIAL_TEXT_CARD: UnloadTutorialTextCard();  break;
 	case SceneID::GAMEPLAY:        UnloadGameplay();         break;
 	}
 }
@@ -215,8 +236,6 @@ void Scene::LoadMainMenu()
     Engine::GetInstance().render->SetCameraSway(false);
 
 	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_Main_Menu.wav", 1.0f);
-
-	/*Engine::GetInstance().audio->PlayMusic("assets/audio/music/level-iv-339695.wav", 1.0f);*/
 
 	SDL_Texture* rawLogo = Engine::GetInstance().textures->Load("assets/textures/Menu/EchoesOfSlumber.png");
 	texMenuLogo_ = Engine::GetInstance().render->RecolorTexture(rawLogo, 212, 218, 234);
@@ -736,7 +755,7 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 	case BTN_PLAY:
 		LOG("Main Menu: Play");
 		waitingForFade_ = true;
-		fadeTargetScene_ = SceneID::GAMEPLAY;
+		fadeTargetScene_ = SceneID::INTRO_CINEMATIC;
 		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 800.0f);
 		break;
 	case BTN_SETTINGS:
@@ -893,9 +912,15 @@ void Scene::DrawIntro()
 
 void Scene::LoadIntroCinematic()
 {
-	LOG("Playing intro cinematic...");
+	LOG("Loading intro cinematic...");
+	tutorialTimer_ = 0.0f;
+	cinematicVideoStarted_ = false;
+	introLoadingDelayActive_ = false;
+	introLoadingDelay_ = 0.0f;
+	
+	// Start in Pre-Video Loading
+	introCinState_ = IntroCinState::PRE_VIDEO_LOADING;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
-	Engine::GetInstance().cinematics->PlayVideo("assets/video/test.mp4");
 }
 
 void Scene::UnloadIntroCinematic()
@@ -903,25 +928,255 @@ void Scene::UnloadIntroCinematic()
 	Engine::GetInstance().cinematics->StopVideo();
 }
 
+void Scene::DrawLoadingText(bool pulsing, float timer)
+{
+	auto& render = *Engine::GetInstance().render;
+	int winW = 0, winH = 0;
+	Engine::GetInstance().window->GetWindowSize(winW, winH);
+
+	Uint8 alpha = 255;
+	if (pulsing) {
+		float pulse = 0.65f + 0.35f * sinf(timer * 0.004f);
+		alpha = (Uint8)(255 * pulse);
+	}
+
+	SDL_Color textColor = { 255, 255, 255, alpha };
+	render.DrawMenuTextCentered("Loading...", { winW - 250, winH - 80, 200, 40 }, textColor, 0.5f);
+}
+
 void Scene::UpdateIntroCinematic(float dt)
 {
-	if (waitingForFade_) return;
+	auto& render = *Engine::GetInstance().render;
+	int winW = 0, winH = 0;
+	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-	auto& cinInput = *Engine::GetInstance().input;
-	bool skipRequested = cinInput.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
-		cinInput.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
-		cinInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
-		cinInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN;
+	// Ensure black background in all cinematic states to prevent flickering
+	SDL_Rect fullBg = { 0, 0, winW, winH };
+	render.DrawRectangle(fullBg, 0, 0, 0, 255, true, false);
 
-	if (skipRequested) {
-		waitingForFade_ = true;
-		fadeTargetScene_ = SceneID::GAMEPLAY;
-		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1000.0f);
+	switch (introCinState_)
+	{
+	case IntroCinState::PRE_VIDEO_LOADING:
+	{
+		introLoadingDelay_ += dt;
+		DrawLoadingText(true, introLoadingDelay_);
+
+		if (introLoadingDelay_ > INTRO_PRE_VIDEO_DELAY) {
+			LOG("SCENE: INTRO - PRE_VIDEO_LOADING done. Fading out to video...");
+			introCinState_ = IntroCinState::FADING_OUT_TO_VIDEO;
+			render.StartFade(FadeDirection::FADE_OUT, 800.0f);
+		}
+		break;
 	}
-	else if (!Engine::GetInstance().cinematics->IsPlaying()) {
+
+	case IntroCinState::FADING_OUT_TO_VIDEO:
+	{
+		// Draw Fixed "Loading..." during fade
+		DrawLoadingText(false, 0.0f);
+
+		if (render.IsFadeComplete()) {
+			LOG("SCENE: INTRO - Fading to video complete. Starting video with fade-in.");
+			introCinState_ = IntroCinState::PLAYING_VIDEO;
+			Engine::GetInstance().cinematics->PlayVideo("assets/video/Animatica_Enbrut.mp4");
+			render.StartFade(FadeDirection::FADE_IN, 1200.0f);
+		}
+		break;
+	}
+
+	case IntroCinState::PLAYING_VIDEO:
+	{
+		auto& cinInput = *Engine::GetInstance().input;
+		bool skipRequested = cinInput.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+			cinInput.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+			cinInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+			cinInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
+			Engine::GetInstance().cinematics->HasSkipBeenRequested();
+
+		if (skipRequested || !Engine::GetInstance().cinematics->IsPlaying()) {
+			LOG("SCENE: INTRO - Video ended or skipped. FADING OUT from video...");
+			introCinState_ = IntroCinState::FADING_OUT_FROM_VIDEO;
+			render.StartFade(FadeDirection::FADE_OUT, 800.0f);
+			// Do NOT stop video yet to allow it to fade out smoothly if still playing
+		} else {
+			SDL_Color skipColor = { 255, 255, 255, 120 };
+			render.DrawMenuTextCentered("Press SPACE to Skip", { winW - 300, winH - 60, 280, 30 }, skipColor, 0.4f);
+		}
+		break;
+	}
+
+	case IntroCinState::FADING_OUT_FROM_VIDEO:
+	{
+		// Draw black overlay manually as well to ensure video disappears
+		SDL_Rect bg = { 0, 0, winW, winH };
+		render.DrawRectangle(bg, 0, 0, 0, render.GetFadeAlpha(), true, false);
+
+		// Draw fixed loading text while fading to total black
+		DrawLoadingText(false, 0.0f);
+
+		if (render.IsFadeComplete()) {
+			LOG("SCENE: INTRO - Fading from video complete. Entering post-video loading screen.");
+			Engine::GetInstance().cinematics->StopVideo(); // Now stop it
+			introCinState_ = IntroCinState::POST_VIDEO_LOADING;
+			introLoadingDelay_ = 0.0f;
+			render.StartFade(FadeDirection::FADE_IN, 500.0f); // Reveal the pulsing loading screen
+		}
+		break;
+	}
+
+	case IntroCinState::POST_VIDEO_LOADING:
+	{
+		introLoadingDelay_ += dt;
+		DrawLoadingText(true, introLoadingDelay_);
+
+		// Final transition to Title Card
+		if (introLoadingDelay_ > INTRO_POST_VIDEO_DELAY) {
+			LOG("SCENE: INTRO - Post-video loading complete. Starting FINAL FADE to Title Card.");
+			introCinState_ = IntroCinState::POST_VIDEO_LOADING; // Stay here until fade out starts
+			if (!waitingForFade_) {
+				waitingForFade_ = true;
+				fadeTargetScene_ = SceneID::TUTORIAL_TEXT_CARD;
+				render.StartFade(FadeDirection::FADE_OUT, 1000.0f);
+			}
+		}
+		break;
+	}
+	}
+}
+
+// ============================================================================
+//  TUTORIAL TEXT CARD
+// ============================================================================
+
+void Scene::LoadTutorialTextCard()
+{
+	LOG("Loading Tutorial Text Card...");
+	tutorialTimer_ = 0.0f;
+	Engine::GetInstance().audio->PlayMusic(nullptr);
+	texTutorialSeparator_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Separator.png");
+
+	fxTitleCardPt1_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/ui_titlecard_pt_1.wav");
+	fxTitleCardPt2_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/ui_titlecard_pt_2.wav");
+	pt1Played_ = false;
+	pt2Played_ = false;
+
+	// FADE IN from black (Silksong title card entry)
+	Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 1000.0f);
+}
+void Scene::UnloadTutorialTextCard()
+{
+	LOG("Unloading Tutorial Text Card");
+	if (texTutorialSeparator_) {
+		Engine::GetInstance().textures->UnLoad(texTutorialSeparator_);
+		texTutorialSeparator_ = nullptr;
+	}
+}
+
+void Scene::UpdateTutorialTextCard(float dt)
+{
+	tutorialTimer_ += dt;
+
+	auto& input = *Engine::GetInstance().input;
+	bool skipRequested = false;
+
+	// Timings based on SFX lengths
+	const float pt1Start = 500.0f;
+	const float pt1Duration = 4600.0f; 
+	const float pt2Start = pt1Start + pt1Duration;
+	const float pt2Duration = 6000.0f; // Estimated 6s for Part 2
+
+	// Total sequence duration before automatic fade out begins
+	const float autoFadeStart = pt2Start + pt2Duration + 1000.0f; // 1 second after pt2 finishes
+
+	// ── PHASE 1 (Silksong: WaitForSceneTransitionCameraFade) ────────────────
+	// Block input until the title card is fully revealed (approx 2s after Pt 2 starts).
+	if (tutorialTimer_ > pt2Start + 2000.0f) {
+		// Only check keyboard keys (ignoring mouse) and gamepad to prevent accidental instant skips on start
+		bool explicitSkip = false;
+		for (int i = 0; i < 300; ++i) {
+			if (input.GetKey(i) == KEY_DOWN) { explicitSkip = true; break; }
+		}
+		if (!explicitSkip && input.IsAnyGamepadButtonPressed()) explicitSkip = true;
+
+		if (explicitSkip) {
+			LOG("SCENE: Tutorial Text Card SKIP requested via input at %.2f ms", tutorialTimer_);
+			skipRequested = true;
+		}
+	}
+	
+	// Automatic trigger for fade out when sequence completes
+	if (tutorialTimer_ >= autoFadeStart && !waitingForFade_) {
+		LOG("SCENE: Tutorial Text Card AUTO-ADVANCE triggered at %.2f ms", tutorialTimer_);
+		skipRequested = true;
+	}
+
+	// ── PHASE 2 (Silksong: screenFader_fsm "SCENE FADE OUT" + actorSnapshotPaused) ─
+	if (skipRequested && !waitingForFade_) {
+		LOG("SCENE: Tutorial Text Card FADING OUT");
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::GAMEPLAY;
-		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 0.0f);
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1500.0f); // Slower 1.5s fade to black
+		// We DO NOT return here, we must let it draw so the fade overlay can draw on top of it.
+	}
+
+	auto& render = *Engine::GetInstance().render;
+	int winW = 0, winH = 0;
+	Engine::GetInstance().window->GetWindowSize(winW, winH);
+	int scale = Engine::GetInstance().window->GetScale();
+
+	// Background
+	SDL_Rect bg = { 0, 0, winW, winH };
+	render.DrawRectangle(bg, 0, 0, 0, 255, true, false);
+
+	SDL_Color white = { 255, 255, 255, 255 };
+	SDL_Color gold  = { 218, 165, 32, 255 };
+
+	// 1. "LEVEL 1" — appears at 500ms
+	if (tutorialTimer_ > pt1Start) {
+		if (!pt1Played_) {
+			Engine::GetInstance().audio->PlayFx(fxTitleCardPt1_);
+			pt1Played_ = true;
+		}
+		float elapsed = tutorialTimer_ - pt1Start;
+		float alpha = std::min(1.0f, elapsed / 800.0f);
+		SDL_Color subColor = { gold.r, gold.g, gold.b, (Uint8)(255 * alpha) };
+		render.DrawMenuTextCentered("LEVEL 1", { 0, winH / 2 - 130, winW, 40 }, subColor, 1.0f);
+	}
+
+	// 2. UI Separator — opens from center at 500ms (synced with LEVEL 1, 2x speed)
+	if (tutorialTimer_ > pt1Start && texTutorialSeparator_) {
+		float elapsed = tutorialTimer_ - pt1Start;
+		float progress = std::min(1.0f, elapsed / 500.0f); // 0.5s opening duration (fast)
+		
+		int tw, th;
+		Engine::GetInstance().textures->GetSize(texTutorialSeparator_, tw, th);
+		
+		// Source clip: expands from center
+		SDL_Rect src = { 
+			(int)((float)tw * (1.0f - progress) / 2.0f), 
+			0, 
+			(int)((float)tw * progress), 
+			th 
+		};
+		
+		// Destination: centered below LEVEL 1
+		float drawW = (float)tw * progress * 0.8f; // scale slightly
+		float drawH = (float)th * 0.8f;
+		int dx = (winW - (int)drawW) / 2;
+		int dy = winH / 2 - 70;
+
+		render.DrawTexture(texTutorialSeparator_, dx, dy, &src, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.8f);
+	}
+
+	// 3. "Rock Bottom" — appears after Part 1 finished
+	if (tutorialTimer_ > pt2Start) {
+		if (!pt2Played_) {
+			Engine::GetInstance().audio->PlayFx(fxTitleCardPt2_);
+			pt2Played_ = true;
+		}
+		float elapsed = tutorialTimer_ - pt2Start;
+		float alpha = std::min(1.0f, elapsed / 1000.0f);
+		SDL_Color mainColor = { white.r, white.g, white.b, (Uint8)(255 * alpha) };
+		render.DrawMenuTextCentered("Rock Bottom", { 0, winH / 2 - 10, winW, 60 }, mainColor, 2.0f);
 	}
 }
 
@@ -938,10 +1193,9 @@ void Scene::LoadGameplay()
 	activeBoss_.reset();
 
 	Engine::GetInstance().discord->UpdatePresence("Playing: Level 1", "Alpha Phase");
-    Engine::GetInstance().render->SetCameraSway(true);
 
-	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 1.0f);
-
+	// ── Silksong Phase 3: Load & Activate ───────────────────────────────────
+	// (sceneLoad.Begin → UnloadScene → RefreshTilemapInfo → SetupSceneRefs)
 	Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
 	Engine::GetInstance().map->LoadEntities(player);
 
@@ -952,8 +1206,46 @@ void Scene::LoadGameplay()
 		player->Start();
 	}
 
-	// FIX: Set camera position immediately to avoid the "initial slide" bug
-	Engine::GetInstance().render->SetCameraPosition(player->position.getX(), player->position.getY());
+	// ── Silksong: CompleteAction → SetupSceneRefs + BeginScene ──────────────
+	// Hero placed but frozen. Camera at native 1.0x — NO zoom, NO blur.
+	// Silksong uses clean black fades, not post-process zoom effects.
+
+	inGameIntroTimer_ = 0.0f;
+	inGameIntroActive_ = true;
+	introEntryDelay_ = 0.0f;
+	introEntryDelayActive_ = false;
+	if (player) {
+		player->isWakingUp = true;
+		player->wakeUpAnimStarted = false;
+	}
+
+	auto* render = Engine::GetInstance().render.get();
+
+	// ACERCAMIENTO CINEMÁTICO SUAVE E INVERSIÓN DE BLUR
+	render->cameraZoom = 0.45f;
+	render->blurIntensity = 2.5f;
+
+	// Disable camera sway AND clamping during intro to keep player dead-center
+	render->SetCameraSway(false);
+	render->SetCameraClamping(false);
+	render->SetCameraMovement(false); // NEW: Completely lock camera during intro
+
+	// Snap camera to hero position using the fixed logic centering (640, 360)
+	render->SetCameraPosition(player->position.getX(), player->position.getY());
+	
+	// Pre-calculate logical screen position for zoom pivot
+	float pX = player->position.getX() + 64.0f;
+	float pY = player->position.getY() + 64.0f;
+	render->zoomCenterX = (float)render->camera.x + pX;
+	render->zoomCenterY = (float)render->camera.y + pY;
+
+	LOG("SCENE: LoadGameplay - Player World: (%.2f, %.2f). Camera Start: (%d, %d). Zoom: %.2f. Pivot: (%.2f, %.2f)", 
+		player->position.getX(), player->position.getY(), render->camera.x, render->camera.y, render->cameraZoom, render->zoomCenterX, render->zoomCenterY);
+
+	// Silksong: actorSnapshotPaused → music starts silent, fades in during entry
+	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 1.0f);
+	Engine::GetInstance().audio->SetMusicVolume(0.0f);
+	Engine::GetInstance().audio->SetSFXVolume(1.0f); // Reset SFX volume after fade out
 
 	LoadPauseMenuButtons();
 
@@ -1072,10 +1364,78 @@ void Scene::LoadGameplay()
 		LOG("WARNING: No Tirachinas entity found in TMX, slingshot will not spawn");
 		slingshotCollected_ = true;
 	}
+
+	// Pre-simulate physics to settle all dynamic bodies
+	Engine::GetInstance().physics->PreSimulateScene(3.0f);
 }
 
 void Scene::UpdateGameplay(float dt)
 {
+	// =========================================================================
+	// SILKSONG-STYLE SCENE ENTRY (from BeginSceneTransitionRoutine)
+	//
+	// Team Cherry does NOT use camera zoom or post-process blur during
+	// scene transitions. The actual flow is:
+	//   1. Screen fades in from black (handled by Scene::Update FADE_IN)
+	//   2. Brief entry delay while hero is frozen (entryDelay)
+	//   3. Hero wake-up animation plays, hero regains control
+	//   4. Camera sway re-enabled, music at full volume
+	// =========================================================================
+	if (inGameIntroActive_) {
+
+		inGameIntroTimer_ += dt;
+		float progress = inGameIntroTimer_ / IN_GAME_INTRO_DURATION;
+
+		if (progress >= 1.0f) {
+			inGameIntroActive_ = false;
+			auto& render = *Engine::GetInstance().render;
+			render.cameraZoom = 1.0f;
+			render.blurIntensity = 0.0f;
+			render.SetCameraSway(true);
+			render.SetCameraMovement(true); // CRITICAL: Unlock follow
+			render.SetCameraClamping(true);
+			Engine::GetInstance().audio->SetMusicVolume(1.0f);
+			if (player) player->wakeUpAnimStarted = true;
+			LOG("SCENE: Intro Cinematic Finished. CAMERA UNLOCKED.");
+		}
+		else {
+			float smoothT = progress * progress * (3.0f - 2.0f * progress);
+
+			Engine::GetInstance().render->cameraZoom = 0.45f + (1.0f - 0.45f) * smoothT;
+			Engine::GetInstance().render->blurIntensity = 2.5f * (1.0f - smoothT);
+			Engine::GetInstance().audio->SetMusicVolume(smoothT);
+
+			if (player) {
+				float pX = player->GetPosition().getX() + 64.0f;
+				float pY = player->GetPosition().getY() + 64.0f;
+				// Pivot zoom exactly on the player's current logical screen position
+				Engine::GetInstance().render->zoomCenterX = (float)Engine::GetInstance().render->camera.x + pX;
+				Engine::GetInstance().render->zoomCenterY = (float)Engine::GetInstance().render->camera.y + pY;
+
+				LOG("SCENE: Intro Update - Progress: %.2f. Zoom: %.2f. Camera: (%d, %d). Player World: (%.2f, %.2f). Pivot: (%.2f, %.2f)", 
+					progress, Engine::GetInstance().render->cameraZoom, Engine::GetInstance().render->camera.x, Engine::GetInstance().render->camera.y, 
+					pX - 64.0f, pY - 64.0f, Engine::GetInstance().render->zoomCenterX, Engine::GetInstance().render->zoomCenterY);
+
+				float pulse = 1.0f + 0.06f * sinf(inGameIntroTimer_ * 0.005f);
+				float radiusScale = 0.85f * pulse;
+				Uint8 alpha = (Uint8)(230.0f * (1.0f - smoothT));
+				if (alpha > 0) {
+					Engine::GetInstance().render->DrawPlayerGlow((int)pX, (int)pY, radiusScale, alpha);
+				}
+			}
+		}
+		return;
+	}
+
+	// Track player position to uncover map cells (320x180 px cell size)
+	if (player)
+	{
+		Vector2D playerPos = player->GetPosition();
+		int cellX = (int)(playerPos.getX() / 320.0f);
+		int cellY = (int)(playerPos.getY() / 180.0f);
+		visitedCells_[currentMapFile_].insert({ cellX, cellY });
+	}
+
 	// Toggle pause with ESC
 	auto& gpInput = *Engine::GetInstance().input;
 	bool pauseToggle = gpInput.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
@@ -1499,6 +1859,10 @@ void Scene::LoadMap1()
 	player->health = playerHealth;
 	player->SetHasBlanket(playerHasBlanket);
 	player->isWakingUp = false;
+	player->wakeUpAnimStarted = true;
+	inGameIntroActive_ = false;
+	Engine::GetInstance().render->cameraZoom = 1.0f;
+	Engine::GetInstance().render->blurIntensity = 0.0f;
 	currentHealthUI_ = playerHealth;
 	activeHealthAnim_ = 0;
 	isGameOver_ = false;
@@ -1554,6 +1918,10 @@ void Scene::LoadMap2()
 	player->health = playerHealth;
 	player->SetHasBlanket(playerHasBlanket);
 	player->isWakingUp = false;
+	player->wakeUpAnimStarted = true;
+	inGameIntroActive_ = false;
+	Engine::GetInstance().render->cameraZoom = 1.0f;
+	Engine::GetInstance().render->blurIntensity = 0.0f;
 	currentHealthUI_ = playerHealth;
 	activeHealthAnim_ = 0;
 	isGameOver_ = false;
@@ -1872,6 +2240,15 @@ void Scene::PostUpdateGameplay()
 
 void Scene::DrawMapViewer(int winW, int winH)
 {
+	// Check for Map Reveal Cheat/Purchase Input
+	auto& mapInput = *Engine::GetInstance().input;
+	if (mapInput.GetKey(SDL_SCANCODE_M) == KEY_DOWN ||
+		mapInput.GetGamepadButton(SDL_GAMEPAD_BUTTON_WEST) == KEY_DOWN)
+	{
+		mapRevealed_[currentMapFile_] = true;
+		LOG("Map purchased/revealed for %s", currentMapFile_.c_str());
+	}
+
 	auto& render = *Engine::GetInstance().render;
 	auto& map = *Engine::GetInstance().map;
 	int   scale = Engine::GetInstance().window->GetScale();
@@ -1888,11 +2265,11 @@ void Scene::DrawMapViewer(int winW, int winH)
 	SDL_Rect hintBar = { 0, winH - 28, winW, 28 };
 	render.DrawRectangle(hintBar, 10, 16, 30, 220, true, false);
 	if (Engine::GetInstance().input->IsGamepadConnected())
-		render.DrawText("L-Stick: pan  |  R2: zoom in  |  L2: zoom out  |  Touchpad: back",
-			winW / 2 - 270, winH - 22, 0, 0, { 120, 160, 200, 200 });
+		render.DrawText("L-Stick: pan  |  R2: zoom in  |  L2: zoom out  |  West: buy map  |  Touchpad: back",
+			winW / 2 - 340, winH - 22, 0, 0, { 120, 160, 200, 200 });
 	else
-		render.DrawText("Left click + drag: pan   |   +/-: zoom   |   ESC: back",
-			winW / 2 - 230, winH - 22, 0, 0, { 120, 160, 200, 200 });
+		render.DrawText("Left click + drag: pan  |  +/-: zoom  |  M: buy map  |  ESC: back",
+			winW / 2 - 290, winH - 22, 0, 0, { 120, 160, 200, 200 });
 
 	const int viewX = 10;
 	const int viewY = 42;
@@ -2020,6 +2397,40 @@ void Scene::DrawMapViewer(int winW, int winH)
 				SDL_SetTextureColorMod(ts->texture, 255, 255, 255);
 				SDL_SetTextureAlphaMod(ts->texture, 255);
 				SDL_RenderTexture(render.renderer, ts->texture, &srcF, &dst);
+			}
+		}
+	}
+
+	// Draw Fog of War overlay
+	if (!mapRevealed_[currentMapFile_])
+	{
+		Vector2D mapSize = map.GetMapSizeInPixels();
+		int cols = (int)ceilf(mapSize.getX() / 320.0f);
+		int rows = (int)ceilf(mapSize.getY() / 180.0f);
+
+		for (int cy = 0; cy < rows; cy++)
+		{
+			for (int cx = 0; cx < cols; cx++)
+			{
+				if (visitedCells_[currentMapFile_].find({ cx, cy }) == visitedCells_[currentMapFile_].end())
+				{
+					float worldX = cx * 320.0f;
+					float worldY = cy * 180.0f;
+					float worldW = 320.0f;
+					float worldH = 180.0f;
+
+					float screenX = (float)viewX + mapViewOffsetX_ + worldX * mapViewZoom_;
+					float screenY = (float)viewY + mapViewOffsetY_ + worldY * mapViewZoom_;
+					float screenW = worldW * mapViewZoom_;
+					float screenH = worldH * mapViewZoom_;
+
+					// Clip/cull
+					if (screenX + screenW < (float)viewX || screenX > (float)viewX + (float)viewW) continue;
+					if (screenY + screenH < (float)viewY || screenY > (float)viewY + (float)viewH) continue;
+
+					SDL_Rect cellRect = { (int)screenX, (int)screenY, (int)screenW, (int)screenH };
+					render.DrawRectangle(cellRect, 5, 8, 15, 230, true, false);
+				}
 			}
 		}
 	}
