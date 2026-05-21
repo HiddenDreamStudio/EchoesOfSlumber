@@ -36049,7 +36049,6 @@
   <object id="765" gid="207" x="7375.7" y="6430.59" width="714.936" height="765.222" rotation="101.981"/>
   <object id="766" gid="1073742031" x="8643.01" y="7525.39" width="874.934" height="1086" rotation="87.4232"/>
   <object id="768" x="9037.1" y="6366.5" width="85" height="19">
-   <text wrap="1">Hola Mundo</text>
   </object>
   <object id="802" gid="201" x="4288.58" y="9508.45" width="338" height="325"/>
   <object id="803" gid="203" x="1655" y="8669.21" width="290" height="496"/>
