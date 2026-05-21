@@ -1174,8 +1174,7 @@ void Scene::UpdateTutorialTextCard(float dt)
 			pt2Played_ = true;
 		}
 		float elapsed = tutorialTimer_ - pt2Start;
-		float alpha = std::min(1.0f, elapsed / 1000.0f);
-		SDL_Color mainColor = { white.r, white.g, white.b, (Uint8)(255 * alpha) };
+		SDL_Color mainColor = { white.r, white.g, white.b, 255 };
 		render.DrawMenuTextCentered("Rock Bottom", { 0, winH / 2 - 10, winW, 60 }, mainColor, 2.0f);
 	}
 }
@@ -2869,10 +2868,17 @@ void Scene::PostUpdateGameplay()
 			0.35f
 		);
 	}
-}
 
-// ── Inventory ─────────────────────────────────────────────────────────────────
-
+	if (showMapViewer_) {
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		DrawMapViewer(winW, winH);
+	}
+	else if (isPaused_ && !showInventory_) {
+		DrawPauseMenu();
+	}
+} 
+		// ── Inventory ─────────────────────────────────────────────────────────────────
 void Scene::DrawInventory(int winW, int winH)
 {
 	auto& render = *Engine::GetInstance().render;
@@ -3337,14 +3343,6 @@ void Scene::DrawInventory(int winW, int winH)
 	else
 	{
 		render.DrawMenuTextCentered("Clic en slots para Equipar (Teclas 1, 2, 3 en juego)  |  'I' para cerrar", footer, { 180, 210, 240, 200 }, 0.35f);
-	// -- Final rendering passes (CRITICAL: Must be on top of EVERYTHING) ----
-	if (showMapViewer_) {
-		int winW = 0, winH = 0;
-		Engine::GetInstance().window->GetWindowSize(winW, winH);
-		DrawMapViewer(winW, winH);
-	}
-	else if (isPaused_) {
-		DrawPauseMenu();
 	}
 }
 

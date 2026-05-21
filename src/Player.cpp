@@ -56,14 +56,22 @@ bool Player::Start() {
 
 	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheetNew.png");
 
-	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/Aixecant-se/ss_despertantse.png");
-	for (int i = 0; i < 51; ++i) {
-		SDL_Rect r = { i * 258, 0, 258, 258 };
-		wakeUpAnim.AddFrame(r, 120);
+	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/Aixecant-se/ss_Aixecant-se_definitiu.png");
+
+	// Track the grid dimensions for the new 2560x2560 stacked texture
+	int columns = 10; 
+
+	for (int i = 0; i < 93; ++i) {
+	    // Calculate row and column indices for a 10x10 layout
+	    int col = i % columns;
+	    int row = i / columns;
+	
+	    SDL_Rect r = { col * 256, row * 256, 256, 256 };
+	    wakeUpAnim.AddFrame(r, 120);
 	}
+
 	wakeUpAnim.SetLoop(false);
 	isWakingUp = true;
-
 	texW = 128;
 	texH = 128;
 	drawScale = 0.5f;
@@ -883,45 +891,48 @@ void Player::Draw(float dt) {
 		drawX -= static_cast<int>(pushDir_ * 35.0f);
 	}
 
-	bool spriteNativeRight = false;
-	const std::string& animName = anims.GetCurrentName();
-	if (animName == "jump" || animName == "turnaround" || animName == "idle") {
-		spriteNativeRight = true;
-	}
+// --- Fix: In Player::Draw() ---
 
-	SDL_FlipMode flip;
-	if (isPushing_ && velocity.x != 0.0f && !isJumping) {
-		// Push spritesheet character faces LEFT natively
-		// When pushing right (velocity.x > 0), flip horizontally
-		flip = (velocity.x > 0.0f) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-	}
-	else if (spriteNativeRight) {
-		flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-	}
-	else {
-		flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
-	}
+    // 1. Move the flip calculation UP so the wake-up block can use it
+    bool spriteNativeRight = false;
+    const std::string& animName = anims.GetCurrentName();
+    if (animName == "jump" || animName == "turnaround" || animName == "idle") {
+        spriteNativeRight = true;
+    }
 
-	if (isWakingUp) {
-		if (wakeUpAnimStarted) {
-			wakeUpAnim.Update(dt);
-			if (wakeUpAnim.HasFinishedOnce()) {
-				isWakingUp = false;
-			}
-		}
-		if (isWakingUp) {
-			const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
-			float wakeScale = 0.65f;
-			int wakeWidth = (int)(258.0f * wakeScale);
-			int wakeHeight = (int)(258.0f * wakeScale);
-			int wakeDrawX = xInt - (wakeWidth / 2) - 60;
-			int wakeDrawY = yInt + 50 - wakeHeight + 15;
-			render->ApplyAmbientTint(wakeUpTexture);
-			render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, wakeScale);
-			render->ResetAmbientTint(wakeUpTexture);
-			return;
-		}
-	}
+    SDL_FlipMode flip;
+    if (isPushing_ && velocity.x != 0.0f && !isJumping) {
+        flip = (velocity.x > 0.0f) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+    }
+    else if (spriteNativeRight) {
+        flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+    }
+    else {
+        // This is what your standard animations fall back to
+        flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+    }
+
+    if (isWakingUp) {
+        if (wakeUpAnimStarted) {
+            wakeUpAnim.Update(dt);
+            if (wakeUpAnim.HasFinishedOnce()) {
+                isWakingUp = false;
+            }
+        }
+        if (isWakingUp) {
+            const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
+            float wakeScale = 0.65f;
+            int wakeWidth = (int)(256.0f * wakeScale);
+            int wakeHeight = (int)(256.0f * wakeScale); 
+            int wakeDrawX = xInt - (wakeWidth / 2) - 60;
+            int wakeDrawY = yInt + 50 - wakeHeight + 15;
+            
+            render->ApplyAmbientTint(wakeUpTexture);
+            render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, wakeScale);
+            render->ResetAmbientTint(wakeUpTexture);
+            return;
+        }
+    }
 
 	if (drawingBear && throwBearTexture_) {
 		const SDL_Rect& kidFrame = throwBearAnims_.GetCurrentFrame();
