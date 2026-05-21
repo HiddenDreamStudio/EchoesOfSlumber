@@ -56,7 +56,7 @@ bool Player::Start() {
 
 	texture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheetNew.png");
 
-	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Despertar.png");
+	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/Aixecant-se/ss_despertantse.png");
 	for (int i = 0; i < 51; ++i) {
 		SDL_Rect r = { i * 258, 0, 258, 258 };
 		wakeUpAnim.AddFrame(r, 120);
@@ -90,7 +90,8 @@ bool Player::Start() {
 	pbody->ctype = ColliderType::PLAYER;
 
 	pickCoinFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/coin-collision-sound-342335.wav");
-	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump.wav");
+	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump2.wav"); 
+	landFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/land.wav");
 	stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");
 	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
 
@@ -578,7 +579,7 @@ void Player::Draw(float dt) {
 
 	bool spriteNativeRight = false;
 	const std::string& animName = anims.GetCurrentName();
-	if (animName == "jump" || animName == "turnaround") {
+	if (animName == "jump" || animName == "turnaround" || animName == "idle") {
 		spriteNativeRight = true;
 	}
 
@@ -637,6 +638,13 @@ void Player::Draw(float dt) {
 		}
 
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+
+		// Add subtle permanent white circular glow to the player
+		if (!isDead_ && !isWakingUp) {
+			float radiusScale = 0.55f;
+			Uint8 alpha = 255; // MAX ALPHA for troubleshooting
+			render->DrawWhiteGlow(xInt, yInt, radiusScale, alpha);
+		}
 
 		// Restore alpha and color modulation
 		if (isHiding_ || isExitingHide_) {
@@ -827,6 +835,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		if (playerY < platY) {
 			platformBelow = physB;
 			if (isJumping) {
+				// Play landing sound effect
+				Engine::GetInstance().audio->PlayFx(landFxId);
+
 				// Spawn landing dust (Centered at bottom of capsule)
 				Engine::GetInstance().entityManager->SpawnVFX(
 					Vector2D(position.getX(), position.getY() + 50.0f),
@@ -886,6 +897,9 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 			// Player is above the rock — treat as platform for landing
 			if (playerY < rockY) {
 				if (isJumping) {
+					// Play landing sound effect when landing on a rock
+					Engine::GetInstance().audio->PlayFx(landFxId);
+
 					if (anims.GetCurrentName() != "jump") {
 						anims.SetCurrent("idle");
 					}
