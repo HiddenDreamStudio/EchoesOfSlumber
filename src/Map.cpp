@@ -12,6 +12,7 @@
 #include "EnemyPlush.h"
 #include "EnemyStitchling.h"
 #include "Bouncer.h"
+#include "BlockCrawler.h"
 #include "Boss1.h"
 #include "RopedRock.h"
 #include "Checkpoint.h"
@@ -587,9 +588,12 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
 
                 std::string entityType = objectNode.attribute("type").as_string();
-                if (entityType.empty()) entityType = objectNode.attribute("class").as_string();
                 if (entityType.empty()) {
                     entityType = objectNode.attribute("class").as_string();
+                }
+                std::string entityClass = objectNode.attribute("class").as_string();
+                if (entityClass == "BlockCrawler") {
+                    entityType = entityClass;
                 }
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
@@ -671,6 +675,28 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     bouncer->SetSpawnSize(w, h);
                     bouncer->Start();
                     LOG("Bouncer spawned at: %f, %f (size: %.0fx%.0f)", x, y, w, h);
+                }
+                else if (entityType == "BlockCrawler") {
+                    auto blockCrawler = std::dynamic_pointer_cast<BlockCrawler>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BLOCK_CRAWLER));
+                    blockCrawler->position = Vector2D(x, y);
+
+                    float objectW = objectNode.attribute("width").as_float(96.0f);
+                    float objectH = objectNode.attribute("height").as_float(96.0f);
+                    float patrolLeft = x - 200.0f;
+                    float patrolRight = x + 200.0f;
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string propName = prop.attribute("name").as_string();
+                            if (propName == "patrol_left")  patrolLeft = prop.attribute("value").as_float();
+                            if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
+                        }
+                    }
+
+                    blockCrawler->SetSpawnSize(objectW, objectH);
+                    blockCrawler->SetPatrolPoints(patrolLeft, patrolRight);
+                    blockCrawler->Start();
+                    LOG("BlockCrawler spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
                 }
                 else if (entityType == "Boss1") {
                     auto boss = std::dynamic_pointer_cast<Boss1>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOSS_1));

@@ -1,7 +1,11 @@
+#if __has_include("discordpp.h")
 #define DISCORDPP_IMPLEMENTATION
+#endif
+
 #include "DiscordManager.h"
 #include "Log.h"
 #include <iostream>
+#include <ctime>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -18,6 +22,7 @@ DiscordManager::~DiscordManager()
 
 bool DiscordManager::Awake()
 {
+#if EOS_DISCORD_SDK_AVAILABLE
     LOG("Initializing Discord Social SDK (Direct RPC Mode)...");
     client = std::make_shared<discordpp::Client>();
 
@@ -56,22 +61,32 @@ bool DiscordManager::Awake()
     isReady = true; 
 
     return true;
+#else
+    LOG("Discord Social SDK header not found. Rich Presence disabled.");
+    isReady = false;
+    startTime = (int64_t)time(nullptr);
+    return true;
+#endif
 }
 
 bool DiscordManager::Start()
 {
+#if EOS_DISCORD_SDK_AVAILABLE
     if (!isReady || !client) return true;
 
     LOG("Setting initial Discord Presence...");
     UpdatePresence("", "");
+#endif
     return true;
 }
 
 bool DiscordManager::Update(float dt)
 {
+#if EOS_DISCORD_SDK_AVAILABLE
     if (client) {
         discordpp::RunCallbacks();
     }
+#endif
     return true;
 }
 
@@ -79,7 +94,9 @@ bool DiscordManager::CleanUp()
 {
     LOG("Cleaning up Discord SDK");
     isReady = false;
+#if EOS_DISCORD_SDK_AVAILABLE
     client.reset();
+#endif
     return true;
 }
 
@@ -91,6 +108,7 @@ void DiscordManager::Authenticate()
 
 void DiscordManager::UpdatePresence(const char* state, const char* details)
 {
+#if EOS_DISCORD_SDK_AVAILABLE
     if (!isReady || !client) return;
 
     discordpp::Activity activity;
@@ -120,4 +138,8 @@ void DiscordManager::UpdatePresence(const char* state, const char* details)
             LOG("Discord Rich Presence update failed");
         }
     });
+#else
+    (void)state;
+    (void)details;
+#endif
 }
