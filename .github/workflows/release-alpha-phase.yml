@@ -44,7 +44,7 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: alpha-phase-${{ github.run_number }}
+        tag_name: alpha-phase
         name: Alpha Phase Release
         body: |
           Automatic build of the Alpha Phase.
