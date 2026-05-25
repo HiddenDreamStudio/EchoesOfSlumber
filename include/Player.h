@@ -105,6 +105,9 @@ public:
 	
 	int keys = 0;
 
+	// God mode flag
+	bool godMode_ = false;
+
 private:
 	b2Vec2 velocity = { 0.0f, 0.0f };
 	AnimationSet anims;
