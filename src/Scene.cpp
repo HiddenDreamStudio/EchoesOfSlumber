@@ -3394,7 +3394,7 @@ void Scene::DrawMapViewer(int winW, int winH)
 	for (const auto& layer : map.mapData.layers)
 	{
 		auto* drawProp = layer->properties.GetProperty("Draw");
-		if (drawProp && !drawProp->value) continue;
+		if (!drawProp || !drawProp->value) continue;
 
 		for (int ty = startTileY; ty < endTileY; ty++)
 		{
