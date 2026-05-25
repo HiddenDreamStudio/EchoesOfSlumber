@@ -3,7 +3,19 @@
  <tileset firstgid="1" name="TL_Nivell_2_01" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 2/TL_Nivell_2_01.png" width="640" height="640"/>
  </tileset>
- <layer id="1" name="Capa de patrones 1" width="29" height="79">
+ <tileset firstgid="101" source="assets animats level 2/Asset 1.tsx"/>
+ <tileset firstgid="165" source="assets animats level 2/Asset 9.tsx"/>
+ <tileset firstgid="229" source="assets animats level 2/Asset 12.tsx"/>
+ <tileset firstgid="293" source="assets animats level 2/Asset 11.tsx"/>
+ <tileset firstgid="357" source="assets animats level 2/Asset 18.tsx"/>
+ <tileset firstgid="421" source="assets animats level 2/Asset 13.tsx"/>
+ <tileset firstgid="485" source="assets animats level 2/Asset 2.tsx"/>
+ <tileset firstgid="549" source="assets animats level 2/Asset 20.tsx"/>
+ <tileset firstgid="613" source="assets animats level 2/Asset 22.tsx"/>
+ <tileset firstgid="677" source="assets animats level 2/Asset 10.tsx"/>
+ <tileset firstgid="741" source="assets animats level 2/Asset 21.tsx"/>
+ <tileset firstgid="805" source="assets animats level 2/Asset 14.tsx"/>
+ <layer id="1" name="Map" width="29" height="79">
   <data encoding="csv">
 12,12,12,12,12,12,12,13,0,0,0,0,0,0,0,0,0,0,0,0,11,12,12,12,12,12,12,12,12,
 12,12,12,12,12,12,12,13,0,0,0,0,0,0,0,0,0,0,0,0,11,12,12,12,12,12,12,12,12,
