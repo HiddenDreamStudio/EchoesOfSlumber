@@ -167,6 +167,56 @@ bool Player::Update(float dt)
 
 	GetPhysicsValues();
 
+	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F10) == KEY_DOWN) {
+		godMode_ = !godMode_;
+		b2Body_SetGravityScale(pbody->body, godMode_ ? 0.0f : 1.0f);
+		
+		b2Filter filter = b2DefaultFilter();
+		if (godMode_) {
+			filter.maskBits = 0x00000000;
+		}
+		
+		int shapeCount = b2Body_GetShapeCount(pbody->body);
+		b2ShapeId shapes[10];
+		b2Body_GetShapes(pbody->body, shapes, shapeCount);
+		for (int i = 0; i < shapeCount; i++) {
+			b2Shape_SetFilter(shapes[i], filter);
+		}
+		LOG("God Mode: %s", godMode_ ? "ON" : "OFF");
+		
+		if (godMode_) {
+			isJumping = false;
+		}
+	}
+
+	if (godMode_) {
+		auto& input = Engine::GetInstance().input;
+		float godSpeed = 12.0f;
+		velocity.x = 0.0f;
+		velocity.y = 0.0f;
+		
+		if (input->GetKey(SDL_SCANCODE_W) == KEY_REPEAT || input->GetKey(SDL_SCANCODE_UP) == KEY_REPEAT || input->GetLeftStickY() < -0.2f) {
+			velocity.y = -godSpeed;
+		}
+		if (input->GetKey(SDL_SCANCODE_S) == KEY_REPEAT || input->GetKey(SDL_SCANCODE_DOWN) == KEY_REPEAT || input->GetLeftStickY() > 0.2f) {
+			velocity.y = godSpeed;
+		}
+		if (input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT || input->GetKey(SDL_SCANCODE_LEFT) == KEY_REPEAT || input->GetLeftStickX() < -0.2f) {
+			velocity.x = -godSpeed;
+			facingRight = true;
+		}
+		if (input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT || input->GetKey(SDL_SCANCODE_RIGHT) == KEY_REPEAT || input->GetLeftStickX() > 0.2f) {
+			velocity.x = godSpeed;
+			facingRight = false;
+		}
+		
+		Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity.x, velocity.y);
+		anims.SetCurrent("jump");
+		
+		Draw(dt);
+		return true;
+	}
+
 	if (knockbackTimer_ > 0.0f) {
 		knockbackTimer_ -= dt;
 		velocity.x = knockbackX_;
