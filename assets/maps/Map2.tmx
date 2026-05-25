@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="301" height="158" tilewidth="64" tileheight="64" infinite="0" nextlayerid="19" nextobjectid="385">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="301" height="158" tilewidth="64" tileheight="64" infinite="0" nextlayerid="20" nextobjectid="389">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 2/TL_Nivell_2_01.png" width="640" height="640"/>
   <tile id="0">
@@ -282,13 +282,13 @@
  <tileset firstgid="1485" source="Assets level 2/Middle.tsx"/>
  <tileset firstgid="1508" source="Assets level 2/Fore.tsx"/>
  <tileset firstgid="1530" source="Assets level 2/Back.tsx"/>
- <imagelayer id="14" name="Background" parallaxx="0" parallaxy="0" repeatx="1" repeaty="1">
+ <imagelayer id="14" name="Background" visible="0" parallaxx="0" parallaxy="0" repeatx="1" repeaty="1">
   <image source="Nivell 2/F_Nivell_2.png" width="1920" height="1080"/>
  </imagelayer>
- <objectgroup id="18" name="Weapons">
+ <objectgroup id="18" name="Weapons" visible="0">
   <object id="384" name="Tirachinas" type="Tiraxines" x="7305.21" y="5238.42" width="69.697" height="72.7273"/>
  </objectgroup>
- <objectgroup id="11" name="Background">
+ <objectgroup id="11" name="Background" visible="0">
   <object id="28" gid="1530" x="16734.7" y="9710" width="341" height="519.025"/>
   <object id="29" gid="1533" x="14632" y="9688" width="505" height="907"/>
   <object id="30" gid="1535" x="12831" y="9697" width="1099" height="1009"/>
@@ -359,7 +359,7 @@
   <object id="117" gid="1532" x="7622.21" y="1869.61" width="471.727" height="482.354"/>
   <object id="118" gid="1551" x="7140" y="1398.85" width="163" height="270.85"/>
  </objectgroup>
- <objectgroup id="12" name="Entities">
+ <objectgroup id="12" name="Entities" visible="0">
   <object id="258" name="Player" type="Player" x="16469.3" y="9562.67" width="96" height="96"/>
   <object id="343" type="Platform" x="13876.1" y="7320.97" width="273.333" height="92">
    <properties>
@@ -439,7 +439,7 @@
   <object id="382" name="EnemyStitchling" type="EnemyStitchling" x="17860" y="2832" width="32" height="32"/>
   <object id="383" name="EnemyPlush" type="EnemyPlush" x="13272" y="2056" width="32" height="32"/>
  </objectgroup>
- <objectgroup id="9" name="Middleground">
+ <objectgroup id="9" name="Middleground" visible="0">
   <object id="119" gid="1501" x="16514" y="9683.67" width="342.31" height="323.667"/>
   <object id="120" gid="1503" x="14373.6" y="9708.33" width="341.29" height="227.667"/>
   <object id="122" gid="1492" x="12822.7" y="8918.33" width="531.667" height="410.97"/>
@@ -497,7 +497,7 @@
   <object id="177" gid="1493" x="18026" y="1211" width="184.862" height="425"/>
   <object id="178" gid="1490" x="17648" y="801" width="384.376" height="335"/>
  </objectgroup>
- <objectgroup id="10" name="Foreground">
+ <objectgroup id="10" name="Foreground" visible="0">
   <object id="248" gid="1510" x="114" y="2474" width="574.011" height="563.717"/>
   <object id="249" gid="1529" x="3170" y="2076.11" width="253" height="351.114"/>
   <object id="250" gid="1514" x="4363.44" y="2429" width="404.562" height="314"/>
@@ -509,7 +509,7 @@
   <object id="256" gid="1533" x="9264" y="7458" width="237" height="425.661"/>
   <object id="257" gid="1496" x="9528" y="7429" width="241.153" height="337"/>
  </objectgroup>
- <objectgroup id="8" name="AnimatedPlants">
+ <objectgroup id="8" name="AnimatedPlants" visible="0">
   <object id="7" gid="205" x="15623.3" y="9711" width="348.736" height="221.855"/>
   <object id="16" gid="589" x="2002.58" y="10097.8" width="314.04" height="261.647"/>
   <object id="20" gid="653" x="914" y="7712.33" width="159.692" height="321.024"/>
@@ -48140,7 +48140,7 @@
    <tile gid="12"/>
   </data>
  </layer>
- <objectgroup id="13" name="AnimatedPlants front">
+ <objectgroup id="13" name="AnimatedPlants front" visible="0">
   <object id="339" gid="781" x="15947.3" y="9714.33" width="213" height="378"/>
   <object id="340" gid="781" x="16714" y="9711.67" width="213" height="378"/>
   <object id="341" gid="781" x="12112.7" y="9722.33" width="213" height="378"/>
