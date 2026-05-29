@@ -201,6 +201,7 @@ public:
     bool isPaused_ = false;
     bool showPauseOptions_ = false;
     bool isGameOver_ = false;
+    float gameOverFadeTimer_ = 0.0f;
 
 private:
     void LoadGameplay();
@@ -325,6 +326,8 @@ private:
     SDL_Texture* texGameOverFrag3_ = nullptr;
     SDL_Texture* texGameOverFrag4_ = nullptr;
     SDL_Texture* texGameOverFrag5_ = nullptr;
+    SDL_Texture* texGameOverScreenBase_ = nullptr;
+    SDL_Texture* texGameOverText_ = nullptr;
 
     // Checkpoint notification
     SDL_Texture* texCheckpointSaved_ = nullptr;
