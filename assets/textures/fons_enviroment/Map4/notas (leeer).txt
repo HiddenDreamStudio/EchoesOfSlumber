@@ -1,0 +1,7 @@
+Las img Map4_fondos_delante_1 y Map4_fondo_delante_2 van delante del mapa. Tipo el orden sería: 
+1. Map4_fondo 
+2. el mapa 
+3. Map4_fondos_delante_1 
+4. Map4_fondo_delante_2
+
+(pondré una img con el nombre map4_referencia)
