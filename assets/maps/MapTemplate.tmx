@@ -535,7 +535,7 @@
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="1332" name="Player" type="Player" x="2328.91" y="7655.13" width="96" height="96"/>
+  <object id="1332" name="Player" type="Player" x="7798.97" y="8480.16" width="96" height="96"/>
   <object id="1333" name="Cape" type="Cape" x="4792.66" y="1573.32"/>
   <object id="1334" name="Enemy" type="SpiderCandy" x="4848.6" y="8488.05" width="108" height="100">
    <properties>
