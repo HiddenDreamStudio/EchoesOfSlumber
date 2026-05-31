@@ -42,6 +42,22 @@ public:
 
     std::shared_ptr<Player> player = nullptr;
 
+    bool pendingSubMapLoad_ = false;
+    std::string subMapTarget_;
+    std::string subMapSpawn_;
+    std::string subMapSpawnId_;
+    std::string previousMapFile_; 
+    std::string previousSpawnId_;
+    float portalCooldown_ = 0.0f; 
+
+
+    void LoadSubMap(const std::string& tmxFile, const std::string& spawnId);
+    void CheckPortalCollisions(float dt);
+    Vector2D GetSpawnPosition(const std::string& spawnId);
+    void ExecuteSubMapLoad();
+
+
+
 private:
     // ── Scene routing ─────────────────────────────────────────────────────────
     SceneID currentScene = SceneID::INTRO;

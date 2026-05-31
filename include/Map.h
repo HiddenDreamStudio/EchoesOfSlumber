@@ -137,6 +137,19 @@ struct CheckpointObject {
     bool visited = false;
 };
 
+struct PortalData {
+    float x, y, w, h;       
+    std::string targetFile; 
+    std::string targetSpawn; 
+    std::string selfId;     
+    std::string spawnId;
+};
+
+struct SpawnData {
+    float x, y;
+    std::string spawnId;
+};
+
 struct MapData
 {
     int width;
@@ -224,12 +237,15 @@ public:
         return mapData.tileHeight;
     }
 
-    void LoadEntities(std::shared_ptr<Player>& player);
+    void LoadEntities(std::shared_ptr<Player>& player, bool portalTransition = false, float spawnX = 0.0f, float spawnY = 0.0f);
     void SaveEntities(std::shared_ptr<Player> player);
 
     void LoadImageLayers();
     void LoadDecorationObjects();
     void LoadAnimatedPlants();
+
+    std::vector<PortalData> GetPortals() const;
+    bool GetSpawnById(const std::string& id, float& outX, float& outY) const;
 
 public:
     std::string mapFileName;
