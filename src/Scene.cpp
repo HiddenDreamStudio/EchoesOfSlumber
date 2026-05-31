@@ -1872,9 +1872,18 @@ void Scene::UpdateGameplay(float dt)
 
 		if (player->health != currentHealthUI_) {
 			currentHealthUI_ = player->health;
-			if (currentHealthUI_ == 3) animHealth1_.Reset();
-			else if (currentHealthUI_ == 2) animHealth2_.Reset();
-			else if (currentHealthUI_ == 1) animHealth3_.Reset();
+			if (currentHealthUI_ == 3) {
+				animHealth1_.Reset();
+			}
+			else if (currentHealthUI_ == 2) {
+				animHealth1_.Reset(); // Start transition from 3 to 2 health bars
+			}
+			else if (currentHealthUI_ == 1) {
+				animHealth2_.Reset(); // Start transition from 2 to 1 health bar
+			}
+			else if (currentHealthUI_ <= 0) {
+				animHealth3_.Reset(); // Start transition from 1 to 0 health bars
+			}
 			activeHealthAnim_ = 0;
 		}
 
@@ -1883,9 +1892,12 @@ void Scene::UpdateGameplay(float dt)
 			animHealth1_.Reset();
 		}
 		else if (currentHealthUI_ == 2) {
-			animHealth2_.Update(dt);
+			animHealth1_.Update(dt);
 		}
 		else if (currentHealthUI_ == 1) {
+			animHealth2_.Update(dt);
+		}
+		else if (currentHealthUI_ <= 0) {
 			animHealth3_.Update(dt);
 		}
 
@@ -2294,29 +2306,23 @@ void Scene::PostUpdateGameplay()
 				}
 			}
 			else if (currentHealthUI_ == 2) {
+				texToDraw = texHealth1_;
+				if (texHealth1_) {
+					r = animHealth1_.GetCurrentFrame();
+					frame = &r;
+				}
+			}
+			else if (currentHealthUI_ == 1) {
 				texToDraw = texHealth2_;
 				if (texHealth2_) {
 					r = animHealth2_.GetCurrentFrame();
 					frame = &r;
 				}
 			}
-			else if (currentHealthUI_ == 1) {
-				texToDraw = texHealth3_;
-				if (texHealth3_) {
-					r = animHealth3_.GetCurrentFrame();
-					frame = &r;
-				}
-			}
 			else if (currentHealthUI_ <= 0) {
 				texToDraw = texHealth3_;
 				if (texHealth3_) {
-					// Draw the final frame (index 11) showing the fully fragmented/dead state
-					SDL_Rect lastRect;
-					lastRect.x = 3 * 500; // column 3
-					lastRect.y = 2 * 500; // row 2
-					lastRect.w = 500;
-					lastRect.h = 500;
-					r = lastRect;
+					r = animHealth3_.GetCurrentFrame();
 					frame = &r;
 				}
 			}
@@ -3645,6 +3651,19 @@ void Scene::ResetHealthUI(int health)
 	animHealth1_.Reset();
 	animHealth2_.Reset();
 	animHealth3_.Reset();
+
+	if (health == 2) {
+		animHealth1_.SetFinished();
+	}
+	else if (health == 1) {
+		animHealth1_.SetFinished();
+		animHealth2_.SetFinished();
+	}
+	else if (health <= 0) {
+		animHealth1_.SetFinished();
+		animHealth2_.SetFinished();
+		animHealth3_.SetFinished();
+	}
 }
 
 void Scene::ShowNoCapeNotification()
