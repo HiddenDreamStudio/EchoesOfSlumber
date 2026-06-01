@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="47" nextobjectid="1409">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="47" nextobjectid="1798">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -369,193 +369,29 @@
  </imagelayer>
  <objectgroup id="31" name="Fondo piedras" parallaxx="0.2"/>
  <objectgroup id="42" name="AnimatedPlants"/>
- <objectgroup id="26" name="Middleground"/>
- <objectgroup id="25" name="Foreground"/>
  <objectgroup id="33" name="AnimatedPlants Front"/>
  <objectgroup id="9" name="Entities">
-  <object id="1147" gid="108" x="6273.36" y="8258.19" width="299" height="297"/>
-  <object id="1148" gid="108" x="4800.63" y="8358.19" width="299" height="297"/>
-  <object id="1149" gid="108" x="2593.6" y="7343.05" width="299" height="297"/>
-  <object id="1151" gid="108" x="2561.6" y="4087.05" width="299" height="297"/>
-  <object id="1153" gid="108" x="3409.6" y="295.045" width="299" height="297"/>
-  <object id="1154" gid="108" x="5073.6" y="2407.05" width="299" height="297"/>
-  <object id="1155" gid="108" x="2465.6" y="3295.05" width="299" height="297"/>
-  <object id="1156" gid="109" x="5499.9" y="8312.1" width="155" height="223"/>
-  <object id="1157" gid="109" x="3763.54" y="6330.28" width="155" height="223"/>
-  <object id="1158" gid="109" x="4587.78" y="4021.19" width="155" height="223"/>
-  <object id="1159" gid="109" x="4330.21" y="3251.49" width="155" height="223"/>
-  <object id="1160" gid="109" x="3824.15" y="1912.11" width="155" height="223"/>
-  <object id="1162" gid="109" x="9161.6" y="7346.05" width="155" height="223"/>
-  <object id="1163" gid="110" x="9223.6" y="8385.05" width="295" height="310"/>
-  <object id="1164" gid="110" x="3279.6" y="7361.05" width="295" height="310"/>
-  <object id="1165" gid="110" x="6235.6" y="6209.05" width="295" height="310"/>
-  <object id="1166" gid="110" x="3627.6" y="4105.05" width="295" height="310"/>
-  <object id="1167" gid="110" x="4315.6" y="317.045" width="295" height="310"/>
-  <object id="1168" gid="110" x="3283.6" y="2433.05" width="295" height="310"/>
-  <object id="1170" gid="111" x="5838.27" y="8226.05" width="310" height="127"/>
-  <object id="1171" gid="111" x="3124.93" y="3933.81" width="310" height="127"/>
-  <object id="1172" gid="111" x="5480.93" y="2272.72" width="310" height="127"/>
-  <object id="1173" gid="1073741935" x="4750.27" y="2714.05" width="310" height="127"/>
-  <object id="1174" gid="1073741935" x="4482.27" y="3603.38" width="310" height="127"/>
-  <object id="1175" gid="1073741935" x="2012.93" y="3606.05" width="310" height="127"/>
-  <object id="1176" gid="1073741935" x="4011.24" y="4628.95" width="310" height="127"/>
-  <object id="1177" gid="1073741935" x="5511.6" y="6416.72" width="310" height="127"/>
-  <object id="1178" gid="1073741935" x="1170.39" y="6558.05" width="310" height="127"/>
-  <object id="1179" gid="112" x="1868.66" y="6356.05" width="368" height="323"/>
-  <object id="1180" gid="112" x="2877.75" y="7380.28" width="368" height="323"/>
-  <object id="1181" gid="112" x="5089.88" y="8404.52" width="368" height="323"/>
-  <object id="1182" gid="112" x="9362.6" y="7440.9" width="368" height="323"/>
-  <object id="1184" gid="112" x="4186.6" y="4132.05" width="368" height="323"/>
-  <object id="1185" gid="1073741936" x="2658.6" y="5336.05" width="368" height="323"/>
-  <object id="1186" gid="1073741936" x="5034.6" y="6440.05" width="368" height="323"/>
-  <object id="1187" gid="1073741936" x="5354.6" y="8616.05" width="368" height="323"/>
-  <object id="1188" gid="117" x="6468.6" y="8594.05" width="236" height="335"/>
-  <object id="1189" gid="117" x="8430.6" y="8592.05" width="236" height="335"/>
-  <object id="1191" gid="117" x="4971.02" y="8613.57" width="236" height="335"/>
-  <object id="1192" gid="117" x="3137.69" y="7643.86" width="236" height="335"/>
-  <object id="1193" gid="1073741941" x="5837.69" y="6259.02" width="236" height="335"/>
-  <object id="1194" gid="1073741941" x="1544.6" y="6386.05" width="236" height="335"/>
-  <object id="1195" gid="1073741941" x="2288.6" y="4130.05" width="236" height="335"/>
-  <object id="1197" gid="1073741941" x="3896.6" y="362.045" width="236" height="335"/>
-  <object id="1198" gid="1073741941" x="4488.6" y="2482.05" width="236" height="335"/>
-  <object id="1199" gid="117" x="3032.6" y="3616.05" width="236" height="335"/>
-  <object id="1200" gid="112" x="3290.6" y="3352.05" width="368" height="323"/>
-  <object id="1201" gid="113" x="5145.08" y="3608.32" width="300" height="374"/>
-  <object id="1202" gid="113" x="3884.48" y="5338.63" width="300" height="374"/>
-  <object id="1203" gid="114" x="9192.6" y="7501.05" width="301" height="246"/>
-  <object id="1204" gid="114" x="6040.6" y="6437.05" width="301" height="246"/>
-  <object id="1206" gid="114" x="2104.6" y="7269.05" width="301" height="246"/>
-  <object id="1207" gid="114" x="3835.99" y="2720.08" width="301" height="246"/>
-  <object id="1208" gid="122" x="2869.36" y="4652.49" width="507" height="626"/>
-  <object id="1209" gid="149" x="6030.6" y="8371.05" width="296" height="297"/>
-  <object id="1211" gid="149" x="3646.6" y="7351.05" width="296" height="297"/>
-  <object id="1212" gid="149" x="2054.6" y="6335.05" width="296" height="297"/>
-  <object id="1213" gid="1073741973" x="2618.6" y="3623.05" width="296" height="297"/>
-  <object id="1214" gid="1073741973" x="4926.6" y="2723.05" width="296" height="297"/>
-  <object id="1215" gid="1073741973" x="4322.6" y="1635.05" width="296" height="297"/>
-  <object id="1216" gid="1073741973" x="3434.6" y="2599.05" width="296" height="297"/>
-  <object id="1217" gid="150" x="4904.6" y="2343.05" width="141" height="209"/>
-  <object id="1218" gid="150" x="5792.6" y="3247.05" width="141" height="209"/>
-  <object id="1219" gid="150" x="3268.6" y="3239.05" width="141" height="209"/>
-  <object id="1220" gid="150" x="1176.6" y="6255.05" width="141" height="209"/>
-  <object id="1221" gid="150" x="3194.78" y="7268.74" width="141" height="209"/>
-  <object id="1223" gid="150" x="5670.54" y="8283.9" width="141" height="209"/>
-  <object id="1224" gid="150" x="4579.63" y="8171.77" width="141" height="209"/>
-  <object id="1225" gid="1073741974" x="8291.75" y="8608.14" width="141" height="209"/>
-  <object id="1226" gid="1073741974" x="6497.81" y="6438.44" width="141" height="209"/>
-  <object id="1227" gid="151" x="4882.42" y="6206.72" width="292" height="291"/>
-  <object id="1228" gid="151" x="4206.66" y="7606.72" width="292" height="291"/>
-  <object id="1229" gid="151" x="9343" y="8364.28" width="292" height="291"/>
-  <object id="1230" gid="151" x="8776.36" y="7424.9" width="292" height="291"/>
-  <object id="1231" gid="152" x="4960.3" y="8223.66" width="312" height="138"/>
-  <object id="1232" gid="152" x="2726.6" y="7205.05" width="312" height="138"/>
-  <object id="1234" gid="152" x="5606.6" y="6059.05" width="312" height="138"/>
-  <object id="1235" gid="1073741976" x="5968.6" y="6423.05" width="312" height="138"/>
-  <object id="1236" gid="1073741974" x="5440.6" y="6429.05" width="141" height="209"/>
-  <object id="1237" gid="153" x="5259.6" y="6270.05" width="346" height="356"/>
-  <object id="1238" gid="153" x="6345.6" y="6268.05" width="346" height="356"/>
-  <object id="1239" gid="153" x="3369.6" y="7412.05" width="346" height="356"/>
-  <object id="1240" gid="1073741977" x="6276.63" y="8617.5" width="346" height="356"/>
-  <object id="1241" gid="155" x="8537.99" y="8623.1" width="297" height="245"/>
-  <object id="1242" gid="155" x="5228.9" y="8601.9" width="297" height="245"/>
-  <object id="1243" gid="155" x="3904.66" y="6423.11" width="297" height="245"/>
-  <object id="1244" gid="155" x="1650.12" y="6571.6" width="297" height="245"/>
-  <object id="1245" gid="155" x="520.055" y="6555.16" width="297" height="245"/>
-  <object id="1246" gid="155" x="3398.6" y="1641.28" width="297" height="245"/>
-  <object id="1247" gid="155" x="5525.88" y="2662.49" width="297" height="245"/>
-  <object id="1248" gid="157" x="5167.63" y="2732.93" width="364" height="302"/>
-  <object id="1249" gid="157" x="4719.15" y="3635.95" width="364" height="302"/>
-  <object id="1250" gid="159" x="6922.9" y="8608.68" width="309" height="501"/>
-  <object id="1251" gid="154" x="7956.06" y="8614.34" width="272" height="380"/>
-  <object id="1252" gid="156" x="8955.99" y="7516.17" width="260" height="220"/>
-  <object id="1254" gid="161" x="7298.6" y="8597.05" width="104" height="186"/>
-  <object id="1255" gid="1073741985" x="9144.6" y="8285.05" width="104" height="186"/>
-  <object id="1258" gid="1073741985" x="2212.6" y="7963.05" width="104" height="186"/>
-  <object id="1259" gid="1073741985" x="4096.6" y="7261.05" width="104" height="186"/>
-  <object id="1260" gid="1073741985" x="4644.6" y="6113.05" width="104" height="186"/>
-  <object id="1261" gid="161" x="3878.6" y="3609.05" width="104" height="186"/>
-  <object id="1262" gid="1073741985" x="3078.6" y="3231.05" width="104" height="186"/>
-  <object id="1263" gid="1073741985" x="4578.6" y="2325.05" width="104" height="186"/>
-  <object id="1264" gid="1073741985" x="5748.6" y="2333.05" width="104" height="186"/>
-  <object id="1265" gid="1073741985" x="3878.6" y="1893.05" width="104" height="186"/>
-  <object id="1266" gid="1073741985" x="4502.6" y="219.045" width="104" height="186"/>
-  <object id="1267" gid="162" x="3970.6" y="1652.05" width="61" height="195"/>
-  <object id="1268" gid="162" x="4014.6" y="2766.05" width="61" height="195"/>
-  <object id="1269" gid="162" x="3688.6" y="2600.05" width="61" height="195"/>
-  <object id="1270" gid="162" x="4162.6" y="3628.05" width="61" height="195"/>
-  <object id="1271" gid="162" x="3614.6" y="3612.05" width="61" height="195"/>
-  <object id="1272" gid="162" x="2912.6" y="3632.05" width="61" height="195"/>
-  <object id="1273" gid="162" x="388.605" y="5346.05" width="61" height="195"/>
-  <object id="1274" gid="162" x="660.605" y="6034.05" width="61" height="195"/>
-  <object id="1275" gid="162" x="1266.6" y="6576.05" width="61" height="195"/>
-  <object id="1276" gid="162" x="2412.6" y="7772.05" width="61" height="195"/>
-  <object id="1277" gid="162" x="6656.6" y="8610.05" width="61" height="195"/>
-  <object id="1278" gid="165" x="9384.6" y="8607.05" width="77" height="130"/>
-  <object id="1280" gid="165" x="2990.6" y="7627.05" width="77" height="130"/>
-  <object id="1281" gid="165" x="256.605" y="5913.05" width="77" height="130"/>
-  <object id="1283" gid="165" x="5068.6" y="6437.05" width="77" height="130"/>
-  <object id="1284" gid="165" x="4690.42" y="1619.65" width="77" height="130"/>
-  <object id="1285" gid="166" x="3151.27" y="1626.53" width="124" height="168"/>
-  <object id="1286" gid="166" x="5748.24" y="6414.4" width="124" height="168"/>
-  <object id="1287" gid="166" x="4775.51" y="8614.41" width="124" height="168"/>
-  <object id="1288" gid="167" x="947.965" y="6554.93" width="70" height="145"/>
-  <object id="1289" gid="167" x="3563.13" y="5797.35" width="70" height="145"/>
-  <object id="1290" gid="167" x="4419.11" y="8350.8" width="70" height="145"/>
-  <object id="1291" gid="171" x="7665.73" y="8618.77" width="186" height="503"/>
-  <object id="1292" gid="171" x="4009.6" y="5350.05" width="186" height="503"/>
-  <object id="1293" gid="172" x="4353.6" y="8643.05" width="251" height="194"/>
-  <object id="1297" gid="181" x="2967.6" y="5348.05" width="311" height="179"/>
-  <object id="1298" gid="179" x="4056.6" y="5373.05" width="292" height="181"/>
-  <object id="1299" gid="179" x="2364.6" y="5349.05" width="292" height="181"/>
-  <object id="1301" gid="179" x="8876.6" y="8609.05" width="292" height="181"/>
-  <object id="1302" gid="180" x="5696.3" y="8595.28" width="240" height="153"/>
-  <object id="1303" gid="184" x="7516.6" y="8599.05" width="49" height="103"/>
-  <object id="1304" gid="185" x="7943.75" y="8628.66" width="236" height="748"/>
-  <object id="1306" gid="185" x="2349.81" y="7286.23" width="236" height="748"/>
-  <object id="1308" gid="185" x="3704.36" y="1513.49" width="236" height="748"/>
-  <object id="1309" gid="187" x="3245.6" y="7651.38" width="186" height="247"/>
-  <object id="1310" gid="183" x="3904.6" y="7481.05" width="145" height="182"/>
-  <object id="1312" gid="182" x="4438.6" y="7580.05" width="192" height="272"/>
-  <object id="1313" gid="182" x="4442.6" y="6236.05" width="192" height="272"/>
-  <object id="1314" gid="188" x="6590.78" y="8630.99" width="348" height="285"/>
-  <object id="1315" gid="189" x="7351.97" y="8593.66" width="262" height="477"/>
-  <object id="1321" gid="149" x="3759.21" y="4100.63" width="296" height="297"/>
-  <object id="1322" gid="151" x="2818.78" y="4100.65" width="292" height="291"/>
-  <object id="1323" gid="157" x="3525.21" y="4566.26" width="364" height="302"/>
-  <object id="1324" gid="168" x="2429.51" y="4366.28" width="216" height="96"/>
-  <object id="1325" gid="174" x="4384.63" y="4618.74" width="130" height="110"/>
-  <object id="1326" gid="176" x="3322.9" y="4500.49" width="108" height="122"/>
-  <object id="1327" gid="180" x="2772.05" y="4440.74" width="240" height="153"/>
-  <object id="1328" gid="151" x="4394.54" y="4103.69" width="292" height="291"/>
-  <object id="1329" gid="1073741985" x="4848.6" y="3223.05" width="104" height="186"/>
-  <object id="1330" gid="1073741983" x="4546.6" y="3273.05" width="149" height="241.583"/>
-  <object id="1331" name="Enemy" type="Bouncer" x="6487.63" y="8481.86" width="108" height="100">
+  <object id="1331" name="Enemy" type="Bouncer" x="6677.61" y="8532.91" width="59.4458" height="55.0424">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="1332" name="Player" type="Player" x="7798.97" y="8480.16" width="96" height="96"/>
+  <object id="1332" name="Player" type="Player" x="7891.41" y="8523.97" width="52.8407" height="52.8407"/>
   <object id="1333" name="Cape" type="Cape" x="4792.66" y="1573.32"/>
-  <object id="1334" name="Enemy" type="SpiderCandy" x="4848.6" y="8488.05" width="108" height="100">
+  <object id="1334" name="Enemy" type="SpiderCandy" x="4839.98" y="8524.99" width="64.1457" height="59.3942">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="1336" name="Enemy" type="Bouncer" x="5880.6" y="6320.05" width="108" height="84">
+  <object id="1336" name="Enemy" type="Bouncer" x="5777.81" y="6358.68" width="46.901" height="36.4786">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="1337" name="Enemy" type="Bouncer" x="968.605" y="6448.05" width="108" height="84">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="1339" name="Enemy" type="SpiderCandy" x="3184.6" y="7504.05" width="108" height="100">
+  <object id="1337" name="Enemy" type="Bouncer" x="1598.56" y="6397.31" width="52.9365" height="41.1728">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
@@ -591,50 +427,6 @@
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="1347" gid="204" x="1144.8" y="6638.05" width="495" height="736"/>
-  <object id="1348" gid="204" x="6293.6" y="6490.05" width="495" height="736"/>
-  <object id="1349" gid="204" x="8967.6" y="8628.05" width="495" height="736"/>
-  <object id="1350" gid="204" x="5170.4" y="2754.05" width="495" height="736"/>
-  <object id="1351" gid="204" x="2919.2" y="3654.05" width="495" height="736"/>
-  <object id="1352" gid="199" x="4280.14" y="3629.43" width="296" height="248"/>
-  <object id="1353" gid="208" x="4201.69" y="5477.86" width="904" height="719"/>
-  <object id="1354" gid="208" x="3612.81" y="7615.14" width="465.849" height="370.515"/>
-  <object id="1355" gid="208" x="9011.4" y="7580.47" width="904" height="719"/>
-  <object id="1356" gid="208" x="5390.78" y="8641.08" width="904" height="719"/>
-  <object id="1358" gid="218" x="7287.6" y="8593.05" width="260" height="294"/>
-  <object id="1359" gid="218" x="1811.8" y="6555.05" width="260" height="294"/>
-  <object id="1360" gid="197" x="3365" y="6107.05" width="349" height="321"/>
-  <object id="1361" gid="197" x="4550.6" y="7367.05" width="349" height="321"/>
-  <object id="1362" gid="197" x="8730.6" y="7423.05" width="349" height="321"/>
-  <object id="1363" gid="207" x="6388.23" y="8914.95" width="1101" height="914"/>
-  <object id="1364" gid="207" x="8994.91" y="6655.09" width="575.909" height="714.84" rotation="183.326"/>
-  <object id="1365" gid="207" x="6622.3" y="6424.64" width="714.936" height="765.222" rotation="101.981"/>
-  <object id="1366" gid="1073742031" x="8139.61" y="7505.44" width="874.934" height="1086" rotation="87.4232"/>
-  <object id="1367" x="8283.7" y="6360.55" width="85" height="19"/>
-  <object id="1370" gid="206" x="4935.6" y="8629.38" width="63" height="203"/>
-  <object id="1371" gid="1073742019" x="4631.6" y="8628.38" width="287" height="297"/>
-  <object id="1372" gid="200" x="3479.6" y="4587.05" width="251" height="209"/>
-  <object id="1373" gid="223" x="4320.6" y="4628.05" width="65" height="59"/>
-  <object id="1374" gid="228" x="3945.6" y="4670.05" width="151" height="204"/>
-  <object id="1375" gid="226" x="2608.6" y="4366.05" width="128" height="163"/>
-  <object id="1376" gid="226" x="2352.6" y="3620.05" width="128" height="163"/>
-  <object id="1377" gid="220" x="3603.6" y="3623.05" width="299" height="205"/>
-  <object id="1378" gid="201" x="3373.6" y="2613.05" width="338" height="325"/>
-  <object id="1379" gid="197" x="2898.6" y="2433.05" width="349" height="321"/>
-  <object id="1380" gid="197" x="4110.6" y="313.045" width="349" height="321"/>
-  <object id="1381" gid="1073742025" x="3661.6" y="333.045" width="338" height="325"/>
-  <object id="1382" gid="1073742025" x="3957.6" y="1035.05" width="338" height="325"/>
-  <object id="1383" gid="1073742025" x="4525.6" y="1389.05" width="338" height="325"/>
-  <object id="1384" gid="194" x="3621.6" y="1381.05" width="158" height="214"/>
-  <object id="1385" gid="194" x="4209.6" y="2115.05" width="158" height="214"/>
-  <object id="1386" gid="194" x="3857.6" y="2427.05" width="158" height="214"/>
-  <object id="1387" gid="194" x="4697.6" y="3215.05" width="158" height="214"/>
-  <object id="1388" gid="1073742026" x="4192.6" y="3359.05" width="240" height="342"/>
-  <object id="1389" gid="197" x="5330.6" y="3327.05" width="349" height="321"/>
-  <object id="1390" gid="202" x="5354.6" y="3629.05" width="240" height="342"/>
-  <object id="1391" gid="216" x="4750.6" y="3633.05" width="248" height="193"/>
-  <object id="1392" gid="217" x="3887.6" y="3619.05" width="255" height="198"/>
-  <object id="1393" gid="217" x="1755.6" y="3629.05" width="255" height="198"/>
  </objectgroup>
  <objectgroup id="45" name="Portals">
   <object id="1403" type="Portal" x="2037" y="7913" width="212" height="468">
@@ -663,6 +455,143 @@
    </properties>
    <point/>
   </object>
+ </objectgroup>
+ <objectgroup id="26" name="Middleground" visible="0">
+  <object id="1532" gid="108" x="6291.29" y="8126.74" width="150.603" height="149.596"/>
+  <object id="1533" gid="108" x="4739.79" y="8257.13" width="150.603" height="149.596"/>
+  <object id="1534" gid="108" x="2527.08" y="7229.74" width="152.941" height="151.918"/>
+  <object id="1535" gid="108" x="2856.5" y="4018.98" width="203.064" height="201.706"/>
+  <object id="1536" gid="108" x="3390.95" y="294.994" width="299" height="297"/>
+  <object id="1537" gid="108" x="5054.95" y="2407" width="299" height="297"/>
+  <object id="1538" gid="108" x="2419.52" y="3231.06" width="184.082" height="182.851"/>
+  <object id="1539" gid="109" x="5904.01" y="8213.92" width="78.0718" height="112.323"/>
+  <object id="1540" gid="109" x="3742.22" y="6238.23" width="81.6667" height="117.495"/>
+  <object id="1541" gid="109" x="4508.94" y="3969.05" width="113.187" height="162.844"/>
+  <object id="1542" gid="109" x="4311.56" y="3251.44" width="155" height="223"/>
+  <object id="1543" gid="109" x="9206.34" y="7312.52" width="121.37" height="174.616"/>
+  <object id="1544" gid="110" x="3585.97" y="7242.94" width="150.895" height="158.568"/>
+  <object id="1545" gid="110" x="5926.72" y="6067.03" width="128.109" height="134.623"/>
+  <object id="1546" gid="110" x="3511.78" y="4040.28" width="215.421" height="226.374"/>
+  <object id="1547" gid="110" x="4296.95" y="316.994" width="295" height="310"/>
+  <object id="1548" gid="110" x="3264.95" y="2433" width="295" height="310"/>
+  <object id="1549" gid="111" x="5992.44" y="8174.58" width="156.144" height="63.9685"/>
+  <object id="1550" gid="111" x="5462.28" y="2272.67" width="310" height="127"/>
+  <object id="1551" gid="1073741935" x="4731.62" y="2714" width="310" height="127"/>
+  <object id="1552" gid="1073741935" x="4463.62" y="3603.33" width="310" height="127"/>
+  <object id="1553" gid="1073741935" x="1994.28" y="3606" width="310" height="127"/>
+  <object id="1554" gid="1073741935" x="3992.59" y="4628.9" width="310" height="127"/>
+  <object id="1555" gid="1073741935" x="5309.58" y="6417.27" width="134.623" height="55.1521"/>
+  <object id="1556" gid="1073741935" x="1492.81" y="6549.18" width="151.947" height="62.2494"/>
+  <object id="1557" gid="112" x="2023.07" y="6220.17" width="180.376" height="158.319"/>
+  <object id="1558" gid="112" x="5193.48" y="8266.47" width="185.358" height="162.692"/>
+  <object id="1559" gid="112" x="9655.73" y="7389.46" width="288.156" height="252.919"/>
+  <object id="1560" gid="112" x="3831.99" y="4046" width="268.728" height="235.868"/>
+  <object id="1561" gid="1073741936" x="3497.53" y="5466.3" width="228.606" height="200.652"/>
+  <object id="1562" gid="1073741936" x="4891.44" y="6424.41" width="159.811" height="140.269"/>
+  <object id="1563" gid="117" x="7104.49" y="8596.61" width="129.9" height="184.392"/>
+  <object id="1564" gid="117" x="8575.57" y="8595.21" width="129.9" height="184.392"/>
+  <object id="1565" gid="117" x="4894.04" y="8599.49" width="140.17" height="198.971"/>
+  <object id="1566" gid="117" x="3646.07" y="7513.81" width="104.967" height="149"/>
+  <object id="1567" gid="1073741941" x="5111.92" y="6078.73" width="102.487" height="145.48"/>
+  <object id="1568" gid="1073741941" x="1646.23" y="6226.87" width="115.676" height="164.201"/>
+  <object id="1569" gid="1073741941" x="2280.18" y="4048.18" width="160.278" height="227.513"/>
+  <object id="1570" gid="1073741941" x="3877.95" y="361.994" width="236" height="335"/>
+  <object id="1571" gid="1073741941" x="4469.95" y="2482" width="236" height="335"/>
+  <object id="1572" gid="112" x="3435.21" y="3258.06" width="247.163" height="216.939"/>
+  <object id="1573" gid="113" x="3830.45" y="5338.58" width="156.587" height="195.212"/>
+  <object id="1574" gid="114" x="5997.31" y="6430.1" width="130.715" height="106.83"/>
+  <object id="1575" gid="114" x="3817.34" y="2720.03" width="301" height="246"/>
+  <object id="1576" gid="122" x="2850.71" y="4652.44" width="507" height="626"/>
+  <object id="1577" gid="1073741985" x="3859.95" y="1893" width="104" height="186"/>
+  <object id="1578" gid="162" x="3995.95" y="2766" width="61" height="195"/>
+  <object id="1579" gid="181" x="2948.95" y="5348" width="311" height="179"/>
+  <object id="1580" gid="228" x="3926.95" y="4670" width="151" height="204"/>
+  <object id="1581" gid="112" x="803.353" y="6217.95" width="170" height="165"/>
+  <object id="1582" gid="109" x="24.3532" y="5823.95" width="155" height="223"/>
+  <object id="1583" gid="110" x="510.256" y="5912.95" width="175.097" height="184"/>
+  <object id="1584" gid="111" x="306.353" y="6299.95" width="310" height="127"/>
+  <object id="1585" gid="110" x="9519.47" y="8290.9" width="177.096" height="186.101"/>
+  <object id="1586" gid="161" x="3817.86" y="3610.09" width="104" height="186"/>
+  <object id="1587" gid="202" x="5161.02" y="3643.59" width="240" height="342"/>
+ </objectgroup>
+ <objectgroup id="28" name="Background">
+  <object id="1454" gid="149" x="6117.87" y="8258.75" width="149.092" height="149.596"/>
+  <object id="1455" gid="149" x="2960.25" y="7232.97" width="151.407" height="151.918"/>
+  <object id="1456" gid="149" x="2273.67" y="6204.44" width="145.085" height="145.575"/>
+  <object id="1457" gid="1073741973" x="2630.28" y="3614.14" width="182.235" height="182.851"/>
+  <object id="1458" gid="1073741973" x="4884.51" y="2724.14" width="296" height="297"/>
+  <object id="1459" gid="1073741973" x="4280.51" y="1636.14" width="296" height="297"/>
+  <object id="1460" gid="1073741973" x="3392.51" y="2600.14" width="296" height="297"/>
+  <object id="1461" gid="150" x="4862.51" y="2344.14" width="141" height="209"/>
+  <object id="1462" gid="150" x="5656.57" y="3242.08" width="141" height="209"/>
+  <object id="1463" gid="150" x="3226.51" y="3240.14" width="141" height="209"/>
+  <object id="1464" gid="150" x="1852.42" y="6159.8" width="69.1115" height="102.442"/>
+  <object id="1465" gid="150" x="3885.15" y="7186.87" width="72.1227" height="106.905"/>
+  <object id="1466" gid="150" x="5390.52" y="8208.86" width="71.0202" height="105.271"/>
+  <object id="1467" gid="150" x="4537.54" y="8172.86" width="141" height="209"/>
+  <object id="1468" gid="1073741974" x="8491.46" y="8600.48" width="77.6098" height="115.039"/>
+  <object id="1469" gid="1073741974" x="6552.42" y="6419.85" width="61.2319" height="90.7622"/>
+  <object id="1470" gid="151" x="5319.64" y="6057.16" width="126.806" height="126.372"/>
+  <object id="1471" gid="151" x="4280.57" y="7499.81" width="158" height="157.459"/>
+  <object id="1472" gid="151" x="9802.95" y="8274.2" width="175.295" height="174.695"/>
+  <object id="1473" gid="151" x="8674.57" y="7374.07" width="228.645" height="227.862"/>
+  <object id="1474" gid="152" x="4934.78" y="8184.51" width="157.151" height="69.5091"/>
+  <object id="1475" gid="152" x="2707.67" y="7160.29" width="159.591" height="70.5882"/>
+  <object id="1476" gid="152" x="5614.13" y="5995.03" width="135.492" height="59.9291"/>
+  <object id="1477" gid="1073741976" x="5780.6" y="6425.16" width="135.492" height="59.9291"/>
+  <object id="1478" gid="153" x="4857.43" y="6086.66" width="150.257" height="154.6"/>
+  <object id="1479" gid="153" x="6445.05" y="6087.79" width="150.257" height="154.6"/>
+  <object id="1480" gid="153" x="3270.57" y="7266.17" width="176.982" height="182.097"/>
+  <object id="1481" gid="1073741977" x="6193.38" y="8596.66" width="190.447" height="195.951"/>
+  <object id="1482" gid="155" x="8747" y="8601.07" width="163.476" height="134.854"/>
+  <object id="1483" gid="155" x="5023.76" y="8593.7" width="176.401" height="145.516"/>
+  <object id="1484" gid="155" x="3912.73" y="6429.53" width="162.845" height="134.333"/>
+  <object id="1485" gid="155" x="291.439" y="4898.5" width="145.575" height="120.087"/>
+  <object id="1486" gid="155" x="596.608" y="6550.9" width="145.575" height="120.087"/>
+  <object id="1487" gid="155" x="3356.51" y="1642.37" width="297" height="245"/>
+  <object id="1488" gid="155" x="5483.79" y="2663.58" width="297" height="245"/>
+  <object id="1489" gid="157" x="5125.54" y="2734.02" width="364" height="302"/>
+  <object id="1490" gid="157" x="4837.14" y="3603.71" width="206.946" height="171.697"/>
+  <object id="1491" gid="159" x="6801.11" y="8609.8" width="170.081" height="275.763"/>
+  <object id="1492" gid="154" x="8026.45" y="8596.25" width="149.715" height="209.161"/>
+  <object id="1493" gid="156" x="9927.23" y="7516.87" width="203.588" height="172.267"/>
+  <object id="1494" gid="161" x="7571.23" y="8601.4" width="57.2441" height="102.379"/>
+  <object id="1495" gid="1073741985" x="4686.36" y="6022.48" width="45.164" height="80.774"/>
+  <object id="1497" gid="162" x="2302.51" y="7773.14" width="61" height="195"/>
+  <object id="1498" gid="165" x="9342.51" y="8608.14" width="77" height="130"/>
+  <object id="1499" gid="165" x="2664.51" y="7522.14" width="77" height="130"/>
+  <object id="1500" gid="165" x="250.515" y="6116.14" width="77" height="130"/>
+  <object id="1501" gid="166" x="3109.18" y="1627.62" width="124" height="168"/>
+  <object id="1502" gid="166" x="5650.91" y="6419.41" width="53.8493" height="72.9572"/>
+  <object id="1503" gid="166" x="4754.48" y="8601.13" width="73.6488" height="99.7823"/>
+  <object id="1504" gid="167" x="926.35" y="6558.79" width="34.3107" height="71.0721"/>
+  <object id="1505" gid="167" x="3521.04" y="5798.44" width="70" height="145"/>
+  <object id="1506" gid="167" x="4229.02" y="8231.89" width="70" height="145"/>
+  <object id="1507" gid="171" x="7889.31" y="8606.69" width="102.379" height="276.863"/>
+  <object id="1508" gid="171" x="4322.06" y="5157.2" width="122.364" height="330.908"/>
+  <object id="1509" gid="172" x="4501.51" y="8618.14" width="149.079" height="115.225"/>
+  <object id="1510" gid="179" x="4014.51" y="5374.14" width="292" height="181"/>
+  <object id="1511" gid="179" x="9746.51" y="8600.81" width="162.667" height="99.6667"/>
+  <object id="1512" gid="185" x="8219.67" y="8614.8" width="129.9" height="411.717"/>
+  <object id="1513" gid="185" x="1663.51" y="7893.83" width="236" height="748" rotation="16.649"/>
+  <object id="1514" gid="185" x="3662.27" y="1514.58" width="236" height="748"/>
+  <object id="1515" gid="187" x="3425.51" y="7578.47" width="122" height="145"/>
+  <object id="1516" gid="183" x="4052.51" y="7680.14" width="145" height="182"/>
+  <object id="1517" gid="182" x="4226.51" y="7829.14" width="120" height="170"/>
+  <object id="1518" gid="182" x="4392.64" y="6113.89" width="83.3796" height="118.121"/>
+  <object id="1519" gid="188" x="7410.3" y="8604.08" width="133.548" height="112.871"/>
+  <object id="1520" gid="189" x="7208.61" y="8595.54" width="144.211" height="262.552"/>
+  <object id="1521" gid="149" x="3308.45" y="4030.2" width="216.151" height="216.881"/>
+  <object id="1522" gid="151" x="2531.96" y="4014.2" width="198.31" height="197.631"/>
+  <object id="1523" gid="157" x="3483.12" y="4567.35" width="364" height="302"/>
+  <object id="1524" gid="168" x="2387.42" y="4367.37" width="216" height="96"/>
+  <object id="1525" gid="174" x="4342.54" y="4619.83" width="130" height="110"/>
+  <object id="1526" gid="176" x="3280.81" y="4501.58" width="108" height="122"/>
+  <object id="1527" gid="180" x="2729.96" y="4441.83" width="240" height="153"/>
+  <object id="1528" gid="151" x="4120.39" y="4032.43" width="213.23" height="212.5"/>
+  <object id="1529" gid="1073741985" x="4806.51" y="3224.14" width="104" height="186"/>
+  <object id="1530" gid="1073741983" x="4504.51" y="3274.14" width="149" height="241.583"/>
+  <object id="1531" gid="1073741985" x="4563.15" y="7603.97" width="58.5455" height="134.485"/>
  </objectgroup>
  <layer id="36" name="Map" width="160" height="138">
   <properties>
@@ -22751,5 +22680,82 @@
    <tile gid="16"/>
   </data>
  </layer>
- <objectgroup id="28" name="Background"/>
+ <objectgroup id="25" name="Foreground" visible="0">
+  <object id="1410" gid="204" x="1002.7" y="6618.05" width="495" height="736"/>
+  <object id="1411" gid="204" x="6151.5" y="6470.05" width="495" height="736"/>
+  <object id="1412" gid="204" x="8825.5" y="8608.05" width="495" height="736"/>
+  <object id="1414" gid="208" x="9130.77" y="7559.14" width="707.861" height="563"/>
+  <object id="1415" gid="208" x="5248.68" y="8621.08" width="904" height="719"/>
+  <object id="1416" gid="197" x="3350.33" y="6017.35" width="233.688" height="214.939"/>
+  <object id="1417" gid="197" x="4640.5" y="6939.05" width="161" height="181"/>
+  <object id="1418" gid="207" x="6544.68" y="8760.28" width="606.017" height="503.088"/>
+  <object id="1419" gid="207" x="8852.81" y="6635.09" width="575.909" height="714.84" rotation="183.326"/>
+  <object id="1420" gid="207" x="6480.2" y="6404.64" width="714.936" height="765.222" rotation="101.981"/>
+  <object id="1421" gid="1073742031" x="7997.51" y="7485.44" width="874.934" height="1086" rotation="87.4232"/>
+  <object id="1422" gid="1073742019" x="4676.58" y="8608.34" width="170.461" height="176.401"/>
+  <object id="1423" gid="200" x="3337.5" y="4567.05" width="251" height="209"/>
+  <object id="1439" gid="218" x="7713.78" y="8633.75" width="269.777" height="288.492"/>
+  <object id="1441" gid="218" x="1928.28" y="6815.95" width="241.44" height="242.105"/>
+  <object id="1447" gid="199" x="4105.21" y="3644.02" width="296" height="248"/>
+  <object id="1448" gid="220" x="2262" y="3646.73" width="299" height="205"/>
+  <object id="1449" gid="1073742026" x="4017.67" y="3373.64" width="240" height="342"/>
+  <object id="1450" gid="197" x="5155.67" y="3341.64" width="349" height="321"/>
+  <object id="1452" gid="216" x="4575.67" y="3647.64" width="248" height="193"/>
+  <object id="1453" gid="217" x="3558.12" y="3624.55" width="255" height="198"/>
+  <object id="1746" gid="109" x="3779.01" y="1913.79" width="155" height="223"/>
+  <object id="1747" gid="111" x="3163.19" y="3905.61" width="210.535" height="86.2513"/>
+  <object id="1748" gid="112" x="2253.93" y="7560.51" width="188.235" height="165.217"/>
+  <object id="1749" gid="1073741936" x="5309.46" y="8617.73" width="368" height="323"/>
+  <object id="1750" gid="117" x="2987.46" y="3617.73" width="236" height="335"/>
+  <object id="1752" gid="114" x="9265.45" y="7439.62" width="235.693" height="192.626"/>
+  <object id="1753" gid="114" x="2023.46" y="7260.73" width="165" height="130"/>
+  <object id="1754" gid="1073741974" x="5064.26" y="6423.36" width="61.2319" height="90.7622"/>
+  <object id="1755" gid="1073741985" x="9195.46" y="8221.89" width="62.4339" height="111.661"/>
+  <object id="1756" gid="1073741985" x="2167.46" y="7964.73" width="104" height="186"/>
+  <object id="1757" gid="1073741985" x="3033.46" y="3232.73" width="104" height="186"/>
+  <object id="1758" gid="1073741985" x="4533.46" y="2326.73" width="104" height="186"/>
+  <object id="1759" gid="1073741985" x="5703.46" y="2334.73" width="104" height="186"/>
+  <object id="1760" gid="1073741985" x="4457.46" y="220.725" width="104" height="186"/>
+  <object id="1761" gid="162" x="3925.46" y="1653.73" width="61" height="195"/>
+  <object id="1762" gid="162" x="3643.46" y="2601.73" width="61" height="195"/>
+  <object id="1763" gid="162" x="4117.46" y="3629.73" width="61" height="195"/>
+  <object id="1764" gid="162" x="3348.25" y="3619.79" width="61" height="195"/>
+  <object id="1765" gid="162" x="2867.46" y="3633.73" width="61" height="195"/>
+  <object id="1766" gid="162" x="343.464" y="5347.73" width="61" height="195"/>
+  <object id="1767" gid="162" x="1886.45" y="6620.07" width="29.8993" height="95.5797"/>
+  <object id="1768" gid="162" x="1699.48" y="6461.73" width="29.8993" height="95.5797"/>
+  <object id="1769" gid="162" x="6725.48" y="8605.15" width="33.5759" height="107.333"/>
+  <object id="1770" gid="165" x="5507.71" y="6410.83" width="33.4387" height="56.4549"/>
+  <object id="1771" gid="165" x="4645.28" y="1621.33" width="77" height="130"/>
+  <object id="1773" gid="180" x="5651.16" y="8596.96" width="240" height="153"/>
+  <object id="1774" gid="184" x="7690.84" y="8591.09" width="26.9708" height="56.6937"/>
+  <object id="1775" name="Enemy" type="SpiderCandy" x="3139.46" y="7505.73" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="1776" gid="204" x="5125.26" y="2755.73" width="495" height="736"/>
+  <object id="1777" gid="204" x="2874.06" y="3655.73" width="495" height="736"/>
+  <object id="1778" gid="208" x="4156.55" y="5479.54" width="904" height="719"/>
+  <object id="1779" gid="197" x="8903.69" y="7378.55" width="273.278" height="251.353"/>
+  <object id="1780" x="8238.56" y="6362.23" width="85" height="19"/>
+  <object id="1781" gid="206" x="4846.51" y="8610.61" width="37.4183" height="120.57"/>
+  <object id="1782" gid="223" x="4275.46" y="4629.73" width="65" height="59"/>
+  <object id="1783" gid="226" x="2563.46" y="4367.73" width="128" height="163"/>
+  <object id="1784" gid="226" x="2523.46" y="3622.88" width="78.8043" height="100.352"/>
+  <object id="1785" gid="201" x="3328.46" y="2614.73" width="338" height="325"/>
+  <object id="1786" gid="197" x="2853.46" y="2434.73" width="349" height="321"/>
+  <object id="1787" gid="197" x="4065.46" y="314.725" width="349" height="321"/>
+  <object id="1788" gid="1073742025" x="3616.46" y="334.725" width="338" height="325"/>
+  <object id="1789" gid="1073742025" x="3912.46" y="1036.73" width="338" height="325"/>
+  <object id="1790" gid="1073742025" x="4480.46" y="1390.73" width="338" height="325"/>
+  <object id="1791" gid="194" x="3576.46" y="1382.73" width="158" height="214"/>
+  <object id="1792" gid="194" x="4164.46" y="2116.73" width="158" height="214"/>
+  <object id="1793" gid="194" x="3812.46" y="2428.73" width="158" height="214"/>
+  <object id="1794" gid="194" x="4652.46" y="3216.73" width="158" height="214"/>
+  <object id="1795" gid="217" x="1710.46" y="3630.73" width="255" height="198"/>
+  <object id="1796" gid="108" x="371.859" y="5468.68" width="109" height="108.271"/>
+  <object id="1797" gid="208" x="2881.57" y="7740.82" width="465.849" height="370.515"/>
+ </objectgroup>
 </map>
