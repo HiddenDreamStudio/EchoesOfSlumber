@@ -244,6 +244,9 @@ private:
     int   optionsSliderSel_ = 0;
     float sliderRepeatTimer_ = 0.0f;
 
+    std::string pendingLevelSpawnId_;
+    bool hasPendingLevelSpawn_ = false;
+
 public:
     void SetGameOverVisible(bool visible);
     void ResetHealthUI(int health);

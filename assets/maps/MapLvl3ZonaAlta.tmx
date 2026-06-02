@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="184" height="80" tilewidth="64" tileheight="64" infinite="0" nextlayerid="15" nextobjectid="397">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="184" height="80" tilewidth="64" tileheight="64" infinite="0" nextlayerid="15" nextobjectid="398">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -512,6 +512,12 @@
    <properties>
     <property name="spawnId" value="I"/>
     <property name="target" value="MapLvl3ZonaBoss.tmx"/>
+   </properties>
+  </object>
+  <object id="397" type="Portal" x="16.5" y="17.5" width="263" height="657">
+   <properties>
+    <property name="spawnId" value="Mapa4"/>
+    <property name="target" value="Map4"/>
    </properties>
   </object>
  </objectgroup>

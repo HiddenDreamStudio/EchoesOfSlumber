@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="136" height="158" tilewidth="64" tileheight="64" infinite="0" nextlayerid="12" nextobjectid="74">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="136" height="158" tilewidth="64" tileheight="64" infinite="0" nextlayerid="12" nextobjectid="76">
  <tileset firstgid="1" name="TilesetLvl2" tilewidth="64" tileheight="64" tilecount="40" columns="10">
   <image source="Tileset_nivell_2.png" width="640" height="256"/>
   <tile id="0">
@@ -508,6 +508,12 @@
     <property name="target" value="MapLvl2ZonaBoss.tmx"/>
    </properties>
   </object>
+  <object id="74" type="Portal" x="8536.5" y="1493.5" width="167" height="651">
+   <properties>
+    <property name="spawnId" value="Mapa3"/>
+    <property name="target" value="Map3"/>
+   </properties>
+  </object>
  </objectgroup>
  <objectgroup id="11" name="Spawns">
   <object id="69" type="Spawn" x="337" y="9476">
@@ -519,6 +525,12 @@
   <object id="73" type="Spawn" x="1534" y="4184">
    <properties>
     <property name="spawnId" value="Main"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="75" type="Spawn" x="5896" y="9644">
+   <properties>
+    <property name="spawnId" value="Mapa2"/>
    </properties>
    <point/>
   </object>

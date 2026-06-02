@@ -1225,6 +1225,19 @@ void Scene::UpdateLoading(float dt)
 			isGameOver_ = false;
 			inGameIntroActive_ = false;
 
+			if (hasPendingLevelSpawn_ && player)
+			{
+				float spawnX = 0.0f, spawnY = 0.0f;
+				if (Engine::GetInstance().map->GetSpawnById(pendingLevelSpawnId_, spawnX, spawnY))
+				{
+					player->SetPosition(Vector2D(spawnX - player->texW / 2.0f, spawnY - player->texH / 2.0f));
+					player->position = Vector2D(spawnX, spawnY);
+					LOG("PORTAL: Level spawn applied at '%s' (%.1f, %.1f)", pendingLevelSpawnId_.c_str(), spawnX, spawnY);
+				}
+				hasPendingLevelSpawn_ = false;
+				pendingLevelSpawnId_ = "";
+			}
+
 			mapLoadingFinished_ = true;
 			LOG("SCENE: Map %s loaded", currentMapFile_.c_str());
 		} else {
@@ -4136,13 +4149,35 @@ void Scene::CheckPortalCollisions(float dt)
 			pcy >= portal.y && pcy <= portal.y + portal.h)
 		{
 
-			subMapTarget_ = portal.targetFile;
-			subMapSpawnId_ = portal.spawnId;
-			pendingSubMapLoad_ = true;
+			bool isLevelPortal = portal.targetFile.size() < 4 ||
+				portal.targetFile.substr(portal.targetFile.size() - 4) != ".tmx";
 
-			waitingForFade_ = true;
-			fadeTargetScene_ = SceneID::GAMEPLAY;
-			Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 400.0f);
+			if (isLevelPortal)
+			{
+				// Portal de nivel
+				std::string targetWithExt = portal.targetFile + ".tmx";
+				for (int i = 0; i < (int)levels_.size(); i++)
+				{
+					if (levels_[i].file == targetWithExt)
+					{
+						pendingLevelSpawnId_ = portal.spawnId;
+						hasPendingLevelSpawn_ = true;
+						LoadMap(i);
+						return;
+					}
+				}
+				LOG("PORTAL: Level target '%s' not found in levels_", portal.targetFile.c_str());
+			}
+			else
+			{
+				subMapTarget_ = portal.targetFile;
+				subMapSpawnId_ = portal.spawnId;
+				pendingSubMapLoad_ = true;
+
+				waitingForFade_ = true;
+				fadeTargetScene_ = SceneID::GAMEPLAY;
+				Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 400.0f);
+			}
 			return;
 		}
 	}

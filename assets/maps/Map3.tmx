@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="238" height="135" tilewidth="64" tileheight="64" infinite="0" nextlayerid="9" nextobjectid="99">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="238" height="135" tilewidth="64" tileheight="64" infinite="0" nextlayerid="9" nextobjectid="100">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -556,7 +556,7 @@
     <property name="target" value="MapLvl3ZonaPuzzle2.tmx"/>
    </properties>
   </object>
-  <object id="95" type="Portal" x="9359.67" y="542.97" width="780.667" height="194.061">
+  <object id="95" type="Portal" x="9359.67" y="542.97" width="780.667" height="250.061">
    <properties>
     <property name="spawnId" value="B"/>
     <property name="target" value="MapLvl3ZonPuzzle1.tmx"/>
@@ -573,6 +573,12 @@
   <object id="97" type="Spawn" x="9635.3" y="910.333">
    <properties>
     <property name="spawnId" value="D"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="99" type="Spawn" x="4256" y="8408">
+   <properties>
+    <property name="spawnId" value="Mapa3"/>
    </properties>
    <point/>
   </object>
