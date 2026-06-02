@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="173" height="81" tilewidth="64" tileheight="64" infinite="0" nextlayerid="2" nextobjectid="1">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="173" height="81" tilewidth="64" tileheight="64" infinite="0" nextlayerid="5" nextobjectid="37">
  <tileset firstgid="1" name="Tileset 4" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -306,6 +306,32 @@
    </objectgroup>
   </tile>
  </tileset>
+ <tileset firstgid="201" source="back.tsx"/>
+ <tileset firstgid="214" source="Assets level 4/foreground/fore level 4.tsx"/>
+ <tileset firstgid="229" source="Assets level 4/middle level 4.tsx"/>
+ <objectgroup id="4" name="Background">
+  <object id="29" gid="244" x="1825.38" y="5011.52" width="348.808" height="305" rotation="10.6752"/>
+  <object id="30" gid="248" x="3164.06" y="2563.07" width="390.921" height="259.938" rotation="176.083"/>
+  <object id="31" gid="252" x="4075.77" y="3294.78" width="507.295" height="345"/>
+  <object id="32" gid="251" x="5511.42" y="4374.48" width="389" height="520.771"/>
+  <object id="33" gid="2147483895" x="6156.98" y="1727.24" width="1243.94" height="413.994" rotation="71.0432"/>
+  <object id="34" gid="248" x="3237.96" y="1774.02" width="392.427" height="260.939"/>
+  <object id="35" gid="2147483895" x="4805.45" y="1744.69" width="561.885" height="187"/>
+  <object id="36" gid="249" x="6900.05" y="1107.67" width="428.736" height="248.667"/>
+ </objectgroup>
+ <objectgroup id="2" name="Middleground">
+  <object id="11" gid="214" x="3496.17" y="1758.61" width="410.404" height="186.667"/>
+  <object id="12" gid="220" x="1202.01" y="4651" width="501" height="612.922" rotation="26.3463"/>
+  <object id="13" gid="2147483872" x="6780.38" y="4382" width="737.62" height="315"/>
+  <object id="14" gid="216" x="8009.62" y="3864" width="245.379" height="241.339"/>
+  <object id="15" gid="216" x="5820.27" y="1496.48" width="111.729" height="109.889"/>
+  <object id="18" gid="216" x="6164.27" y="1487.48" width="111.729" height="109.889"/>
+  <object id="19" gid="216" x="5502.27" y="1674.48" width="111.729" height="109.889"/>
+  <object id="17" gid="216" x="6053.27" y="1816.48" width="111.729" height="109.889"/>
+  <object id="16" gid="215" x="1561.82" y="2479.3" width="358.818" height="706.07"/>
+  <object id="20" gid="2147483872" x="1843.99" y="3666.74" width="1143.46" height="488.313" rotation="-356.113"/>
+  <object id="26" gid="248" x="5665.64" y="3310" width="316.361" height="210.36"/>
+ </objectgroup>
  <layer id="1" name="Map" width="173" height="81">
   <data encoding="csv">
 112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,113,0,0,0,0,0,0,0,111,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,
@@ -391,4 +417,16 @@
 112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,128,102,102,102,102,102,102,102,102,102,102,102,102,102,130,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,128,102,102,102,102,102,102,102,102,102,102,102,102,102,102,130,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,112,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102,102
 </data>
  </layer>
+ <objectgroup id="3" name="Foreground">
+  <object id="1" gid="201" x="4341.31" y="5154" width="483.69" height="220"/>
+  <object id="2" gid="201" x="7258.89" y="1122.97" width="293.504" height="133.496"/>
+  <object id="3" gid="201" x="10171.7" y="5166" width="501.279" height="228"/>
+  <object id="4" gid="205" x="2306.99" y="1762" width="748.011" height="180.397"/>
+  <object id="5" gid="206" x="2732.5" y="3320.48" width="516.201" height="263"/>
+  <object id="6" gid="209" x="3807.66" y="3202.45" width="170.401" height="149"/>
+  <object id="7" gid="207" x="3004.43" y="4270.42" width="368.646" height="451" rotation="175.906"/>
+  <object id="8" gid="204" x="5975.7" y="4398.03" width="652.911" height="444.03"/>
+  <object id="9" gid="212" x="2273.86" y="5193" width="624.138" height="362"/>
+  <object id="10" gid="213" x="4313.1" y="1805" width="447.897" height="599.62"/>
+ </objectgroup>
 </map>
