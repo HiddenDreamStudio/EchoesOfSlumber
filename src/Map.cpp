@@ -728,6 +728,9 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                     float baseX = objectNode.attribute("x").as_float();
                     float baseY = objectNode.attribute("y").as_float();
 
+                    platform->texW = objectNode.attribute("width").as_int(192);
+                    platform->texH = objectNode.attribute("height").as_int(64);
+
                     pugi::xml_node props = objectNode.child("properties");
                     if (props) {
                         for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
@@ -739,7 +742,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                             if (pname == "texture")
                                 platform->texturePath = prop.attribute("value").as_string();
 
-                            if (pname == "trigger")                                         
+                            if (pname == "trigger")
                                 platform->triggerOnPlayer = prop.attribute("value").as_bool();
 
                             if (pname == "path") {
