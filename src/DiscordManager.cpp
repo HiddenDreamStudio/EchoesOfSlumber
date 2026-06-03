@@ -1,5 +1,4 @@
-// --- COMENTADO TEMPORALMENTE ---
-// #define DISCORDPP_IMPLEMENTATION
+#define DISCORDPP_IMPLEMENTATION
 #include "DiscordManager.h"
 #include "Log.h"
 #include <iostream>
@@ -19,7 +18,6 @@ DiscordManager::~DiscordManager()
 
 bool DiscordManager::Awake()
 {
-#if 0
     LOG("Initializing Discord Social SDK (Direct RPC Mode)...");
     client = std::make_shared<discordpp::Client>();
 
@@ -42,55 +40,46 @@ bool DiscordManager::Awake()
     // Register the game with the local Discord client for auto-detection and Overlay
     if (client->RegisterLaunchCommand(APPLICATION_ID, exePath)) {
         LOG("Discord: Launch command registered successfully");
-    }
-    else {
+    } else {
         LOG("Discord: Failed to register launch command");
     }
 
     // Set up logging
     client->AddLogCallback([](std::string message, discordpp::LoggingSeverity severity) {
         LOG("[Discord %s] %s", discordpp::EnumToString(severity), message.c_str());
-        }, discordpp::LoggingSeverity::Info);
+    }, discordpp::LoggingSeverity::Info);
 
     // Initialize global start time for the session timer
     startTime = (int64_t)time(nullptr);
 
     // In Direct RPC mode, we don't wait for callbacks; we activate immediately if client is valid
-    isReady = true;
-#endif
+    isReady = true; 
 
-    // Devolvemos true para que el Engine siga ejecutándose sin bloqueos
     return true;
 }
 
 bool DiscordManager::Start()
 {
-#if 0
     if (!isReady || !client) return true;
 
     LOG("Setting initial Discord Presence...");
     UpdatePresence("", "");
-#endif
     return true;
 }
 
 bool DiscordManager::Update(float dt)
 {
-#if 0
     if (client) {
         discordpp::RunCallbacks();
     }
-#endif
     return true;
 }
 
 bool DiscordManager::CleanUp()
 {
-#if 0
     LOG("Cleaning up Discord SDK");
     isReady = false;
     client.reset();
-#endif
     return true;
 }
 
@@ -102,15 +91,14 @@ void DiscordManager::Authenticate()
 
 void DiscordManager::UpdatePresence(const char* state, const char* details)
 {
-#if 0
     if (!isReady || !client) return;
 
     discordpp::Activity activity;
     activity.SetType(discordpp::ActivityTypes::Playing);
-
+    
     if (state && state[0] != '\0')
         activity.SetState(state);
-
+    
     if (details && details[0] != '\0')
         activity.SetDetails(details);
 
@@ -126,12 +114,10 @@ void DiscordManager::UpdatePresence(const char* state, const char* details)
     activity.SetTimestamps(timestamps);
 
     client->UpdateRichPresence(activity, [](discordpp::ClientResult result) {
-        if (result.Successful()) {
+        if(result.Successful()) {
             LOG("Discord Rich Presence updated successfully!");
-        }
-        else {
+        } else {
             LOG("Discord Rich Presence update failed");
         }
-        });
-#endif
+    });
 }

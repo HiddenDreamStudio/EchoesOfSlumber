@@ -1,11 +1,9 @@
 #pragma once
 
 #include "Module.h"
+#include "discordpp.h"
 #include <memory>
 #include <atomic>
-
-// --- COMENTADO TEMPORALMENTE ---
-// #include "discordpp.h" 
 
 class DiscordManager : public Module
 {
@@ -23,8 +21,7 @@ public:
 private:
     void Authenticate();
 
-    // --- COMENTADO TEMPORALMENTE ---
-    // std::shared_ptr<discordpp::Client> client;
+    std::shared_ptr<discordpp::Client> client;
     const uint64_t APPLICATION_ID = 1476916209667805430;
     std::atomic<bool> isReady = false;
     std::atomic<int64_t> startTime = 0;
