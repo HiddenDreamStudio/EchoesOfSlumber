@@ -78,8 +78,15 @@ bool Scene::Update(float dt)
 			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
 			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
 			
-			ChangeScene(fadeTargetScene_);
-			Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
+			if (pendingSubMapLoad_) {
+				pendingSubMapLoad_ = false;
+				ExecuteSubMapLoad();
+				Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 400.0f);
+			}
+			else {
+				ChangeScene(fadeTargetScene_);
+				Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
+			}
 		}
 	}
 
@@ -1218,6 +1225,19 @@ void Scene::UpdateLoading(float dt)
 			isGameOver_ = false;
 			inGameIntroActive_ = false;
 
+			if (hasPendingLevelSpawn_ && player)
+			{
+				float spawnX = 0.0f, spawnY = 0.0f;
+				if (Engine::GetInstance().map->GetSpawnById(pendingLevelSpawnId_, spawnX, spawnY))
+				{
+					player->SetPosition(Vector2D(spawnX - player->texW / 2.0f, spawnY - player->texH / 2.0f));
+					player->position = Vector2D(spawnX, spawnY);
+					LOG("PORTAL: Level spawn applied at '%s' (%.1f, %.1f)", pendingLevelSpawnId_.c_str(), spawnX, spawnY);
+				}
+				hasPendingLevelSpawn_ = false;
+				pendingLevelSpawnId_ = "";
+			}
+
 			mapLoadingFinished_ = true;
 			LOG("SCENE: Map %s loaded", currentMapFile_.c_str());
 		} else {
@@ -1847,6 +1867,9 @@ void Scene::UpdateGameplay(float dt)
 		DrawMapViewer(winW, winH);
 		return;
 	}
+
+	if (!isPaused_ && !isGameOver_ && !inGameIntroActive_ && !isAutoEntering_)
+		CheckPortalCollisions(dt);
 
 	if (isPaused_) {
 		// Pause menu is drawn in PostUpdateGameplay (after all HUD layers)
@@ -4088,4 +4111,154 @@ void Scene::DrawBottomFog(int winW, int winH)
 		1000     // H
 	};
 	render.DrawRectangle(fogDoor, 0, 0, 0, 255, true, true);
+}
+
+void Scene::LoadSubMap(const std::string& tmxFile, const std::string& spawnId)
+{
+	if (waitingForFade_) return;
+
+	previousMapFile_ = currentMapFile_;
+	previousSpawnId_ = "return_" + subMapSpawn_; 
+
+	subMapTarget_ = tmxFile;
+	subMapSpawn_ = spawnId;
+	pendingSubMapLoad_ = true;
+
+	waitingForFade_ = true;
+	fadeTargetScene_ = SceneID::GAMEPLAY; 
+	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 400.0f);
+}
+
+Vector2D Scene::GetSpawnPosition(const std::string& spawnId)
+{
+	float x = 0.0f, y = 0.0f;
+	Engine::GetInstance().map->GetSpawnById(spawnId, x, y);
+	return Vector2D(x, y);
+}
+
+void Scene::CheckPortalCollisions(float dt)
+{
+	if (!player || waitingForFade_ || isPaused_) return;
+
+	if (portalCooldown_ > 0.0f) {
+		portalCooldown_ -= dt;
+		return;
+	}
+
+	auto portals = Engine::GetInstance().map->GetPortals();
+	if (portals.empty()) return;
+
+	float px = player->position.getX();
+	float py = player->position.getY();
+	float pcx = px + 32.0f;
+	float pcy = py + 48.0f;
+
+	for (auto& portal : portals)
+	{
+		if (pcx >= portal.x && pcx <= portal.x + portal.w &&
+			pcy >= portal.y && pcy <= portal.y + portal.h)
+		{
+
+			bool isLevelPortal = portal.targetFile.size() < 4 ||
+				portal.targetFile.substr(portal.targetFile.size() - 4) != ".tmx";
+
+			if (isLevelPortal)
+			{
+				// Portal de nivel
+				std::string targetWithExt = portal.targetFile + ".tmx";
+				for (int i = 0; i < (int)levels_.size(); i++)
+				{
+					if (levels_[i].file == targetWithExt)
+					{
+						pendingLevelSpawnId_ = portal.spawnId;
+						hasPendingLevelSpawn_ = true;
+						LoadMap(i);
+						return;
+					}
+				}
+				LOG("PORTAL: Level target '%s' not found in levels_", portal.targetFile.c_str());
+			}
+			else
+			{
+				subMapTarget_ = portal.targetFile;
+				subMapSpawnId_ = portal.spawnId;
+				pendingSubMapLoad_ = true;
+
+				waitingForFade_ = true;
+				fadeTargetScene_ = SceneID::GAMEPLAY;
+				Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 400.0f);
+			}
+			return;
+		}
+	}
+}
+
+void Scene::ExecuteSubMapLoad()
+{
+
+    int savedHealth = player ? player->health : 3;
+
+    player.reset();
+
+    Engine::GetInstance().entityManager->CleanUp();
+    Engine::GetInstance().physics->FlushPendingDeletes();
+    Engine::GetInstance().map->CleanUp();
+    Engine::GetInstance().physics->FlushPendingDeletes();
+
+    currentMapFile_ = subMapTarget_;
+    Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
+	
+	float portalSpawnX = 0.0f, portalSpawnY = 0.0f;
+	bool portalSpawnFound = Engine::GetInstance().map->GetSpawnById(subMapSpawnId_, portalSpawnX, portalSpawnY);
+	
+	
+	Engine::GetInstance().map->LoadEntities(player, portalSpawnFound, portalSpawnX, portalSpawnY);
+
+    if (player == nullptr)
+    {
+        player = std::dynamic_pointer_cast<Player>(
+        Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+        player->position = Vector2D(200.0f, 400.0f); 
+        player->Start();
+    }
+
+    player->health = savedHealth;
+
+    float spawnX = 0.0f, spawnY = 0.0f;
+	if (Engine::GetInstance().map->GetSpawnById(subMapSpawnId_, spawnX, spawnY))
+	{
+		player->SetPosition(Vector2D(spawnX - player->texW / 2.0f, spawnY - player->texH / 2.0f));
+		player->position = Vector2D(spawnX, spawnY);
+	}
+    else
+    {
+        LOG("WARNING PORTAL: Spawn '%s' not found in '%s'!",
+            subMapSpawnId_.c_str(), subMapTarget_.c_str());
+    }
+
+	currentHealthUI_ = player->health;
+	activeHealthAnim_ = 0;
+    isGameOver_ = false;
+
+	inGameIntroActive_ = false;
+	isAutoEntering_ = false;
+	inGameIntroTimer_ = 0.0f;
+	autoEntryProgress_ = 0.0f;
+
+	if (player) {
+		player->isWakingUp = false;
+		player->wakeUpAnimStarted = true;
+	}
+
+	Engine::GetInstance().render->SetCameraPosition(
+		player->position.getX(), player->position.getY());
+
+	Engine::GetInstance().render->SetCameraSway(true);
+	Engine::GetInstance().render->SetCameraClamping(true);
+	Engine::GetInstance().render->SetCameraMovement(true);
+	Engine::GetInstance().render->cameraZoom = 1.0f;
+	Engine::GetInstance().render->blurIntensity = 0.0f;
+
+    portalCooldown_ = 1500.0f;
+	LOG("PORTAL: Sub-map load complete. Final health=%d", player->health);
 }
