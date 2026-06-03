@@ -22,7 +22,7 @@
 #include "Window.h"
 #include "tracy/Tracy.hpp"
 #include "Door.h"
-
+#include "Scene.h"
 #include <math.h>
 #include <algorithm>
 #include <sstream>
@@ -576,7 +576,7 @@ MapLayer* Map::GetNavigationLayer() {
     return nullptr;
 }
 
-void Map::LoadEntities(std::shared_ptr<Player>& player) {
+void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, float spawnX, float spawnY) {
 
     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
         std::string groupName = objectGroupNode.attribute("name").as_string();
@@ -595,12 +595,17 @@ void Map::LoadEntities(std::shared_ptr<Player>& player) {
                 if (entityType == "Player") {
                     if (player == nullptr) {
                         player = std::dynamic_pointer_cast<Player>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-                        player->position = Vector2D(x + 32, y + 32);
+                        player->position = portalTransition
+                            ? Vector2D(spawnX, spawnY)
+                            : Vector2D(x + 32, y + 32);
                         player->Start();
                         LOG("Player spawned at: %f, %f", x, y);
                     }
                     else {
-                        player->SetPosition(Vector2D(x, y));
+                        if (portalTransition)
+                            player->SetPosition(Vector2D(spawnX, spawnY));
+                        else
+                            player->SetPosition(Vector2D(x, y));
                     }
                 }
                 else if (entityType == "Enemy" || entityType == "SpiderCandy") {
@@ -1149,4 +1154,61 @@ void Map::LoadAnimatedPlants()
             mapData.animatedPlants.push_back(plant);
         }
     }
+}
+
+std::vector<PortalData> Map::GetPortals() const
+{
+    std::vector<PortalData> result;
+
+    for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
+        groupNode; groupNode = groupNode.next_sibling("objectgroup"))
+    {
+        if (std::string(groupNode.attribute("name").as_string()) != "Portals") continue;
+
+        for (pugi::xml_node obj = groupNode.child("object"); obj; obj = obj.next_sibling("object"))
+        {
+            PortalData p;
+            p.x = obj.attribute("x").as_float();
+            p.y = obj.attribute("y").as_float();
+            p.w = obj.attribute("width").as_float(64.0f);
+            p.h = obj.attribute("height").as_float(128.0f);
+
+            for (pugi::xml_node prop = obj.child("properties").child("property");
+                prop; prop = prop.next_sibling("property"))
+            {
+                std::string name = prop.attribute("name").as_string();
+                if (name == "target")   p.targetFile = prop.attribute("value").as_string();
+                if (name == "spawnId")  p.spawnId = prop.attribute("value").as_string();
+            }
+
+            if (!p.targetFile.empty())
+                result.push_back(p);
+        }
+    }
+    return result;
+}
+
+bool Map::GetSpawnById(const std::string& id, float& outX, float& outY) const
+{
+    for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
+        groupNode; groupNode = groupNode.next_sibling("objectgroup"))
+    {
+        if (std::string(groupNode.attribute("name").as_string()) != "Spawns") continue;
+
+        for (pugi::xml_node obj = groupNode.child("object"); obj; obj = obj.next_sibling("object"))
+        {
+            for (pugi::xml_node prop = obj.child("properties").child("property");
+                prop; prop = prop.next_sibling("property"))
+            {
+                if (std::string(prop.attribute("name").as_string()) == "spawnId" &&
+                    std::string(prop.attribute("value").as_string()) == id)
+                {
+                    outX = obj.attribute("x").as_float();
+                    outY = obj.attribute("y").as_float();
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }
