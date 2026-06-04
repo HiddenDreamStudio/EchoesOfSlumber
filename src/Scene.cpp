@@ -1221,8 +1221,13 @@ void Scene::UpdateLoading(float dt)
 
 				player->Start();
 			}
-
-			currentHealthUI_ = 3;
+			healthSlotCount_ = currentLevelIndex_ + 3;
+			if (healthSlotCount_ > MAX_HEALTH_SLOTS) healthSlotCount_ = MAX_HEALTH_SLOTS;
+			if (player) {
+				player->maxHealth = healthSlotCount_;
+				player->health = healthSlotCount_;
+			}
+			currentHealthUI_ = healthSlotCount_;
 			activeHealthAnim_ = 0;
 			isGameOver_ = false;
 			inGameIntroActive_ = false;
@@ -1385,11 +1390,43 @@ void Scene::LoadGameplay()
 		anim.Reset();
 	};
 
-	setupAnimFromTSX("assets/textures/animations/HealthAnimations/SS_Healthbar-1.tsx", animHealth1_, texHealth1_);
-	setupAnimFromTSX("assets/textures/animations/HealthAnimations/SS_Healthbar-2.tsx", animHealth2_, texHealth2_);
-	setupAnimFromTSX("assets/textures/animations/HealthAnimations/SS_Healthbar-3.tsx", animHealth3_, texHealth3_);
+	// Load health bar animations based on current level (Fase)
+	// Level 1 = Fase1 (3 HP), Level 2 = Fase2 (4 HP), Level 3 = Fase3 (5 HP), Level 4 = Fase4 (6 HP)
+	{
+		int fase = currentLevelIndex_ + 1;
+		healthSlotCount_ = currentLevelIndex_ + 3; // 3, 4, 5, or 6
+		if (healthSlotCount_ > MAX_HEALTH_SLOTS) healthSlotCount_ = MAX_HEALTH_SLOTS;
 
-	currentHealthUI_ = 3;
+		// Clear all slots first
+		for (int i = 0; i < MAX_HEALTH_SLOTS; i++) {
+			texHealth_[i] = nullptr;
+			animHealth_[i] = Animation();
+		}
+
+		if (fase == 1) {
+			// Fase1 uses the original TSX naming: SS_Healthbar-1.tsx, SS_Healthbar-2.tsx, SS_Healthbar-3.tsx
+			for (int i = 0; i < healthSlotCount_; i++) {
+				std::string tsxPath = "assets/textures/animations/HealthAnimations/SS_Healthbar-" + std::to_string(i + 1) + ".tsx";
+				setupAnimFromTSX(tsxPath.c_str(), animHealth_[i], texHealth_[i]);
+			}
+		}
+		else {
+			// Fase2/3/4 use naming: SS_Healthbar_FaseN-M.tsx
+			for (int i = 0; i < healthSlotCount_; i++) {
+				std::string tsxPath = "assets/textures/animations/HealthAnimations/SS_Healthbar_Fase" + std::to_string(fase) + "-" + std::to_string(i + 1) + ".tsx";
+				setupAnimFromTSX(tsxPath.c_str(), animHealth_[i], texHealth_[i]);
+			}
+		}
+
+		// Set player max health and health for this level
+		if (player) {
+			player->maxHealth = healthSlotCount_;
+			player->health = healthSlotCount_;
+		}
+		LOG("Health HUD loaded: Fase %d, %d slots", fase, healthSlotCount_);
+	}
+
+	currentHealthUI_ = healthSlotCount_;
 	activeHealthAnim_ = 0;
 	isGameOver_ = false;
 	texGameOver_ = nullptr; // No longer using code-generated text
@@ -1902,33 +1939,26 @@ void Scene::UpdateGameplay(float dt)
 
 		if (player->health != currentHealthUI_) {
 			currentHealthUI_ = player->health;
-			if (currentHealthUI_ == 3) {
-				animHealth1_.Reset();
+			// Reset the animation for the slot that just became active
+			int diff = player->maxHealth - currentHealthUI_;
+			if (diff > 0 && diff <= healthSlotCount_) {
+				animHealth_[diff - 1].Reset();
 			}
-			else if (currentHealthUI_ == 2) {
-				animHealth1_.Reset(); // Start transition from 3 to 2 health bars
-			}
-			else if (currentHealthUI_ == 1) {
-				animHealth2_.Reset(); // Start transition from 2 to 1 health bar
-			}
-			else if (currentHealthUI_ <= 0) {
-				animHealth3_.Reset(); // Start transition from 1 to 0 health bars
+			else if (diff == 0) {
+				animHealth_[0].Reset();
 			}
 			activeHealthAnim_ = 0;
 		}
 
-		if (currentHealthUI_ == 3) {
-			// Keep static (first frame) when without any damage
-			animHealth1_.Reset();
-		}
-		else if (currentHealthUI_ == 2) {
-			animHealth1_.Update(dt);
-		}
-		else if (currentHealthUI_ == 1) {
-			animHealth2_.Update(dt);
-		}
-		else if (currentHealthUI_ <= 0) {
-			animHealth3_.Update(dt);
+		{
+			int diff = player->maxHealth - currentHealthUI_;
+			if (diff == 0) {
+				// Full health: keep static (first frame)
+				animHealth_[0].Reset();
+			}
+			else if (diff > 0 && diff <= healthSlotCount_) {
+				animHealth_[diff - 1].Update(dt);
+			}
 		}
 
 		if (player->health <= 0 && activeHealthAnim_ == 0 && !isGameOver_) {
@@ -2155,9 +2185,9 @@ void Scene::UnloadGameplay()
 	showMapViewer_ = false;
 	showInventory_ = false;
 
-	if (texHealth1_) { Engine::GetInstance().textures->UnLoad(texHealth1_); texHealth1_ = nullptr; }
-	if (texHealth2_) { Engine::GetInstance().textures->UnLoad(texHealth2_); texHealth2_ = nullptr; }
-	if (texHealth3_) { Engine::GetInstance().textures->UnLoad(texHealth3_); texHealth3_ = nullptr; }
+	for (int i = 0; i < MAX_HEALTH_SLOTS; i++) {
+		if (texHealth_[i]) { Engine::GetInstance().textures->UnLoad(texHealth_[i]); texHealth_[i] = nullptr; }
+	}
 	if (texGameOver_) { SDL_DestroyTexture(texGameOver_); texGameOver_ = nullptr; }
 
 	if (texGameOverScreenBase_) { Engine::GetInstance().textures->UnLoad(texGameOverScreenBase_); texGameOverScreenBase_ = nullptr; }
@@ -2480,45 +2510,22 @@ void Scene::PostUpdateGameplay()
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
 
-		if (activeHealthAnim_ == 1) {
-			texToDraw = texHealth1_;
-			frame = &animHealth1_.GetCurrentFrame();
-		}
-		else if (activeHealthAnim_ == 2) {
-			texToDraw = texHealth2_;
-			frame = &animHealth2_.GetCurrentFrame();
-		}
-		else if (activeHealthAnim_ == 3) {
-			texToDraw = texHealth3_;
-			frame = &animHealth3_.GetCurrentFrame();
-		}
-		else {
-
-			if (currentHealthUI_ == 3) {
-				texToDraw = texHealth1_;
-				if (texHealth1_) {
-					r = animHealth1_.GetCurrentFrame();
-					frame = &r;
-				}
+		// Generic health HUD drawing using diff-based array indexing
+		// diff = maxHealth - currentHealth → index into texHealth_[] / animHealth_[]
+		{
+			int maxHP = player ? player->maxHealth : healthSlotCount_;
+			int diff = maxHP - currentHealthUI_;
+			if (diff == 0 && texHealth_[0]) {
+				// Full health: show first frame of slot 0
+				texToDraw = texHealth_[0];
+				r = animHealth_[0].GetCurrentFrame();
+				frame = &r;
 			}
-			else if (currentHealthUI_ == 2) {
-				texToDraw = texHealth1_;
-				if (texHealth1_) {
-					r = animHealth1_.GetCurrentFrame();
-					frame = &r;
-				}
-			}
-			else if (currentHealthUI_ == 1) {
-				texToDraw = texHealth2_;
-				if (texHealth2_) {
-					r = animHealth2_.GetCurrentFrame();
-					frame = &r;
-				}
-			}
-			else if (currentHealthUI_ <= 0) {
-				texToDraw = texHealth3_;
-				if (texHealth3_) {
-					r = animHealth3_.GetCurrentFrame();
+			else if (diff > 0 && diff <= healthSlotCount_) {
+				int idx = diff - 1;
+				if (texHealth_[idx]) {
+					texToDraw = texHealth_[idx];
+					r = animHealth_[idx].GetCurrentFrame();
 					frame = &r;
 				}
 			}
@@ -3844,21 +3851,18 @@ void Scene::ResetHealthUI(int health)
 {
 	currentHealthUI_ = health;
 	activeHealthAnim_ = 0;
-	animHealth1_.Reset();
-	animHealth2_.Reset();
-	animHealth3_.Reset();
 
-	if (health == 2) {
-		animHealth1_.SetFinished();
+	for (int i = 0; i < MAX_HEALTH_SLOTS; i++) {
+		animHealth_[i].Reset();
 	}
-	else if (health == 1) {
-		animHealth1_.SetFinished();
-		animHealth2_.SetFinished();
-	}
-	else if (health <= 0) {
-		animHealth1_.SetFinished();
-		animHealth2_.SetFinished();
-		animHealth3_.SetFinished();
+
+	int maxHP = player ? player->maxHealth : healthSlotCount_;
+	int lostHP = maxHP - health;
+
+	for (int i = 0; i < lostHP; i++) {
+		if (i >= 0 && i < healthSlotCount_) {
+			animHealth_[i].SetFinished();
+		}
 	}
 }
 
@@ -4395,6 +4399,12 @@ void Scene::ExecuteSubMapLoad()
         player->Start();
     }
 
+    if (player) {
+        player->maxHealth = healthSlotCount_;
+        if (savedHealth > healthSlotCount_) {
+            savedHealth = healthSlotCount_;
+        }
+    }
     player->health = savedHealth;
 
     float spawnX = 0.0f, spawnY = 0.0f;

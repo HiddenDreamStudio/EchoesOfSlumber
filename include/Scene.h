@@ -318,15 +318,13 @@ private:
     void UpdateBossFight();
     void DrawBossHUD(int winW, int winH);
 
-    // Health HUD
-    SDL_Texture* texHealth1_ = nullptr;
-    SDL_Texture* texHealth2_ = nullptr;
-    SDL_Texture* texHealth3_ = nullptr;
-    Animation animHealth1_;
-    Animation animHealth2_;
-    Animation animHealth3_;
+    // Health HUD (supports up to 6 health slots depending on level/fase)
+    static constexpr int MAX_HEALTH_SLOTS = 6;
+    SDL_Texture* texHealth_[MAX_HEALTH_SLOTS] = {};
+    Animation    animHealth_[MAX_HEALTH_SLOTS];
+    int          healthSlotCount_ = 3; // number of slots loaded for current level
     int currentHealthUI_ = 3;
-    int activeHealthAnim_ = 0; // 0=None, 1=animHealth1_, 2=animHealth2_, 3=animHealth3_
+    int activeHealthAnim_ = 0; // 0=None, otherwise legacy (unused)
     SDL_Texture* texGameOver_ = nullptr;
 
     // Blanket ability HUD icon
