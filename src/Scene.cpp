@@ -2775,7 +2775,7 @@ void Scene::PostUpdateGameplay()
 			int winW = 0, winH = 0;
 			Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-			float drawX = (float)winW - tw - 40.0f;
+			float drawX = 40.0f;
 			float drawY = (float)winH - th - 40.0f;
 
 			Uint8 alpha = 255;

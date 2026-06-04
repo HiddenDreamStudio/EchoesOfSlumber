@@ -947,6 +947,14 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
             }
         }
     }
+
+    // Ensure the player is drawn on top of all other entities (like checkpoints)
+    // by moving it to the end of the EntityManager's entities list
+    auto& em = Engine::GetInstance().entityManager;
+    if (player != nullptr) {
+        em->entities.remove(player);
+        em->entities.push_back(player);
+    }
 }
 
 
