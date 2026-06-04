@@ -22687,8 +22687,8 @@
   </data>
  </layer>
  <objectgroup id="47" name="Checkpoint">
-  <object id="1799" name="Checkpoint" type="Checkpoint" x="7697.25" y="8533.25" width="52.8407" height="52.8407"/>
-  <object id="1800" name="CheckPoint" type="CheckPoint" x="7544.25" y="8533.91" width="52.8407" height="52.8407"/>
+  <object id="1799" name="Checkpoint" type="Checkpoint" x="7695.92" y="8536.25" width="52.8407" height="52.8407"/>
+  <object id="1800" name="CheckPoint" type="CheckPoint" x="7542.92" y="8536.91" width="52.8407" height="52.8407"/>
  </objectgroup>
  <objectgroup id="25" name="Foreground" visible="0">
   <object id="1410" gid="204" x="1002.7" y="6618.05" width="495" height="736"/>

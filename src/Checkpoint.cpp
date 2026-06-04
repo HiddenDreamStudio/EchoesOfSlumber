@@ -54,17 +54,19 @@ bool Checkpoint::Start() {
 bool Checkpoint::Update(float dt) {
     if (!active) return true;
 
-    floatTimer += dt * 0.002f;
-    float offset = sinf(floatTimer) * 4.0f;
-
     SDL_Texture* texture = activated ? textureOn_ : textureOff_;
+
     if (texture && texW > 0 && texH > 0) {
         SDL_Rect section = { 0, 0, texW, texH };
-        float targetH = std::max(objectH_, 52.0f);
+        // Increase the target height multiplier to make the texture even larger (3.5f scale)
+        float targetH = std::max(objectH_, 52.0f) * 3.5f;
         float drawScale = targetH / (float)texH;
         float targetW = (float)texW * drawScale;
+        
         int drawX = (int)(position.getX() - targetW * 0.5f);
-        int drawY = (int)(position.getY() - targetH * 0.5f + offset);
+        // Align the bottom of the drawn texture to the bottom of the Tiled object
+        // position.getY() + objectH_ * 0.5f is the bottom edge of the Tiled object
+        int drawY = (int)(position.getY() + objectH_ * 0.5f - targetH);
 
         Engine::GetInstance().render->DrawTexture(texture, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
     }
@@ -87,7 +89,11 @@ bool Checkpoint::Update(float dt) {
         const int panelW = activated ? 190 : 240;
         const int panelH = 34;
         int screenX = (int)(render.camera.x + position.getX() - panelW * 0.5f);
-        int screenY = (int)(render.camera.y + position.getY() - std::max(objectH_, 52.0f) * 0.5f - 46.0f);
+        
+        // Adjust prompt Y coordinate to appear above the drawn texture
+        float targetH = std::max(objectH_, 52.0f) * 3.5f;
+        int topOfTextureY = (int)(position.getY() + objectH_ * 0.5f - targetH);
+        int screenY = (int)(render.camera.y + topOfTextureY - 46.0f);
 
         SDL_Rect panel = { screenX, screenY, panelW, panelH };
         render.DrawRectangle(panel, 0, 0, 0, 190, true, false);
