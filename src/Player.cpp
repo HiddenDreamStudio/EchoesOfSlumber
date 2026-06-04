@@ -231,7 +231,7 @@ bool Player::Update(float dt)
 	{
 		// Fast-swap equipped items during gameplay (blocked in bear mode)
 		auto& input = *Engine::GetInstance().input;
-		bool canSwap = !isBearMode_ && !isBearTransforming_;
+		bool canSwap = !isBearMode_ && !isBearTransforming_ && !isThrowingBear_ && !isKidSleeping_;
 		if (canSwap) {
 			if (input.GetKey(SDL_SCANCODE_1) == KEY_DOWN && hasBlanket_) {
 				equippedItem_ = EquippedItem::BLANKET;
@@ -247,9 +247,12 @@ bool Player::Update(float dt)
 			}
 		}
 
-		// Toggle bear mode
-		bool bearToggleDown = input.GetKey(SDL_SCANCODE_O) == KEY_DOWN ||
-		                     input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN;
+		// Toggle bear mode (blocked during throw, transform, and sleep transitions)
+		bool bearToggleDown = false;
+		if (!isBearTransforming_ && !isThrowingBear_ && !isKidSleeping_) {
+			bearToggleDown = input.GetKey(SDL_SCANCODE_O) == KEY_DOWN ||
+			                 input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN;
+		}
 
 		if (bearToggleDown) {
 			if (!hasStuffedAnimal_) {
@@ -306,7 +309,34 @@ bool Player::Update(float dt)
 					isThrowingBear_ = false;
 					isBearTransforming_ = true;
 					bearAppearAnims_.ResetCurrent();
-					LOG("Player starting bear transformation");
+
+					// Teleport bear to a far position in the direction the player is facing
+					float spawnOffset = 300.0f; // Distance from the player
+					float targetX = bearSummonPosition_.getX();
+					if (bearSummonFacingRight_) {
+						// bearSummonFacingRight_ = true means facing left
+						targetX -= spawnOffset;
+					} else {
+						// bearSummonFacingRight_ = false means facing right
+						targetX += spawnOffset;
+					}
+
+					float hitX = 0.0f, hitY = 0.0f;
+					if (Engine::GetInstance().physics->RayCastWorld(
+						(int)bearSummonPosition_.getX(), (int)bearSummonPosition_.getY(),
+						(int)targetX, (int)bearSummonPosition_.getY(),
+						hitX, hitY))
+					{
+						// There's a wall or obstacle! Spawn slightly back from the hit point
+						if (bearSummonFacingRight_) {
+							targetX = hitX + 50.0f;
+						} else {
+							targetX = hitX - 50.0f;
+						}
+					}
+
+					pbody->SetPosition((int)targetX, (int)bearSummonPosition_.getY());
+					LOG("Player starting bear transformation at far position: %.1f", targetX);
 				}
 			}
 			else if (isKidSleeping_) {
