@@ -17,8 +17,10 @@
 #include "DiscordManager.h"
 #include "Physics.h"
 #include "Boss.h"
+#include "Checkpoint.h"
 #include <cstdlib>
 #include <cmath>
+#include <algorithm>
 
 // ----------------------------------------------------------------------------
 // Button IDs  (main menu)
@@ -1527,6 +1529,9 @@ void Scene::LoadGameplay()
 
 void Scene::UpdateGameplay(float dt)
 {
+	if (UpdateCheckpointTransition(dt))
+		return;
+
 	if (isGameOver_) {
 		gameOverFadeTimer_ += dt * 0.001f; // Convert ms to seconds
 		if (gameOverFadeTimer_ > 1.5f) {
@@ -1888,7 +1893,9 @@ void Scene::UpdateGameplay(float dt)
 			player->TakeDamage(player->health);
 			currentHealthUI_ = 0;
 			activeHealthAnim_ = 0;
-			isGameOver_ = true;
+			if (!RequestCheckpointRespawn()) {
+				isGameOver_ = true;
+			}
 		}
 
 		// HUD Logic
@@ -1925,19 +1932,22 @@ void Scene::UpdateGameplay(float dt)
 		}
 
 		if (player->health <= 0 && activeHealthAnim_ == 0 && !isGameOver_) {
-			isGameOver_ = true;
-			gameOverFadeTimer_ = 0.0f; // Initialize fade timer
+			if (!RequestCheckpointRespawn())
+			{
+				isGameOver_ = true;
+				gameOverFadeTimer_ = 0.0f; // Initialize fade timer
 
-			auto& list = Engine::GetInstance().uiManager->UIElementsList;
-			for (auto& el : list) {
-				if (el->id == BTN_GAMEOVER_MAINMENU || el->id == BTN_GAMEOVER_CONTINUE) {
-					el->isVisible = false; // Hide initially so they pop/fade in smoothly later
-					el->state = UIElementState::NORMAL;
-				}
+				auto& list = Engine::GetInstance().uiManager->UIElementsList;
+				for (auto& el : list) {
+					if (el->id == BTN_GAMEOVER_MAINMENU || el->id == BTN_GAMEOVER_CONTINUE) {
+						el->isVisible = false; // Hide initially so they pop/fade in smoothly later
+						el->state = UIElementState::NORMAL;
+					}
 
-				if (el->id == BTN_GAMEOVER_CONTINUE) {
-					if (!Engine::GetInstance().saveSystem->HasValidSave())
-						el->state = UIElementState::DISABLED;
+					if (el->id == BTN_GAMEOVER_CONTINUE) {
+						if (!Engine::GetInstance().saveSystem->HasValidSave())
+							el->state = UIElementState::DISABLED;
+					}
 				}
 			}
 		}
@@ -2244,10 +2254,173 @@ void Scene::LoadMap2() { LoadMap(1); }
 void Scene::LoadMap3() { LoadMap(2); }
 void Scene::LoadMap4() { LoadMap(3); }
 
+bool Scene::RequestCheckpointActivation(const std::string& checkpointId, const Vector2D& spawnPosition)
+{
+	if (checkpointId.empty() || IsCheckpointTransitionActive() || isGameOver_ || waitingForFade_)
+		return false;
+
+	pendingCheckpointId_ = checkpointId;
+	pendingCheckpointSpawn_ = spawnPosition;
+	checkpointTransitionMode_ = CheckpointTransitionMode::ACTIVATE;
+	checkpointTransitionPhase_ = CheckpointTransitionPhase::FADE_OUT;
+	checkpointBlackHoldTimer_ = 0.0f;
+	checkpointNotifyAfterFade_ = false;
+	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 350.0f);
+	return true;
+}
+
+bool Scene::RequestCheckpointRespawn()
+{
+	if (IsCheckpointTransitionActive() || waitingForFade_)
+		return false;
+
+	if (!Engine::GetInstance().saveSystem->HasCheckpointSave())
+		return false;
+
+	checkpointTransitionMode_ = CheckpointTransitionMode::RESPAWN;
+	checkpointTransitionPhase_ = CheckpointTransitionPhase::FADE_OUT;
+	checkpointBlackHoldTimer_ = 0.0f;
+	checkpointNotifyAfterFade_ = false;
+	SetGameOverVisible(false);
+	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 450.0f);
+	return true;
+}
+
+bool Scene::IsCheckpointTransitionActive() const
+{
+	return checkpointTransitionPhase_ != CheckpointTransitionPhase::NONE;
+}
+
+void Scene::SetActiveCheckpointId(const std::string& checkpointId)
+{
+	activeCheckpointId_ = checkpointId;
+}
+
+void Scene::SyncCheckpointEntities()
+{
+	for (const auto& entity : Engine::GetInstance().entityManager->entities)
+	{
+		if (entity->type != EntityType::CHECKPOINT) continue;
+		auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(entity);
+		if (!checkpoint) continue;
+		checkpoint->SetActivated(!activeCheckpointId_.empty() &&
+			checkpoint->GetCheckpointId() == activeCheckpointId_);
+	}
+}
+
+void Scene::ResolveCheckpointTransition()
+{
+	if (checkpointTransitionMode_ == CheckpointTransitionMode::ACTIVATE)
+	{
+		SetActiveCheckpointId(pendingCheckpointId_);
+		SyncCheckpointEntities();
+
+		if (player)
+		{
+			const int maxHp = std::max(1, player->maxHealth);
+			player->health = maxHp;
+			player->Revive();
+			player->isWakingUp = false;
+			player->wakeUpAnimStarted = true;
+			ResetHealthUI(player->health);
+		}
+
+		Vector2D checkpointPlayerPos = pendingCheckpointSpawn_;
+		if (player)
+		{
+			checkpointPlayerPos = Vector2D(
+				pendingCheckpointSpawn_.getX() - (float)player->texW * 0.5f,
+				pendingCheckpointSpawn_.getY() - (float)player->texH * 0.5f);
+		}
+
+		Engine::GetInstance().saveSystem->QuickSaveAt(
+			checkpointPlayerPos.getX(),
+			checkpointPlayerPos.getY(),
+			pendingCheckpointId_);
+		checkpointNotifyAfterFade_ = true;
+		LOG("Checkpoint activated: %s", pendingCheckpointId_.c_str());
+	}
+	else if (checkpointTransitionMode_ == CheckpointTransitionMode::RESPAWN)
+	{
+		if (Engine::GetInstance().saveSystem->QuickLoadImmediate())
+		{
+			isGameOver_ = false;
+			gameOverFadeTimer_ = 0.0f;
+			inGameIntroActive_ = false;
+			isAutoEntering_ = false;
+			inGameIntroTimer_ = 0.0f;
+			autoEntryProgress_ = 0.0f;
+
+			if (player)
+			{
+				player->StartWakeUp(2.0f);
+				ResetHealthUI(player->health);
+				Engine::GetInstance().render->SetCameraPosition(player->position.getX(), player->position.getY());
+			}
+
+			Engine::GetInstance().render->SetCameraSway(true);
+			Engine::GetInstance().render->SetCameraClamping(true);
+			Engine::GetInstance().render->SetCameraMovement(true);
+			Engine::GetInstance().render->cameraZoom = 1.0f;
+			Engine::GetInstance().render->blurIntensity = 0.0f;
+			Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 1.0f);
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
+			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
+			LOG("Checkpoint respawn completed");
+		}
+	}
+}
+
+bool Scene::UpdateCheckpointTransition(float dt)
+{
+	if (!IsCheckpointTransitionActive()) return false;
+
+	if (checkpointTransitionPhase_ == CheckpointTransitionPhase::FADE_OUT)
+	{
+		if (Engine::GetInstance().render->IsFadeComplete())
+		{
+			ResolveCheckpointTransition();
+			checkpointBlackHoldTimer_ = 220.0f;
+			checkpointTransitionPhase_ = CheckpointTransitionPhase::HOLD_BLACK;
+		}
+		return true;
+	}
+
+	if (checkpointTransitionPhase_ == CheckpointTransitionPhase::HOLD_BLACK)
+	{
+		checkpointBlackHoldTimer_ -= dt;
+		if (checkpointBlackHoldTimer_ <= 0.0f)
+		{
+			Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 650.0f);
+			checkpointTransitionPhase_ = CheckpointTransitionPhase::FADE_IN;
+		}
+		return true;
+	}
+
+	if (checkpointTransitionPhase_ == CheckpointTransitionPhase::FADE_IN)
+	{
+		if (Engine::GetInstance().render->IsFadeComplete())
+		{
+			checkpointTransitionMode_ = CheckpointTransitionMode::NONE;
+			checkpointTransitionPhase_ = CheckpointTransitionPhase::NONE;
+			pendingCheckpointId_.clear();
+
+			if (checkpointNotifyAfterFade_)
+			{
+				checkpointSaveTimer_ = 3000.0f;
+				checkpointNotifyAfterFade_ = false;
+			}
+		}
+		return true;
+	}
+
+	return true;
+}
+
 void Scene::PostUpdateGameplay()
 {
 	// Quick save/load shortcuts (only when not paused)
-	if (!isPaused_ && !isGameOver_) {
+	if (!isPaused_ && !isGameOver_ && !IsCheckpointTransitionActive()) {
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F5) == KEY_DOWN)
 			Engine::GetInstance().saveSystem->QuickLoad();
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F6) == KEY_DOWN)

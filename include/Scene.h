@@ -55,6 +55,12 @@ public:
     void CheckPortalCollisions(float dt);
     Vector2D GetSpawnPosition(const std::string& spawnId);
     void ExecuteSubMapLoad();
+    bool RequestCheckpointActivation(const std::string& checkpointId, const Vector2D& spawnPosition);
+    bool RequestCheckpointRespawn();
+    bool IsCheckpointTransitionActive() const;
+    const std::string& GetActiveCheckpointId() const { return activeCheckpointId_; }
+    void SetActiveCheckpointId(const std::string& checkpointId);
+    void SyncCheckpointEntities();
 
 
 
@@ -224,6 +230,8 @@ private:
     void UnloadGameplay();
     void UpdateGameplay(float dt);
     void PostUpdateGameplay();
+    bool UpdateCheckpointTransition(float dt);
+    void ResolveCheckpointTransition();
 
     // ── Map switching (F1 / F2 / F3 / F4) ──────────────────────────────────────
     std::string currentMapFile_ = "MapTemplate.tmx";
@@ -247,6 +255,24 @@ private:
 
     std::string pendingLevelSpawnId_;
     bool hasPendingLevelSpawn_ = false;
+    enum class CheckpointTransitionMode {
+        NONE,
+        ACTIVATE,
+        RESPAWN
+    };
+    enum class CheckpointTransitionPhase {
+        NONE,
+        FADE_OUT,
+        HOLD_BLACK,
+        FADE_IN
+    };
+    CheckpointTransitionMode checkpointTransitionMode_ = CheckpointTransitionMode::NONE;
+    CheckpointTransitionPhase checkpointTransitionPhase_ = CheckpointTransitionPhase::NONE;
+    std::string activeCheckpointId_;
+    std::string pendingCheckpointId_;
+    Vector2D pendingCheckpointSpawn_;
+    float checkpointBlackHoldTimer_ = 0.0f;
+    bool checkpointNotifyAfterFade_ = false;
 
 public:
     void SetGameOverVisible(bool visible);
