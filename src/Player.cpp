@@ -209,11 +209,11 @@ bool Player::Update(float dt)
 		}
 		if (input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT || input->GetKey(SDL_SCANCODE_LEFT) == KEY_REPEAT || input->GetLeftStickX() < -0.2f) {
 			velocity.x = -godSpeed;
-			facingRight = true;
+			facingRight = false;
 		}
 		if (input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT || input->GetKey(SDL_SCANCODE_RIGHT) == KEY_REPEAT || input->GetLeftStickX() > 0.2f) {
 			velocity.x = godSpeed;
-			facingRight = false;
+			facingRight = true;
 		}
 		
 		Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity.x, velocity.y);
