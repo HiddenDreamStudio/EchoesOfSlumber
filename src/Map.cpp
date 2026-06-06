@@ -695,10 +695,17 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     rr->Start();
                 }
                 else if (entityType == "Checkpoint") {
+                    float w = objectNode.attribute("width").as_float(64.0f);
+                    float h = objectNode.attribute("height").as_float(64.0f);
+                    std::string objectId = objectNode.attribute("id").as_string();
+                    std::string checkpointId = mapFileName + ":" + (objectId.empty()
+                        ? std::to_string((int)x) + "," + std::to_string((int)y)
+                        : objectId);
                     auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
-                    checkpoint->position = Vector2D(x, y);
+                    checkpoint->Configure(checkpointId, w, h);
+                    checkpoint->position = Vector2D(x + w * 0.5f, y + h * 0.5f);
                     checkpoint->Start();
-                    LOG("Checkpoint spawned at: %f, %f", x, y);
+                    LOG("Checkpoint spawned at: %f, %f (%s)", x, y, checkpointId.c_str());
                 }
                 else if (entityType == "Box") {
                     auto box = std::dynamic_pointer_cast<Box>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOX));
@@ -856,15 +863,27 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                 }
             }
         }
-        else if (objectGroupNode.attribute("name").as_string() == std::string("Checkpoint")) {
+        else if (groupName == "Checkpoint" || groupName == "Checkpoints" || groupName == "CheckPoints") {
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+                std::string objClass = objectNode.attribute("type").as_string();
+                if (objClass.empty()) objClass = objectNode.attribute("class").as_string();
+                if (!objClass.empty() && objClass != "Checkpoint" && objClass != "CheckPoint")
+                    continue;
+
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
+                float w = objectNode.attribute("width").as_float(64.0f);
+                float h = objectNode.attribute("height").as_float(64.0f);
+                std::string objectId = objectNode.attribute("id").as_string();
+                std::string checkpointId = mapFileName + ":" + (objectId.empty()
+                    ? std::to_string((int)x) + "," + std::to_string((int)y)
+                    : objectId);
 
                 auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
-                checkpoint->position = Vector2D(x, y);
+                checkpoint->Configure(checkpointId, w, h);
+                checkpoint->position = Vector2D(x + w * 0.5f, y + h * 0.5f);
                 checkpoint->Start();
-                LOG("Checkpoint from specialized layer spawned at: %f, %f", x, y);
+                LOG("Checkpoint from specialized layer spawned at: %f, %f (%s)", x, y, checkpointId.c_str());
             }
         }
         else if (objectGroupNode.attribute("name").as_string() == std::string("InteractiveAssets")) {
@@ -928,6 +947,14 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
             }
         }
     }
+
+    // Ensure the player is drawn on top of all other entities (like checkpoints)
+    // by moving it to the end of the EntityManager's entities list
+    auto& em = Engine::GetInstance().entityManager;
+    if (player != nullptr) {
+        em->entities.remove(player);
+        em->entities.push_back(player);
+    }
 }
 
 
@@ -984,7 +1011,7 @@ void Map::LoadImageLayers()
 
 void Map::LoadDecorationObjects()
 {
-    const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoints", "AnimatedPlants", "AnimatedPlants front", "InteractiveAssets" };
+    const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoint", "Checkpoints", "CheckPoints", "AnimatedPlants", "AnimatedPlants front", "InteractiveAssets" };
     
     for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
         groupNode != NULL;
