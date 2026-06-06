@@ -38,6 +38,7 @@ public:
 
 	void TakeDamage(int damage) override;
 	void Revive();
+	void StartWakeUp(float speedMultiplier = 1.0f);
 	bool IsDead() const { return isDead_; }
 
 	// Map viewer helpers
@@ -113,6 +114,7 @@ private:
 	AnimationSet anims;
 	Animation wakeUpAnim;
 	SDL_Texture* wakeUpTexture = nullptr;
+	float wakeUpAnimSpeed_ = 1.0f;
 	float drawScale = 0.5f;
 	bool facingRight = true;
 	PhysBody* currentGround = nullptr;
