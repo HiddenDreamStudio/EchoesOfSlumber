@@ -309,6 +309,9 @@ bool Player::Update(float dt)
 				// Teleport player physics body back to kid position
 				pbody->SetPosition((int)bearSummonPosition_.getX(), (int)bearSummonPosition_.getY());
 				
+				// Restore facing direction to when the bear was summoned
+				facingRight = bearSummonFacingRight_;
+				
 				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
 				LOG("Player exited bear mode, kid is sleeping at summon position");
 			}
@@ -1204,6 +1207,9 @@ void Player::TakeDamage(int damage)
 
 			// Teleport player physics body back to kid position
 			pbody->SetPosition((int)bearSummonPosition_.getX(), (int)bearSummonPosition_.getY());
+			
+			// Restore facing direction to when the bear was summoned
+			facingRight = bearSummonFacingRight_;
 			
 			Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
 			LOG("Bear health depleted! Exiting bear mode, returning to kid.");
