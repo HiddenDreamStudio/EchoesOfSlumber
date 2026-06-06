@@ -4,6 +4,7 @@
 #include "Player.h"
 #include "EntityManager.h"
 #include "Map.h"
+#include "Physics.h"
 #include "Log.h"
 #include "pugixml.hpp"
 #include <chrono>
@@ -107,6 +108,18 @@ bool SaveSystem::QuickSave()
 	return true;
 }
 
+bool SaveSystem::QuickSaveAt(float playerPosX, float playerPosY, const std::string& checkpointId)
+{
+	LOG("SaveSystem: Checkpoint quicksave at %.1f, %.1f (%s)", playerPosX, playerPosY, checkpointId.c_str());
+	pendingCheckpointPositionOverride_ = true;
+	pendingCheckpointPosX_ = playerPosX;
+	pendingCheckpointPosY_ = playerPosY;
+	pendingCheckpointId_ = checkpointId;
+	gameState_.activeCheckpointId = checkpointId;
+	pendingSave_ = true;
+	return true;
+}
+
 bool SaveSystem::QuickLoad()
 {
 	LOG("SaveSystem: QuickLoad (F5)");
@@ -124,6 +137,26 @@ bool SaveSystem::QuickLoad()
 	}
 
 	pendingLoad_ = true;
+	return true;
+}
+
+bool SaveSystem::QuickLoadImmediate()
+{
+	LOG("SaveSystem: QuickLoadImmediate");
+
+	if (!SaveFileExists(quickSavePath_))
+	{
+		LOG("SaveSystem: No quicksave file found");
+		return false;
+	}
+
+	if (!ReadXML(quickSavePath_))
+	{
+		LOG("SaveSystem: Failed to read quicksave");
+		return false;
+	}
+
+	ApplyGameState();
 	return true;
 }
 
@@ -149,6 +182,28 @@ bool SaveSystem::HasValidSave() const
 	}
 
 	return false;
+}
+
+bool SaveSystem::HasCheckpointSave() const
+{
+	if (!gameState_.activeCheckpointId.empty() && gameState_.playerHealth > 0)
+		return true;
+
+	if (!SaveFileExists(quickSavePath_)) return false;
+
+	pugi::xml_document doc;
+	if (!doc.load_file(quickSavePath_.c_str())) return false;
+
+	pugi::xml_node root = doc.child("savegame");
+	if (!root) return false;
+
+	pugi::xml_node sceneNode = root.child("scene");
+	std::string checkpointId = sceneNode ? sceneNode.attribute("activeCheckpointId").as_string("") : "";
+	if (checkpointId.empty()) return false;
+
+	pugi::xml_node playerNode = root.child("player");
+	pugi::xml_node stateNode = playerNode ? playerNode.child("state") : pugi::xml_node();
+	return stateNode && stateNode.attribute("health").as_int(0) > 0;
 }
 
 bool SaveSystem::SaveFileExists(const std::string& filename) const
@@ -205,9 +260,18 @@ void SaveSystem::CollectPlayerState()
 	gameState_.playerSpeed = 4.0f;
 	gameState_.playerJumpForce = 2.5f;
 	gameState_.playerIsJumping = false;
-	gameState_.playerHealth = scene->player->health;
+	gameState_.playerHealth = scene->player ? scene->player->health : 3;
 	gameState_.playerHasBlanket = scene->player ? scene->player->HasBlanket() : false;
 	gameState_.playerHasSlingshot = scene->player ? scene->player->HasSlingshot() : false;
+
+	if (pendingCheckpointPositionOverride_)
+	{
+		gameState_.playerPosX = pendingCheckpointPosX_;
+		gameState_.playerPosY = pendingCheckpointPosY_;
+		gameState_.activeCheckpointId = pendingCheckpointId_;
+		pendingCheckpointPositionOverride_ = false;
+		pendingCheckpointId_.clear();
+	}
 
 	LOG("SaveSystem: Player position saved (%.1f, %.1f)", 
 		gameState_.playerPosX, gameState_.playerPosY);
@@ -223,6 +287,7 @@ void SaveSystem::CollectSceneState()
 
 	// Get current map path (use public members)
 	gameState_.currentMapPath = map->mapPath + map->mapFileName;
+	gameState_.activeCheckpointId = scene->GetActiveCheckpointId();
 
 	// Serialize visited cells: "mapName:cx,cy;cx,cy|mapName2:cx,cy"
 	std::string cellsStr;
@@ -272,6 +337,9 @@ void SaveSystem::ApplyPlayerState()
 	Engine::GetInstance().render->SetCameraPosition(newPos.getX(), newPos.getY());
 
 	if (scene->player) {
+		scene->player->position = Vector2D(
+			gameState_.playerPosX + (float)scene->player->texW * 0.5f,
+			gameState_.playerPosY + (float)scene->player->texH * 0.5f);
 		scene->player->health = gameState_.playerHealth;
 		scene->player->SetHasBlanket(gameState_.playerHasBlanket);
 		scene->player->SetHasSlingshot(gameState_.playerHasSlingshot);
@@ -289,9 +357,52 @@ void SaveSystem::ApplyPlayerState()
 void SaveSystem::ApplySceneState()
 {
 	auto& scene = Engine::GetInstance().scene;
+	auto& map = Engine::GetInstance().map;
 
 	scene->visitedCells_.clear();
 	scene->mapRevealed_.clear();
+	scene->SetActiveCheckpointId(gameState_.activeCheckpointId);
+
+	if (!gameState_.currentMapPath.empty())
+	{
+		std::string currentMapPath = map->mapPath + map->mapFileName;
+		if (currentMapPath != gameState_.currentMapPath)
+		{
+			size_t slash = gameState_.currentMapPath.find_last_of("/\\");
+			std::string savedPath = (slash == std::string::npos) ? "" : gameState_.currentMapPath.substr(0, slash + 1);
+			std::string savedFile = (slash == std::string::npos) ? gameState_.currentMapPath : gameState_.currentMapPath.substr(slash + 1);
+			if (savedPath.empty()) savedPath = "assets/maps/";
+
+			scene->player.reset();
+			Engine::GetInstance().entityManager->CleanUp();
+			Engine::GetInstance().physics->FlushPendingDeletes();
+			map->CleanUp();
+			Engine::GetInstance().physics->FlushPendingDeletes();
+
+			scene->currentMapFile_ = savedFile;
+			for (int i = 0; i < (int)scene->levels_.size(); ++i)
+			{
+				if (scene->levels_[i].file == savedFile)
+				{
+					scene->currentLevelIndex_ = i;
+					break;
+				}
+			}
+
+			map->Load(savedPath, savedFile);
+			map->LoadEntities(scene->player);
+
+			if (scene->player == nullptr)
+			{
+				scene->player = std::dynamic_pointer_cast<Player>(
+					Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+				scene->player->position = Vector2D(gameState_.playerPosX, gameState_.playerPosY);
+				scene->player->Start();
+			}
+
+			LOG("SaveSystem: Loaded saved map %s before applying player state", gameState_.currentMapPath.c_str());
+		}
+	}
 
 	// Deserialize visited cells
 	std::string cellsStr = gameState_.visitedRoomsStr;
@@ -338,6 +449,7 @@ void SaveSystem::ApplySceneState()
 		pos = pipe + 1;
 	}
 
+	scene->SyncCheckpointEntities();
 	LOG("SaveSystem: Scene state restored (saved scene=%d)", gameState_.currentSceneId);
 }
 
@@ -363,6 +475,7 @@ bool SaveSystem::WriteXML(const std::string& filename)
 	pugi::xml_node sceneNode = root.append_child("scene");
 	sceneNode.append_attribute("id") = gameState_.currentSceneId;
 	sceneNode.append_attribute("map") = gameState_.currentMapPath.c_str();
+	sceneNode.append_attribute("activeCheckpointId") = gameState_.activeCheckpointId.c_str();
 	sceneNode.append_attribute("visitedRooms") = gameState_.visitedRoomsStr.c_str();
 	sceneNode.append_attribute("mapPurchased") = gameState_.mapPurchasedStr.c_str();
 
@@ -428,6 +541,7 @@ bool SaveSystem::ReadXML(const std::string& filename)
 	{
 		gameState_.currentSceneId = sceneNode.attribute("id").as_int();
 		gameState_.currentMapPath = sceneNode.attribute("map").as_string();
+		gameState_.activeCheckpointId = sceneNode.attribute("activeCheckpointId").as_string("");
 		gameState_.visitedRoomsStr = sceneNode.attribute("visitedRooms").as_string("");
 		gameState_.mapPurchasedStr = sceneNode.attribute("mapPurchased").as_string("");
 	}
