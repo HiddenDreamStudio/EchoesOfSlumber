@@ -25,6 +25,9 @@ struct GameState
 	bool playerHasBlanket = false;
 	bool playerHasSlingshot = false;
 
+	// Checkpoint state
+	std::string activeCheckpointId;
+
 	// Map fog registry
 	std::string visitedRoomsStr;
 	std::string mapPurchasedStr;
@@ -49,8 +52,12 @@ public:
 	bool SaveGame(const std::string& filename);
 	bool LoadGame(const std::string& filename);
 	bool QuickSave();
+	bool QuickSaveAt(float playerPosX, float playerPosY, const std::string& checkpointId);
 	bool QuickLoad();
+	bool QuickLoadImmediate();
 	bool HasValidSave() const;
+	bool HasCheckpointSave() const;
+	const std::string& GetActiveCheckpointId() const { return gameState_.activeCheckpointId; }
 
 	// Check if save file exists
 	bool SaveFileExists(const std::string& filename) const;
@@ -86,4 +93,8 @@ private:
 	std::string saveFolderPath_ = "assets/saves/";
 	bool pendingLoad_ = false;
 	bool pendingSave_ = false;
+	bool pendingCheckpointPositionOverride_ = false;
+	float pendingCheckpointPosX_ = 0.0f;
+	float pendingCheckpointPosY_ = 0.0f;
+	std::string pendingCheckpointId_;
 };
