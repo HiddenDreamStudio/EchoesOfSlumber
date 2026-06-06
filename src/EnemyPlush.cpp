@@ -255,7 +255,7 @@ void EnemyPlush::UpdateFSM(float dt)
 		}
 
 		velocity.x = patrolDirection_ * PATROL_SPEED;
-		facingRight_ = (velocity.x > 0.0f);
+		facingRight_ = (patrolDirection_ > 0.0f);
 		ApplyPhysics();
 
 		// Transition to TENSE state if player detected
@@ -315,6 +315,7 @@ void EnemyPlush::UpdateFSM(float dt)
 	{
 		jumpAirTime_ += dt;
 		GetPhysicsValues();
+		facingRight_ = jumpDirectionRight_; // keep facing the jump direction while airborne
 
 		if (jumpPhase_ == JumpPhase::START)
 		{
