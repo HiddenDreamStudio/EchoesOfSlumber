@@ -20,6 +20,13 @@ void Animation::Reset() {
     finishedOnce_ = false;
 }
 
+void Animation::SetFinished() {
+    if (frames_.empty()) return;
+    currentIndex_ = static_cast<int>(frames_.size()) - 1;
+    timeInFrameMs_ = 0;
+    finishedOnce_ = true;
+}
+
 bool Animation::HasFinishedOnce() const { return finishedOnce_ && !loop_; }
 
 void Animation::Update(float dt) {

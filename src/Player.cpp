@@ -12,6 +12,7 @@
 #include "SlingshotProjectile.h"
 #include "tracy/Tracy.hpp"
 #include "Door.h"
+#include <algorithm>
 
 Player::Player() : Entity(EntityType::PLAYER),
 texW(128), texH(128),
@@ -161,6 +162,11 @@ bool Player::Update(float dt)
 	ZoneScoped;
 
 	if (Engine::GetInstance().scene->isPaused_) {
+		Draw(0.0f);
+		return true;
+	}
+
+	if (Engine::GetInstance().scene->IsCheckpointTransitionActive()) {
 		Draw(0.0f);
 		return true;
 	}
@@ -964,9 +970,10 @@ void Player::Draw(float dt) {
 
     if (isWakingUp) {
         if (wakeUpAnimStarted) {
-            wakeUpAnim.Update(dt);
+            wakeUpAnim.Update(dt * wakeUpAnimSpeed_);
             if (wakeUpAnim.HasFinishedOnce()) {
                 isWakingUp = false;
+				wakeUpAnimSpeed_ = 1.0f;
             }
         }
         if (isWakingUp) {
@@ -1237,8 +1244,22 @@ void Player::Revive()
 	isAiming_ = false;
 	chargeTimer_ = 0.0f;
 	slingshotCooldown_ = 0.0f;
+	isYoyoTrapped_ = false;
+	knockbackX_ = 0.0f;
+	knockbackTimer_ = 0.0f;
+	velocity = { 0.0f, 0.0f };
+	if (pbody) Engine::GetInstance().physics->SetLinearVelocity(pbody, 0.0f, 0.0f);
 	anims.SetCurrent("idle");
 	damageFlashTimer_ = 0.0f;
+}
+
+void Player::StartWakeUp(float speedMultiplier)
+{
+	Revive();
+	isWakingUp = true;
+	wakeUpAnimStarted = true;
+	wakeUpAnimSpeed_ = std::max(0.1f, speedMultiplier);
+	wakeUpAnim.Reset();
 }
 
 bool Player::CleanUp()
