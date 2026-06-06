@@ -15,6 +15,7 @@ public:
     void AddFrame(const SDL_Rect& r, int durationMs);
     void SetLoop(bool v);
     void Reset();
+    void SetFinished();
     bool HasFinishedOnce() const;
     void Update(float dt);
     void UpdateBackwards(float dt);
