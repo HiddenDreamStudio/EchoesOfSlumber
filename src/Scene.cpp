@@ -17,8 +17,10 @@
 #include "DiscordManager.h"
 #include "Physics.h"
 #include "Boss.h"
+#include "Checkpoint.h"
 #include <cstdlib>
 #include <cmath>
+#include <algorithm>
 
 // ----------------------------------------------------------------------------
 // Button IDs  (main menu)
@@ -1219,8 +1221,13 @@ void Scene::UpdateLoading(float dt)
 
 				player->Start();
 			}
-
-			currentHealthUI_ = 3;
+			healthSlotCount_ = currentLevelIndex_ + 3;
+			if (healthSlotCount_ > MAX_HEALTH_SLOTS) healthSlotCount_ = MAX_HEALTH_SLOTS;
+			if (player) {
+				player->maxHealth = healthSlotCount_;
+				player->health = healthSlotCount_;
+			}
+			currentHealthUI_ = healthSlotCount_;
 			activeHealthAnim_ = 0;
 			isGameOver_ = false;
 			inGameIntroActive_ = false;
@@ -1356,13 +1363,14 @@ void Scene::LoadGameplay()
 		int columns = tileset.attribute("columns").as_int();
 		std::string imgPath = tileset.child("image").attribute("source").as_string();
 
-		std::string finalPath = "assets/textures/spritesheets/SS Healthbar/";
-		size_t lastSlash = imgPath.find_last_of('/');
-		if (lastSlash != std::string::npos) {
-			finalPath += imgPath.substr(lastSlash + 1);
+		// Resolve relative path dynamically from the TSX file location
+		std::string finalPath = tsxPath;
+		size_t lastSlashTsx = finalPath.find_last_of("/\\");
+		if (lastSlashTsx != std::string::npos) {
+			finalPath = finalPath.substr(0, lastSlashTsx + 1) + imgPath;
 		}
 		else {
-			finalPath += imgPath;
+			finalPath = imgPath;
 		}
 
 		tex = Engine::GetInstance().textures->Load(finalPath.c_str());
@@ -1376,19 +1384,52 @@ void Scene::LoadGameplay()
 			r.y = (i / columns) * th;
 			r.w = tw;
 			r.h = th;
-			anim.AddFrame(r, 100);
+			anim.AddFrame(r, 80); // 80ms per frame for a smooth loop
 		}
 		anim.SetLoop(false);
-		};
+		anim.Reset();
+	};
 
-	setupAnimFromTSX("assets/textures/animations/HealthAnimations/SS_Healthbar-1.tsx", animHealth1_, texHealth1_);
-	setupAnimFromTSX("assets/textures/animations/HealthAnimations/SS_Healthbar-2.tsx", animHealth2_, texHealth2_);
-	setupAnimFromTSX("assets/textures/animations/HealthAnimations/SS_Healthbar-3.tsx", animHealth3_, texHealth3_);
+	// Load health bar animations based on current level (Fase)
+	// Level 1 = Fase1 (3 HP), Level 2 = Fase2 (4 HP), Level 3 = Fase3 (5 HP), Level 4 = Fase4 (6 HP)
+	{
+		int fase = currentLevelIndex_ + 1;
+		healthSlotCount_ = currentLevelIndex_ + 3; // 3, 4, 5, or 6
+		if (healthSlotCount_ > MAX_HEALTH_SLOTS) healthSlotCount_ = MAX_HEALTH_SLOTS;
 
-	currentHealthUI_ = 3;
+		// Clear all slots first
+		for (int i = 0; i < MAX_HEALTH_SLOTS; i++) {
+			texHealth_[i] = nullptr;
+			animHealth_[i] = Animation();
+		}
+
+		if (fase == 1) {
+			// Fase1 uses the original TSX naming: SS_Healthbar-1.tsx, SS_Healthbar-2.tsx, SS_Healthbar-3.tsx
+			for (int i = 0; i < healthSlotCount_; i++) {
+				std::string tsxPath = "assets/textures/animations/HealthAnimations/SS_Healthbar-" + std::to_string(i + 1) + ".tsx";
+				setupAnimFromTSX(tsxPath.c_str(), animHealth_[i], texHealth_[i]);
+			}
+		}
+		else {
+			// Fase2/3/4 use naming: SS_Healthbar_FaseN-M.tsx
+			for (int i = 0; i < healthSlotCount_; i++) {
+				std::string tsxPath = "assets/textures/animations/HealthAnimations/SS_Healthbar_Fase" + std::to_string(fase) + "-" + std::to_string(i + 1) + ".tsx";
+				setupAnimFromTSX(tsxPath.c_str(), animHealth_[i], texHealth_[i]);
+			}
+		}
+
+		// Set player max health and health for this level
+		if (player) {
+			player->maxHealth = healthSlotCount_;
+			player->health = healthSlotCount_;
+		}
+		LOG("Health HUD loaded: Fase %d, %d slots", fase, healthSlotCount_);
+	}
+
+	currentHealthUI_ = healthSlotCount_;
 	activeHealthAnim_ = 0;
 	isGameOver_ = false;
-	texGameOver_ = Engine::GetInstance().render->CreateMenuTextTexture("GAME OVER, YOU DIED", { 255, 0, 0, 255 });
+	texGameOver_ = nullptr; // No longer using code-generated text
 	texCheckpointSaved_ = Engine::GetInstance().render->CreateMenuTextTexture("GAME SAVED", { 255, 255, 255, 255 });
 	checkpointSaveTimer_ = 0.0f;
 
@@ -1396,17 +1437,20 @@ void Scene::LoadGameplay()
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-	// Load Game Over textures
+	// Load new Game Over screen assets with built-in text and soft background blur
+	texGameOverScreenBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_GameOver_Screen_Base_Blur.png");
+	texGameOverText_ = nullptr; // Not needed since the text is perfectly integrated in the base!
 	texGameOverBg_ = nullptr;
 	texGameOverBtn_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
-	texGameOverKid_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Kid_Fragmented2.png");
-	texGameOverFrag1_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Fragment1.png");
-	texGameOverFrag3_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Fragment3.png");
-	texGameOverFrag4_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Fragment4.png");
-	texGameOverFrag5_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Fragment5.png");
+	texGameOverKid_ = nullptr;
+	texGameOverFrag1_ = nullptr;
+	texGameOverFrag3_ = nullptr;
+	texGameOverFrag4_ = nullptr;
+	texGameOverFrag5_ = nullptr;
 
-	SDL_Rect contBtnPos = { winW / 2 - 230, winH / 2 - 20, 460, 84 };
-	SDL_Rect mainBtnPos = { winW / 2 - 230, winH / 2 + 84, 460, 84 };
+	// Shift Y coordinates down (+35 and +135) to align beautifully under the built-in "GAME OVER" text
+	SDL_Rect contBtnPos = { winW / 2 - 230, winH / 2 + 35, 460, 84 };
+	SDL_Rect mainBtnPos = { winW / 2 - 230, winH / 2 + 135, 460, 84 };
 
 	auto contBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_GAMEOVER_CONTINUE, "CONTINUE", contBtnPos, this);
 	auto goBtn = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_GAMEOVER_MAINMENU, "MAIN MENU", mainBtnPos, this);
@@ -1522,6 +1566,30 @@ void Scene::LoadGameplay()
 
 void Scene::UpdateGameplay(float dt)
 {
+	if (UpdateCheckpointTransition(dt))
+		return;
+
+	if (isGameOver_) {
+		gameOverFadeTimer_ += dt * 0.001f; // Convert ms to seconds
+		if (gameOverFadeTimer_ > 1.5f) {
+			gameOverFadeTimer_ = 1.5f;
+		}
+
+		// Enable and show buttons only after the fade-in is mostly complete (after 1.0 second)
+		auto& list = Engine::GetInstance().uiManager->UIElementsList;
+		for (auto& el : list) {
+			if (el->id == BTN_GAMEOVER_MAINMENU || el->id == BTN_GAMEOVER_CONTINUE) {
+				if (!el->isVisible && gameOverFadeTimer_ >= 1.0f) {
+					el->isVisible = true;
+					el->state = UIElementState::NORMAL;
+				}
+				if (el->id == BTN_GAMEOVER_CONTINUE && !Engine::GetInstance().saveSystem->HasValidSave()) {
+					el->state = UIElementState::DISABLED;
+				}
+			}
+		}
+	}
+
 	// ── Automatic Entry Movement (Levels 2, 3, 4) ───────────────────────────
 	if (isAutoEntering_ && player) {
 		autoEntryProgress_ += dt * 0.001f; // ~1 second entry
@@ -1862,53 +1930,54 @@ void Scene::UpdateGameplay(float dt)
 			player->TakeDamage(player->health);
 			currentHealthUI_ = 0;
 			activeHealthAnim_ = 0;
-			isGameOver_ = true;
+			if (!RequestCheckpointRespawn()) {
+				isGameOver_ = true;
+			}
 		}
 
 		// HUD Logic
 
-		if (player->health < currentHealthUI_) {
-			if (currentHealthUI_ == 3) {
-				activeHealthAnim_ = 1;
-				animHealth1_.Reset();
-			}
-			else if (currentHealthUI_ == 2) {
-				activeHealthAnim_ = 2;
-				animHealth2_.Reset();
-			}
-			else if (currentHealthUI_ == 1) {
-				activeHealthAnim_ = 3;
-				animHealth3_.Reset();
-			}
+		if (player->health != currentHealthUI_) {
 			currentHealthUI_ = player->health;
+			// Reset the animation for the slot that just became active
+			int diff = player->maxHealth - currentHealthUI_;
+			if (diff > 0 && diff <= healthSlotCount_) {
+				animHealth_[diff - 1].Reset();
+			}
+			else if (diff == 0) {
+				animHealth_[0].Reset();
+			}
+			activeHealthAnim_ = 0;
 		}
 
-		if (activeHealthAnim_ == 1) {
-			animHealth1_.Update(dt);
-			if (animHealth1_.HasFinishedOnce()) activeHealthAnim_ = 0;
-		}
-		else if (activeHealthAnim_ == 2) {
-			animHealth2_.Update(dt);
-			if (animHealth2_.HasFinishedOnce()) activeHealthAnim_ = 0;
-		}
-		else if (activeHealthAnim_ == 3) {
-			animHealth3_.Update(dt);
-			if (animHealth3_.HasFinishedOnce()) activeHealthAnim_ = 0;
+		{
+			int diff = player->maxHealth - currentHealthUI_;
+			if (diff == 0) {
+				// Full health: keep static (first frame)
+				animHealth_[0].Reset();
+			}
+			else if (diff > 0 && diff <= healthSlotCount_) {
+				animHealth_[diff - 1].Update(dt);
+			}
 		}
 
 		if (player->health <= 0 && activeHealthAnim_ == 0 && !isGameOver_) {
-			isGameOver_ = true;
+			if (!RequestCheckpointRespawn())
+			{
+				isGameOver_ = true;
+				gameOverFadeTimer_ = 0.0f; // Initialize fade timer
 
-			auto& list = Engine::GetInstance().uiManager->UIElementsList;
-			for (auto& el : list) {
-				if (el->id == BTN_GAMEOVER_MAINMENU || el->id == BTN_GAMEOVER_CONTINUE) {
-					el->isVisible = true;
-					el->state = UIElementState::NORMAL;
-				}
+				auto& list = Engine::GetInstance().uiManager->UIElementsList;
+				for (auto& el : list) {
+					if (el->id == BTN_GAMEOVER_MAINMENU || el->id == BTN_GAMEOVER_CONTINUE) {
+						el->isVisible = false; // Hide initially so they pop/fade in smoothly later
+						el->state = UIElementState::NORMAL;
+					}
 
-				if (el->id == BTN_GAMEOVER_CONTINUE) {
-					if (!Engine::GetInstance().saveSystem->HasValidSave())
-						el->state = UIElementState::DISABLED;
+					if (el->id == BTN_GAMEOVER_CONTINUE) {
+						if (!Engine::GetInstance().saveSystem->HasValidSave())
+							el->state = UIElementState::DISABLED;
+					}
 				}
 			}
 		}
@@ -2116,11 +2185,13 @@ void Scene::UnloadGameplay()
 	showMapViewer_ = false;
 	showInventory_ = false;
 
-	if (texHealth1_) { Engine::GetInstance().textures->UnLoad(texHealth1_); texHealth1_ = nullptr; }
-	if (texHealth2_) { Engine::GetInstance().textures->UnLoad(texHealth2_); texHealth2_ = nullptr; }
-	if (texHealth3_) { Engine::GetInstance().textures->UnLoad(texHealth3_); texHealth3_ = nullptr; }
+	for (int i = 0; i < MAX_HEALTH_SLOTS; i++) {
+		if (texHealth_[i]) { Engine::GetInstance().textures->UnLoad(texHealth_[i]); texHealth_[i] = nullptr; }
+	}
 	if (texGameOver_) { SDL_DestroyTexture(texGameOver_); texGameOver_ = nullptr; }
 
+	if (texGameOverScreenBase_) { Engine::GetInstance().textures->UnLoad(texGameOverScreenBase_); texGameOverScreenBase_ = nullptr; }
+	if (texGameOverText_) { Engine::GetInstance().textures->UnLoad(texGameOverText_); texGameOverText_ = nullptr; }
 	if (texGameOverBg_) { Engine::GetInstance().textures->UnLoad(texGameOverBg_); texGameOverBg_ = nullptr; }
 	if (texGameOverBtn_) { Engine::GetInstance().textures->UnLoad(texGameOverBtn_); texGameOverBtn_ = nullptr; }
 	if (texGameOverKid_) { Engine::GetInstance().textures->UnLoad(texGameOverKid_); texGameOverKid_ = nullptr; }
@@ -2213,10 +2284,173 @@ void Scene::LoadMap2() { LoadMap(1); }
 void Scene::LoadMap3() { LoadMap(2); }
 void Scene::LoadMap4() { LoadMap(3); }
 
+bool Scene::RequestCheckpointActivation(const std::string& checkpointId, const Vector2D& spawnPosition)
+{
+	if (checkpointId.empty() || IsCheckpointTransitionActive() || isGameOver_ || waitingForFade_)
+		return false;
+
+	pendingCheckpointId_ = checkpointId;
+	pendingCheckpointSpawn_ = spawnPosition;
+	checkpointTransitionMode_ = CheckpointTransitionMode::ACTIVATE;
+	checkpointTransitionPhase_ = CheckpointTransitionPhase::FADE_OUT;
+	checkpointBlackHoldTimer_ = 0.0f;
+	checkpointNotifyAfterFade_ = false;
+	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 350.0f);
+	return true;
+}
+
+bool Scene::RequestCheckpointRespawn()
+{
+	if (IsCheckpointTransitionActive() || waitingForFade_)
+		return false;
+
+	if (!Engine::GetInstance().saveSystem->HasCheckpointSave())
+		return false;
+
+	checkpointTransitionMode_ = CheckpointTransitionMode::RESPAWN;
+	checkpointTransitionPhase_ = CheckpointTransitionPhase::FADE_OUT;
+	checkpointBlackHoldTimer_ = 0.0f;
+	checkpointNotifyAfterFade_ = false;
+	SetGameOverVisible(false);
+	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 450.0f);
+	return true;
+}
+
+bool Scene::IsCheckpointTransitionActive() const
+{
+	return checkpointTransitionPhase_ != CheckpointTransitionPhase::NONE;
+}
+
+void Scene::SetActiveCheckpointId(const std::string& checkpointId)
+{
+	activeCheckpointId_ = checkpointId;
+}
+
+void Scene::SyncCheckpointEntities()
+{
+	for (const auto& entity : Engine::GetInstance().entityManager->entities)
+	{
+		if (entity->type != EntityType::CHECKPOINT) continue;
+		auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(entity);
+		if (!checkpoint) continue;
+		checkpoint->SetActivated(!activeCheckpointId_.empty() &&
+			checkpoint->GetCheckpointId() == activeCheckpointId_);
+	}
+}
+
+void Scene::ResolveCheckpointTransition()
+{
+	if (checkpointTransitionMode_ == CheckpointTransitionMode::ACTIVATE)
+	{
+		SetActiveCheckpointId(pendingCheckpointId_);
+		SyncCheckpointEntities();
+
+		if (player)
+		{
+			const int maxHp = std::max(1, player->maxHealth);
+			player->health = maxHp;
+			player->Revive();
+			player->isWakingUp = false;
+			player->wakeUpAnimStarted = true;
+			ResetHealthUI(player->health);
+		}
+
+		Vector2D checkpointPlayerPos = pendingCheckpointSpawn_;
+		if (player)
+		{
+			checkpointPlayerPos = Vector2D(
+				pendingCheckpointSpawn_.getX() - (float)player->texW * 0.5f,
+				pendingCheckpointSpawn_.getY() - (float)player->texH * 0.5f);
+		}
+
+		Engine::GetInstance().saveSystem->QuickSaveAt(
+			checkpointPlayerPos.getX(),
+			checkpointPlayerPos.getY(),
+			pendingCheckpointId_);
+		checkpointNotifyAfterFade_ = true;
+		LOG("Checkpoint activated: %s", pendingCheckpointId_.c_str());
+	}
+	else if (checkpointTransitionMode_ == CheckpointTransitionMode::RESPAWN)
+	{
+		if (Engine::GetInstance().saveSystem->QuickLoadImmediate())
+		{
+			isGameOver_ = false;
+			gameOverFadeTimer_ = 0.0f;
+			inGameIntroActive_ = false;
+			isAutoEntering_ = false;
+			inGameIntroTimer_ = 0.0f;
+			autoEntryProgress_ = 0.0f;
+
+			if (player)
+			{
+				player->StartWakeUp(2.0f);
+				ResetHealthUI(player->health);
+				Engine::GetInstance().render->SetCameraPosition(player->position.getX(), player->position.getY());
+			}
+
+			Engine::GetInstance().render->SetCameraSway(true);
+			Engine::GetInstance().render->SetCameraClamping(true);
+			Engine::GetInstance().render->SetCameraMovement(true);
+			Engine::GetInstance().render->cameraZoom = 1.0f;
+			Engine::GetInstance().render->blurIntensity = 0.0f;
+			Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 1.0f);
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
+			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
+			LOG("Checkpoint respawn completed");
+		}
+	}
+}
+
+bool Scene::UpdateCheckpointTransition(float dt)
+{
+	if (!IsCheckpointTransitionActive()) return false;
+
+	if (checkpointTransitionPhase_ == CheckpointTransitionPhase::FADE_OUT)
+	{
+		if (Engine::GetInstance().render->IsFadeComplete())
+		{
+			ResolveCheckpointTransition();
+			checkpointBlackHoldTimer_ = 220.0f;
+			checkpointTransitionPhase_ = CheckpointTransitionPhase::HOLD_BLACK;
+		}
+		return true;
+	}
+
+	if (checkpointTransitionPhase_ == CheckpointTransitionPhase::HOLD_BLACK)
+	{
+		checkpointBlackHoldTimer_ -= dt;
+		if (checkpointBlackHoldTimer_ <= 0.0f)
+		{
+			Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 650.0f);
+			checkpointTransitionPhase_ = CheckpointTransitionPhase::FADE_IN;
+		}
+		return true;
+	}
+
+	if (checkpointTransitionPhase_ == CheckpointTransitionPhase::FADE_IN)
+	{
+		if (Engine::GetInstance().render->IsFadeComplete())
+		{
+			checkpointTransitionMode_ = CheckpointTransitionMode::NONE;
+			checkpointTransitionPhase_ = CheckpointTransitionPhase::NONE;
+			pendingCheckpointId_.clear();
+
+			if (checkpointNotifyAfterFade_)
+			{
+				checkpointSaveTimer_ = 3000.0f;
+				checkpointNotifyAfterFade_ = false;
+			}
+		}
+		return true;
+	}
+
+	return true;
+}
+
 void Scene::PostUpdateGameplay()
 {
 	// Quick save/load shortcuts (only when not paused)
-	if (!isPaused_ && !isGameOver_) {
+	if (!isPaused_ && !isGameOver_ && !IsCheckpointTransitionActive()) {
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F5) == KEY_DOWN)
 			Engine::GetInstance().saveSystem->QuickLoad();
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F6) == KEY_DOWN)
@@ -2276,101 +2510,72 @@ void Scene::PostUpdateGameplay()
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
 
-		if (activeHealthAnim_ == 1) {
-			texToDraw = texHealth1_;
-			frame = &animHealth1_.GetCurrentFrame();
-		}
-		else if (activeHealthAnim_ == 2) {
-			texToDraw = texHealth2_;
-			frame = &animHealth2_.GetCurrentFrame();
-		}
-		else if (activeHealthAnim_ == 3) {
-			texToDraw = texHealth3_;
-			frame = &animHealth3_.GetCurrentFrame();
-		}
-		else {
-
-			if (currentHealthUI_ == 3) {
-				texToDraw = texHealth1_;
-				if (texHealth1_) {
-					r = animHealth1_.GetCurrentFrame();
-					frame = &r;
-				}
+		// Generic health HUD drawing using diff-based array indexing
+		// diff = maxHealth - currentHealth → index into texHealth_[] / animHealth_[]
+		{
+			int maxHP = player ? player->maxHealth : healthSlotCount_;
+			int diff = maxHP - currentHealthUI_;
+			if (diff == 0 && texHealth_[0]) {
+				// Full health: show first frame of slot 0
+				texToDraw = texHealth_[0];
+				r = animHealth_[0].GetCurrentFrame();
+				frame = &r;
 			}
-			else if (currentHealthUI_ == 2) {
-				texToDraw = texHealth2_;
-				if (texHealth2_) {
-					r = animHealth2_.GetCurrentFrame();
-					frame = &r;
-				}
-			}
-			else if (currentHealthUI_ == 1) {
-				texToDraw = texHealth3_;
-				if (texHealth3_) {
-					r = animHealth3_.GetCurrentFrame();
-					frame = &r;
-				}
-			}
-			else if (currentHealthUI_ <= 0) {
-				texToDraw = texHealth3_;
-				if (texHealth3_) {
-					r = animHealth3_.GetCurrentFrame();
+			else if (diff > 0 && diff <= healthSlotCount_) {
+				int idx = diff - 1;
+				if (texHealth_[idx]) {
+					texToDraw = texHealth_[idx];
+					r = animHealth_[idx].GetCurrentFrame();
 					frame = &r;
 				}
 			}
 		}
          if (texToDraw && frame) {
-             Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+             Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.25f);
          }
 
          Player::EquippedItem eq = player->GetEquippedItem();
 
-         // --- Blanket HUD Icon ---
-         if (player->HasBlanket())
-         {
-             int blHudX = 220;
-             int blHudY = 72;
+         // --- Unified Diamond-Shaped Ability & Item HUD next to Health ---
+         int hudStartX = 185;
+         int hudY = 75;
+         int hudIconSize = 54;
+         int hudGap = 12;
 
-             // 1. Draw Golden Neon Border if currently equipped (from HEAD)
-             if (eq == Player::EquippedItem::BLANKET)
-             {
-                 // Border sized to fit the 64x64 ability icon
-                 SDL_Rect hudBorder = { blHudX - 4, blHudY - 4, 72, 72 };
-                 Engine::GetInstance().render->DrawRectangle(hudBorder, 255, 195, 0, 255, false, false);
+         // 1. Blanket (Manta) HUD Icon
+         if (texAbilityBlanketIcon_) {
+             Uint8 alpha = player->HasBlanket() ? 255 : 60;
+             // Draw a glowing golden outline around the icon slot if equipped
+             if (eq == Player::EquippedItem::BLANKET && player->HasBlanket()) {
+                 SDL_Rect borderRect = { hudStartX - 3, hudY - 3, hudIconSize + 6, hudIconSize + 6 };
+                 Engine::GetInstance().render->DrawRectangle(borderRect, 255, 195, 0, 255, false, false);
              }
-
-             // 2. Draw the Ability Icon based on Hiding state (from fcdb9746)
-             SDL_Texture* blanketTex = player->IsHiding() ? texBlanketActive_ : texBlanketInactive_;
-
-             if (blanketTex)
-             {
-                 // Draw the high-quality ability texture
-                 Engine::GetInstance().render->DrawTextureAlpha(blanketTex, blHudX, blHudY, 64, 64, 255);
-             }
-             else if (texCapaCollectible_)
-             {
-                 // Fallback to the collectible icon if special ability textures aren't loaded
-                 Uint8 blAlpha = player->IsHiding() ? (Uint8)255 : (Uint8)160;
-                 Engine::GetInstance().render->DrawTextureAlpha(texCapaCollectible_, blHudX, blHudY, 48, 48, blAlpha);
-             }
+             Engine::GetInstance().render->DrawTextureAlpha(texAbilityBlanketIcon_, hudStartX, hudY, hudIconSize, hudIconSize, alpha);
          }
 
-         // --- Slingshot HUD Icon ---
-         if (player->HasSlingshot() && texSlingshotCollectible_)
-         {
-			// Position to the right of the blanket icon (or in its spot if no blanket)
-			int slHudX = player->HasBlanket() ? 290 : 220;
-			int slHudY = 72;
-			Uint8 slAlpha = player->IsAiming() ? (Uint8)255 : (Uint8)160;
+         // 2. Slingshot (Tirachinas) HUD Icon
+         if (texAbilitySlingshotIcon_) {
+             int posX = hudStartX + hudIconSize + hudGap;
+             Uint8 alpha = player->HasSlingshot() ? 255 : 60;
+             // Draw a glowing golden outline around the icon slot if equipped
+             if (eq == Player::EquippedItem::SLINGSHOT && player->HasSlingshot()) {
+                 SDL_Rect borderRect = { posX - 3, hudY - 3, hudIconSize + 6, hudIconSize + 6 };
+                 Engine::GetInstance().render->DrawRectangle(borderRect, 255, 195, 0, 255, false, false);
+             }
+             Engine::GetInstance().render->DrawTextureAlpha(texAbilitySlingshotIcon_, posX, hudY, hudIconSize, hudIconSize, alpha);
+         }
 
-			if (eq == Player::EquippedItem::SLINGSHOT)
-			{
-				// Draw a gorgeous golden neon border around equipped Slingshot HUD slot
-				SDL_Rect hudBorder = { slHudX - 4, slHudY - 4, 56, 56 };
-				Engine::GetInstance().render->DrawRectangle(hudBorder, 255, 195, 0, 255, false, false);
-			}
-			Engine::GetInstance().render->DrawTextureAlpha(texSlingshotCollectible_, slHudX, slHudY, 48, 48, slAlpha);
-		}
+         // 3. Stuffed Animal (Oso/Peluche) HUD Icon
+         if (texAbilityStuffedAnimalIcon_) {
+             int posX = hudStartX + (hudIconSize + hudGap) * 2;
+             Uint8 alpha = player->HasStuffedAnimal() ? 255 : 60;
+             // Draw a glowing golden outline around the icon slot if equipped
+             if (eq == Player::EquippedItem::STUFFED_ANIMAL && player->HasStuffedAnimal()) {
+                 SDL_Rect borderRect = { posX - 3, hudY - 3, hudIconSize + 6, hudIconSize + 6 };
+                 Engine::GetInstance().render->DrawRectangle(borderRect, 255, 195, 0, 255, false, false);
+             }
+             Engine::GetInstance().render->DrawTextureAlpha(texAbilityStuffedAnimalIcon_, posX, hudY, hudIconSize, hudIconSize, alpha);
+         }
 
 		// --- Draw Dynamic Minimap ---
 		if (!texMinimapFrame_)
@@ -2550,46 +2755,15 @@ void Scene::PostUpdateGameplay()
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-		if (texGameOver_) {
-			float tw, th;
-			SDL_GetTextureSize(texGameOver_, &tw, &th);
-			float drawX = ((float)winW - tw) / 2.0f;
-			float drawY = ((float)winH - th) / 2.0f - 200.0f;
+		// Draw the dark angular panel background with built-in blurred vignette and "GAME OVER" text scaled to fill the window (with soft alpha fade-in)
+		if (texGameOverScreenBase_) {
+			float progress = gameOverFadeTimer_ / 1.2f; // Fade in over 1.2 seconds
+			if (progress > 1.0f) progress = 1.0f;
+			Uint8 alphaVal = (Uint8)(progress * 255.0f);
 
-			float scale = 1.5f;
-			float sw = tw * scale;
-			float sh = th * scale;
-			float sx = ((float)winW - sw) / 2.0f;
-			float sy = drawY - (sh - th) / 2.0f;
-
-
-			SDL_SetTextureScaleMode(texGameOver_, SDL_SCALEMODE_LINEAR);
-
-
-			float shadowOffset = 6.0f;
-			SDL_SetTextureColorMod(texGameOver_, 255, 100, 100);
-			Engine::GetInstance().render->DrawTextureAlphaF(texGameOver_, sx + shadowOffset, sy + shadowOffset, sw, sh, (Uint8)130);
-
-			SDL_SetTextureColorMod(texGameOver_, 255, 255, 255);
-			Engine::GetInstance().render->DrawTextureAlphaF(texGameOver_, sx, sy, sw, sh, (Uint8)255);
+			SDL_SetTextureScaleMode(texGameOverScreenBase_, SDL_SCALEMODE_LINEAR);
+			Engine::GetInstance().render->DrawTextureAlphaF(texGameOverScreenBase_, 0.0f, 0.0f, (float)winW, (float)winH, alphaVal);
 		}
-
-
-		if (texGameOverKid_) {
-			float kw, kh;
-			SDL_GetTextureSize(texGameOverKid_, &kw, &kh);
-			float kScale = 0.22f;
-			Engine::GetInstance().render->DrawTextureAlphaF(texGameOverKid_, (float)winW - kw * kScale - 20.0f, (float)winH - kh * kScale - 20.0f, kw * kScale, kh * kScale, (Uint8)255);
-		}
-
-
-		if (texGameOverFrag1_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag1_, 100.0f, 150.0f, 160.0f, 160.0f, 180);
-		if (texGameOverFrag3_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag3_, (float)winW - 350.0f, 80.0f, 200.0f, 200.0f, 150);
-		if (texGameOverFrag5_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag5_, 200.0f, (float)winH - 300.0f, 140.0f, 140.0f, 160);
-		if (texGameOverFrag1_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag1_, (float)winW / 2.0f + 250.0f, (float)winH / 2.0f + 120.0f, 120.0f, 120.0f, 130);
-
-
-		if (texGameOverFrag4_) Engine::GetInstance().render->DrawTextureAlphaF(texGameOverFrag4_, 50.0f, (float)winH - 220.0f, 180.0f, 180.0f, 200);
 	}
 
 	// --- Checkpoint Save Notification ---
@@ -2601,7 +2775,7 @@ void Scene::PostUpdateGameplay()
 			int winW = 0, winH = 0;
 			Engine::GetInstance().window->GetWindowSize(winW, winH);
 
-			float drawX = (float)winW - tw - 40.0f;
+			float drawX = 40.0f;
 			float drawY = (float)winH - th - 40.0f;
 
 			Uint8 alpha = 255;
@@ -3662,6 +3836,9 @@ void Scene::SetPauseOptionsPanelVisible(bool visible)
 void Scene::SetGameOverVisible(bool visible)
 {
 	isGameOver_ = visible;
+	if (!visible) {
+		gameOverFadeTimer_ = 0.0f;
+	}
 	auto& list = Engine::GetInstance().uiManager->UIElementsList;
 	for (auto& el : list) {
 		if (el->id == BTN_GAMEOVER_CONTINUE || el->id == BTN_GAMEOVER_MAINMENU) {
@@ -3674,9 +3851,19 @@ void Scene::ResetHealthUI(int health)
 {
 	currentHealthUI_ = health;
 	activeHealthAnim_ = 0;
-	animHealth1_.Reset();
-	animHealth2_.Reset();
-	animHealth3_.Reset();
+
+	for (int i = 0; i < MAX_HEALTH_SLOTS; i++) {
+		animHealth_[i].Reset();
+	}
+
+	int maxHP = player ? player->maxHealth : healthSlotCount_;
+	int lostHP = maxHP - health;
+
+	for (int i = 0; i < lostHP; i++) {
+		if (i >= 0 && i < healthSlotCount_) {
+			animHealth_[i].SetFinished();
+		}
+	}
 }
 
 void Scene::ShowNoCapeNotification()
@@ -4212,6 +4399,12 @@ void Scene::ExecuteSubMapLoad()
         player->Start();
     }
 
+    if (player) {
+        player->maxHealth = healthSlotCount_;
+        if (savedHealth > healthSlotCount_) {
+            savedHealth = healthSlotCount_;
+        }
+    }
     player->health = savedHealth;
 
     float spawnX = 0.0f, spawnY = 0.0f;
