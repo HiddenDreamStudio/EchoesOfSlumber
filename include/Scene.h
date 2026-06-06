@@ -55,6 +55,12 @@ public:
     void CheckPortalCollisions(float dt);
     Vector2D GetSpawnPosition(const std::string& spawnId);
     void ExecuteSubMapLoad();
+    bool RequestCheckpointActivation(const std::string& checkpointId, const Vector2D& spawnPosition);
+    bool RequestCheckpointRespawn();
+    bool IsCheckpointTransitionActive() const;
+    const std::string& GetActiveCheckpointId() const { return activeCheckpointId_; }
+    void SetActiveCheckpointId(const std::string& checkpointId);
+    void SyncCheckpointEntities();
 
 
 
@@ -217,12 +223,15 @@ public:
     bool isPaused_ = false;
     bool showPauseOptions_ = false;
     bool isGameOver_ = false;
+    float gameOverFadeTimer_ = 0.0f;
 
 private:
     void LoadGameplay();
     void UnloadGameplay();
     void UpdateGameplay(float dt);
     void PostUpdateGameplay();
+    bool UpdateCheckpointTransition(float dt);
+    void ResolveCheckpointTransition();
 
     // ── Map switching (F1 / F2 / F3 / F4) ──────────────────────────────────────
     std::string currentMapFile_ = "MapTemplate.tmx";
@@ -246,6 +255,24 @@ private:
 
     std::string pendingLevelSpawnId_;
     bool hasPendingLevelSpawn_ = false;
+    enum class CheckpointTransitionMode {
+        NONE,
+        ACTIVATE,
+        RESPAWN
+    };
+    enum class CheckpointTransitionPhase {
+        NONE,
+        FADE_OUT,
+        HOLD_BLACK,
+        FADE_IN
+    };
+    CheckpointTransitionMode checkpointTransitionMode_ = CheckpointTransitionMode::NONE;
+    CheckpointTransitionPhase checkpointTransitionPhase_ = CheckpointTransitionPhase::NONE;
+    std::string activeCheckpointId_;
+    std::string pendingCheckpointId_;
+    Vector2D pendingCheckpointSpawn_;
+    float checkpointBlackHoldTimer_ = 0.0f;
+    bool checkpointNotifyAfterFade_ = false;
 
 public:
     void SetGameOverVisible(bool visible);
@@ -291,15 +318,13 @@ private:
     void UpdateBossFight();
     void DrawBossHUD(int winW, int winH);
 
-    // Health HUD
-    SDL_Texture* texHealth1_ = nullptr;
-    SDL_Texture* texHealth2_ = nullptr;
-    SDL_Texture* texHealth3_ = nullptr;
-    Animation animHealth1_;
-    Animation animHealth2_;
-    Animation animHealth3_;
+    // Health HUD (supports up to 6 health slots depending on level/fase)
+    static constexpr int MAX_HEALTH_SLOTS = 6;
+    SDL_Texture* texHealth_[MAX_HEALTH_SLOTS] = {};
+    Animation    animHealth_[MAX_HEALTH_SLOTS];
+    int          healthSlotCount_ = 3; // number of slots loaded for current level
     int currentHealthUI_ = 3;
-    int activeHealthAnim_ = 0; // 0=None, 1=animHealth1_, 2=animHealth2_, 3=animHealth3_
+    int activeHealthAnim_ = 0; // 0=None, otherwise legacy (unused)
     SDL_Texture* texGameOver_ = nullptr;
 
     // Blanket ability HUD icon
@@ -344,6 +369,8 @@ private:
     SDL_Texture* texGameOverFrag3_ = nullptr;
     SDL_Texture* texGameOverFrag4_ = nullptr;
     SDL_Texture* texGameOverFrag5_ = nullptr;
+    SDL_Texture* texGameOverScreenBase_ = nullptr;
+    SDL_Texture* texGameOverText_ = nullptr;
 
     // Checkpoint notification
     SDL_Texture* texCheckpointSaved_ = nullptr;
