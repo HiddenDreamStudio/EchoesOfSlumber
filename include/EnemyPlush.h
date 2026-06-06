@@ -114,7 +114,7 @@ private:
 	Entity* playerListener_ = nullptr;
 
 	// Facing
-	bool facingRight_ = false;
+	bool facingRight_ = true;
 
 	// Return-to-origin when player hides
 	Vector2D originPosition_;
