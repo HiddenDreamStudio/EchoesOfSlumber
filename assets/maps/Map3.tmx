@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="238" height="135" tilewidth="64" tileheight="64" infinite="0" nextlayerid="10" nextobjectid="100">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="238" height="135" tilewidth="64" tileheight="64" infinite="0" nextlayerid="10" nextobjectid="104">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -564,6 +564,18 @@
     <property name="spawnId" value="B"/>
     <property name="target" value="MapLvl3ZonaPuzzle1.tmx"/>
    </properties>
+  </object>
+  <object id="100" type="CheckPoint" x="7745.33" y="8530.67">
+   <point/>
+  </object>
+  <object id="101" type="CheckPoint" x="1922" y="5329">
+   <point/>
+  </object>
+  <object id="102" type="CheckPoint" x="13761" y="3215">
+   <point/>
+  </object>
+  <object id="103" type="CheckPoint" x="8192" y="1488">
+   <point/>
   </object>
  </objectgroup>
  <objectgroup id="7" name="Spawns">

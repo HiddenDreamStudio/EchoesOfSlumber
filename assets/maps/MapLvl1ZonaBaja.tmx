@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="152" height="81" tilewidth="64" tileheight="64" infinite="0" nextlayerid="16" nextobjectid="1397">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="152" height="81" tilewidth="64" tileheight="64" infinite="0" nextlayerid="17" nextobjectid="1398">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -360,6 +360,11 @@
  <imagelayer id="14" name="Background" locked="1" offsetx="-448.848" offsety="-7870.91">
   <image source="../textures/fons_enviroment/Level 1_Totjunt.png" width="11072" height="13056"/>
  </imagelayer>
+ <objectgroup id="16" name="Checkpoint">
+  <object id="1397" type="CheckPoint" x="3520" y="1546">
+   <point/>
+  </object>
+ </objectgroup>
  <objectgroup id="12" name="Background">
   <object id="1375" gid="1073741969" x="2664.36" y="1703.57" width="194.663" height="195.321"/>
   <object id="1376" gid="1073741969" x="7228.32" y="2528.88" width="316.186" height="317.255"/>

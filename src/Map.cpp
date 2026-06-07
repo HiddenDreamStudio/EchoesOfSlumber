@@ -219,6 +219,8 @@ bool Map::CleanUp()
     mapData.imageLayers.clear();
 
     for (const auto& deco : mapData.decorationObjects) {
+        if (deco->texture)
+            Engine::GetInstance().textures->UnLoad(deco->texture);
         delete deco;
     }
     mapData.decorationObjects.clear();

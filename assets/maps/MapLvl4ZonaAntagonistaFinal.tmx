@@ -184,10 +184,10 @@
 28,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,30
 </data>
  </layer>
- <imagelayer id="5" name="Background" offsetx="-8" offsety="-888">
+ <imagelayer id="5" name="Background" offsetx="-16" offsety="-872">
   <image source="../textures/fons_enviroment/Map4/Map4_fondo_delante_1.png" width="11072" height="11392"/>
  </imagelayer>
- <imagelayer id="6" name="Background" visible="0" opacity="0" offsetx="-376" offsety="-904">
+ <imagelayer id="6" name="Background" visible="0" offsetx="-72" offsety="-920">
   <image source="../textures/fons_enviroment/Map4/Map4_fondo_delante_2.png" width="11072" height="11392"/>
  </imagelayer>
  <objectgroup id="2" name="Portals">
