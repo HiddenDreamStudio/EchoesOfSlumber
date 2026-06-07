@@ -26,7 +26,7 @@ bool EnemyWindUpScurry::Start() {
     idleTexture_           = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Scurry_Idle.png");
     alertaTexture_         = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Scurry_Alerta.png");
     antesWalkFastTexture_  = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet _WindUpScurry_antesdewalkfast.png");
-    walkFastTexture_       = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Scurry_Walk_Fast.png");
+    walkFastTexture_       = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_WindUpScurry_Walk_Fast.png");
     cansadoTexture_        = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Scurry_Cansado.png");
     idleCansadoTexture_    = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Idle_Cansado.png");
     hitTexture_            = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_WindUpScurry_Hit.png");
