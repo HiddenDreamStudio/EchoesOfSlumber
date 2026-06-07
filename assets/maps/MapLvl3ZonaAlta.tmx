@@ -442,8 +442,8 @@
    </objectgroup>
   </tile>
  </tileset>
- <imagelayer id="12" name="Background" visible="0" offsetx="-4208" offsety="128" parallaxx="0" parallaxy="0" repeatx="1" repeaty="1">
-  <image source="Nivell 3/F_Nivell_3.png" width="1920" height="1080"/>
+ <imagelayer id="12" name="Background" offsetx="-2288" offsety="-64">
+  <image source="../textures/fons_enviroment/Map3.png" width="15232" height="13952"/>
  </imagelayer>
  <objectgroup id="6" name="background" offsetx="64" offsety="408">
   <object id="319" gid="168" x="621" y="3947" width="599" height="718.818"/>

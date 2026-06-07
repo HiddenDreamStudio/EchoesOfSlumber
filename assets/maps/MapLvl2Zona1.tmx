@@ -282,8 +282,8 @@
  <tileset firstgid="1485" source="Assets level 2/Middle.tsx"/>
  <tileset firstgid="1508" source="Assets level 2/Fore.tsx"/>
  <tileset firstgid="1530" source="Assets level 2/Back.tsx"/>
- <imagelayer id="14" name="Background" visible="0" offsetx="0" offsety="-3456" parallaxx="0" parallaxy="0" repeatx="1" repeaty="1">
-  <image source="Nivell 2/F_Nivell_2.png" width="1920" height="1080"/>
+ <imagelayer id="14" name="Background">
+  <image source="../textures/fons_enviroment/Map2.2.png" width="10880" height="6656"/>
  </imagelayer>
  <objectgroup id="18" name="Weapons" visible="0">
   <object id="384" name="Tirachinas" type="Tiraxines" x="7305.21" y="1782.42" width="69.697" height="72.7273"/>

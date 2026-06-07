@@ -77,7 +77,7 @@ bool Map::Update(float dt)
                     static_cast<int>(imgLayer->offsetX),
                     static_cast<int>(imgLayer->offsetY),
                     nullptr,
-                    imgLayer->parallaxFactorX
+                    1.0f
                 );
             }
         }

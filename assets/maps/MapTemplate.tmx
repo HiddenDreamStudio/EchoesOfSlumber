@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="47" nextobjectid="1799">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="48" nextobjectid="1802">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -364,8 +364,11 @@
  <tileset firstgid="148" source="Assets level 1/Front.tsx"/>
  <tileset firstgid="190" source="Assets level 1/Back.tsx"/>
  <tileset firstgid="233" source="assets animats level 1/SS_Asset 35.tsx"/>
- <imagelayer id="44" name="Background" visible="0" parallaxx="0" parallaxy="0" repeatx="1" repeaty="1">
-  <image source="Nivell 1/F_Nivell_1.1.png" width="1920" height="1080"/>
+ <imagelayer id="44" name="Background" offsetx="-808" offsety="24">
+  <image source="../textures/fons_enviroment/Level 1_WithoutTileset.png" width="11072" height="13056"/>
+ </imagelayer>
+ <imagelayer id="47" name="Background" offsetx="-872" offsety="8">
+  <image source="../textures/fons_enviroment/Level 1_Shadows.png" width="11072" height="13056"/>
  </imagelayer>
  <objectgroup id="31" name="Fondo piedras" parallaxx="0.2"/>
  <objectgroup id="42" name="AnimatedPlants"/>
@@ -441,7 +444,7 @@
     <property name="target" value="MapLvl1ZonaPuzzle.tmx"/>
    </properties>
   </object>
-  <object id="1798" type="Portal" x="2842" y="2141" width="207" height="573">
+  <object id="1798" type="Portal" x="2842" y="2141" width="355" height="573">
    <properties>
     <property name="spawnId" value="Mapa2"/>
     <property name="target" value="Map2"/>
@@ -461,8 +464,20 @@
    </properties>
    <point/>
   </object>
+  <object id="1799" type="Spawn" x="2319.06" y="3574.42">
+   <properties>
+    <property name="spawnId" value="spawn_return_puzzle_exit"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="1801" type="Spawn" x="3345" y="2553">
+   <properties>
+    <property name="spawnId" value="Mapa1"/>
+   </properties>
+   <point/>
+  </object>
  </objectgroup>
- <objectgroup id="26" name="Middleground" visible="0">
+ <objectgroup id="26" name="Middleground">
   <object id="1532" gid="108" x="6291.29" y="8126.74" width="150.603" height="149.596"/>
   <object id="1533" gid="108" x="4739.79" y="8257.13" width="150.603" height="149.596"/>
   <object id="1534" gid="108" x="2527.08" y="7229.74" width="152.941" height="151.918"/>
