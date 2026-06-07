@@ -21,6 +21,7 @@
 #include "Boss2.h"
 #include "Boss1.h"
 #include "RopedRock.h"
+#include "EnemyWindUpScurry.h"
 #include "tracy/Tracy.hpp"
 #include "Platform.h"
 #include "Door.h"
@@ -143,6 +144,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::ROPE_ROCK:
 		entity = std::make_shared<RopedRock>();
+		break;
+	case EntityType::ENEMY_WINDUP_SCURRY:
+		entity = std::make_shared<EnemyWindUpScurry>();
 		break;
 	default:
 		break;
