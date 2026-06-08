@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="40" height="31" tilewidth="64" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="180">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="40" height="31" tilewidth="64" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="180">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -357,6 +357,9 @@
  <tileset firstgid="101" source="Assets level 1/Back.tsx"/>
  <tileset firstgid="144" source="Assets level 1/Front.tsx"/>
  <tileset firstgid="186" source="Assets level 1/Middle.tsx"/>
+ <imagelayer id="4" name="Bakground" offsetx="-3" offsety="-2815" repeaty="1">
+  <image source="../textures/fons_enviroment/Level 1_Totjunt.png" width="11072" height="13056"/>
+ </imagelayer>
  <objectgroup id="6" name="Background"/>
  <objectgroup id="7" name="Middleground">
   <object id="166" gid="1073741969" x="945.151" y="1041.07" width="116.902" height="117.297"/>
@@ -442,9 +445,6 @@
   <object id="153" gid="105" x="1373.25" y="1101.87" width="93.6938" height="126.902"/>
   <object id="154" gid="128" x="68.0448" y="862.525" width="151.215" height="117.414"/>
  </objectgroup>
- <imagelayer id="4" name="Bakground" visible="0" repeaty="1">
-  <image source="Nivell 1/F_Nivell_1.1.png" width="1920" height="1080"/>
- </imagelayer>
  <objectgroup id="2" name="Portals">
   <object id="4" type="Portal" x="1078.79" y="1951.52" width="469.697" height="30.303">
    <properties>
