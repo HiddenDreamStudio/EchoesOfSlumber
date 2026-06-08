@@ -692,6 +692,15 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     auto rr = std::dynamic_pointer_cast<RopedRock>(
                         Engine::GetInstance().entityManager->CreateEntity(EntityType::ROPE_ROCK));
                     rr->position = Vector2D(x, y);
+
+                    pugi::xml_node rrProps = objectNode.child("properties");
+                    if (rrProps) {
+                        for (auto prop = rrProps.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string pname = prop.attribute("name").as_string();
+                            if (pname == "ropeLength")
+                                rr->SetRopeLength(prop.attribute("value").as_float());
+                        }
+                    }
                     rr->Start();
                 }
                 else if (entityType == "Checkpoint") {
@@ -860,6 +869,16 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     mapData.stuffedAnimalX = x;
                     mapData.stuffedAnimalY = y;
                     LOG("StuffedAnimal position loaded from TMX at: %f, %f", x, y);
+                }
+                else if (entityType == "Wall") {
+                    float w = objectNode.attribute("width").as_float(64.0f);
+                    float h = objectNode.attribute("height").as_float(64.0f);
+                    int cx = (int)(x + w * 0.5f);
+                    int cy = (int)(y + h * 0.5f);
+                    PhysBody* wall = Engine::GetInstance().physics->CreateRectangle(
+                        cx, cy, (int)w, (int)h, bodyType::STATIC, 0.0f);
+                    if (wall) wall->ctype = ColliderType::UNKNOWN;
+                    LOG("Invisible wall spawned at: %f, %f (%dx%d)", x, y, (int)w, (int)h);
                 }
             }
         }

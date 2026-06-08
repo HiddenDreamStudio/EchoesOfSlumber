@@ -185,7 +185,7 @@ void Boss2::TransitionTo(Boss2State newState)
     case Boss2State::EXPOSE_BUTTON: animDestapaBtn_.Reset(); break;
     case Boss2State::CLOSE_BUTTON:  animTapaBtn_.Reset();    break;
     case Boss2State::STUNNED:       animHit_.Reset();        break;
-    case Boss2State::DEATH:         animHit_.Reset();        break;
+    case Boss2State::DEATH:         animHit_.Reset();        deathTeleportTimer_ = 0.0f; deathSequenceDone_ = false; break;
     default: break;
     }
 }
@@ -390,12 +390,22 @@ void Boss2::UpdateFSM(float dt)
             TransitionTo(Boss2State::IDLE);
         break;
 
-    // ── DEATH ────────────────────────────────────────────────────────────────
+    // ── DEATH — once the death animation finishes, wait a beat then send the
+    //           player back to the hub (MapLvl3ZonaAlta — spawn "J") ─────────
     case Boss2State::DEATH:
-        if (stateTimer_ >= DEATH_DURATION)
+        if (stateTimer_ >= DEATH_DURATION && !deathSequenceDone_)
         {
-            isEngaged_ = false;
-            pendingToDelete = true;
+            deathTeleportTimer_ += dt;
+            if (deathTeleportTimer_ >= DEATH_TELEPORT_DELAY)
+            {
+                deathSequenceDone_ = true;
+                isEngaged_ = false;
+                auto& scn = *Engine::GetInstance().scene;
+                scn.RequestSubMapTeleport("MapLvl3ZonaAlta.tmx", "J");
+                // Seal the entrance portal (MapLvl3ZonaAlta.tmx, object id 395) — boss is gone, no reason to come back
+                scn.SealBossPortal(2948.0f, 3694.64f, 680.0f, 686.728f);
+                pendingToDelete = true;
+            }
         }
         break;
     }
