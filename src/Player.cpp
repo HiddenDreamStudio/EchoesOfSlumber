@@ -139,6 +139,13 @@ bool Player::Start() {
 	yoyoTrapAnims_.SetCurrent("yoyo");
 	yoyoTrapAnims_.SetLoop("yoyo", true);
 
+	// Load Drop Doll minigame animation (player squirms while grabbed — 2048x2048 = 8x8 grid, 256x256 frames)
+	dollGrabbedTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_prota_dropdoll.png");
+	for (int i = 0; i < 64; ++i) {
+		SDL_Rect r = { (i % 8) * 256, (i / 8) * 256, 256, 256 };
+		dollGrabbedAnim_.AddFrame(r, 80);
+	}
+	dollGrabbedAnim_.SetLoop(true);
 
 	hasStuffedAnimal_ = false;
 	equippedItem_ = EquippedItem::NONE;
@@ -459,7 +466,7 @@ void Player::GetPhysicsValues() {
 }
 
 void Player::Move() {
-	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
 	bool moveLeft = input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT || input->GetLeftStickX() < -0.2f;
@@ -530,7 +537,7 @@ void Player::Move() {
 }
 
 void Player::Jump() {
-	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
 	bool jumpDown = input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
@@ -573,7 +580,7 @@ void Player::Jump() {
 // ─────────────────────────────────────────────────────────────────────────────
 void Player::Hide(float dt)
 {
-	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isYoyoTrapped_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
 	bool hideDown = input->GetKey(SDL_SCANCODE_H) == KEY_DOWN ||
@@ -647,7 +654,7 @@ void Player::Slingshot(float dt)
 {
 	if (!hasSlingshot_ || equippedItem_ != EquippedItem::SLINGSHOT) return;
 
-	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_ || isYoyoTrapped_)
+	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_)
 	{
 		isAiming_ = false;
 		isAimingWithGamepad_ = false;
@@ -816,6 +823,10 @@ void Player::Slingshot(float dt)
 	}
 }
 void Player::ApplyPhysics() {
+	if (isDollGrabbed_) {
+		Engine::GetInstance().physics->SetLinearVelocity(pbody, { 0.0f, 0.0f });
+		return;
+	}
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
 	}
@@ -921,6 +932,15 @@ void Player::Draw(float dt) {
 		animFrame = &yoyoTrapAnims_.GetCurrentFrame();
 		// 857x480 frames → scale down to match ~128px character height
 		currentDrawScale = 0.27f;
+	}
+	else if (isDollGrabbed_ && dollGrabbedTexture_)
+	{
+		// Drop Doll minigame — player squirms while the doll clings to their head
+		dollGrabbedAnim_.Update(dt);
+		activeTex = dollGrabbedTexture_;
+		animFrame = &dollGrabbedAnim_.GetCurrentFrame();
+		// 256x256 frames -> same half scale as push/slingshot
+		currentDrawScale = 0.5f;
 	}
 	else if (isHiding_ || isExitingHide_)
 	{
@@ -1090,7 +1110,7 @@ void Player::Draw(float dt) {
 
 void Player::Attack(float dt)
 {
-	if (isHiding_ || isExitingHide_ || isYoyoTrapped_) return;
+	if (isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
 	auto& physics = Engine::GetInstance().physics;
@@ -1353,6 +1373,10 @@ bool Player::CleanUp()
 	if (throwBearTexture_) {
 		Engine::GetInstance().textures->UnLoad(throwBearTexture_);
 		throwBearTexture_ = nullptr;
+	}
+	if (dollGrabbedTexture_) {
+		Engine::GetInstance().textures->UnLoad(dollGrabbedTexture_);
+		dollGrabbedTexture_ = nullptr;
 	}
 	return true;
 }

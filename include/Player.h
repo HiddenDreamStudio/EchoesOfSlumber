@@ -212,7 +212,12 @@ private:
 	// Yoyo trap animation (played when caught by Stitchling)
 	SDL_Texture* yoyoTrapTexture_ = nullptr;
 
+	// Drop Doll minigame animation (played while grabbed by the doll)
+	SDL_Texture* dollGrabbedTexture_ = nullptr;
+	Animation    dollGrabbedAnim_;
+
 public:
 	bool         isYoyoTrapped_ = false;
 	AnimationSet yoyoTrapAnims_;
+	bool         isDollGrabbed_ = false;
 };
