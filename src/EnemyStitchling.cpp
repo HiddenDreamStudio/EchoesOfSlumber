@@ -21,14 +21,10 @@ bool EnemyStitchling::Awake() {
 }
 
 bool EnemyStitchling::Start() {
-    // Textures
-    idleTexture_   = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Stitichling_Idle.png");
-    alertTexture_  = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Stitichling_Alerta.png");
-    setupTexture_  = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_stitchling_Suelta_Cuerda.png");
-    grabTexture_   = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Stitchling_Agarrar.png");
-    rewindTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Stitchling_Recoge_Cuerda.png");
-    hitTexture_    = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Stitchling_Hit.png");
-    dieTexture_    = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Stitichling_Die.png");
+    // Textures — new yoyo spritesheets
+    idleTexture_   = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_Yoyo_Idle.png");
+    alertTexture_  = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_Yoyo_Alerta.png");
+    dieTexture_    = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_Yoyo_Desaparecer.png");
 
     // Create main body at spawn position
     int spawnX = (int)position.getX() + 16;
@@ -41,33 +37,22 @@ bool EnemyStitchling::Start() {
     // Create trap sensor (wide rectangle on the ground, slightly below the body)
     trapSensor_ = Engine::GetInstance().physics->CreateRectangleSensor(spawnX, spawnY + 16, 120, 24, bodyType::STATIC);
     trapSensor_->listener = this;
-    trapSensor_->ctype = ColliderType::UNKNOWN; 
+    trapSensor_->ctype = ColliderType::UNKNOWN;
 
     playerRef_ = Engine::GetInstance().scene->player.get();
 
-    // Load AnimationSets
-    idleAnims_.LoadFromTSX("assets/textures/animations/stitchlingIdle.xml", { {0, "idle"} });
-    alertAnims_.LoadFromTSX("assets/textures/animations/stitchlingAlerta.xml", { {0, "alert"} });
-    setupAnims_.LoadFromTSX("assets/textures/animations/stitchlingSueltaCuerda.xml", { {0, "setup"} });
-    grabAnims_.LoadFromTSX("assets/textures/animations/stitchlingAgarrar.xml", { {0, "grab"} });
-    rewindAnims_.LoadFromTSX("assets/textures/animations/stitchlingRecogeCuerda.xml", { {0, "rewind"} });
-    hitAnims_.LoadFromTSX("assets/textures/animations/stitchlingHit.xml", { {0, "hit"} });
-    dieAnims_.LoadFromTSX("assets/textures/animations/stitchlingDie.xml", { {0, "die"} });
+    // Load AnimationSets — new yoyo XMLs
+    idleAnims_.LoadFromTSX("assets/textures/animations/yoyoIdle.xml", { {0, "idle"} });
+    alertAnims_.LoadFromTSX("assets/textures/animations/yoyoAlerta.xml", { {0, "alert"} });
+    dieAnims_.LoadFromTSX("assets/textures/animations/yoyoDesaparecer.xml", { {0, "die"} });
 
-    setupAnims_.SetLoop("setup", false);
-    rewindAnims_.SetLoop("rewind", false);
-    hitAnims_.SetLoop("hit", false);
     dieAnims_.SetLoop("die", false);
 
     idleAnims_.SetCurrent("idle");
     alertAnims_.SetCurrent("alert");
-    setupAnims_.SetCurrent("setup");
-    grabAnims_.SetCurrent("grab");
-    rewindAnims_.SetCurrent("rewind");
-    hitAnims_.SetCurrent("hit");
     dieAnims_.SetCurrent("die");
 
-    EnterState(State::SETUP);
+    EnterState(State::IDLE);
     return true;
 }
 
@@ -89,21 +74,8 @@ bool EnemyStitchling::Update(float dt) {
         facingRight_ = (px > position.getX());
     }
 
-    if (currentState_ == State::DEATH) {
-        dieAnims_.Update(dt);
-        Draw(dt);
-        if (dieAnims_.HasFinishedOnce("die")) {
-            active = false;
-            pendingToDelete = true;
-        }
-        return true;
-    }
-
     // Update active animations
     switch (currentState_) {
-    case State::SETUP:
-        setupAnims_.Update(dt);
-        break;
     case State::IDLE:
         idleAnims_.Update(dt);
         break;
@@ -111,16 +83,12 @@ bool EnemyStitchling::Update(float dt) {
         alertAnims_.Update(dt);
         break;
     case State::TRAP_ACTIVE:
-        grabAnims_.Update(dt);
+        // Play desaparecer animation until it finishes
+        if (!disappearDone_) {
+            dieAnims_.Update(dt);
+        }
         break;
-    case State::REWIND_SLOW:
-        rewindAnims_.Update(dt * 0.5f); // Half speed
-        break;
-    case State::REWIND_FAST:
-        rewindAnims_.Update(dt * 2.0f); // Double speed
-        break;
-    case State::HIT:
-        hitAnims_.Update(dt);
+    default:
         break;
     }
 
@@ -139,23 +107,15 @@ bool EnemyStitchling::CleanUp() {
         Engine::GetInstance().physics->DeletePhysBody(trapSensor_);
         trapSensor_ = nullptr;
     }
-    
+
     RemovePlayerSlowdown();
 
     if (idleTexture_) Engine::GetInstance().textures->UnLoad(idleTexture_);
     if (alertTexture_) Engine::GetInstance().textures->UnLoad(alertTexture_);
-    if (setupTexture_) Engine::GetInstance().textures->UnLoad(setupTexture_);
-    if (grabTexture_) Engine::GetInstance().textures->UnLoad(grabTexture_);
-    if (rewindTexture_) Engine::GetInstance().textures->UnLoad(rewindTexture_);
-    if (hitTexture_) Engine::GetInstance().textures->UnLoad(hitTexture_);
     if (dieTexture_) Engine::GetInstance().textures->UnLoad(dieTexture_);
 
     idleTexture_ = nullptr;
     alertTexture_ = nullptr;
-    setupTexture_ = nullptr;
-    grabTexture_ = nullptr;
-    rewindTexture_ = nullptr;
-    hitTexture_ = nullptr;
     dieTexture_ = nullptr;
 
     return true;
@@ -165,12 +125,6 @@ void EnemyStitchling::UpdateFSM(float dt) {
     stateTimer_ += dt;
 
     switch (currentState_) {
-    case State::SETUP:
-        if (setupAnims_.HasFinishedOnce("setup")) {
-            EnterState(State::IDLE);
-        }
-        break;
-
     case State::IDLE:
         if (GetDistanceToPlayer() <= 200.0f) {
             EnterState(State::ALERT);
@@ -185,51 +139,42 @@ void EnemyStitchling::UpdateFSM(float dt) {
 
     case State::TRAP_ACTIVE:
         if (playerRef_) {
-            // Auto-release trap if player teleports or is too far away
-            if (GetDistanceToPlayer() > 250.0f) {
-                RemovePlayerSlowdown();
-                EnterState(State::IDLE);
-                break;
-            }
+            // Phase 1: desaparecer animation is playing — yoyo is visually disappearing
+            if (!disappearDone_) {
+                if (dieAnims_.HasFinishedOnce("die")) {
+                    // Animation finished — yoyo has disappeared, now throw ropes and trap the player
+                    disappearDone_ = true;
+                    ApplyPlayerSlowdown();
 
-            // Apply damage if stuck for too long
-            trapDamageTimer_ += dt;
-            if (trapDamageTimer_ >= TRAP_DAMAGE_INTERVAL) {
-                playerRef_->TakeDamage(1);
-                trapDamageTimer_ = 0.0f;
-            }
-
-            // Player can mash E to escape
-            if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_E) == KEY_DOWN) {
-                escapeMashes_++;
-                if (escapeMashes_ >= MASHES_TO_ESCAPE) {
-                    // Escaped!
-                    RemovePlayerSlowdown();
-                    if (rand() % 2 == 0) {
-                        EnterState(State::REWIND_SLOW);
-                    } else {
-                        EnterState(State::REWIND_FAST);
+                    // Destroy physics bodies since the yoyo is now gone
+                    if (pbody) {
+                        Engine::GetInstance().physics->DeletePhysBody(pbody);
+                        pbody = nullptr;
+                    }
+                    if (trapSensor_) {
+                        Engine::GetInstance().physics->DeletePhysBody(trapSensor_);
+                        trapSensor_ = nullptr;
                     }
                 }
             }
-        }
-        break;
-
-    case State::REWIND_SLOW:
-        if (rewindAnims_.HasFinishedOnce("rewind")) {
-            EnterState(State::SETUP);
-        }
-        break;
-
-    case State::REWIND_FAST:
-        if (rewindAnims_.HasFinishedOnce("rewind")) {
-            EnterState(State::SETUP);
-        }
-        break;
-
-    case State::HIT:
-        if (hitAnims_.HasFinishedOnce("hit")) {
-            EnterState(State::DEATH);
+            // Phase 2: yoyo gone, player is trapped by ropes — mash E to escape
+            else {
+                if (playerWasSlowed_) {
+                    if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_E) == KEY_DOWN) {
+                        escapeMashes_++;
+                        if (escapeMashes_ >= MASHES_TO_ESCAPE) {
+                            // Player escaped the ropes!
+                            RemovePlayerSlowdown();
+                            active = false;
+                            pendingToDelete = true;
+                        }
+                    }
+                } else {
+                    // Player already freed (e.g. by external means) — just clean up
+                    active = false;
+                    pendingToDelete = true;
+                }
+            }
         }
         break;
 
@@ -244,9 +189,6 @@ void EnemyStitchling::EnterState(State newState) {
     stateTimer_ = 0.0f;
 
     switch (currentState_) {
-    case State::SETUP:
-        setupAnims_.ResetCurrent();
-        break;
     case State::IDLE:
         idleAnims_.ResetCurrent();
         break;
@@ -254,40 +196,18 @@ void EnemyStitchling::EnterState(State newState) {
         alertAnims_.ResetCurrent();
         break;
     case State::TRAP_ACTIVE:
-        grabAnims_.ResetCurrent();
-        trapDamageTimer_ = 0.0f;
-        escapeMashes_ = 0;
-        ApplyPlayerSlowdown();
-        break;
-    case State::REWIND_SLOW:
-        rewindAnims_.ResetCurrent();
-        break;
-    case State::REWIND_FAST:
-        rewindAnims_.ResetCurrent();
-        break;
-    case State::HIT:
-        hitAnims_.ResetCurrent();
-        RemovePlayerSlowdown();
-        break;
-    case State::DEATH:
         dieAnims_.ResetCurrent();
-        RemovePlayerSlowdown();
-        
-        if (pbody) {
-            Engine::GetInstance().physics->DeletePhysBody(pbody);
-            pbody = nullptr;
-        }
-        if (trapSensor_) {
-            Engine::GetInstance().physics->DeletePhysBody(trapSensor_);
-            trapSensor_ = nullptr;
-        }
+        disappearDone_ = false;
+        escapeMashes_ = 0;
+        break;
+    default:
         break;
     }
 }
 
 void EnemyStitchling::ApplyPlayerSlowdown() {
     if (playerRef_ && !playerWasSlowed_) {
-        playerRef_->speed = 1.0f; 
+        playerRef_->speed = 1.0f;
         playerRef_->isYoyoTrapped_ = true;
         Engine::GetInstance().physics->SetLinearVelocity(playerRef_->pbody, 0.0f, 0.0f);
         playerRef_->yoyoTrapAnims_.ResetCurrent();
@@ -297,7 +217,7 @@ void EnemyStitchling::ApplyPlayerSlowdown() {
 
 void EnemyStitchling::RemovePlayerSlowdown() {
     if (playerRef_ && playerWasSlowed_) {
-        playerRef_->speed = 4.0f; 
+        playerRef_->speed = 4.0f;
         playerRef_->isYoyoTrapped_ = false;
         playerWasSlowed_ = false;
     }
@@ -309,60 +229,28 @@ void EnemyStitchling::OnCollision(PhysBody* physA, PhysBody* physB) {
         PhysBody* other = (physA == trapSensor_) ? physB : physA;
         LOG("Collision with trapSensor_! other ctype = %d, currentState_ = %d", (int)other->ctype, (int)currentState_);
         if (other->ctype == ColliderType::PLAYER && (currentState_ == State::IDLE || currentState_ == State::ALERT)) {
-            LOG("Transitioning to TRAP_ACTIVE!");
+            LOG("Player stepped on rope! Yoyo starts disappearing.");
             EnterState(State::TRAP_ACTIVE);
-        }
-    }
-
-    if (physA == pbody || physB == pbody) {
-        PhysBody* other = (physA == pbody) ? physB : physA;
-        if (other->ctype == ColliderType::ATTACK) {
-            LOG("EnemyStitchling hit by player attack");
-            TakeDamage(1);
-        } else if (other->ctype == ColliderType::SLINGSHOT_PROJ) {
-            LOG("EnemyStitchling hit by slingshot projectile");
-            TakeDamage(1);
-            if (other->listener != nullptr) {
-                other->listener->Destroy();
-            }
         }
     }
 }
 
 void EnemyStitchling::OnCollisionEnd(PhysBody* physA, PhysBody* physB) {
-    LOG("EnemyStitchling::OnCollisionEnd triggered: physA ctype = %d, physB ctype = %d", (int)physA->ctype, (int)physB->ctype);
-    if (physA == trapSensor_ || physB == trapSensor_) {
-        PhysBody* other = (physA == trapSensor_) ? physB : physA;
-        LOG("CollisionEnd with trapSensor_! other ctype = %d, currentState_ = %d", (int)other->ctype, (int)currentState_);
-        if (other->ctype == ColliderType::PLAYER && currentState_ == State::TRAP_ACTIVE) {
-            LOG("Removing player slowdown from CollisionEnd!");
-            RemovePlayerSlowdown();
-        }
-    }
+    // No longer release on collision end — the trap is permanent until the player escapes by mashing E
 }
 
 void EnemyStitchling::TakeDamage(int damage) {
-    if (currentState_ == State::DEATH || currentState_ == State::HIT) return;
-
-    if (currentState_ == State::REWIND_SLOW) {
-        health -= damage;
-        EnterState(State::HIT);
-    } else if (currentState_ == State::REWIND_FAST) {
-        LOG("Stitchling is rewinding fast and deflected the attack!");
-    } else {
-        LOG("Stitchling is immune right now!");
-    }
+    // Yoyo cannot be damaged — it only disappears when the player steps on the rope
 }
 
 void EnemyStitchling::Draw(float dt) {
+    // Don't draw anything once the yoyo has disappeared
+    if (disappearDone_) return;
+
     SDL_Texture* currentTexture = nullptr;
     SDL_Rect frameRect = { 0, 0, 0, 0 };
 
     switch (currentState_) {
-    case State::SETUP:
-        currentTexture = setupTexture_;
-        frameRect = setupAnims_.GetCurrentFrame();
-        break;
     case State::IDLE:
         currentTexture = idleTexture_;
         frameRect = idleAnims_.GetCurrentFrame();
@@ -372,27 +260,16 @@ void EnemyStitchling::Draw(float dt) {
         frameRect = alertAnims_.GetCurrentFrame();
         break;
     case State::TRAP_ACTIVE:
-        currentTexture = grabTexture_;
-        frameRect = grabAnims_.GetCurrentFrame();
-        break;
-    case State::REWIND_SLOW:
-    case State::REWIND_FAST:
-        currentTexture = rewindTexture_;
-        frameRect = rewindAnims_.GetCurrentFrame();
-        break;
-    case State::HIT:
-        currentTexture = hitTexture_;
-        frameRect = hitAnims_.GetCurrentFrame();
-        break;
-    case State::DEATH:
         currentTexture = dieTexture_;
         frameRect = dieAnims_.GetCurrentFrame();
+        break;
+    default:
         break;
     }
 
     if (currentTexture && frameRect.w > 0 && frameRect.h > 0) {
-        float scale = 0.35f; 
-        
+        float scale = 0.55f;
+
         int drawW = (int)(frameRect.w * scale);
         int drawH = (int)(frameRect.h * scale);
 
@@ -401,7 +278,7 @@ void EnemyStitchling::Draw(float dt) {
         int py = (int)position.getY() + 16 - drawH;
 
         SDL_FlipMode flip = facingRight_ ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-        
+
         Engine::GetInstance().render->DrawTexture(currentTexture, px, py, &frameRect, 1.0f, 0, INT_MAX, INT_MAX, flip, scale);
     }
 }
