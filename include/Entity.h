@@ -20,6 +20,7 @@ enum class EntityType
 	PUSH_ROCK,
 	VFX,
 	DOOR,
+	LEVER,
 	SLINGSHOT_PROJECTILE,
 	DROP_DOLL,
 	BOSS_2,

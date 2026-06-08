@@ -12,6 +12,7 @@
 #include "SlingshotProjectile.h"
 #include "tracy/Tracy.hpp"
 #include "Door.h"
+#include "Platform.h"
 
 Player::Player() : Entity(EntityType::PLAYER),
 texW(128), texH(128),
@@ -166,6 +167,13 @@ bool Player::Update(float dt)
 	}
 
 	GetPhysicsValues();
+
+	if (platformDropTimer_ > 0.0f) {
+		platformDropTimer_ -= dt;
+		if (platformDropTimer_ <= 0.0f) {
+			platformBelow = nullptr;
+		}
+	}
 
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F10) == KEY_DOWN) {
 		godMode_ = !godMode_;
@@ -493,15 +501,21 @@ void Player::Jump() {
 
 	if (jumpDown) {
 		if (!isJumping) {
+			// Reseteamos la Y para que la fuerza del salto se aplique siempre igual
+			b2Vec2 currentVel = Engine::GetInstance().physics->GetLinearVelocity(pbody);
+			Engine::GetInstance().physics->SetLinearVelocity(pbody, currentVel.x, 0.0f);
+			velocity.y = 0.0f;
+
 			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -jumpForce, true);
 			if (anims.Has("jump")) anims.SetCurrent("jump");
 			isJumping = true;
 
+			// Limpiar platformBelow al saltar para no arrastrar la velocidad
 			platformBelow = nullptr;
 
 			Engine::GetInstance().audio->PlayFx(jumpFxId);
 
-			// Spawn jump dust (Centered at bottom of 100px capsule)
+			// Spawn jump dust
 			Engine::GetInstance().entityManager->SpawnVFX(
 				Vector2D(position.getX(), position.getY() + 50.0f),
 				"assets/textures/spritesheets/SS_Pols_01.png",
@@ -510,6 +524,7 @@ void Player::Jump() {
 		}
 	}
 
+	// Salto variable: corta la velocidad si sueltas el botón
 	if (jumpUp && isJumping) {
 		float vy = Engine::GetInstance().physics->GetYVelocity(pbody);
 		if (vy < 0.0f) {
@@ -691,7 +706,7 @@ void Player::Slingshot(float dt)
 		// Simulate trajectory (in meters, then convert to pixels)
 		float simVx = dirX * launchSpeed;
 		float simVy = dirY * launchSpeed;
-		float gravity = 10.0f; // matches GRAVITY_Y magnitude
+		float gravity = 10.0f;
 
 		for (int i = 1; i <= 5; i++)
 		{
@@ -738,7 +753,6 @@ void Player::Slingshot(float dt)
 
 		if (shouldFire)
 		{
-			// Fire!
 			isAiming_ = false;
 			isAimingWithGamepad_ = false;
 			slingshotCooldown_ = SLINGSHOT_COOLDOWN;
@@ -760,6 +774,7 @@ void Player::Slingshot(float dt)
 		}
 	}
 }
+
 void Player::ApplyPhysics() {
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
@@ -767,14 +782,19 @@ void Player::ApplyPhysics() {
 
 	if (platformBelow != nullptr && !isJumping) {
 		float platVelX = Engine::GetInstance().physics->GetXVelocity(platformBelow);
+		float platVelY = Engine::GetInstance().physics->GetYVelocity(platformBelow);
+
 		velocity.x += platVelX;
+
+		if (platVelY > 0.0f) {
+			velocity.y = platVelY + 1.5f;
+		}
 	}
 
 	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
 
 	// Synchronize rock velocity to avoid jitter and clipping
 	if (isPushing_ && pushedRockBody_ != nullptr) {
-		// Only synchronize when pushing towards the rock or stopping
 		if ((pushDir_ == 1.0f && velocity.x > 0.0f) ||
 			(pushDir_ == -1.0f && velocity.x < 0.0f) ||
 			velocity.x == 0.0f) {
@@ -1310,19 +1330,27 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		// Check if the player lands on top of the platform
 		if (playerY < platY) {
 			platformBelow = physB;
+			platformDropTimer_ = 0.0f;
+
+			float platVy = Engine::GetInstance().physics->GetYVelocity(physB);
+			if (platVy > 0.0f) {
+				b2Vec2 currentVel = Engine::GetInstance().physics->GetLinearVelocity(pbody);
+				if (currentVel.y > platVy) {
+					Engine::GetInstance().physics->SetLinearVelocity(pbody, currentVel.x, platVy);
+					velocity.y = platVy;
+				}
+			}
+
 			if (isJumping) {
-				// Play landing sound effect
 				Engine::GetInstance().audio->PlayFx(landFxId);
 
-				// Spawn landing dust (Centered at bottom of capsule)
 				Engine::GetInstance().entityManager->SpawnVFX(
 					Vector2D(position.getX(), position.getY() + 50.0f),
 					"assets/textures/spritesheets/SS_Pols_01.png",
 					12, 794, 202, 0.03f, 0.0f, 0.2f
 				);
-				// Allow jump animation to play the landing frames (after frame 7)
+
 				if (anims.GetCurrentName() == "jump") {
-					// We don't reset to idle immediately to let landing frames show
 				}
 				else {
 					anims.SetCurrent("idle");
@@ -1394,8 +1422,15 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 {
-	if (physB->ctype == ColliderType::PLATFORM)
-		platformBelow = nullptr;
+	if (physB->ctype == ColliderType::PLATFORM) {
+		if (isJumping) {
+			platformBelow = nullptr;
+			platformDropTimer_ = 0.0f;
+		}
+		else if (platformBelow == physB) {
+			platformDropTimer_ = 100.0f;
+		}
+	}
 
 	if (physB->ctype == ColliderType::PUSH_ROCK) {
 		pushContactCount_--;

@@ -40,6 +40,12 @@ bool Platform::Update(float dt) {
         return true;
     }
 
+    if (requireLever && !activatedByLever) {
+        Engine::GetInstance().physics->SetLinearVelocity(pbody, 0.0f, 0.0f);
+        Engine::GetInstance().render->DrawTexture(texture, bx - texW / 2, by - texH / 2);
+        return true;
+    }
+
     Vector2D currentPos((float)bx, (float)by);
     Vector2D target = waypoints[currentWaypoint];
 
