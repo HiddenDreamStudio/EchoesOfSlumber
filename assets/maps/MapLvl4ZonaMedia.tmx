@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="89" height="38" tilewidth="64" tileheight="64" infinite="0" nextlayerid="7" nextobjectid="50">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="89" height="38" tilewidth="64" tileheight="64" infinite="0" nextlayerid="11" nextobjectid="51">
  <properties>
   <property name="Draw" type="bool" value="true"/>
  </properties>
@@ -149,6 +149,15 @@
  <tileset firstgid="101" source="Assets level 4/middle level 4.tsx"/>
  <tileset firstgid="131" source="Assets level 4/foreground/fore level 4.tsx"/>
  <tileset firstgid="146" source="back.tsx"/>
+ <imagelayer id="9" name="Background" offsetx="-5368" offsety="-3776">
+  <image source="../textures/fons_enviroment/Map4/Map4_fondo.png" width="11072" height="11392"/>
+ </imagelayer>
+ <imagelayer id="7" name="Background" offsetx="-5376" offsety="-3760">
+  <image source="../textures/fons_enviroment/Map4/Map4_fondo_delante_2.png" width="11072" height="11392"/>
+ </imagelayer>
+ <imagelayer id="8" name="Background" offsetx="-5344" offsety="-3712">
+  <image source="../textures/fons_enviroment/Map4/Map4_fondo_delante_1.png" width="11072" height="11392"/>
+ </imagelayer>
  <objectgroup id="2" name="Background">
   <object id="31" gid="123" x="114.59" y="1313.68" width="278.695" height="373.101"/>
   <object id="32" gid="2147483767" x="868.91" y="1190.12" width="567.733" height="188.946" rotation="71.0432"/>
@@ -3549,6 +3558,11 @@
    <tile gid="12"/>
   </data>
  </layer>
+ <objectgroup id="10" name="Checkpoint">
+  <object id="50" type="CheckPoint" x="2519.83" y="1729.17">
+   <point/>
+  </object>
+ </objectgroup>
  <objectgroup id="5" name="Portals">
   <object id="47" type="Portal" x="1715.79" y="2082.97" width="608.667" height="358.909">
    <properties>
