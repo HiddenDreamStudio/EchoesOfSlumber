@@ -413,6 +413,26 @@ void EnemyWindUpScurry::Draw(float dt) {
 
     if (currentTexture && frameRect.w > 0 && frameRect.h > 0) {
         float scale = 0.5f;
+        switch (currentState_) {
+        case State::IDLE:
+            scale = 1.6f;
+            break;
+        case State::ALERTA:
+            scale = 1.0f;
+            break;
+        case State::CANSADO:
+            scale = 1.1f;
+            break;
+        case State::IDLE_CANSADO:
+            scale = 1.0f;
+            break;
+        case State::DEATH:
+            scale = 1.0f;
+            break;
+        default:
+            scale = 0.5f;
+            break;
+        }
 
         int drawW = (int)(frameRect.w * scale);
         int drawH = (int)(frameRect.h * scale);
