@@ -268,7 +268,7 @@ void EnemyStitchling::Draw(float dt) {
     }
 
     if (currentTexture && frameRect.w > 0 && frameRect.h > 0) {
-        float scale = 0.55f;
+        float scale = 1.10f;
 
         int drawW = (int)(frameRect.w * scale);
         int drawH = (int)(frameRect.h * scale);

@@ -21,7 +21,7 @@ enum class SceneID {
 class Scene : public Module
 {
 public:
-	friend class SaveSystem;
+    friend class SaveSystem;
     Scene();
     ~Scene();
 
@@ -46,9 +46,9 @@ public:
     std::string subMapTarget_;
     std::string subMapSpawn_;
     std::string subMapSpawnId_;
-    std::string previousMapFile_; 
+    std::string previousMapFile_;
     std::string previousSpawnId_;
-    float portalCooldown_ = 0.0f; 
+    float portalCooldown_ = 0.0f;
 
 
     void LoadSubMap(const std::string& tmxFile, const std::string& spawnId);
@@ -100,6 +100,10 @@ private:
     float settingsButtonsAlpha_ = 1.0f;   // alpha for Play/Options/Exit
     float settingsOptionsAlpha_ = 0.0f;   // alpha for options controls
     int   windowModeIndex_ = 0;           // 0=Windowed, 1=Fullscreen, 2=Borderless
+
+    // ── Cached button layout (set in LoadMainMenu, used in DrawSettingsInPlace)
+    int   menuBtnX_ = 0;   // button X position
+    int   menuBtnW_ = 0;   // button width
 
     void LoadMainMenu();
     void UnloadMainMenu();
@@ -214,7 +218,7 @@ private:
     float introEntryDelay_ = 0.0f;          // Phase B: brief pause after zoom before hero wakes
     bool introEntryDelayActive_ = false;
     static constexpr float IN_GAME_INTRO_DURATION = 4500.0f;  // Phase A: cinematic zoom
-    static constexpr float INTRO_ENTRY_DELAY    = 800.0f;     // Phase B: Silksong-style entryDelay
+    static constexpr float INTRO_ENTRY_DELAY = 800.0f;     // Phase B: Silksong-style entryDelay
 
     // =========================================================================
     //  GAMEPLAY + PAUSE MENU
@@ -309,10 +313,10 @@ private:
 
     // ── Boss fight ────────────────────────────────────────────────────────────
     std::weak_ptr<Boss> activeBoss_;
-    bool  isBossFightActive_   = false;
-    float bossHealthDisplay_   = 1.0f;
-    SDL_Texture* texBossBarEmpty_     = nullptr;
-    SDL_Texture* texBossBarFull_      = nullptr;
+    bool  isBossFightActive_ = false;
+    float bossHealthDisplay_ = 1.0f;
+    SDL_Texture* texBossBarEmpty_ = nullptr;
+    SDL_Texture* texBossBarFull_ = nullptr;
     SDL_Texture* texBossBarIndicator_ = nullptr;
 
     void UpdateBossFight();
@@ -451,6 +455,7 @@ private:
     SDL_Texture* texMenuLogo_ = nullptr;
     SDL_Texture* texMenuChild_ = nullptr;
     SDL_Texture* texMenuButton_ = nullptr;
+    SDL_Texture* texSettingsBase_ = nullptr;
 
     std::shared_ptr<UIElement> btnPlay_;
     std::shared_ptr<UIElement> btnSettings_;
@@ -487,7 +492,7 @@ private:
     void DrawFragments(bool front, int winW, int winH);
 
 private:
-        
+
     int konamiIndex = 0;
     bool isKonamiActive = false;
 
@@ -497,5 +502,5 @@ private:
         SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT,
         SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT,
         SDL_SCANCODE_B, SDL_SCANCODE_A
-        };
+    };
 };
