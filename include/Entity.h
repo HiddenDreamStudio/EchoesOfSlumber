@@ -2,8 +2,6 @@
 
 #include "Input.h"
 #include "Render.h"
-#include <memory>
-#include <string>
 
 enum class EntityType
 {
@@ -12,9 +10,6 @@ enum class EntityType
 	ENEMY,
 	ENEMY_B,
 	ENEMY_C,
-	ENEMY_PLUSH,
-	ENEMY_STITCHLING,
-	BOUNCER,
 	BLOCK_CRAWLER,
 	PROJECTILE,
 	CHECKPOINT,
@@ -50,11 +45,6 @@ public:
 	}
 
 	virtual bool Update(float dt)
-	{
-		return true;
-	}
-
-	virtual bool PostUpdate()
 	{
 		return true;
 	}

@@ -8,9 +8,6 @@
 #include "EnemyCarmel.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
-#include "EnemyPlush.h"
-#include "EnemyStitchling.h"
-#include "Bouncer.h"
 #include "BlockCrawler.h"
 #include "Projectile.h"
 #include "Checkpoint.h"
@@ -99,15 +96,6 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::ENEMY_C:
 		entity = std::make_shared<EnemyC>();
-		break;
-	case EntityType::ENEMY_PLUSH:
-		entity = std::make_shared<EnemyPlush>();
-		break;
-	case EntityType::ENEMY_STITCHLING:
-		entity = std::make_shared<EnemyStitchling>();
-		break;
-	case EntityType::BOUNCER:
-		entity = std::make_shared<Bouncer>();
 		break;
 	case EntityType::BLOCK_CRAWLER:
 		entity = std::make_shared<BlockCrawler>();
@@ -208,15 +196,6 @@ bool EntityManager::Update(float dt)
 }
 
 bool EntityManager::PostUpdate() {
-	ZoneScoped;
-	bool ret = true;
-
-	for (const auto entity : entities)
-	{
-		if (entity->active == false) continue;
-		ret = entity->PostUpdate();
-		if (!ret) break;
-	}
-
-	return ret;
+	// Entity deletion is already handled in Update() — no need to double-check here
+	return true;
 }

@@ -9,9 +9,6 @@
 #include "DropDoll.h"
 #include "EnemyB.h"
 #include "EnemyC.h"
-#include "EnemyPlush.h"
-#include "EnemyStitchling.h"
-#include "Bouncer.h"
 #include "BlockCrawler.h"
 #include "Boss1.h"
 #include "RopedRock.h"
@@ -23,18 +20,10 @@
 #include "Window.h"
 #include "tracy/Tracy.hpp"
 #include "Door.h"
-#include "Scene.h"
+
 #include <math.h>
 #include <algorithm>
 #include <sstream>
-
-// Helper for SDL flip flags
-static SDL_FlipMode flipMode(bool h, bool v) {
-    if (h && v) return (SDL_FlipMode)(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
-    if (h) return SDL_FLIP_HORIZONTAL;
-    if (v) return SDL_FLIP_VERTICAL;
-    return SDL_FLIP_NONE;
-}
 
 Map::Map() : Module(), mapLoaded(false)
 {
@@ -70,7 +59,6 @@ bool Map::Update(float dt)
 
         Render* render = Engine::GetInstance().render.get();
         int scale = Engine::GetInstance().window->GetScale();
-
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
                 Engine::GetInstance().render->DrawTexture(
@@ -78,7 +66,7 @@ bool Map::Update(float dt)
                     static_cast<int>(imgLayer->offsetX),
                     static_cast<int>(imgLayer->offsetY),
                     nullptr,
-                    1.0f
+                    imgLayer->parallaxFactorX
                 );
             }
         }
@@ -88,8 +76,27 @@ bool Map::Update(float dt)
                 if (!render->IsOnScreenWorldRect(deco->x, deco->y - deco->height, deco->width, deco->height))
                     continue;
 
-                // Stable rendering with DrawTexture (supports world-space zoom)
-                render->DrawTexture(deco->texture, (int)deco->x, (int)(deco->y - deco->height), nullptr, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV));
+                // Posició en coordenades de món (Tiled usa l'origen a baix-esquerra per objectes gid)
+                float worldX = deco->x;
+                float worldY = deco->y - deco->height;
+
+                SDL_FRect dst;
+                dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
+                dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
+                dst.w = deco->width * scale;
+                dst.h = deco->height * scale;
+
+                SDL_FPoint center;
+                center.x = 0.0f;
+                center.y = dst.h;
+
+                SDL_FlipMode flip = SDL_FLIP_NONE;
+                if (deco->flipH && deco->flipV) flip = (SDL_FlipMode)(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
+                else if (deco->flipH) flip = SDL_FLIP_HORIZONTAL;
+                else if (deco->flipV) flip = SDL_FLIP_VERTICAL;
+              
+                SDL_RenderTextureRotated(render->renderer, deco->texture, nullptr, &dst,
+                    deco->rotation, &center, flip);
             }
         }
 
@@ -102,19 +109,32 @@ bool Map::Update(float dt)
                 continue;
 
             const SDL_Rect& frame = plant->anim.GetCurrentFrame();
-            render->DrawTexture(plant->texture, (int)plant->x, (int)plant->y, &frame);
+
+            SDL_FRect dst;
+            dst.x = (float)(render->camera.x + plant->x * scale);
+            dst.y = (float)(render->camera.y + plant->y * scale);           
+            dst.w = plant->w * scale;
+            dst.h = plant->h * scale;
+
+            SDL_FRect src;
+            src.x = (float)frame.x;
+            src.y = (float)frame.y;
+            src.w = (float)frame.w;
+            src.h = (float)frame.h;
+
+            SDL_RenderTexture(render->renderer, plant->texture, &src, &dst);
         }
         
-        // Calculate camera bounds in tiles using the correctly zoomed world viewport
-        float camX = -(float)render->camera.x;
-        float camY = -(float)render->camera.y;
-        float camW = render->GetWorldViewportWidth();
-        float camH = render->GetWorldViewportHeight();
+        // Calculate camera bounds in tiles
+        float camX = -render->camera.x;
+        float camY = -render->camera.y;
+        float camW = (float)render->camera.w / scale;
+        float camH = (float)render->camera.h / scale;
 
-        int startX = std::max(0, static_cast<int>(camX / static_cast<float>(mapData.tileWidth)) - 35);
-        int startY = std::max(0, static_cast<int>(camY / static_cast<float>(mapData.tileHeight)) - 35);
-        int endX = std::min(mapData.width, static_cast<int>((camX + camW) / static_cast<float>(mapData.tileWidth)) + 35);
-        int endY = std::min(mapData.height, static_cast<int>((camY + camH) / static_cast<float>(mapData.tileHeight)) + 35);
+        int startX = std::max(0, static_cast<int>(camX / static_cast<float>(mapData.tileWidth)) - 2);
+        int startY = std::max(0, static_cast<int>(camY / static_cast<float>(mapData.tileHeight)) - 2);
+        int endX = std::min(mapData.width, static_cast<int>((camX + camW) / static_cast<float>(mapData.tileWidth)) + 2);
+        int endY = std::min(mapData.height, static_cast<int>((camY + camH) / static_cast<float>(mapData.tileHeight)) + 2);
 
         for (const auto& mapLayer : mapData.layers) {
             if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true) {
@@ -145,24 +165,48 @@ bool Map::PostUpdate()
     if (mapLoaded == false)
         return true;
 
+    float scale = (float)Engine::GetInstance().window->GetScale();
     Render* render = Engine::GetInstance().render.get();
 
     for (const auto& deco : mapData.decorationObjects) {
         if (deco->texture && deco->isFront) {
-            if (!render->IsOnScreenWorldRect(deco->x, deco->y - deco->height, deco->width, deco->height))
-                continue;
+            float worldX = deco->x;
+            float worldY = deco->y - deco->height;
 
-            render->DrawTexture(deco->texture, (int)deco->x, (int)(deco->y - deco->height), nullptr, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV));
+            SDL_FRect dst;
+            dst.x = (float)((int)(render->camera.x) + (int)worldX * scale);
+            dst.y = (float)((int)(render->camera.y) + (int)worldY * scale);
+            dst.w = deco->width * scale;
+            dst.h = deco->height * scale;
+
+            SDL_FPoint center;
+            center.x = 0.0f;
+            center.y = dst.h;
+
+            SDL_FlipMode flip = SDL_FLIP_NONE;
+            if (deco->flipH && deco->flipV) flip = (SDL_FlipMode)(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
+            else if (deco->flipH) flip = SDL_FLIP_HORIZONTAL;
+            else if (deco->flipV) flip = SDL_FLIP_VERTICAL;
         }
     }
 
     for (const auto& plant : mapData.animatedPlants) {
         if (!plant->isFront) continue;
-        if (!render->IsOnScreenWorldRect(plant->x, plant->y, plant->w, plant->h))
-            continue;
-
         const SDL_Rect& frame = plant->anim.GetCurrentFrame();
-        render->DrawTexture(plant->texture, (int)plant->x, (int)plant->y, &frame);
+
+        SDL_FRect dst;
+        dst.x = (float)(render->camera.x + plant->x * scale);
+        dst.y = (float)(render->camera.y + plant->y * scale);
+        dst.w = plant->w * scale;
+        dst.h = plant->h * scale;
+
+        SDL_FRect src;
+        src.x = (float)frame.x;
+        src.y = (float)frame.y;
+        src.w = (float)frame.w;
+        src.h = (float)frame.h;
+
+        SDL_RenderTexture(render->renderer, plant->texture, &src, &dst);
     }
 
     return true;
@@ -220,8 +264,6 @@ bool Map::CleanUp()
     mapData.imageLayers.clear();
 
     for (const auto& deco : mapData.decorationObjects) {
-        if (deco->texture)
-            Engine::GetInstance().textures->UnLoad(deco->texture);
         delete deco;
     }
     mapData.decorationObjects.clear();
@@ -558,16 +600,6 @@ bool Map::GetSlingshotPosition(float& outX, float& outY) const
     return false;
 }
 
-bool Map::GetStuffedAnimalPosition(float& outX, float& outY) const
-{
-    if (mapData.stuffedAnimalFound) {
-        outX = mapData.stuffedAnimalX;
-        outY = mapData.stuffedAnimalY;
-        return true;
-    }
-    return false;
-}
-
 MapLayer* Map::GetNavigationLayer() {
     for (const auto& layer : mapData.layers) {
         if (layer->properties.GetProperty("Navigation") != NULL &&
@@ -579,7 +611,7 @@ MapLayer* Map::GetNavigationLayer() {
     return nullptr;
 }
 
-void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, float spawnX, float spawnY) {
+void Map::LoadEntities(std::shared_ptr<Player>& player) {
 
     for (pugi::xml_node objectGroupNode = mapFileXML.child("map").child("objectgroup"); objectGroupNode != NULL; objectGroupNode = objectGroupNode.next_sibling("objectgroup")) {
         std::string groupName = objectGroupNode.attribute("name").as_string();
@@ -588,11 +620,8 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
 
                 std::string entityType = objectNode.attribute("type").as_string();
-                if (entityType.empty()) {
-                    entityType = objectNode.attribute("class").as_string();
-                }
                 std::string entityClass = objectNode.attribute("class").as_string();
-                if (entityClass == "BlockCrawler") {
+                if (entityType.empty() || entityClass == "BlockCrawler") {
                     entityType = entityClass;
                 }
                 float x = objectNode.attribute("x").as_float();
@@ -601,20 +630,15 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                 if (entityType == "Player") {
                     if (player == nullptr) {
                         player = std::dynamic_pointer_cast<Player>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-                        player->position = portalTransition
-                            ? Vector2D(spawnX, spawnY)
-                            : Vector2D(x + 32, y + 32);
+                        player->position = Vector2D(x + 32, y + 32);
                         player->Start();
                         LOG("Player spawned at: %f, %f", x, y);
                     }
                     else {
-                        if (portalTransition)
-                            player->SetPosition(Vector2D(spawnX, spawnY));
-                        else
-                            player->SetPosition(Vector2D(x, y));
+                        player->SetPosition(Vector2D(x, y));
                     }
                 }
-                else if (entityType == "Enemy" || entityType == "SpiderCandy") {
+                else if (entityType == "Enemy") {
                     auto enemy = std::dynamic_pointer_cast<EnemyCarmel>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
                     enemy->position = Vector2D(x, y);
 
@@ -630,7 +654,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     }
                     enemy->SetPatrolPoints(patrolLeft, patrolRight);
                     enemy->Start();
-                    LOG("Enemy (SpiderCandy) spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
+                    LOG("Enemy spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
                 }
                 else if (entityType == "EnemyB") {
                     auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
@@ -654,27 +678,6 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     enemyC->position = Vector2D(x, y);
                     enemyC->Start();
                     LOG("EnemyC spawned at: %f, %f", x, y);
-                }
-                else if (entityType == "EnemyPlush") {
-                    auto enemyPlush = std::dynamic_pointer_cast<EnemyPlush>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_PLUSH));
-                    enemyPlush->position = Vector2D(x, y);
-                    enemyPlush->Start();
-                    LOG("EnemyPlush spawned at: %f, %f", x, y);
-                }
-                else if (entityType == "EnemyStitchling") {
-                    auto stitchling = std::dynamic_pointer_cast<EnemyStitchling>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_STITCHLING));
-                    stitchling->position = Vector2D(x, y);
-                    stitchling->Start();
-                    LOG("EnemyStitchling spawned at: %f, %f", x, y);
-                }
-                else if (entityType == "Bouncer") {
-                    float w = objectNode.attribute("width").as_float(96.0f);
-                    float h = objectNode.attribute("height").as_float(96.0f);
-                    auto bouncer = std::dynamic_pointer_cast<Bouncer>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOUNCER));
-                    bouncer->position = Vector2D(x, y);
-                    bouncer->SetSpawnSize(w, h);
-                    bouncer->Start();
-                    LOG("Bouncer spawned at: %f, %f (size: %.0fx%.0f)", x, y, w, h);
                 }
                 else if (entityType == "BlockCrawler") {
                     auto blockCrawler = std::dynamic_pointer_cast<BlockCrawler>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BLOCK_CRAWLER));
@@ -723,17 +726,10 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     rr->Start();
                 }
                 else if (entityType == "Checkpoint") {
-                    float w = objectNode.attribute("width").as_float(64.0f);
-                    float h = objectNode.attribute("height").as_float(64.0f);
-                    std::string objectId = objectNode.attribute("id").as_string();
-                    std::string checkpointId = mapFileName + ":" + (objectId.empty()
-                        ? std::to_string((int)x) + "," + std::to_string((int)y)
-                        : objectId);
                     auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
-                    checkpoint->Configure(checkpointId, w, h);
-                    checkpoint->position = Vector2D(x + w * 0.5f, y + h * 0.5f);
+                    checkpoint->position = Vector2D(x, y);
                     checkpoint->Start();
-                    LOG("Checkpoint spawned at: %f, %f (%s)", x, y, checkpointId.c_str());
+                    LOG("Checkpoint spawned at: %f, %f", x, y);
                 }
                 else if (entityType == "Box") {
                     auto box = std::dynamic_pointer_cast<Box>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOX));
@@ -761,50 +757,6 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     LOG("DropDoll spawned at (%.0f, %.0f), trigger width %.0f",
                         doll->position.getX(), doll->position.getY(), triggerW);
                 }
-                else if (entityType == "Platform") {
-                    auto platform = std::dynamic_pointer_cast<Platform>(
-                        Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));
-
-                    float baseX = objectNode.attribute("x").as_float();
-                    float baseY = objectNode.attribute("y").as_float();
-
-                    pugi::xml_node props = objectNode.child("properties");
-                    if (props) {
-                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
-                            std::string pname = prop.attribute("name").as_string();
-
-                            if (pname == "speed")
-                                platform->speed = prop.attribute("value").as_float();
-
-                            if (pname == "texture")
-                                platform->texturePath = prop.attribute("value").as_string();
-
-                            if (pname == "trigger")                                         
-                                platform->triggerOnPlayer = prop.attribute("value").as_bool();
-
-                            if (pname == "path") {
-                                std::string pathStr = prop.attribute("value").as_string();
-                                std::stringstream ss(pathStr);
-                                std::string pair;
-                                while (std::getline(ss, pair, ';')) {
-                                    std::stringstream ssPair(pair);
-                                    std::string xStr, yStr;
-                                    if (std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
-                                        platform->AddWaypoint(Vector2D(std::stof(xStr), std::stof(yStr)));
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (!platform->waypoints.empty())
-                        platform->position = platform->waypoints[0];
-                    else
-                        platform->position = Vector2D(baseX, baseY);
-
-                    platform->Start();
-                    LOG("Platform spawned at: %f, %f", baseX, baseY);
-                    }
                 // Parse MovingPlatform from Tiled polylines
                 else if (entityType == "MovingPlatform") {
                     auto platform = std::dynamic_pointer_cast<Platform>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));
@@ -883,35 +835,17 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     mapData.slingshotY = y;
                     LOG("Slingshot position loaded from TMX at: %f, %f", x, y);
                 }
-                else if (entityType == "Oso" || entityType == "Peluche" || entityType == "StuffedAnimal") {
-                    mapData.stuffedAnimalFound = true;
-                    mapData.stuffedAnimalX = x;
-                    mapData.stuffedAnimalY = y;
-                    LOG("StuffedAnimal position loaded from TMX at: %f, %f", x, y);
-                }
             }
         }
-        else if (groupName == "Checkpoint" || groupName == "Checkpoints" || groupName == "CheckPoints") {
+        else if (objectGroupNode.attribute("name").as_string() == std::string("Checkpoint")) {
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
-                std::string objClass = objectNode.attribute("type").as_string();
-                if (objClass.empty()) objClass = objectNode.attribute("class").as_string();
-                if (!objClass.empty() && objClass != "Checkpoint" && objClass != "CheckPoint")
-                    continue;
-
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
-                float w = objectNode.attribute("width").as_float(64.0f);
-                float h = objectNode.attribute("height").as_float(64.0f);
-                std::string objectId = objectNode.attribute("id").as_string();
-                std::string checkpointId = mapFileName + ":" + (objectId.empty()
-                    ? std::to_string((int)x) + "," + std::to_string((int)y)
-                    : objectId);
 
                 auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
-                checkpoint->Configure(checkpointId, w, h);
-                checkpoint->position = Vector2D(x + w * 0.5f, y + h * 0.5f);
+                checkpoint->position = Vector2D(x, y);
                 checkpoint->Start();
-                LOG("Checkpoint from specialized layer spawned at: %f, %f (%s)", x, y, checkpointId.c_str());
+                LOG("Checkpoint from specialized layer spawned at: %f, %f", x, y);
             }
         }
         else if (objectGroupNode.attribute("name").as_string() == std::string("InteractiveAssets")) {
@@ -941,14 +875,6 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     mapData.slingshotY = y;
                     LOG("Slingshot position loaded from InteractiveAssets at: %f, %f", x, y);
                 }
-                else if (objClass == "Oso" || objClass == "Peluche" || objClass == "StuffedAnimal") {
-                    float x = objectNode.attribute("x").as_float();
-                    float y = objectNode.attribute("y").as_float();
-                    mapData.stuffedAnimalFound = true;
-                    mapData.stuffedAnimalX = x;
-                    mapData.stuffedAnimalY = y;
-                    LOG("StuffedAnimal position loaded from InteractiveAssets at: %f, %f", x, y);
-                }
             }
         }
         else if (objectGroupNode.attribute("name").as_string() == std::string("Weapons")) {
@@ -964,24 +890,8 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     mapData.slingshotY = y;
                     LOG("Slingshot position loaded from Weapons at: %f, %f", x, y);
                 }
-                else if (objClass == "Oso" || objClass == "Peluche" || objClass == "StuffedAnimal") {
-                    float x = objectNode.attribute("x").as_float();
-                    float y = objectNode.attribute("y").as_float();
-                    mapData.stuffedAnimalFound = true;
-                    mapData.stuffedAnimalX = x;
-                    mapData.stuffedAnimalY = y;
-                    LOG("StuffedAnimal position loaded from Weapons at: %f, %f", x, y);
-                }
             }
         }
-    }
-
-    // Ensure the player is drawn on top of all other entities (like checkpoints)
-    // by moving it to the end of the EntityManager's entities list
-    auto& em = Engine::GetInstance().entityManager;
-    if (player != nullptr) {
-        em->entities.remove(player);
-        em->entities.push_back(player);
     }
 }
 
@@ -1039,7 +949,7 @@ void Map::LoadImageLayers()
 
 void Map::LoadDecorationObjects()
 {
-    const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoint", "Checkpoints", "CheckPoints", "AnimatedPlants", "AnimatedPlants front", "InteractiveAssets" };
+    const std::vector<std::string> excludedNames = { "Entities", "Collisions", "Navigation", "Checkpoints", "AnimatedPlants", "AnimatedPlants front", "InteractiveAssets" };
     
     for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
         groupNode != NULL;
@@ -1206,61 +1116,4 @@ void Map::LoadAnimatedPlants()
             mapData.animatedPlants.push_back(plant);
         }
     }
-}
-
-std::vector<PortalData> Map::GetPortals() const
-{
-    std::vector<PortalData> result;
-
-    for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
-        groupNode; groupNode = groupNode.next_sibling("objectgroup"))
-    {
-        if (std::string(groupNode.attribute("name").as_string()) != "Portals") continue;
-
-        for (pugi::xml_node obj = groupNode.child("object"); obj; obj = obj.next_sibling("object"))
-        {
-            PortalData p;
-            p.x = obj.attribute("x").as_float();
-            p.y = obj.attribute("y").as_float();
-            p.w = obj.attribute("width").as_float(64.0f);
-            p.h = obj.attribute("height").as_float(128.0f);
-
-            for (pugi::xml_node prop = obj.child("properties").child("property");
-                prop; prop = prop.next_sibling("property"))
-            {
-                std::string name = prop.attribute("name").as_string();
-                if (name == "target")   p.targetFile = prop.attribute("value").as_string();
-                if (name == "spawnId")  p.spawnId = prop.attribute("value").as_string();
-            }
-
-            if (!p.targetFile.empty())
-                result.push_back(p);
-        }
-    }
-    return result;
-}
-
-bool Map::GetSpawnById(const std::string& id, float& outX, float& outY) const
-{
-    for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
-        groupNode; groupNode = groupNode.next_sibling("objectgroup"))
-    {
-        if (std::string(groupNode.attribute("name").as_string()) != "Spawns") continue;
-
-        for (pugi::xml_node obj = groupNode.child("object"); obj; obj = obj.next_sibling("object"))
-        {
-            for (pugi::xml_node prop = obj.child("properties").child("property");
-                prop; prop = prop.next_sibling("property"))
-            {
-                if (std::string(prop.attribute("name").as_string()) == "spawnId" &&
-                    std::string(prop.attribute("value").as_string()) == id)
-                {
-                    outX = obj.attribute("x").as_float();
-                    outY = obj.attribute("y").as_float();
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
 }
