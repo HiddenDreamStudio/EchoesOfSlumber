@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="173" height="59" tilewidth="64" tileheight="64" infinite="0" nextlayerid="9" nextobjectid="97">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="173" height="59" tilewidth="64" tileheight="64" infinite="0" nextlayerid="13" nextobjectid="99">
  <tileset firstgid="1" name="Tileset 4" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -309,8 +309,14 @@
  </tileset>
  <tileset firstgid="231" source="back.tsx"/>
  <tileset firstgid="244" source="Assets level 4/foreground/fore level 4.tsx"/>
- <imagelayer id="6" name="Background" visible="0" parallaxx="0" parallaxy="0" repeatx="1" repeaty="1">
-  <image source="Nivell 4/F_Nivell_4.jpg" width="1920" height="1080"/>
+ <imagelayer id="6" name="Background" offsetx="16" offsety="0">
+  <image source="../textures/fons_enviroment/Map4/Map4_fondo.png" width="11072" height="11392"/>
+ </imagelayer>
+ <imagelayer id="9" name="Background">
+  <image source="../textures/fons_enviroment/Map4/Map4_fondo_delante_1.png" width="11072" height="11392"/>
+ </imagelayer>
+ <imagelayer id="10" name="Background">
+  <image source="../textures/fons_enviroment/Map4/Map4_fondo_delante_2.png" width="11072" height="11392"/>
  </imagelayer>
  <objectgroup id="2" name="middleground">
   <object id="32" gid="119" x="2338.81" y="2877.13" width="1534.51" height="510.696"/>
@@ -327,7 +333,7 @@
   <object id="87" gid="245" x="6490.79" y="791.545" width="264.879" height="507.797"/>
  </objectgroup>
  <objectgroup id="4" name="background"/>
- <objectgroup id="3" name="Entities" visible="0"/>
+ <objectgroup id="3" name="Entities"/>
  <layer id="1" name="Map" width="173" height="59">
   <properties>
    <property name="Draw" type="bool" value="true"/>
@@ -394,6 +400,14 @@
 142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,143,0,0,0,0,0,141,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142,142
 </data>
  </layer>
+ <objectgroup id="12" name="Checkpoint">
+  <object id="97" type="CheckPoint" x="6081.33" y="3591">
+   <point/>
+  </object>
+  <object id="98" type="CheckPoint" x="8895.33" y="1478">
+   <point/>
+  </object>
+ </objectgroup>
  <objectgroup id="7" name="Portals">
   <object id="94" type="Portal" x="6346.33" y="3696.55" width="415.334" height="76.2423">
    <properties>
@@ -422,7 +436,7 @@
    <point/>
   </object>
  </objectgroup>
- <objectgroup id="5" name="Entities" visible="0"/>
+ <objectgroup id="5" name="Entities"/>
  <objectgroup id="3" name="foreground">
   <object id="63" gid="241" x="8251.87" y="1598" width="570.127" height="379.099"/>
   <object id="64" gid="237" x="6830.34" y="1397.03" width="357" height="436.753" rotation="32.6854"/>
