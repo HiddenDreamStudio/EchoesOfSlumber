@@ -288,6 +288,9 @@ public:
     bool bearNotifHasStuffed_ = false;
     void ShowNoBearNotification(bool hasStuffedAnimal);
 
+    float screenDamageTimer_ = 0.0f;
+    void TriggerScreenDamage() { screenDamageTimer_ = 1000.0f; }
+
 private:
     // Button IDs — pause menu
     static constexpr int BTN_PAUSE_CONTINUE = 20;
@@ -375,6 +378,7 @@ private:
     // Checkpoint notification
     SDL_Texture* texCheckpointSaved_ = nullptr;
     SDL_Texture* texNoCapeNotif_ = nullptr;
+    SDL_Texture* texDamageVignette_ = nullptr;
 
     // Pause menu textures
     SDL_Texture* texPauseBackground_ = nullptr;
