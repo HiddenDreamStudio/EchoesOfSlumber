@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="64" height="38" tilewidth="64" tileheight="64" infinite="0" nextlayerid="7" nextobjectid="19">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="64" height="38" tilewidth="64" tileheight="64" infinite="0" nextlayerid="10" nextobjectid="19">
  <tileset firstgid="1" name="Tileset 3" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 4/TL_Nivell_4_01.png" width="640" height="640"/>
   <tile id="0">
@@ -146,6 +146,9 @@
  <tileset firstgid="101" source="Assets level 4/foreground/fore level 4.tsx"/>
  <tileset firstgid="116" source="Assets level 4/middle level 4.tsx"/>
  <tileset firstgid="146" source="back.tsx"/>
+ <imagelayer id="7" name="Background" offsetx="0" offsety="-3784">
+  <image source="../textures/fons_enviroment/Map4/Map4_fondo.png" width="11072" height="11392"/>
+ </imagelayer>
  <objectgroup id="2" name="Middleground">
   <object id="1" gid="135" x="2717.72" y="628.761" width="549.395" height="365.313" rotation="176.083"/>
   <object id="2" gid="135" x="4291.94" y="813.731" width="551.511" height="366.72" rotation="200.575"/>
@@ -203,6 +206,12 @@
 12,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,11,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12
 </data>
  </layer>
+ <imagelayer id="8" name="Background" offsetx="32" offsety="-3792">
+  <image source="../textures/fons_enviroment/Map4/Map4_fondo_delante_1.png" width="11072" height="11392"/>
+ </imagelayer>
+ <imagelayer id="9" name="Background" offsetx="-16" offsety="-3760">
+  <image source="../textures/fons_enviroment/Map4/Map4_fondo_delante_2.png" width="11072" height="11392"/>
+ </imagelayer>
  <objectgroup id="5" name="Portals">
   <object id="16" type="Portal" x="2938.33" y="643.212" width="576.667" height="190.909">
    <properties>
