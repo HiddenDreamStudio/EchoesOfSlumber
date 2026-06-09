@@ -445,7 +445,7 @@ void EnemyC::Draw(float dt)
 
 	// Offset Y upward by 20px so feet don't clip through the floor
 	Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2 - 20, &animFrame,
-		1.0f, 0, INT_MAX, INT_MAX, flip);
+		1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip);
 }
 
 bool EnemyC::CleanUp()

@@ -405,7 +405,7 @@ void DropDoll::Draw()
         if (f.w == 0 || f.h == 0) return;
         int sw = (int)(f.w * DRAW_SCALE);
         int sh = (int)(f.h * DRAW_SCALE);
-        render.DrawTexture(tex, centerX - sw / 2, centerY - sh / 2, &f, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, DRAW_SCALE);
+        render.DrawTexture(tex, centerX - sw / 2, centerY - sh / 2, &f, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, DRAW_SCALE);
     };
 
     switch (state_)

@@ -1092,7 +1092,7 @@ void Player::Draw(float dt) {
             int wakeDrawY = yInt + 50 - wakeHeight + 15;
             
             render->ApplyAmbientTint(wakeUpTexture);
-            render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, wakeScale);
+            render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, wakeScale);
             render->ResetAmbientTint(wakeUpTexture);
             return;
         }
@@ -1107,7 +1107,7 @@ void Player::Draw(float dt) {
 		SDL_FlipMode kidFlip = bearSummonFacingRight_ ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
 		render->ApplyAmbientTint(throwBearTexture_);
-		render->DrawTexture(throwBearTexture_, kidDrawX, kidDrawY, &kidFrame, 1.0f, 0, INT_MAX, INT_MAX, kidFlip, kidScale);
+		render->DrawTexture(throwBearTexture_, kidDrawX, kidDrawY, &kidFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, kidFlip, kidScale);
 		render->ResetAmbientTint(throwBearTexture_);
 	}
 
@@ -1131,7 +1131,7 @@ void Player::Draw(float dt) {
 			SDL_SetTextureBlendMode(activeTex, SDL_BLENDMODE_BLEND);
 		}
 
-		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
 
 		// Add subtle permanent white circular glow to the player
 		if (!isDead_ && !isWakingUp) {

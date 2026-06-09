@@ -325,13 +325,13 @@ void EnemyB::Draw(float dt)
 	{
 		turnAnims_.Update(dt);
 		const SDL_Rect& frame = turnAnims_.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(turnTexture, x - texW / 2, y - texH / 2, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(turnTexture, x - texW / 2, y - texH / 2, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
 	}
 	else
 	{
 		walkAnims_.Update(dt);
 		const SDL_Rect& frame = walkAnims_.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(walkTexture, x - texW / 2, y - texH / 2, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(walkTexture, x - texW / 2, y - texH / 2, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
 	}
 }
 

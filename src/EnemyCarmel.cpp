@@ -235,13 +235,13 @@ void EnemyCarmel::Draw(float dt)
 		const SDL_Rect& frame = rollAnims_.GetCurrentFrame();
 		int drawX = x - (int)(256.0f * ROLL_DRAW_SCALE) / 2;
 		int drawY = y - (int)(256.0f * ROLL_DRAW_SCALE) / 2;
-		Engine::GetInstance().render->DrawTexture(rollTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, ROLL_DRAW_SCALE);
+		Engine::GetInstance().render->DrawTexture(rollTexture_, drawX, drawY, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, ROLL_DRAW_SCALE);
 	}
 	else if (state_ == EnemyCarmelState::SCARED)
 	{
 		scaredAnims_.Update(dt);
 		const SDL_Rect& frame = scaredAnims_.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(scaredTexture_, x - 32, y - 32, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(scaredTexture_, x - 32, y - 32, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
 	}
 	else if (state_ == EnemyCarmelState::BLOWUP)
 	{
@@ -249,13 +249,13 @@ void EnemyCarmel::Draw(float dt)
 		const SDL_Rect& frame = blowupAnims_.GetCurrentFrame();
 		int drawX = x - (int)(256.0f * ROLL_DRAW_SCALE) / 2;
 		int drawY = y - (int)(256.0f * ROLL_DRAW_SCALE) / 2;
-		Engine::GetInstance().render->DrawTexture(blowupTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, ROLL_DRAW_SCALE);
+		Engine::GetInstance().render->DrawTexture(blowupTexture_, drawX, drawY, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, ROLL_DRAW_SCALE);
 	}
 	else
 	{
 		// IDLE
 		anims_.Update(dt);
 		const SDL_Rect& frame = anims_.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(texture, x - 32, y - 32, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(texture, x - 32, y - 32, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
 	}
 }

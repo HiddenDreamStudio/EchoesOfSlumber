@@ -1173,7 +1173,7 @@ void Scene::UpdateTutorialTextCard(float dt)
 		float drawH = (float)th * 0.8f;
 		int dx = (winW - (int)drawW) / 2;
 		int dy = winH / 2 - 70;
-		render.DrawTexture(texTutorialSeparator_, dx, dy, &src, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.8f);
+		render.DrawTexture(texTutorialSeparator_, dx, dy, &src, 0.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.8f);
 	}
 
 	if (tutorialTimer_ > pt2Start) {
@@ -2072,7 +2072,7 @@ void Scene::UpdateGameplay(float dt)
 		int slDrawY = (int)(slingshotY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
 
 		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
-		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
+		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
 
 	// Draw stuffed animal collectible in-world
@@ -2086,7 +2086,7 @@ void Scene::UpdateGameplay(float dt)
 		int slDrawY = (int)(stuffedAnimalY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
 
 		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
-		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
+		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
 	if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
 
@@ -2101,7 +2101,7 @@ void Scene::UpdateGameplay(float dt)
 		int drawY = (int)(capaY_ - (float)capaTexH * capaScale / 2.0f + floatOffset);
 
 		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
-		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, capaScale);
+		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, capaScale);
 	}
 }
 
@@ -2652,7 +2652,7 @@ void Scene::PostUpdateGameplay()
 			}
 		}
          if (texToDraw && frame) {
-             Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.25f);
+             Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.25f);
          }
 
          Player::EquippedItem eq = player->GetEquippedItem();
@@ -2789,7 +2789,7 @@ void Scene::PostUpdateGameplay()
 										{
 											// Draw the real tile texture scaled down, speed=0.0f to lock to HUD space!
 											float drawScale = 4.0f / (float)tileWidth;
-											render.DrawTexture(tileSet->texture, drawTileX, drawTileY, &tileRect, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
+											render.DrawTexture(tileSet->texture, drawTileX, drawTileY, &tileRect, 0.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
 										}
 									}
 								}
@@ -2859,7 +2859,7 @@ void Scene::PostUpdateGameplay()
 			{
 				SDL_Rect frameSec = { 0, 0, frameW, frameH };
 				float scaleFrame = 220.0f / (float)frameW;
-				render.DrawTexture(texMinimapFrame_, miniX, miniY, &frameSec, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, scaleFrame);
+				render.DrawTexture(texMinimapFrame_, miniX, miniY, &frameSec, 0.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, scaleFrame);
 			}
 		}
 	}

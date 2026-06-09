@@ -367,7 +367,7 @@ void BlockCrawler::Draw()
 		int ry = (int)(position.getY() + currentPhysHalfH_ - renderH) + spriteBottomOffset;
 
 		SDL_FlipMode flip = facingRight_ ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
-		Engine::GetInstance().render->DrawTexture(tex, rx, ry, &rect, 1.0f, 0, INT_MAX, INT_MAX, flip, renderScale);
+		Engine::GetInstance().render->DrawTexture(tex, rx, ry, &rect, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, renderScale);
 	}
 }
 

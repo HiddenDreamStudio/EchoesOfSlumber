@@ -128,6 +128,7 @@ struct AnimatedPlantObject
     float w;
     float h;
     bool  isFront = false;
+    float parallaxSpeed = 1.0f;
     std::string tsxPath;        
     AnimationSet anim;            
     SDL_Texture* texture = nullptr;
@@ -262,4 +263,5 @@ private:
 public:
     bool hasInitCamera = false;
     float initCameraX = 0.0f;
+    float initCameraY = 0.0f;
 };
