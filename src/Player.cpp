@@ -166,7 +166,6 @@ bool Player::Start() {
 	pickCoinFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/coin-collision-sound-342335.wav");
 	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump2.wav");
 	landFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/land.wav");
-	/*stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");*/
 	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
 	slingshotFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/tirachinas.wav");
 	capeFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/capa.wav");
