@@ -608,26 +608,46 @@ body {
 }
 
 /* The panoramic silhouette strip exactly as image 1 */
-.footer-silhouettes {
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 0;
+.footer-silhouettes-container {
     width: 100%;
+    position: relative;
     overflow: hidden;
-    /* All assets tinted to #337FA5 */
-    filter: brightness(0) saturate(100%) invert(43%) sepia(55%) saturate(446%) hue-rotate(165deg) brightness(90%) contrast(90%);
+    /* Maintain aspect ratio of the 1440x364 Figma block */
+    aspect-ratio: 1440 / 364;
+    max-height: 364px;
+    background: transparent;
 }
-
-.sil-asset {
-    height: clamp(80px, 15vw, 160px);
-    width: auto;
-    object-fit: contain;
-    object-position: bottom;
-    flex-shrink: 0;
-    /* make them tile/fill the full width */
-    flex: 1 0 auto;
-    max-width: 120px;
+.footer-silhouettes-canvas {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1440px;
+    height: 364px;
+    transform-origin: top center;
+}
+/* Responsive scale down if viewport < 1440px */
+@media (max-width: 1440px) {
+    .footer-silhouettes-canvas {
+        transform: translateX(-50%) scale(calc(100vw / 1440));
+    }
+}
+.sil {
+    position: absolute;
+    opacity: 0.2;
+    pointer-events: none;
+}
+.sil.sil-flip {
+    transform: scaleX(-1);
+}
+.sil-inner {
+    position: absolute;
+    inset: 0;
+    background-color: lightgray;
+    background-position: 50%;
+    background-size: cover;
+    background-repeat: no-repeat;
+    border-radius: inherit;
 }
 
 /* Blue border line at top of footer, like image 1 */
@@ -641,12 +661,17 @@ body {
 .footer-logos-row {
     display: flex; align-items: center; justify-content: center;
     gap: 3rem; flex-wrap: wrap; margin-bottom: 1.25rem;
+    position: relative;
+    z-index: 10;
 }
 .footer-logo {
-    height: 36px; width: auto; opacity: 0.7;
+    height: auto; width: auto; opacity: 0.7;
     filter: brightness(0) invert(1);
     transition: opacity var(--tr);
 }
+.footer-logo:nth-child(1) { height: 56.57px; } /* Hidden Studios */
+.footer-logo:nth-child(2) { height: 84px; }    /* CITM/UPC */
+.footer-logo:nth-child(3) { height: 56.57px; } /* Echoes of Slumber */
 .footer-logo:hover { opacity: 1; }
 
 .footer-copy {
