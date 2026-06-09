@@ -41,6 +41,7 @@ private:
 	bool LoadClip(BouncerAnim anim, const char* path, int frames, int frameDurationMs, bool loop);
 	void SetClip(BouncerAnim anim, bool reset = true);
 	void TransitionTo(BouncerState newState);
+	void PlayBouncerFx(int fxId);
 	void Launch(bool highJump);
 	void HandleSurfaceContacts();
 	void HandleMapBounds();
@@ -82,4 +83,9 @@ private:
 	bool highJumpQueued_ = false;
 	bool tiredQueued_ = false;
 	uint32_t variationSeed_ = 0xA53C9E2Du;
+
+	int bouncerAttackFxId_ = -1;
+	int bouncerReboteFxId_ = -1;
+	int bouncerHitFxId_ = -1;
+	int bouncerDieFxId_ = -1;
 };
