@@ -53,6 +53,7 @@ bool Scene::Awake()
 {
 	LOG("Loading Scene");
 	menuClickFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Menu-Selection-Click.wav");
+	checkpointFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/checkpoint2.wav");
 	hasPendingSceneChange = true;
 	pendingScene = currentScene;
 	return true;
@@ -2288,6 +2289,8 @@ bool Scene::RequestCheckpointActivation(const std::string& checkpointId, const V
 {
 	if (checkpointId.empty() || IsCheckpointTransitionActive() || isGameOver_ || waitingForFade_)
 		return false;
+
+	Engine::GetInstance().audio->PlayFx(checkpointFxId);
 
 	pendingCheckpointId_ = checkpointId;
 	pendingCheckpointSpawn_ = spawnPosition;

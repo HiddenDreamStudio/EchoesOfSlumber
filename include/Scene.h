@@ -79,6 +79,7 @@ private:
     float sfxVolume_ = 0.8f;
     int menuClickFxId = -1;
     bool isFullscreen_ = false;
+    int checkpointFxId = -1;
 
     // =========================================================================
     //  MAIN MENU
