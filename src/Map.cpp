@@ -11,13 +11,16 @@
 #include "EnemyC.h"
 #include "EnemyPlush.h"
 #include "EnemyStitchling.h"
+#include "EnemyWindUpScurry.h"
 #include "Bouncer.h"
 #include "Boss1.h"
 #include "RopedRock.h"
 #include "BlockCrawler.h"
+#include "Antagonist.h"
 #include "Checkpoint.h"
 #include "Box.h"
 #include "Platform.h"
+#include "Lever.h"
 #include "PushRock.h"
 #include "Boss2.h"
 #include "Window.h"
@@ -517,7 +520,7 @@ bool Map::LoadProperties(pugi::xml_node& node, Properties& properties)
     {
         Properties::Property* p = new Properties::Property();
         p->name = propertieNode.attribute("name").as_string();
-        p->value = propertieNode.attribute("value").as_bool(); // (!!) I'm assuming that all values are bool !!
+        p->value = propertieNode.attribute("value").as_bool();
 
         properties.propertyList.push_back(p);
     }
@@ -682,6 +685,12 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     stitchling->Start();
                     LOG("EnemyStitchling spawned at: %f, %f", x, y);
                 }
+                else if (entityType == "EnemyWindUpScurry" || entityType == "WindUpScurry") {
+                    auto scurry = std::dynamic_pointer_cast<EnemyWindUpScurry>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_WINDUP_SCURRY));
+                    scurry->position = Vector2D(x, y);
+                    scurry->Start();
+                    LOG("EnemyWindUpScurry spawned at: %f, %f", x, y);
+                }
                 else if (entityType == "Bouncer") {
                     float w = objectNode.attribute("width").as_float(96.0f);
                     float h = objectNode.attribute("height").as_float(96.0f);
@@ -713,6 +722,15 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     auto rr = std::dynamic_pointer_cast<RopedRock>(
                         Engine::GetInstance().entityManager->CreateEntity(EntityType::ROPE_ROCK));
                     rr->position = Vector2D(x, y);
+
+                    pugi::xml_node rrProps = objectNode.child("properties");
+                    if (rrProps) {
+                        for (auto prop = rrProps.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string pname = prop.attribute("name").as_string();
+                            if (pname == "ropeLength")
+                                rr->SetRopeLength(prop.attribute("value").as_float());
+                        }
+                    }
                     rr->Start();
                 }
                 else if (entityType == "Checkpoint") {
@@ -754,12 +772,30 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     LOG("DropDoll spawned at (%.0f, %.0f), trigger width %.0f",
                         doll->position.getX(), doll->position.getY(), triggerW);
                 }
+                else if (entityType == "Antagonist") {
+                    auto ant = std::dynamic_pointer_cast<Antagonist>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::ANTAGONIST));
+                    ant->position = Vector2D(x, y);
+                    for (pugi::xml_node prop = objectNode.child("properties").child("property");
+                         prop; prop = prop.next_sibling("property"))
+                    {
+                        std::string pname = prop.attribute("name").as_string();
+                        if      (pname == "appear_range") ant->SetAppearRange(prop.attribute("value").as_float(400.0f));
+                        else if (pname == "alpha")        ant->SetAlpha(prop.attribute("value").as_int(180));
+                        else if (pname == "scale")        ant->SetScale(prop.attribute("value").as_float(0.5f));
+                    }
+                    ant->Start();
+                    LOG("Antagonist spawned at (%.0f, %.0f)", ant->position.getX(), ant->position.getY());
+                }
                 else if (entityType == "Platform") {
                     auto platform = std::dynamic_pointer_cast<Platform>(
                         Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));
 
                     float baseX = objectNode.attribute("x").as_float();
                     float baseY = objectNode.attribute("y").as_float();
+
+                    platform->texW = objectNode.attribute("width").as_int(192);
+                    platform->texH = objectNode.attribute("height").as_int(64);
 
                     pugi::xml_node props = objectNode.child("properties");
                     if (props) {
@@ -772,8 +808,14 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                             if (pname == "texture")
                                 platform->texturePath = prop.attribute("value").as_string();
 
-                            if (pname == "trigger")                                         
+                            if (pname == "trigger")
                                 platform->triggerOnPlayer = prop.attribute("value").as_bool();
+
+                            if (pname == "require_lever")
+                                platform->requireLever = prop.attribute("value").as_bool();
+
+                            if (pname == "platform_name")
+                                platform->platformName = prop.attribute("value").as_string();
 
                             if (pname == "path") {
                                 std::string pathStr = prop.attribute("value").as_string();
@@ -797,6 +839,30 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
 
                     platform->Start();
                     LOG("Platform spawned at: %f, %f", baseX, baseY);
+                    }
+                else if (entityType == "Lever") {
+                    auto lever = std::dynamic_pointer_cast<Lever>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::LEVER));
+                    lever->position = Vector2D(x, y);
+
+                    // Leemos el tamaño para la colisión y dibujo
+                    lever->texW = objectNode.attribute("width").as_int(64);
+                    lever->texH = objectNode.attribute("height").as_int(64);
+
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string pname = prop.attribute("name").as_string();
+
+                            if (pname == "target_platform")
+                                lever->targetPlatformName = prop.attribute("value").as_string();
+
+                            if (pname == "locked_by_puzzle")
+                                lever->isLockedByPuzzle = prop.attribute("value").as_bool();
+                        }
+                    }
+                    lever->Start();
+                    LOG("Lever spawned at: %f, %f targeting %s", x, y, lever->targetPlatformName.c_str());
                     }
                 // Parse MovingPlatform from Tiled polylines
                 else if (entityType == "MovingPlatform") {
@@ -870,6 +936,15 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     door->Start();
                     LOG("Door spawned at: %f, %f", x, y);
                 }
+                else if (entityType == "Wall") {
+                    float w = objectNode.attribute("width").as_float(64.0f);
+                    float h = objectNode.attribute("height").as_float(64.0f);
+                    PhysBody* wall = Engine::GetInstance().physics.get()->CreateRectangle(
+                        (int)(x + w / 2), (int)(y + h / 2), (int)w, (int)h, bodyType::STATIC, 0.0f);
+                    wall->ctype = ColliderType::PLATFORM;
+                    colliderList.push_back(wall);
+                    LOG("Wall spawned at: %f, %f (%.0fx%.0f)", x, y, w, h);
+                }
                 else if (entityType == "Tirachinas") {
                     mapData.slingshotFound = true;
                     mapData.slingshotX = x;
@@ -881,6 +956,16 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     mapData.stuffedAnimalX = x;
                     mapData.stuffedAnimalY = y;
                     LOG("StuffedAnimal position loaded from TMX at: %f, %f", x, y);
+                }
+                else if (entityType == "Wall") {
+                    float w = objectNode.attribute("width").as_float(64.0f);
+                    float h = objectNode.attribute("height").as_float(64.0f);
+                    int cx = (int)(x + w * 0.5f);
+                    int cy = (int)(y + h * 0.5f);
+                    PhysBody* wall = Engine::GetInstance().physics->CreateRectangle(
+                        cx, cy, (int)w, (int)h, bodyType::STATIC, 0.0f);
+                    if (wall) wall->ctype = ColliderType::UNKNOWN;
+                    LOG("Invisible wall spawned at: %f, %f (%dx%d)", x, y, (int)w, (int)h);
                 }
             }
         }

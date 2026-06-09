@@ -17,7 +17,9 @@
 #include "DiscordManager.h"
 #include "Physics.h"
 #include "Boss.h"
+#include "Boss1.h"
 #include "Checkpoint.h"
+#include "Boss2.h"
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
@@ -53,6 +55,7 @@ bool Scene::Awake()
 {
 	LOG("Loading Scene");
 	menuClickFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Menu-Selection-Click.wav");
+	checkpointFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/checkpoint2.wav");
 	hasPendingSceneChange = true;
 	pendingScene = currentScene;
 	return true;
@@ -263,6 +266,7 @@ void Scene::LoadMainMenu()
 	texMenuChild_ = Engine::GetInstance().textures->Load("assets/textures/Menu/IL_NenFront_01.png");
 	texMenuButton_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
 	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
+	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_NEW_Sound_Menu_Base.png");
 
 	const char* fragPaths[NUM_FRAGMENTS] = {
 		"assets/textures/Menu/UI_Fragment1.png",
@@ -337,6 +341,7 @@ void Scene::UnloadMainMenu()
 	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_);  texMenuChild_ = nullptr; }
 	if (texMenuButton_) { Engine::GetInstance().textures->UnLoad(texMenuButton_); texMenuButton_ = nullptr; }
 	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
+	if (texSettingsBase_) { Engine::GetInstance().textures->UnLoad(texSettingsBase_); texSettingsBase_ = nullptr; }
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		if (fragments_[i].tex) { Engine::GetInstance().textures->UnLoad(fragments_[i].tex); fragments_[i].tex = nullptr; }
 	}
@@ -600,70 +605,73 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 	Uint8 alpha = (Uint8)(255.0f * settingsOptionsAlpha_);
 	if (alpha == 0) return;
 
-	// Reuse the exact same positions as the main menu buttons
+	// Draw the base panel image centered in the left half
 	const int leftHalf = winW / 2;
-	const int btnW = 315;
-	const int btnH = static_cast<int>(static_cast<float>(btnW) * (130.0f / 456.0f));
-	const int logoW = 385;
-	const int logoH = static_cast<int>(static_cast<float>(logoW) * (569.0f / 1559.0f));
-	const int logoY = winH / 4 - logoH / 2;
-	const int startY = logoY + logoH + 20;
-	const int gap = btnH + 10;
-	const int panelX = (leftHalf - btnW) / 2;
 
-	int trackX = panelX + 20;
-	int trackW = btnW - 40;
+	// Panel image is 840x544, scale to fit nicely in the left half
+	const float panelScale = (float)leftHalf * 0.85f / 840.0f;
+	const int panelImgW = (int)(840.0f * panelScale);
+	const int panelImgH = (int)(544.0f * panelScale);
+	const int panelImgX = (leftHalf - panelImgW) / 2;
+	const int panelImgY = (winH - panelImgH) / 2;
 
-	SDL_Color labelColor = { 180, 200, 220, alpha };
-	SDL_Color valColor   = { 255, 255, 255, alpha };
+	if (texSettingsBase_) {
+		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelImgY, panelImgW, panelImgH, alpha);
+	}
 
-	// Row 0: Music slider (same Y as Play button)
-	int row0Y = startY + 10;
-	render.DrawMenuTextCentered("MUSIC", { panelX, row0Y, btnW / 2 - 10, 20 }, labelColor);
+	// Calculate correct positions corresponding to the pre-drawn icons on the board texture
+	const int trackX = panelImgX + (int)(panelImgW * 0.45f);
+	const int trackW = (int)(panelImgW * 0.40f);
+
+	const int row0Y = panelImgY + (int)(panelImgH * 0.34f); // MUSIC (Icon 1: Musical Note)
+	const int row1Y = panelImgY + (int)(panelImgH * 0.58f); // SOUNDS (Icon 2: Speaker)
+	const int row2Y = panelImgY + (int)(panelImgH * 0.82f); // DISPLAY (Icon 3: Monitor)
+
+	SDL_Color labelColor = { 40, 55, 70, alpha };
+	SDL_Color valColor   = { 30, 45, 60, alpha };
+
+	// Row 0: MUSIC
+	render.DrawMenuTextCentered("MUSIC", { trackX, row0Y, trackW / 2, 20 }, labelColor);
 	char vol[8];
-	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { panelX + btnW / 2, row0Y, btnW / 2, 20 }, valColor);
+	snprintf(vol, sizeof(vol), "%d", static_cast<int>(musicVolume_ * 100.0f));
+	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row0Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect mBarBg = { trackX, row0Y + 32, trackW, 8 };
+	SDL_Rect mBarBg = { trackX, row0Y + 30, trackW, 8 };
 	render.DrawRectangle(mBarBg, 10, 15, 25, alpha, true, false);
 	int mFill = static_cast<int>(static_cast<float>(trackW) * musicVolume_);
-	SDL_Rect mBarFill = { trackX, row0Y + 32, mFill, 8 };
+	SDL_Rect mBarFill = { trackX, row0Y + 30, mFill, 8 };
 	render.DrawRectangle(mBarFill, 100, 180, 255, alpha, true, false);
-	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 28, 10, 16 };
+	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 26, 10, 16 };
 	render.DrawRectangle(mKnob, 200, 220, 255, alpha, true, false);
 
-	// Row 1: SFX slider (same Y as Options button)
-	int row1Y = startY + gap + 10;
-	render.DrawMenuTextCentered("SFX", { panelX, row1Y, btnW / 2 - 10, 20 }, labelColor);
-	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { panelX + btnW / 2, row1Y, btnW / 2, 20 }, valColor);
+	// Row 1: SOUNDS
+	render.DrawMenuTextCentered("SOUNDS", { trackX, row1Y, trackW / 2, 20 }, labelColor);
+	snprintf(vol, sizeof(vol), "%d", static_cast<int>(sfxVolume_ * 100.0f));
+	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row1Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect sBarBg = { trackX, row1Y + 32, trackW, 8 };
+	SDL_Rect sBarBg = { trackX, row1Y + 30, trackW, 8 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, alpha, true, false);
 	int sFill = static_cast<int>(static_cast<float>(trackW) * sfxVolume_);
-	SDL_Rect sBarFill = { trackX, row1Y + 32, sFill, 8 };
+	SDL_Rect sBarFill = { trackX, row1Y + 30, sFill, 8 };
 	render.DrawRectangle(sBarFill, 100, 180, 255, alpha, true, false);
-	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 28, 10, 16 };
+	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 26, 10, 16 };
 	render.DrawRectangle(sKnob, 200, 220, 255, alpha, true, false);
 
-	// Row 2: Display mode selector (same Y as Exit button)
-	int row2Y = startY + gap * 2 + 15;
-	render.DrawMenuTextCentered("DISPLAY", { panelX, row2Y, btnW, 20 }, labelColor);
+	// Row 2: DISPLAY
+	render.DrawMenuTextCentered("DISPLAY", { trackX, row2Y, trackW, 20 }, labelColor);
 
 	const char* modeNames[] = { "WINDOWED", "FULLSCREEN", "BORDERLESS" };
 	int arrowW = 30;
-	SDL_Rect leftArrowArea  = { panelX + 20, row2Y + 28, arrowW, 30 };
-	SDL_Rect modeArea       = { panelX + 20 + arrowW, row2Y + 28, btnW - 40 - arrowW * 2, 30 };
-	SDL_Rect rightArrowArea = { panelX + btnW - 20 - arrowW, row2Y + 28, arrowW, 30 };
+	SDL_Rect leftArrowArea  = { trackX + 10, row2Y + 28, arrowW, 30 };
+	SDL_Rect modeArea       = { trackX + 10 + arrowW, row2Y + 28, trackW - 20 - arrowW * 2, 30 };
+	SDL_Rect rightArrowArea = { trackX + trackW - 10 - arrowW, row2Y + 28, arrowW, 30 };
 
 	SDL_Color arrowColor = { 100, 180, 255, alpha };
 	render.DrawMenuTextCentered("<", leftArrowArea, arrowColor);
 	render.DrawMenuTextCentered(modeNames[windowModeIndex_], modeArea, valColor);
 	render.DrawMenuTextCentered(">", rightArrowArea, arrowColor);
 
-	// Back button (row 3) is rendered by the UIElement system (btnBack_)
-
-	// Handle mouse input for sliders and display mode
+	// Handle input for sliders and display mode
 	if (settingsAnimState_ == SettingsAnimState::OPTIONS_ACTIVE)
 	{
 		auto& input = *Engine::GetInstance().input;
@@ -757,11 +765,12 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 			int selY = row0Y;
 			if (optionsSliderSel_ == 1) selY = row1Y;
 			else if (optionsSliderSel_ == 2) selY = row2Y;
-			SDL_Rect selHighlight = { panelX, selY - 4, btnW, 50 };
+			SDL_Rect selHighlight = { trackX - 10, selY - 4, trackW + 20, 50 };
 			render.DrawRectangle(selHighlight, 60, 100, 180, 50, true, false);
 		}
 	}
-}
+	}
+
 
 void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 {
@@ -1431,6 +1440,7 @@ void Scene::LoadGameplay()
 	isGameOver_ = false;
 	texGameOver_ = nullptr; // No longer using code-generated text
 	texCheckpointSaved_ = Engine::GetInstance().render->CreateMenuTextTexture("GAME SAVED", { 255, 255, 255, 255 });
+	texDamageVignette_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Damage_Vignette.png");
 	checkpointSaveTimer_ = 0.0f;
 
 	// Game Over Button
@@ -1588,6 +1598,10 @@ void Scene::UpdateGameplay(float dt)
 				}
 			}
 		}
+	}
+
+	if (screenDamageTimer_ > 0.0f) {
+		screenDamageTimer_ -= dt;
 	}
 
 	// ── Automatic Entry Movement (Levels 2, 3, 4) ───────────────────────────
@@ -2070,7 +2084,7 @@ void Scene::UpdateGameplay(float dt)
 		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
 		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
-	if (!isPaused_ && !isGameOver_) UpdateBossFight();
+	if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
 
 	// Draw cape collectible in-world
 	if (!capaCollected_ && texCapaCollectible_)
@@ -2091,14 +2105,14 @@ void Scene::UpdateGameplay(float dt)
 //  BOSS FIGHT
 // ============================================================================
 
-void Scene::UpdateBossFight()
+void Scene::UpdateBossFight(float dt)
 {
     auto boss = activeBoss_.lock();
 
     // Lazy search: if no boss cached yet, look in the entity list
     if (!boss) {
         for (auto& e : Engine::GetInstance().entityManager->entities) {
-            if (e->type == EntityType::BOSS_1) {
+            if (e->type == EntityType::BOSS_1 || e->type == EntityType::BOSS_2) {
                 boss = std::dynamic_pointer_cast<Boss>(e);
                 if (boss) { activeBoss_ = boss; break; }
             }
@@ -2117,8 +2131,9 @@ void Scene::UpdateBossFight()
 
     if (boss->IsEngaged() && !isBossFightActive_)
     {
-        isBossFightActive_ = true;
-        Engine::GetInstance().audio->PlayMusic("assets/audio/music/boss-battle.wav", 1.5f);
+        isBossFightActive_   = true;
+        bossHealthDisplay_   = 1.0f;
+        Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_Boss_Fight _Music.wav", 2.0f);
         auto& tex = *Engine::GetInstance().textures;
         texBossBarEmpty_     = tex.Load("assets/textures/UI/UI_Boss_HealthBar_Empty.png");
         texBossBarFull_      = tex.Load("assets/textures/UI/UI_Boss_HealthBar_Full.png");
@@ -2129,11 +2144,24 @@ void Scene::UpdateBossFight()
     {
         isBossFightActive_ = false;
         activeBoss_.reset();
-        Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 2.0f);
         auto& tex = *Engine::GetInstance().textures;
         tex.UnLoad(texBossBarEmpty_);     texBossBarEmpty_     = nullptr;
         tex.UnLoad(texBossBarFull_);      texBossBarFull_      = nullptr;
         tex.UnLoad(texBossBarIndicator_); texBossBarIndicator_ = nullptr;
+
+        if (currentMapFile_.find("ZonaBoss") != std::string::npos)
+        {
+            subMapTarget_  = "MapLvl3ZonaAlta.tmx";
+            subMapSpawnId_ = "J";
+            pendingSubMapLoad_ = true;
+            waitingForFade_    = true;
+            fadeTargetScene_   = SceneID::GAMEPLAY;
+            Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1200.0f);
+        }
+        else
+        {
+            Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 2.0f);
+        }
     }
 }
 
@@ -2148,30 +2176,34 @@ void Scene::DrawBossHUD(int winW, int winH)
     const int BAR_W  = 800;
     const int BAR_H  = 50;
     const int BAR_X  = (winW - BAR_W) / 2;
-    const int BAR_Y  = winH - 70;
+    // Drowning Plush's room has a lower ceiling on screen — nudge its HUD down so the title clears it
+    const int BAR_Y  = std::dynamic_pointer_cast<Boss1>(boss) ? 72 : 45;
     const int IND_SZ = 50;
 
     float realPct = boss->GetHealthPercent();
     realPct = (realPct < 0.0f) ? 0.0f : (realPct > 1.0f) ? 1.0f : realPct;
     bossHealthDisplay_ += (realPct - bossHealthDisplay_) * 0.08f;
 
-    render.DrawTextureAlpha(texBossBarEmpty_, BAR_X, BAR_Y, BAR_W, BAR_H);
+    const int NAME_H  = 22;
+    const int BAR_TOP = BAR_Y + NAME_H + 22;
+
+    SDL_Rect nameArea = { BAR_X, BAR_Y, BAR_W, NAME_H };
+    render.DrawMenuTextCentered(boss->GetBossName(), nameArea, { 230, 220, 200, 255 });
+
+    render.DrawTextureAlpha(texBossBarEmpty_, BAR_X, BAR_TOP, BAR_W, BAR_H);
 
     int clipW = (int)(BAR_W * bossHealthDisplay_);
     if (clipW > 0)
     {
         SDL_FRect src = { 0.0f, 0.0f, (float)clipW, (float)BAR_H };
-        SDL_FRect dst = { (float)BAR_X, (float)BAR_Y, (float)clipW, (float)BAR_H };
+        SDL_FRect dst = { (float)BAR_X, (float)BAR_TOP, (float)clipW, (float)BAR_H };
         SDL_RenderTexture(render.renderer, texBossBarFull_, &src, &dst);
     }
 
     int indX = BAR_X + clipW - IND_SZ / 2;
-    indX = std::max(BAR_X + 4, std::min(indX, BAR_X + BAR_W - IND_SZ - 4));
-    int indY = BAR_Y + BAR_H / 2 - IND_SZ / 2;
+    indX = std::max(BAR_X + 4, std::min(indX, BAR_X + BAR_W - IND_SZ - 9));
+    int indY = BAR_TOP + BAR_H / 2 - IND_SZ / 2;
     render.DrawTextureAlpha(texBossBarIndicator_, indX, indY, IND_SZ, IND_SZ);
-
-    SDL_Rect nameArea = { BAR_X, BAR_Y - 55, BAR_W, 22 };
-    render.DrawMenuTextCentered(boss->GetBossName(), nameArea, { 230, 220, 200, 255 });
 }
 
 void Scene::UnloadGameplay()
@@ -2189,6 +2221,7 @@ void Scene::UnloadGameplay()
 		if (texHealth_[i]) { Engine::GetInstance().textures->UnLoad(texHealth_[i]); texHealth_[i] = nullptr; }
 	}
 	if (texGameOver_) { SDL_DestroyTexture(texGameOver_); texGameOver_ = nullptr; }
+	if (texDamageVignette_) { Engine::GetInstance().textures->UnLoad(texDamageVignette_); texDamageVignette_ = nullptr; }
 
 	if (texGameOverScreenBase_) { Engine::GetInstance().textures->UnLoad(texGameOverScreenBase_); texGameOverScreenBase_ = nullptr; }
 	if (texGameOverText_) { Engine::GetInstance().textures->UnLoad(texGameOverText_); texGameOverText_ = nullptr; }
@@ -2289,6 +2322,8 @@ bool Scene::RequestCheckpointActivation(const std::string& checkpointId, const V
 	if (checkpointId.empty() || IsCheckpointTransitionActive() || isGameOver_ || waitingForFade_)
 		return false;
 
+	Engine::GetInstance().audio->PlayFx(checkpointFxId);
+
 	pendingCheckpointId_ = checkpointId;
 	pendingCheckpointSpawn_ = spawnPosition;
 	checkpointTransitionMode_ = CheckpointTransitionMode::ACTIVATE;
@@ -2311,6 +2346,7 @@ bool Scene::RequestCheckpointRespawn()
 	checkpointTransitionPhase_ = CheckpointTransitionPhase::FADE_OUT;
 	checkpointBlackHoldTimer_ = 0.0f;
 	checkpointNotifyAfterFade_ = false;
+	screenDamageTimer_ = 0.0f;
 	SetGameOverVisible(false);
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 450.0f);
 	return true;
@@ -2505,7 +2541,8 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Draw Health HUD ---
-	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_) {
+	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_
+		&& currentMapFile_ != "MapLvl2ZonaBoss.tmx") {
 		SDL_Rect r;
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
@@ -2973,6 +3010,13 @@ void Scene::PostUpdateGameplay()
 			spColor,
 			0.35f
 		);
+	}
+
+	if (screenDamageTimer_ > 0.0f && texDamageVignette_) {
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		Uint8 alpha = (Uint8)(255.0f * (screenDamageTimer_ / 1000.0f));
+		Engine::GetInstance().render->DrawTextureAlphaF(texDamageVignette_, 0.0f, 0.0f, (float)winW, (float)winH, alpha);
 	}
 
 	if (showMapViewer_) {
@@ -3753,6 +3797,7 @@ void Scene::LoadPauseMenuButtons()
 	texPauseButtonWhite_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
 	texPauseButtonBlack_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_black.png");
 	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
+	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_NEW_Sound_Menu_Base.png");
 
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
@@ -3897,73 +3942,76 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 {
 	auto& render = *Engine::GetInstance().render;
 
-	const int panelW = 340;
-	const int panelH = 240;
-	const int panelX = winW / 2 - panelW / 2;
-	const int panelY = winH / 2 - 100;
-	const int rowH = 52;
+	// Panel image is 840x544, scale to fit nicely centered on screen
+	const float panelScale = (float)winW * 0.45f / 840.0f;
+	const int panelImgW = (int)(840.0f * panelScale);
+	const int panelImgH = (int)(544.0f * panelScale);
+	const int panelImgX = (winW - panelImgW) / 2;
+	const int panelImgY = (winH - panelImgH) / 2;
 
-	HandleVolumeSliderInput(panelX, panelY, panelW, rowH);
+	if (texSettingsBase_) {
+		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelImgY, panelImgW, panelImgH, 255);
+	}
 
-	// Prettier panel background with a modern gradient-like style
-	SDL_Rect panel = { panelX, panelY, panelW, panelH };
-	render.DrawRectangle(panel, 15, 20, 35, 245, true, false); // Dark teal base
-	SDL_Rect innerPanel = { panelX + 2, panelY + 2, panelW - 4, panelH - 4 };
-	render.DrawRectangle(innerPanel, 25, 32, 50, 250, false, false); // subtle inner border
+	const int trackX = panelImgX + (int)(panelImgW * 0.45f);
+	const int trackW = (int)(panelImgW * 0.40f);
 
-	SDL_Rect topBar = { panelX, panelY, panelW, 36 };
-	render.DrawRectangle(topBar, 35, 45, 75, 255, true, false);
-	render.DrawMenuTextCentered("OPTIONS", { panelX, panelY + 4, panelW, 28 }, { 220, 240, 255, 255 });
+	const int row0Y = panelImgY + (int)(panelImgH * 0.34f); // MUSIC (Icon 1: Musical Note)
+	const int row1Y = panelImgY + (int)(panelImgH * 0.58f); // SOUNDS (Icon 2: Speaker)
+	const int row2Y = panelImgY + (int)(panelImgH * 0.82f); // DISPLAY (Icon 3: Monitor)
 
-	// Music slider
-	render.DrawMenuTextCentered("MUSIC", { panelX, panelY + 45, panelW / 2 - 10, 20 }, { 180, 200, 220, 255 });
+	// Handle input and close menu if Back clicked/button pressed
+	if (HandleVolumeSliderInput(trackX, trackW, row0Y, row1Y, row2Y)) {
+		showPauseOptions_ = false;
+		SetPauseOptionsPanelVisible(false);
+		return;
+	}
 
+	SDL_Color labelColor = { 40, 55, 70, 255 };
+	SDL_Color valColor   = { 30, 45, 60, 255 };
+
+	// Row 0: MUSIC
+	render.DrawMenuTextCentered("MUSIC", { trackX, row0Y, trackW / 2, 20 }, labelColor);
 	char vol[8];
-	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45, panelW / 2, 20 }, { 255, 255, 255, 255 });
+	snprintf(vol, sizeof(vol), "%d", static_cast<int>(musicVolume_ * 100.0f));
+	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row0Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect mBarBg = { panelX + 20, panelY + 74, panelW - 40, 8 };
-	render.DrawRectangle(mBarBg, 10, 15, 25, 255, true, false); // Track background
-	int mFill = static_cast<int>(static_cast<float>(panelW - 40) * musicVolume_);
-	SDL_Rect mBarFill = { panelX + 20, panelY + 74, mFill, 8 };
-	render.DrawRectangle(mBarFill, 100, 180, 255, 255, true, false); // vibrant cyan fill
-
-	// Knob
-	SDL_Rect mKnob = { panelX + 20 + mFill - 5, panelY + 70, 10, 16 };
+	SDL_Rect mBarBg = { trackX, row0Y + 30, trackW, 8 };
+	render.DrawRectangle(mBarBg, 10, 15, 25, 255, true, false);
+	int mFill = static_cast<int>(static_cast<float>(trackW) * musicVolume_);
+	SDL_Rect mBarFill = { trackX, row0Y + 30, mFill, 8 };
+	render.DrawRectangle(mBarFill, 100, 180, 255, 255, true, false);
+	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 26, 10, 16 };
 	render.DrawRectangle(mKnob, 200, 220, 255, 255, true, false);
 
-	// SFX slider
-	render.DrawMenuTextCentered("SFX", { panelX, panelY + 45 + rowH, panelW / 2 - 10, 20 }, { 180, 200, 220, 255 });
-	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { panelX + panelW / 2, panelY + 45 + rowH, panelW / 2, 20 }, { 255, 255, 255, 255 });
+	// Row 1: SOUNDS
+	render.DrawMenuTextCentered("SOUNDS", { trackX, row1Y, trackW / 2, 20 }, labelColor);
+	snprintf(vol, sizeof(vol), "%d", static_cast<int>(sfxVolume_ * 100.0f));
+	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row1Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect sBarBg = { panelX + 20, panelY + 74 + rowH, panelW - 40, 8 };
+	SDL_Rect sBarBg = { trackX, row1Y + 30, trackW, 8 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, 255, true, false);
-	int sFill = static_cast<int>(static_cast<float>(panelW - 40) * sfxVolume_);
-	SDL_Rect sBarFill = { panelX + 20, panelY + 74 + rowH, sFill, 8 };
+	int sFill = static_cast<int>(static_cast<float>(trackW) * sfxVolume_);
+	SDL_Rect sBarFill = { trackX, row1Y + 30, sFill, 8 };
 	render.DrawRectangle(sBarFill, 100, 180, 255, 255, true, false);
-
-	// Knob
-	SDL_Rect sKnob = { panelX + 20 + sFill - 5, panelY + 70 + rowH, 10, 16 };
+	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 26, 10, 16 };
 	render.DrawRectangle(sKnob, 200, 220, 255, 255, true, false);
 
-	// Back Button rendering
-	SDL_Rect backBtnBg = { panelX + panelW / 2 - 60, panelY + 60 + rowH * 2 + 10, 120, 36 };
+	// Back Button (Row 2, centered below Display settings area)
+	SDL_Rect backBtnBg = { trackX + trackW / 2 - 60, row2Y + 10, 120, 36 };
 	render.DrawRectangle(backBtnBg, 40, 50, 70, 255, true, false);
 	render.DrawMenuTextCentered("BACK", backBtnBg, { 200, 220, 255, 255 });
 
-	// -- Gamepad selection indicator (> arrow next to selected slider) ----
+	// -- Gamepad selection indicator ----
 	if (Engine::GetInstance().input->IsGamepadConnected()) {
-		int selY = panelY + 45;
-		if (optionsSliderSel_ == 1) selY += rowH;
-		else if (optionsSliderSel_ == 2) selY = panelY + 60 + rowH * 2 + 10;
+		int selY = row0Y;
+		if (optionsSliderSel_ == 1) selY = row1Y;
+		else if (optionsSliderSel_ == 2) selY = row2Y + 10;
 
-		// Highlight bar behind the selected row
-		SDL_Rect selHighlight = { panelX + 4, selY - 2, panelW - 8, 42 };
+		SDL_Rect selHighlight = { trackX - 10, selY - 4, trackW + 20, 50 };
 		if (optionsSliderSel_ == 2) selHighlight = { backBtnBg.x - 4, backBtnBg.y - 2, backBtnBg.w + 8, backBtnBg.h + 4 };
 		render.DrawRectangle(selHighlight, 60, 100, 180, 50, true, false);
 
-		// Small arrow indicator
 		render.DrawMenuTextCentered(">", { selHighlight.x, selHighlight.y + selHighlight.h / 2 - 10, 16, 20 }, { 100, 200, 255, 255 });
 	}
 }
@@ -4151,13 +4199,13 @@ void Scene::DrawFragments(bool front, int winW, int winH)
 	}
 }
 
-bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH)
+bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y, int row2Y)
 {
 	auto& input = *Engine::GetInstance().input;
 	float dt = Engine::GetInstance().GetDt();
 
-	// Back Button hit box (shared between Main Menu settings and Pause options)
-	SDL_Rect backHit = { panelX + panelW / 2 - 60, panelY + 60 + rowH * 2 + 10, 120, 36 };
+	// Back Button hit box (relative to row2Y)
+	SDL_Rect backHit = { trackX + trackW / 2 - 60, row2Y + 10, 120, 36 };
 
 	// -- Mouse slider dragging / clicks ---------------------------------
 	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN ||
@@ -4175,11 +4223,8 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 			}
 		}
 
-		int trackX = panelX + 20;
-		int trackW = panelW - 40;
-
 		// Music slider hit box
-		SDL_Rect mSliderHit = { trackX - 10, panelY + 60, trackW + 20, 30 };
+		SDL_Rect mSliderHit = { trackX - 10, row0Y + 18, trackW + 20, 32 };
 		if (mouseX >= mSliderHit.x && mouseX <= mSliderHit.x + mSliderHit.w &&
 			mouseY >= mSliderHit.y && mouseY <= mSliderHit.y + mSliderHit.h) {
 
@@ -4190,7 +4235,7 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 		}
 
 		// SFX slider hit box
-		SDL_Rect sSliderHit = { trackX - 10, panelY + 60 + rowH, trackW + 20, 30 };
+		SDL_Rect sSliderHit = { trackX - 10, row1Y + 18, trackW + 20, 32 };
 		if (mouseX >= sSliderHit.x && mouseX <= sSliderHit.x + sSliderHit.w &&
 			mouseY >= sSliderHit.y && mouseY <= sSliderHit.y + sSliderHit.h) {
 
@@ -4202,12 +4247,10 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 	}
 
 	// -- Gamepad D-pad / stick slider navigation --------------------------
-	// Back button shortcuts (B / East)
 	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN) {
 		return true; // Back
 	}
 
-	// D-pad Up/Down or Left Stick Y: switch between Music (0), SFX (1), Back (2)
 	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_UP) == KEY_DOWN ||
 		(input.GetLeftStickY() < -0.5f && sliderRepeatTimer_ <= 0.0f))
 	{
@@ -4221,17 +4264,14 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 		sliderRepeatTimer_ = 250.0f;
 	}
 
-	// If Back is selected and A (SOUTH) is pressed, go back
 	if (optionsSliderSel_ == 2 && input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN) {
 		return true;
 	}
 
-	// D-pad Left/Right: step volume by 5%
 	float volStep = 0.05f;
 	bool stepLeft = input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_LEFT) == KEY_DOWN;
 	bool stepRight = input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_RIGHT) == KEY_DOWN;
 
-	// Left stick X: continuous adjust (smooth)
 	float stickX = input.GetLeftStickX();
 	float continuousAdj = 0.0f;
 	if (std::fabs(stickX) > 0.3f)
@@ -4302,7 +4342,32 @@ void Scene::LoadSubMap(const std::string& tmxFile, const std::string& spawnId)
 	pendingSubMapLoad_ = true;
 
 	waitingForFade_ = true;
-	fadeTargetScene_ = SceneID::GAMEPLAY; 
+	fadeTargetScene_ = SceneID::GAMEPLAY;
+	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 400.0f);
+}
+
+// Spawns a static, invisible collider over a defeated boss's entrance portal so the
+// player can no longer walk back into the arena — same recipe as the "Wall" map entities.
+void Scene::SealBossPortal(float x, float y, float w, float h)
+{
+	int cx = (int)(x + w * 0.5f);
+	int cy = (int)(y + h * 0.5f);
+	PhysBody* wall = Engine::GetInstance().physics->CreateRectangle(cx, cy, (int)w, (int)h, bodyType::STATIC, 0.0f);
+	if (wall) wall->ctype = ColliderType::UNKNOWN;
+}
+
+// Programmatic map switch (e.g. returning the player to the hub after a boss fight) —
+// reuses the same submap fade/load pipeline as portal traversal, just triggered by gameplay logic.
+void Scene::RequestSubMapTeleport(const std::string& tmxFile, const std::string& spawnId)
+{
+	if (waitingForFade_) return;
+
+	subMapTarget_ = tmxFile;
+	subMapSpawnId_ = spawnId;
+	pendingSubMapLoad_ = true;
+
+	waitingForFade_ = true;
+	fadeTargetScene_ = SceneID::GAMEPLAY;
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 400.0f);
 }
 
@@ -4383,8 +4448,16 @@ void Scene::ExecuteSubMapLoad()
     Engine::GetInstance().physics->FlushPendingDeletes();
 
     currentMapFile_ = subMapTarget_;
+    if (currentMapFile_.find("ZonaBoss") != std::string::npos)
+    {
+        Engine::GetInstance().audio->PlayMusic(nullptr);
+    }
+    else
+    {
+        Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 2.0f);
+    }
     Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
-	
+
 	float portalSpawnX = 0.0f, portalSpawnY = 0.0f;
 	bool portalSpawnFound = Engine::GetInstance().map->GetSpawnById(subMapSpawnId_, portalSpawnX, portalSpawnY);
 	

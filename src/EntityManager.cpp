@@ -21,10 +21,13 @@
 #include "Boss2.h"
 #include "Boss1.h"
 #include "RopedRock.h"
+#include "Antagonist.h"
+#include "EnemyWindUpScurry.h"
 #include "tracy/Tracy.hpp"
 #include "Platform.h"
 #include "Door.h"
 #include "BlockCrawler.h"
+#include "Lever.h"
 
 EntityManager::EntityManager() : Module()
 {
@@ -121,6 +124,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 	case EntityType::PLATFORM:
 		entity = std::make_shared<Platform>();
 		break;
+	case EntityType::LEVER:
+		entity = std::make_shared<Lever>();
+		break;
 	case EntityType::PUSH_ROCK:
 		entity = std::make_shared<PushRock>();
 		break;
@@ -147,6 +153,12 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::BLOCK_CRAWLER:
 		entity = std::make_shared<BlockCrawler>();
+		break;
+	case EntityType::ANTAGONIST:
+		entity = std::make_shared<Antagonist>();
+		break;
+	case EntityType::ENEMY_WINDUP_SCURRY:
+		entity = std::make_shared<EnemyWindUpScurry>();
 		break;
 	default:
 		break;

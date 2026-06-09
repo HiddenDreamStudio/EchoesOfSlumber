@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="49" nextobjectid="1807">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="49" nextobjectid="1810">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -430,12 +430,14 @@
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="1806" name="Enemy" type="BlockCrawler" x="7625.29" y="8521.31" width="59.4458" height="55.0424">
+  <object id="1807" name="Enemy" type="BlockCrawler" x="7625.29" y="8521.31" width="59.4458" height="55.0424">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
+  <object id="1806" name="Antagonist" type="Antagonist" x="643.277" y="6409.15" width="59.4458" height="55.0424"/>
+  <object id="1808" name="Antagonist" type="Antagonist" x="5043.55" y="2625.87" width="59.4458" height="55.0424"/>
  </objectgroup>
  <objectgroup id="48" name="Checkpoint">
   <object id="1802" type="CheckPoint" x="7424" y="8533.33">
@@ -22777,7 +22779,6 @@
   <object id="1777" gid="204" x="2874.06" y="3655.73" width="495" height="736"/>
   <object id="1778" gid="208" x="4156.55" y="5479.54" width="904" height="719"/>
   <object id="1779" gid="197" x="8903.69" y="7378.55" width="273.278" height="251.353"/>
-  <object id="1780" x="8238.56" y="6362.23" width="85" height="19"/>
   <object id="1781" gid="206" x="4846.51" y="8610.61" width="37.4183" height="120.57"/>
   <object id="1782" gid="223" x="4275.46" y="4629.73" width="65" height="59"/>
   <object id="1783" gid="226" x="2563.46" y="4367.73" width="128" height="163"/>
