@@ -248,6 +248,8 @@ void Scene::LoadMainMenu()
 	settingsOptionsAlpha_ = 0.0f;
 	musicVolume_ = 1.0f;
 	sfxVolume_ = 1.0f;
+	Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
+	Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
 
 	// Sync display mode index with actual window mode
 	WindowMode wm = Engine::GetInstance().window->GetWindowMode();
@@ -1291,6 +1293,8 @@ void Scene::LoadGameplay()
 	showInventory_ = false;
 	isBossFightActive_ = false;
 	activeBoss_.reset();
+	endGameTriggered_ = false;
+	endGameVideoActive_ = false;
 
 	if (currentLevelIndex_ < 0 || (size_t)currentLevelIndex_ >= levels_.size()) currentLevelIndex_ = 0;
 	std::string presenceStr = "Playing: " + levels_[currentLevelIndex_].name;
@@ -2107,6 +2111,53 @@ void Scene::UpdateGameplay(float dt)
 
 void Scene::UpdateBossFight(float dt)
 {
+    // ── End-game final cinematic: fade to black, play video, go to main menu ──
+    if (endGameFading_)
+    {
+        if (!Engine::GetInstance().render->IsFadingOut())
+        {
+            endGameFading_ = false;
+            endGameVideoActive_ = true;
+            Engine::GetInstance().cinematics->PlayVideo("assets/video/animatica_final.MOV");
+            Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
+        }
+        return;
+    }
+
+    if (endGameVideoActive_)
+    {
+        auto& input = *Engine::GetInstance().input;
+        bool skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+                             input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+                             input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
+                             Engine::GetInstance().cinematics->HasSkipBeenRequested();
+
+        if (skipRequested || !Engine::GetInstance().cinematics->IsPlaying())
+        {
+            if (skipRequested) {
+                Engine::GetInstance().cinematics->StopVideo();
+            }
+            endGameVideoActive_ = false;
+            
+            // Queue immediate scene change to MAIN MENU
+            hasPendingSceneChange = true;
+            pendingScene = SceneID::MAIN_MENU;
+            
+            // Start a FADE_IN: it immediately sets the screen to solid black (covering the gameplay)
+            // and over 1200ms it will reveal the Main Menu
+            Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 1200.0f);
+        }
+        else 
+        {
+            // Draw "Press SPACE to Skip" overlay while playing
+            int winW = 0, winH = 0;
+            Engine::GetInstance().window->GetWindowSize(winW, winH);
+            SDL_Color skipColor = { 255, 255, 255, 120 };
+            Engine::GetInstance().render->DrawMenuTextCentered("Press SPACE to Skip", { winW - 300, winH - 60, 280, 30 }, skipColor, 0.4f);
+        }
+        return;
+    }
+
     // Fading to black before boss death video — wait for fade, then launch video
     if (bossDeathFading_)
     {
@@ -4413,7 +4464,7 @@ Vector2D Scene::GetSpawnPosition(const std::string& spawnId)
 
 void Scene::CheckPortalCollisions(float dt)
 {
-	if (!player || waitingForFade_ || isPaused_ || bossDeathVideoActive_ || bossDeathFading_) return;
+	if (!player || waitingForFade_ || isPaused_ || bossDeathVideoActive_ || bossDeathFading_ || endGameVideoActive_) return;
 
 	if (portalCooldown_ > 0.0f) {
 		portalCooldown_ -= dt;
@@ -4550,4 +4601,15 @@ void Scene::ExecuteSubMapLoad()
 
     portalCooldown_ = 1500.0f;
 	LOG("PORTAL: Sub-map load complete. Final health=%d", player->health);
+}
+
+void Scene::TriggerEndGameCinematic()
+{
+    if (endGameTriggered_) return;  // already triggered once this session, ignore
+    endGameTriggered_ = true;
+    endGameFading_    = true;
+    // Stop the game music immediately and fade the screen to black.
+    // The actual video is launched in UpdateBossFight() once the screen is fully black.
+    Engine::GetInstance().audio->SetMusicVolume(0.0f);
+    Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1200.0f);
 }
