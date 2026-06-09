@@ -161,6 +161,9 @@ private:
 	bool  isHidingBehindRock_ = false;
 	// Visual: gentle alpha pulse while hidden to signal stealth state
 	float hideAlphaTime_ = 0.0f;
+	SDL_Texture* hideTexture_ = nullptr;
+	Animation    hideAnim_;      // frames 0→11: crouching
+	Animation    hideExitAnim_; // frames 11→0: standing up
 
 public:
 	void SetHidingBehindRock(bool hiding);
