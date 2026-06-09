@@ -1259,9 +1259,11 @@ void Player::TakeDamage(int damage)
 		if (enemyDirX < 0)      facingRight = true;
 		else if (enemyDirX > 0) facingRight = false;
 
-		float knockbackForce = 5.0f;
+		float knockbackForce = 16.0f;
 		float dir = facingRight ? 1.0f : -1.0f;
-		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
+		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -4.0f, true);
+		knockbackX_ = dir * knockbackForce;
+		knockbackTimer_ = 200.0f;
 
 		if (bearHealth_ <= 0) {
 			bearHealth_ = 0;
@@ -1319,9 +1321,11 @@ void Player::TakeDamage(int damage)
 	chargeTimer_ = 0.0f;
 	slingshotCharged_ = false;
 
-	float knockbackForce = 5.0f;
+	float knockbackForce = 16.0f;
 	float dir = facingRight ? 1.0f : -1.0f;
-	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
+	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -4.0f, true);
+	knockbackX_ = dir * knockbackForce;
+	knockbackTimer_ = 200.0f;
 
 	if (health <= 0)
 	{

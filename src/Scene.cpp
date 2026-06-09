@@ -608,63 +608,67 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 	// Draw the base panel image centered in the left half
 	const int leftHalf = winW / 2;
 
-	// Panel image is 840x544, scale to fit nicely in the left half
-	const float panelScale = (float)leftHalf * 0.85f / 840.0f;
+	// Panel image is 840x694, scale to fit nicely in the left half
+	const float panelScale = (float)leftHalf / 840.0f * 0.85f;
 	const int panelImgW = (int)(840.0f * panelScale);
-	const int panelImgH = (int)(544.0f * panelScale);
+	const int panelImgH = (int)(694.0f * panelScale);
 	const int panelImgX = (leftHalf - panelImgW) / 2;
 	const int panelImgY = (winH - panelImgH) / 2;
 
+	// Shift the background texture up slightly so texts sit better in the white space
+	const int panelRenderY = panelImgY - (int)(45.0f * panelScale);
+
 	if (texSettingsBase_) {
-		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelImgY, panelImgW, panelImgH, alpha);
+		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelRenderY, panelImgW, panelImgH, alpha);
 	}
 
-	// Calculate correct positions corresponding to the pre-drawn icons on the board texture
-	const int trackX = panelImgX + (int)(panelImgW * 0.45f);
-	const int trackW = (int)(panelImgW * 0.40f);
+	// Track area — aligned with the panel's icon positions
+	const int trackX = panelImgX + (int)(panelImgW * 0.44f);
+	const int trackW = (int)(panelImgW * 0.42f);
 
-	const int row0Y = panelImgY + (int)(panelImgH * 0.34f); // MUSIC (Icon 1: Musical Note)
-	const int row1Y = panelImgY + (int)(panelImgH * 0.58f); // SOUNDS (Icon 2: Speaker)
-	const int row2Y = panelImgY + (int)(panelImgH * 0.82f); // DISPLAY (Icon 3: Monitor)
+	// Better-spaced rows to avoid overlap with panel icons
+	const int row0Y = panelImgY + (int)(panelImgH * 0.26f); // MUSIC
+	const int row1Y = panelImgY + (int)(panelImgH * 0.50f); // SOUNDS
+	const int row2Y = panelImgY + (int)(panelImgH * 0.71f); // DISPLAY (raised slightly)
 
 	SDL_Color labelColor = { 40, 55, 70, alpha };
 	SDL_Color valColor   = { 30, 45, 60, alpha };
 
-	// Row 0: MUSIC
+	// --- Row 0: MUSIC ---
 	render.DrawMenuTextCentered("MUSIC", { trackX, row0Y, trackW / 2, 20 }, labelColor);
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(musicVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row0Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect mBarBg = { trackX, row0Y + 30, trackW, 8 };
+	SDL_Rect mBarBg = { trackX, row0Y + 25, trackW, 6 };
 	render.DrawRectangle(mBarBg, 10, 15, 25, alpha, true, false);
 	int mFill = static_cast<int>(static_cast<float>(trackW) * musicVolume_);
-	SDL_Rect mBarFill = { trackX, row0Y + 30, mFill, 8 };
+	SDL_Rect mBarFill = { trackX, row0Y + 25, mFill, 6 };
 	render.DrawRectangle(mBarFill, 100, 180, 255, alpha, true, false);
-	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 26, 10, 16 };
+	SDL_Rect mKnob = { trackX + mFill - 4, row0Y + 22, 8, 12 };
 	render.DrawRectangle(mKnob, 200, 220, 255, alpha, true, false);
 
-	// Row 1: SOUNDS
+	// --- Row 1: SOUNDS ---
 	render.DrawMenuTextCentered("SOUNDS", { trackX, row1Y, trackW / 2, 20 }, labelColor);
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(sfxVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row1Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect sBarBg = { trackX, row1Y + 30, trackW, 8 };
+	SDL_Rect sBarBg = { trackX, row1Y + 25, trackW, 6 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, alpha, true, false);
 	int sFill = static_cast<int>(static_cast<float>(trackW) * sfxVolume_);
-	SDL_Rect sBarFill = { trackX, row1Y + 30, sFill, 8 };
+	SDL_Rect sBarFill = { trackX, row1Y + 25, sFill, 6 };
 	render.DrawRectangle(sBarFill, 100, 180, 255, alpha, true, false);
-	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 26, 10, 16 };
+	SDL_Rect sKnob = { trackX + sFill - 4, row1Y + 22, 8, 12 };
 	render.DrawRectangle(sKnob, 200, 220, 255, alpha, true, false);
 
-	// Row 2: DISPLAY
+	// --- Row 2: DISPLAY ---
 	render.DrawMenuTextCentered("DISPLAY", { trackX, row2Y, trackW, 20 }, labelColor);
 
 	const char* modeNames[] = { "WINDOWED", "FULLSCREEN", "BORDERLESS" };
 	int arrowW = 30;
-	SDL_Rect leftArrowArea  = { trackX + 10, row2Y + 28, arrowW, 30 };
-	SDL_Rect modeArea       = { trackX + 10 + arrowW, row2Y + 28, trackW - 20 - arrowW * 2, 30 };
-	SDL_Rect rightArrowArea = { trackX + trackW - 10 - arrowW, row2Y + 28, arrowW, 30 };
+	SDL_Rect leftArrowArea  = { trackX + 10, row2Y + 24, arrowW, 26 };
+	SDL_Rect modeArea       = { trackX + 10 + arrowW, row2Y + 24, trackW - 20 - arrowW * 2, 26 };
+	SDL_Rect rightArrowArea = { trackX + trackW - 10 - arrowW, row2Y + 24, arrowW, 26 };
 
 	SDL_Color arrowColor = { 100, 180, 255, alpha };
 	render.DrawMenuTextCentered("<", leftArrowArea, arrowColor);
@@ -1205,6 +1209,12 @@ void Scene::UpdateLoading(float dt)
 	if (loadingTimer_ > 800.0f && !mapLoadingFinished_) {
 		int index = targetLevelIndex_;
 		if (index >= 0 && (size_t)index < levels_.size()) {
+			// Save player progress before destroying old player
+			bool savedHasBlanket = capaCollected_;
+			bool savedHasSlingshot = slingshotCollected_;
+			bool savedHasStuffedAnimal = stuffedAnimalCollected_;
+			int savedHealth = player ? player->health : 3;
+
 			player.reset();
 			Engine::GetInstance().entityManager->CleanUp();
 			Engine::GetInstance().physics->FlushPendingDeletes();
@@ -1234,9 +1244,20 @@ void Scene::UpdateLoading(float dt)
 			if (healthSlotCount_ > MAX_HEALTH_SLOTS) healthSlotCount_ = MAX_HEALTH_SLOTS;
 			if (player) {
 				player->maxHealth = healthSlotCount_;
-				player->health = healthSlotCount_;
+				// For level transitions (not first load), preserve health up to the new max
+				if (currentLevelIndex_ > 0 && savedHealth > 0) {
+					player->health = std::min(savedHealth, healthSlotCount_);
+				} else {
+					player->health = healthSlotCount_;
+				}
+				// Restore collected items from previous level
+				player->SetHasBlanket(savedHasBlanket);
+				player->SetHasSlingshot(savedHasSlingshot);
 			}
-			currentHealthUI_ = healthSlotCount_;
+			capaCollected_ = savedHasBlanket;
+			slingshotCollected_ = savedHasSlingshot;
+			stuffedAnimalCollected_ = savedHasStuffedAnimal;
+			currentHealthUI_ = player ? player->health : healthSlotCount_;
 			activeHealthAnim_ = 0;
 			isGameOver_ = false;
 			inGameIntroActive_ = false;
@@ -3518,25 +3539,30 @@ void Scene::DrawMapViewer(int winW, int winH)
 	SDL_Rect fullBg = { 0, 0, winW, winH };
 	render.DrawRectangle(fullBg, 5, 8, 15, 240, true, false);
 
-	SDL_Rect titleBar = { 0, 0, winW, 36 };
+	// Title bar — tall enough so text isn't clipped
+	const int titleBarH = 60;
+	SDL_Rect titleBar = { 0, 0, winW, titleBarH };
 	render.DrawRectangle(titleBar, 10, 16, 30, 255, true, false);
-	SDL_Rect titleAccent = { 0, 34, winW, 2 };
+	SDL_Rect titleAccent = { 0, titleBarH - 2, winW, 2 };
 	render.DrawRectangle(titleAccent, 80, 140, 200, 255, true, false);
-	render.DrawMenuTextCentered("MAP", { 0, 2, winW, 30 }, { 180, 210, 240, 255 });
+	render.DrawMenuTextCentered("MAP", { 0, 10, winW, 40 }, { 180, 210, 240, 255 });
 
-	SDL_Rect hintBar = { 0, winH - 28, winW, 28 };
+	// Bottom hint bar — taller to avoid text clipping
+	const int hintBarH = 44;
+	SDL_Rect hintBar = { 0, winH - hintBarH, winW, hintBarH };
 	render.DrawRectangle(hintBar, 10, 16, 30, 220, true, false);
 	if (Engine::GetInstance().input->IsGamepadConnected())
 		render.DrawText("L-Stick: pan  |  R2: zoom in  |  L2: zoom out  |  West: buy map  |  Touchpad: back",
-			winW / 2 - 340, winH - 22, 0, 0, { 120, 160, 200, 200 });
+			winW / 2 - 340, winH - hintBarH + 12, 0, 0, { 120, 160, 200, 200 });
 	else
 		render.DrawText("Left click + drag: pan  |  +/-: zoom  |  M: buy map  |  ESC: back",
-			winW / 2 - 290, winH - 22, 0, 0, { 120, 160, 200, 200 });
+			winW / 2 - 290, winH - hintBarH + 12, 0, 0, { 120, 160, 200, 200 });
 
+	// Map viewport area — inset between the bars with a small margin
 	const int viewX = 10;
-	const int viewY = 42;
+	const int viewY = titleBarH + 4;
 	const int viewW = winW - 20;
-	const int viewH = winH - 42 - 30;
+	const int viewH = winH - viewY - hintBarH - 4;
 
 	SDL_Rect clipRect = { viewX * scale, viewY * scale, viewW * scale, viewH * scale };
 	SDL_SetRenderClipRect(render.renderer, &clipRect);
@@ -3833,6 +3859,17 @@ void Scene::LoadPauseMenuButtons()
 		btnMenu->SetHoverTexture(texButtonFragmented_);
 		btnCont->SetHoverTexture(texButtonFragmented_);
 	}
+
+	// Create Back button for the Options Panel
+	SDL_Rect backOptPos = { winW / 2 - btnW / 2, winH / 2 + 185, btnW, btnH }; // Lowered by 25 pixels
+	auto btnOptBack = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_BACK, "back", backOptPos, this);
+	if (btnOptBack) {
+		btnOptBack->isVisible = false;
+		btnOptBack->state = UIElementState::DISABLED;
+		if (texPauseButtonWhite_) btnOptBack->SetTexture(texPauseButtonWhite_);
+		if (texButtonFragmented_) btnOptBack->SetHoverTexture(texButtonFragmented_);
+	}
+
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = winH / 2 - 100;
@@ -3942,10 +3979,10 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 {
 	auto& render = *Engine::GetInstance().render;
 
-	// Panel image is 840x544, scale to fit nicely centered on screen
-	const float panelScale = (float)winW * 0.45f / 840.0f;
+	// Panel image is 840x694, scale to fit nicely centered on screen
+	const float panelScale = (float)winW * 0.50f / 840.0f;
 	const int panelImgW = (int)(840.0f * panelScale);
-	const int panelImgH = (int)(544.0f * panelScale);
+	const int panelImgH = (int)(694.0f * panelScale);
 	const int panelImgX = (winW - panelImgW) / 2;
 	const int panelImgY = (winH - panelImgH) / 2;
 
@@ -3953,12 +3990,14 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelImgY, panelImgW, panelImgH, 255);
 	}
 
-	const int trackX = panelImgX + (int)(panelImgW * 0.45f);
-	const int trackW = (int)(panelImgW * 0.40f);
+	// Track area for sliders and controls — positioned to align with panel icons
+	const int trackX = panelImgX + (int)(panelImgW * 0.44f);
+	const int trackW = (int)(panelImgW * 0.42f);
 
-	const int row0Y = panelImgY + (int)(panelImgH * 0.34f); // MUSIC (Icon 1: Musical Note)
-	const int row1Y = panelImgY + (int)(panelImgH * 0.58f); // SOUNDS (Icon 2: Speaker)
-	const int row2Y = panelImgY + (int)(panelImgH * 0.82f); // DISPLAY (Icon 3: Monitor)
+	// 3 rows evenly distributed (matched with Main Menu layout)
+	const int row0Y = panelImgY + (int)(panelImgH * 0.29f); // MUSIC (lowered slightly)
+	const int row1Y = panelImgY + (int)(panelImgH * 0.50f); // SOUNDS
+	const int row2Y = panelImgY + (int)(panelImgH * 0.74f); // DISPLAY
 
 	// Handle input and close menu if Back clicked/button pressed
 	if (HandleVolumeSliderInput(trackX, trackW, row0Y, row1Y, row2Y)) {
@@ -3970,46 +4009,86 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	SDL_Color labelColor = { 40, 55, 70, 255 };
 	SDL_Color valColor   = { 30, 45, 60, 255 };
 
-	// Row 0: MUSIC
+	// --- Row 0: MUSIC ---
 	render.DrawMenuTextCentered("MUSIC", { trackX, row0Y, trackW / 2, 20 }, labelColor);
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(musicVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row0Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect mBarBg = { trackX, row0Y + 30, trackW, 8 };
+	SDL_Rect mBarBg = { trackX, row0Y + 25, trackW, 6 };
 	render.DrawRectangle(mBarBg, 10, 15, 25, 255, true, false);
 	int mFill = static_cast<int>(static_cast<float>(trackW) * musicVolume_);
-	SDL_Rect mBarFill = { trackX, row0Y + 30, mFill, 8 };
+	SDL_Rect mBarFill = { trackX, row0Y + 25, mFill, 6 };
 	render.DrawRectangle(mBarFill, 100, 180, 255, 255, true, false);
-	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 26, 10, 16 };
+	SDL_Rect mKnob = { trackX + mFill - 4, row0Y + 22, 8, 12 };
 	render.DrawRectangle(mKnob, 200, 220, 255, 255, true, false);
 
-	// Row 1: SOUNDS
+	// --- Row 1: SOUNDS ---
 	render.DrawMenuTextCentered("SOUNDS", { trackX, row1Y, trackW / 2, 20 }, labelColor);
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(sfxVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row1Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect sBarBg = { trackX, row1Y + 30, trackW, 8 };
+	SDL_Rect sBarBg = { trackX, row1Y + 25, trackW, 6 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, 255, true, false);
 	int sFill = static_cast<int>(static_cast<float>(trackW) * sfxVolume_);
-	SDL_Rect sBarFill = { trackX, row1Y + 30, sFill, 8 };
+	SDL_Rect sBarFill = { trackX, row1Y + 25, sFill, 6 };
 	render.DrawRectangle(sBarFill, 100, 180, 255, 255, true, false);
-	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 26, 10, 16 };
+	SDL_Rect sKnob = { trackX + sFill - 4, row1Y + 22, 8, 12 };
 	render.DrawRectangle(sKnob, 200, 220, 255, 255, true, false);
 
-	// Back Button (Row 2, centered below Display settings area)
-	SDL_Rect backBtnBg = { trackX + trackW / 2 - 60, row2Y + 10, 120, 36 };
-	render.DrawRectangle(backBtnBg, 40, 50, 70, 255, true, false);
-	render.DrawMenuTextCentered("BACK", backBtnBg, { 200, 220, 255, 255 });
+	// --- Row 2: DISPLAY ---
+	render.DrawMenuTextCentered("DISPLAY", { trackX, row2Y, trackW, 20 }, labelColor);
 
-	// -- Gamepad selection indicator ----
+	const char* modeNames[] = { "WINDOWED", "FULLSCREEN", "BORDERLESS" };
+	int arrowW = 30;
+	SDL_Rect leftArrowArea  = { trackX + 10, row2Y + 24, arrowW, 26 };
+	SDL_Rect modeArea       = { trackX + 10 + arrowW, row2Y + 24, trackW - 20 - arrowW * 2, 26 };
+	SDL_Rect rightArrowArea = { trackX + trackW - 10 - arrowW, row2Y + 24, arrowW, 26 };
+
+	SDL_Color arrowColor = { 100, 180, 255, 255 };
+	render.DrawMenuTextCentered("<", leftArrowArea, arrowColor);
+	render.DrawMenuTextCentered(modeNames[windowModeIndex_], modeArea, valColor);
+	render.DrawMenuTextCentered(">", rightArrowArea, arrowColor);
+
+	// Handle display mode clicks
+	auto& input = *Engine::GetInstance().input;
+	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN) {
+		Vector2D mousePos = input.GetMousePosition();
+		int mx = (int)mousePos.getX();
+		int my = (int)mousePos.getY();
+
+		if (mx >= leftArrowArea.x && mx <= leftArrowArea.x + leftArrowArea.w &&
+			my >= leftArrowArea.y && my <= leftArrowArea.y + leftArrowArea.h) {
+			windowModeIndex_ = (windowModeIndex_ + 2) % 3;
+			WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+			Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		if (mx >= rightArrowArea.x && mx <= rightArrowArea.x + rightArrowArea.w &&
+			my >= rightArrowArea.y && my <= rightArrowArea.y + rightArrowArea.h) {
+			windowModeIndex_ = (windowModeIndex_ + 1) % 3;
+			WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+			Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+	}
+
+	// --- Gamepad selection indicator ---
 	if (Engine::GetInstance().input->IsGamepadConnected()) {
 		int selY = row0Y;
 		if (optionsSliderSel_ == 1) selY = row1Y;
-		else if (optionsSliderSel_ == 2) selY = row2Y + 10;
+		else if (optionsSliderSel_ == 2) selY = row2Y;
 
-		SDL_Rect selHighlight = { trackX - 10, selY - 4, trackW + 20, 50 };
-		if (optionsSliderSel_ == 2) selHighlight = { backBtnBg.x - 4, backBtnBg.y - 2, backBtnBg.w + 8, backBtnBg.h + 4 };
+		SDL_Rect selHighlight;
+		if (optionsSliderSel_ == 3) {
+			int winW = 0, winH = 0;
+			Engine::GetInstance().window->GetWindowSize(winW, winH);
+			int btnW = 315;
+			selHighlight = { winW / 2 - btnW / 2 - 4, winH / 2 + 160 - 2, btnW + 8, 130 + 4 }; // Approximate
+		}
+		else {
+			selHighlight = { trackX - 10, selY - 4, trackW + 20, 46 };
+		}
 		render.DrawRectangle(selHighlight, 60, 100, 180, 50, true, false);
 
 		render.DrawMenuTextCentered(">", { selHighlight.x, selHighlight.y + selHighlight.h / 2 - 10, 16, 20 }, { 100, 200, 255, 255 });
@@ -4204,8 +4283,11 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 	auto& input = *Engine::GetInstance().input;
 	float dt = Engine::GetInstance().GetDt();
 
-	// Back Button hit box (relative to row2Y)
-	SDL_Rect backHit = { trackX + trackW / 2 - 60, row2Y + 10, 120, 36 };
+	// -- ESC key to go back --
+	if (input.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN) {
+		Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		return true;
+	}
 
 	// -- Mouse slider dragging / clicks ---------------------------------
 	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN ||
@@ -4215,16 +4297,8 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 		int mouseX = (int)mousePos.getX();
 		int mouseY = (int)mousePos.getY();
 
-		// Check Back button click
-		if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN) {
-			if (mouseX >= backHit.x && mouseX <= backHit.x + backHit.w &&
-				mouseY >= backHit.y && mouseY <= backHit.y + backHit.h) {
-				return true; // Go back
-			}
-		}
-
 		// Music slider hit box
-		SDL_Rect mSliderHit = { trackX - 10, row0Y + 18, trackW + 20, 32 };
+		SDL_Rect mSliderHit = { trackX - 10, row0Y + 15, trackW + 20, 28 };
 		if (mouseX >= mSliderHit.x && mouseX <= mSliderHit.x + mSliderHit.w &&
 			mouseY >= mSliderHit.y && mouseY <= mSliderHit.y + mSliderHit.h) {
 
@@ -4235,7 +4309,7 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 		}
 
 		// SFX slider hit box
-		SDL_Rect sSliderHit = { trackX - 10, row1Y + 18, trackW + 20, 32 };
+		SDL_Rect sSliderHit = { trackX - 10, row1Y + 15, trackW + 20, 28 };
 		if (mouseX >= sSliderHit.x && mouseX <= sSliderHit.x + sSliderHit.w &&
 			mouseY >= sSliderHit.y && mouseY <= sSliderHit.y + sSliderHit.h) {
 
@@ -4260,11 +4334,12 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_DOWN) == KEY_DOWN ||
 		(input.GetLeftStickY() > 0.5f && sliderRepeatTimer_ <= 0.0f))
 	{
-		optionsSliderSel_ = std::min(2, optionsSliderSel_ + 1);
+		optionsSliderSel_ = std::min(3, optionsSliderSel_ + 1);
 		sliderRepeatTimer_ = 250.0f;
 	}
 
-	if (optionsSliderSel_ == 2 && input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN) {
+	// Row 3 = BACK: confirm with South button
+	if (optionsSliderSel_ == 3 && input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN) {
 		return true;
 	}
 
@@ -4298,6 +4373,15 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 		}
 		if (stepLeft || stepRight || continuousAdj != 0.0f)
 			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
+	}
+	else if (optionsSliderSel_ == 2) {
+		// Display mode switching via gamepad
+		if (stepLeft || stepRight) {
+			windowModeIndex_ = (windowModeIndex_ + (stepRight ? 1 : 2)) % 3;
+			WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+			Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
 	}
 
 	if (sliderRepeatTimer_ > 0.0f)

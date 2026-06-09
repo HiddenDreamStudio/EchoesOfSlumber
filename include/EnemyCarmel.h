@@ -21,8 +21,10 @@ private:
 	void UpdateFSM(float dt) override;
 	void TransitionTo(EnemyCarmelState newState);
 	void Draw(float dt) override;
-
 	void UpdatePhysicsBody(bool big);
+
+	int lastFrameIndex_ = -1;
+	PhysBody* pbodySensor_ = nullptr;
 
 	AnimationSet anims_;
 	AnimationSet rollAnims_;
@@ -50,6 +52,8 @@ private:
 	static constexpr float CHASE_SPEED      = 2.5f;
 	static constexpr float TURN_DELAY       = 600.0f;  // Delay before changing direction
 
-	// Sizes
-	static constexpr float ROLL_DRAW_SCALE  = 0.5f; // Draw roll at half size (128x128)
+	// Sizes — blowup/roll rendered at 384x384 (much larger than the player)
+	static constexpr float IDLE_DRAW_SCALE  = 1.0f;  // Idle/scared: 64x64 native
+	static constexpr float ROLL_DRAW_SCALE  = 1.5f;  // Blowup/roll: 256*1.5 = 384x384
+	float currentDrawScale_ = IDLE_DRAW_SCALE;        // Animated scale for smooth blowup transition
 };
