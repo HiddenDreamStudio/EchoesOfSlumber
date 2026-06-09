@@ -19,6 +19,7 @@ bool SlingshotProjectile::Start()
 {
 	// Load rock texture
 	texture = Engine::GetInstance().textures->Load("assets/textures/Tirachinas/municio.png");
+	Engine::GetInstance().textures->GetSize(texture, texW, texH);
 
 	// Create a small dynamic circle body for the rock
 	pbody = Engine::GetInstance().physics->CreateCircle(
