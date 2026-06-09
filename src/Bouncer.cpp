@@ -8,6 +8,7 @@
 #include "Map.h"
 #include "tracy/Tracy.hpp"
 #include <SDL3_image/SDL_image.h>
+#include "Audio.h"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -52,6 +53,11 @@ bool Bouncer::Start()
 	LoadClip(BouncerAnim::TIRED, "assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Bouncer_Cansado.png", 10, 80, true);
 	LoadClip(BouncerAnim::HIT, "assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Bouncer_Hit.png", 10, 42, false);
 	LoadClip(BouncerAnim::DIE, "assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Bouncer_Die.png", 9, 80, false);
+
+	bouncerAttackFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/bouncer_atack.wav");
+	bouncerReboteFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/bouncer_rebote.wav");
+	bouncerHitFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/Hit.wav");
+	bouncerDieFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/Die.wav");
 
 	const int centerX = (int)(position.getX() + spawnWidth_ * 0.5f);
 	const int centerY = (int)(position.getY() + spawnHeight_ * 0.5f);
@@ -176,6 +182,7 @@ bool Bouncer::Update(float dt)
 		{
 			playerListener_->TakeDamage(1);
 			contactDamageCooldown_ = CONTACT_DAMAGE_INTERVAL;
+			PlayBouncerFx(bouncerAttackFxId_);
 		}
 	}
 
@@ -218,6 +225,7 @@ void Bouncer::UpdateFSM(float dt)
 				bounceCount_ = 0;
 				highJumpQueued_ = false;
 			}
+			PlayBouncerFx(bouncerReboteFxId_);
 			TransitionTo(BouncerState::AIRBORNE);
 		}
 		break;
@@ -323,6 +331,7 @@ void Bouncer::HandleSurfaceContacts()
 
 	if (groundHit)
 	{
+		PlayBouncerFx(bouncerReboteFxId_);
 		bounceCount_++;
 		highJumpQueued_ = bounceCount_ >= BOUNCES_BEFORE_HIGH_JUMP;
 		if (activeMovementTimer_ >= TIRED_AFTER_MOVEMENT)
@@ -341,11 +350,13 @@ void Bouncer::HandleSurfaceContacts()
 		velocity.x = moveDirX_ * BASE_HORIZONTAL_SPEED * NextVariation(0.18f);
 		if (velocity.y > -1.0f)
 			velocity.y -= 1.0f + 0.7f * NextVariation(0.2f);
+		PlayBouncerFx(bouncerReboteFxId_);
 	}
 
 	if (ceilingHit && velocity.y < 0.0f)
 	{
 		velocity.y = std::abs(velocity.y) * 0.55f;
+		PlayBouncerFx(bouncerReboteFxId_);
 	}
 }
 
@@ -414,6 +425,28 @@ void Bouncer::TransitionTo(BouncerState newState)
 		if (pbody != nullptr)
 			pbody->ctype = ColliderType::UNKNOWN;
 		break;
+	}
+}
+
+void Bouncer::PlayBouncerFx(int fxId)
+{
+	if (fxId <= 0) return;
+	auto& scene = Engine::GetInstance().scene;
+	if (scene == nullptr || pbody == nullptr || scene->player == nullptr || scene->player->pbody == nullptr) return;
+
+	int bodyX, bodyY;
+	int playerX, playerY;
+	pbody->GetPosition(bodyX, bodyY);
+	scene->player->pbody->GetPosition(playerX, playerY);
+
+	float dx = (float)(playerX - bodyX);
+	float dy = (float)(playerY - bodyY);
+	float distSq = dx * dx + dy * dy;
+
+	// Only play if within ~1000 pixels
+	if (distSq < 1000000.0f)
+	{
+		Engine::GetInstance().audio->PlayFx(fxId);
 	}
 }
 
@@ -587,10 +620,12 @@ void Bouncer::TakeDamage(int damage)
 	if (health <= 0)
 	{
 		health = 0;
+		PlayBouncerFx(bouncerDieFxId_);
 		TransitionTo(BouncerState::DEATH);
 	}
 	else
 	{
+		PlayBouncerFx(bouncerHitFxId_);
 		TransitionTo(BouncerState::HIT);
 	}
 }
