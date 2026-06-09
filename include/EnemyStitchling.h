@@ -11,14 +11,10 @@ class EnemyStitchling : public Entity
 {
 public:
 	enum class State {
-		SETUP,         // Setting up the trap (releasing string)
-		IDLE,          // Waiting for player to step on trap
-		ALERT,         // Player is near, warning them
-		TRAP_ACTIVE,   // Player trapped, slowing them down and hurting them
-		REWIND_SLOW,   // Rewinding slowly (vulnerable)
-		REWIND_FAST,   // Rewinding fast (invulnerable/deflecting)
-		HIT,           // Taking hit
-		DEATH          // Dead
+		IDLE,          // Yoyo sitting on the ground, waiting
+		ALERT,         // Player is near, yoyo vibrates
+		TRAP_ACTIVE,   // Player stepped on rope: yoyo disappears then throws ropes
+		DEATH          // Dead / cleaned up
 	};
 
 	EnemyStitchling();
@@ -46,15 +42,13 @@ private:
 	float GetDistanceToPlayer() const;
 
 private:
-	State currentState_ = State::SETUP;
+	State currentState_ = State::IDLE;
 	float stateTimer_ = 0.0f;
 	
 	// Trap mechanic
-	bool isPlayerInTrap_ = false;
+	bool disappearDone_ = false;  // true once the desaparecer animation has finished
 	int  escapeMashes_ = 0;
 	static constexpr int MASHES_TO_ESCAPE = 5;
-	static constexpr float TRAP_DAMAGE_INTERVAL = 2000.0f; // ms
-	float trapDamageTimer_ = 0.0f;
 
 	Player* playerRef_ = nullptr;
 	bool    playerWasSlowed_ = false;
@@ -63,22 +57,14 @@ private:
 	PhysBody* pbody = nullptr;
 	PhysBody* trapSensor_ = nullptr;
 
-	// Animations
+	// Animations (only 3 needed for the yoyo)
 	AnimationSet idleAnims_;
 	AnimationSet alertAnims_;
-	AnimationSet setupAnims_;
-	AnimationSet grabAnims_;
-	AnimationSet rewindAnims_;
-	AnimationSet hitAnims_;
 	AnimationSet dieAnims_;
 
-	// Textures
+	// Textures (only 3 needed for the yoyo)
 	SDL_Texture* idleTexture_ = nullptr;
 	SDL_Texture* alertTexture_ = nullptr;
-	SDL_Texture* setupTexture_ = nullptr;
-	SDL_Texture* grabTexture_ = nullptr;
-	SDL_Texture* rewindTexture_ = nullptr;
-	SDL_Texture* hitTexture_ = nullptr;
 	SDL_Texture* dieTexture_ = nullptr;
 
 	bool facingRight_ = false;
