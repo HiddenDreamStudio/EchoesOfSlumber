@@ -19,6 +19,8 @@ public:
     float speed = 2.0f;
     bool triggerOnPlayer = false;
     bool playerOnTop = false;
+    bool requireLever = false;
+    bool activatedByLever = false;
 
     void OnCollision(PhysBody* physA, PhysBody* physB) override;
     void OnCollisionEnd(PhysBody* physA, PhysBody* physB) override;
@@ -28,6 +30,8 @@ public:
     std::string texturePath = "EchoesOfSlumber/assets/textures/TL_environment/plat_4tiles.png";
     int texW = 192;
     int texH = 64;
+
+    std::string platformName = "";
 
 private:
     int currentWaypoint = 0;
