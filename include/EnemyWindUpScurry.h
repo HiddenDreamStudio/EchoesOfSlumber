@@ -1,0 +1,93 @@
+#pragma once
+
+#include "Entity.h"
+#include "Animation.h"
+#include <box2d/box2d.h>
+#include <SDL3/SDL.h>
+
+class Player;
+
+class EnemyWindUpScurry : public Entity
+{
+public:
+	enum class State {
+		IDLE,            // Roaming around randomly (no fixed pattern)
+		ALERTA,          // Detected the player, wind-up key spinning faster
+		ANTES_WALK_FAST, // Transition animation before chasing
+		WALK_FAST,       // Actively chasing the player (~12 seconds)
+		CANSADO,         // Transition to fatigue (winding down)
+		IDLE_CANSADO,    // Exhausted, immobile (~3 seconds) - VULNERABLE
+		HIT,             // Taking damage (only possible during IDLE_CANSADO)
+		DEATH            // Dead
+	};
+
+	EnemyWindUpScurry();
+	virtual ~EnemyWindUpScurry();
+
+	bool Awake() override;
+	bool Start() override;
+	bool Update(float dt) override;
+	bool CleanUp() override;
+
+	void OnCollision(PhysBody* physA, PhysBody* physB) override;
+	void OnCollisionEnd(PhysBody* physA, PhysBody* physB) override;
+
+	void TakeDamage(int damage) override;
+
+public:
+	int texW = 128, texH = 128;
+
+private:
+	void UpdateFSM(float dt);
+	void EnterState(State newState);
+	void Draw(float dt);
+	float GetDistanceToPlayer() const;
+	void ChooseNewPatrolDirection();
+
+private:
+	State currentState_ = State::IDLE;
+	float stateTimer_ = 0.0f;
+
+	Player* playerRef_ = nullptr;
+
+	// Patrol (random roaming)
+	float patrolDirX_ = 1.0f;
+	float patrolTimer_ = 0.0f;
+	static constexpr float PATROL_CHANGE_INTERVAL = 2000.0f; // ms between random direction changes
+	static constexpr float PATROL_SPEED = 1.5f;
+
+	// Detection
+	static constexpr float DETECTION_RADIUS = 200.0f;
+
+	// Chase
+	static constexpr float CHASE_SPEED = 4.0f;
+	static constexpr float CHASE_DURATION = 12000.0f; // 12 seconds in ms
+
+	// Fatigue
+	static constexpr float FATIGUE_DURATION = 3000.0f; // 3 seconds in ms
+
+	// Physics
+	PhysBody* pbody = nullptr;
+
+	// Animations
+	AnimationSet idleAnims_;
+	AnimationSet alertaAnims_;
+	AnimationSet antesWalkFastAnims_;
+	AnimationSet walkFastAnims_;
+	AnimationSet cansadoAnims_;
+	AnimationSet idleCansadoAnims_;
+	AnimationSet hitAnims_;
+	AnimationSet dieAnims_;
+
+	// Textures
+	SDL_Texture* idleTexture_ = nullptr;
+	SDL_Texture* alertaTexture_ = nullptr;
+	SDL_Texture* antesWalkFastTexture_ = nullptr;
+	SDL_Texture* walkFastTexture_ = nullptr;
+	SDL_Texture* cansadoTexture_ = nullptr;
+	SDL_Texture* idleCansadoTexture_ = nullptr;
+	SDL_Texture* hitTexture_ = nullptr;
+	SDL_Texture* dieTexture_ = nullptr;
+
+	bool facingRight_ = false;
+};
