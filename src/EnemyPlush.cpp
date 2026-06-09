@@ -442,51 +442,77 @@ void EnemyPlush::Draw(float dt)
 	// Pick the correct active animation frame and texture
 	SDL_Texture* activeTexture = nullptr;
 	SDL_Rect frame = { 0, 0, 0, 0 };
+	float scale = 1.0f;
+	int charBottom = 0;
 
 	if (currentState_ == State::DEATH) {
 		activeTexture = dieTexture_;
 		frame = dieAnims_.GetCurrentFrame();
+		scale = 1.43f;
+		charBottom = 157;
 	}
 	else if (isHit_) {
 		activeTexture = hitTexture_;
 		frame = hitAnims_.GetCurrentFrame();
+		scale = 1.67f;
+		charBottom = 145;
 	}
 	else {
 		switch (currentState_) {
 		case State::PATROL:
 			activeTexture = idleTexture_;
 			frame = idleAnims_.GetCurrentFrame();
+			scale = 2.0f;
+			charBottom = 97;
 			break;
 		case State::TENSE:
 			activeTexture = alertTexture_;
 			frame = alertAnims_.GetCurrentFrame();
+			scale = 1.1f;
+			charBottom = 162;
 			break;
 		case State::JUMPING:
 			if (jumpPhase_ == JumpPhase::START) {
 				activeTexture = jumpStartTexture_;
 				frame = jumpStartAnims_.GetCurrentFrame();
+				scale = 2.0f;
+				charBottom = 70;
 			}
 			else if (jumpPhase_ == JumpPhase::LOOP) {
 				activeTexture = jumpLoopTexture_;
 				frame = jumpLoopAnims_.GetCurrentFrame();
+				scale = 1.0f;
+				charBottom = 0;
 			}
 			else if (jumpPhase_ == JumpPhase::END) {
 				activeTexture = jumpEndTexture_;
 				frame = jumpEndAnims_.GetCurrentFrame();
+				scale = 2.0f;
+				charBottom = 70;
 			}
 			break;
 		case State::DIZZY:
 			activeTexture = dizzyTexture_;
 			frame = dizzyAnims_.GetCurrentFrame();
+			scale = 1.0f;
+			charBottom = 101;
 			break;
 		}
 	}
 
 	if (activeTexture != nullptr && frame.w > 0 && frame.h > 0)
 	{
-		// Center horizontally on the physics body, anchor vertically at the bottom of the physics body (which is 60px height capsule, so center + 30px)
-		int drawX = x - frame.w / 2;
-		int drawY = (y + 30) - frame.h;
+		// Center horizontally on the physics body
+		int drawX = x - (int)(frame.w * scale) / 2;
+		
+		int drawY;
+		if (charBottom > 0) {
+			// Anchor the character's feet to the ground
+			drawY = (y + 30) - (int)(charBottom * scale);
+		} else {
+			// Anchor using the bottom of the frame (default)
+			drawY = (y + 30) - (int)(frame.h * scale);
+		}
 
 		// Add subtle shaking visual effect if in TENSE/alert state
 		if (currentState_ == State::TENSE)
@@ -496,7 +522,7 @@ void EnemyPlush::Draw(float dt)
 			drawX += shake;
 		}
 
-		Engine::GetInstance().render->DrawTexture(activeTexture, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(activeTexture, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, scale);
 	}
 }
 
