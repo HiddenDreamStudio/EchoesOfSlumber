@@ -97,6 +97,7 @@ public:
 	PhysBody* pbody = nullptr;
 	PhysBody* platformBelow = nullptr;
 	
+	float platformDropTimer_ = 0.0f;
 	float knockbackX_     = 0.0f;
 	float knockbackTimer_ = 0.0f;
 	float jumpForce = 10.0f;
