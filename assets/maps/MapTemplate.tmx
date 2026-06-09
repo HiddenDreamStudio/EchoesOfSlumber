@@ -438,6 +438,11 @@
   </object>
   <object id="1806" name="Antagonist" type="Antagonist" x="643.277" y="6409.15" width="59.4458" height="55.0424"/>
   <object id="1808" name="Antagonist" type="Antagonist" x="5043.55" y="2625.87" width="59.4458" height="55.0424"/>
+  <object id="1809" name="MemoryFragment" type="MemoryFragment" x="3784" y="2637" width="80" height="60">
+   <properties>
+    <property name="video_path" value="assets/video/Anchor_1.mp4"/>
+   </properties>
+  </object>
  </objectgroup>
  <objectgroup id="48" name="Checkpoint">
   <object id="1802" type="CheckPoint" x="7424" y="8533.33">
