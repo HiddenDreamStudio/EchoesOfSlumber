@@ -95,6 +95,7 @@ public:
 	PhysBody* pbody = nullptr;
 	PhysBody* platformBelow = nullptr;
 	
+	float platformDropTimer_ = 0.0f;
 	float knockbackX_     = 0.0f;
 	float knockbackTimer_ = 0.0f;
 	float jumpForce = 10.0f;
@@ -214,7 +215,12 @@ private:
 	// Yoyo trap animation (played when caught by Stitchling)
 	SDL_Texture* yoyoTrapTexture_ = nullptr;
 
+	// Drop Doll minigame animation (played while grabbed by the doll)
+	SDL_Texture* dollGrabbedTexture_ = nullptr;
+	Animation    dollGrabbedAnim_;
+
 public:
 	bool         isYoyoTrapped_ = false;
 	AnimationSet yoyoTrapAnims_;
+	bool         isDollGrabbed_ = false;
 };
