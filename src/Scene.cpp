@@ -2111,6 +2111,9 @@ void Scene::UpdateGameplay(float dt)
 
 void Scene::UpdateBossFight(float dt)
 {
+    if (videoSkipCooldown_ > 0.0f) {
+        videoSkipCooldown_ -= dt;
+    }
     // ── End-game final cinematic: fade to black, play video, go to main menu ──
     if (endGameFading_)
     {
@@ -2127,10 +2130,13 @@ void Scene::UpdateBossFight(float dt)
     if (endGameVideoActive_)
     {
         auto& input = *Engine::GetInstance().input;
-        bool skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
-                             input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
-                             input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
-                             Engine::GetInstance().cinematics->HasSkipBeenRequested();
+        bool skipRequested = false;
+        if (videoSkipCooldown_ <= 0.0f) {
+            skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
+                            Engine::GetInstance().cinematics->HasSkipBeenRequested();
+        }
 
         if (skipRequested || !Engine::GetInstance().cinematics->IsPlaying())
         {
@@ -2138,6 +2144,41 @@ void Scene::UpdateBossFight(float dt)
                 Engine::GetInstance().cinematics->StopVideo();
             }
             endGameVideoActive_ = false;
+            
+            // Queue next video: Credits
+            creditsVideoActive_ = true;
+            videoSkipCooldown_ = 1000.0f; // 1 second cooldown
+            Engine::GetInstance().cinematics->PlayVideo("assets/video/Credits_Videos.mp4");
+            Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
+        }
+        else 
+        {
+            // Draw "Press SPACE to Skip" overlay while playing
+            int winW = 0, winH = 0;
+            Engine::GetInstance().window->GetWindowSize(winW, winH);
+            SDL_Color skipColor = { 255, 255, 255, 120 };
+            Engine::GetInstance().render->DrawMenuTextCentered("Press SPACE to Skip", { winW - 300, winH - 60, 280, 30 }, skipColor, 0.4f);
+        }
+        return;
+    }
+
+    if (creditsVideoActive_)
+    {
+        auto& input = *Engine::GetInstance().input;
+        bool skipRequested = false;
+        if (videoSkipCooldown_ <= 0.0f) {
+            skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
+                            Engine::GetInstance().cinematics->HasSkipBeenRequested();
+        }
+
+        if (skipRequested || !Engine::GetInstance().cinematics->IsPlaying())
+        {
+            if (skipRequested) {
+                Engine::GetInstance().cinematics->StopVideo();
+            }
+            creditsVideoActive_ = false;
             
             // Queue immediate scene change to MAIN MENU
             hasPendingSceneChange = true;
@@ -3110,6 +3151,14 @@ void Scene::PostUpdateGameplay()
 	}
 	else if (isPaused_ && !showInventory_) {
 		DrawPauseMenu();
+	}
+
+	// Make sure the game is hidden while videos are playing
+	if (endGameVideoActive_ || creditsVideoActive_ || bossDeathVideoActive_) {
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		SDL_Rect fullscreen = { 0, 0, winW, winH };
+		Engine::GetInstance().render->DrawRectangle(fullscreen, 0, 0, 0, 255, true, false);
 	}
 } 
 		// ── Inventory ─────────────────────────────────────────────────────────────────
