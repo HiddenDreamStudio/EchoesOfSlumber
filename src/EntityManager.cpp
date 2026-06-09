@@ -202,6 +202,10 @@ bool EntityManager::Update(float dt)
 
 	bool ret = true;
 
+	if (Engine::GetInstance().scene->GetCurrentScene() != SceneID::GAMEPLAY) {
+		return true;
+	}
+
 	//List to store entities pending deletion
 	std::list<std::shared_ptr<Entity>> pendingDelete;
 	
@@ -230,6 +234,10 @@ bool EntityManager::Update(float dt)
 bool EntityManager::PostUpdate() {
 	ZoneScoped;
 	bool ret = true;
+
+	if (Engine::GetInstance().scene->GetCurrentScene() != SceneID::GAMEPLAY) {
+		return true;
+	}
 
 	for (const auto entity : entities)
 	{
