@@ -32,13 +32,13 @@ void RopedRock::SpawnBodies()
     int ax = (int)anchorX_;
     int ay = (int)anchorY_;
 
-    int ropeSensorCY = ay + (int)(ROPE_LENGTH / 2);
+    int ropeSensorCY = ay + (int)(ropeLength_ / 2);
     ropeSensor_ = Engine::GetInstance().physics->CreateRectangleSensor(
-        ax, ropeSensorCY, ROPE_W, (int)ROPE_LENGTH, bodyType::STATIC);
+        ax, ropeSensorCY, ROPE_W, (int)ropeLength_, bodyType::STATIC);
     ropeSensor_->listener = this;
     ropeSensor_->ctype    = ColliderType::ROPE;
 
-    int rockCY = ay + (int)ROPE_LENGTH + ROCK_H / 2;
+    int rockCY = ay + (int)ropeLength_ + ROCK_H / 2;
     rockBody_ = Engine::GetInstance().physics->CreateRectangle(
         ax, rockCY, ROCK_W, ROCK_H, bodyType::STATIC, 0.3f);
     rockBody_->listener = this;
@@ -65,7 +65,7 @@ bool RopedRock::Update(float dt)
         int bx, by;
         rockBody_->GetPosition(bx, by);
         position.setX((float)bx);
-        position.setY((float)(by - (int)ROPE_LENGTH - ROCK_H / 2));
+        position.setY((float)(by - (int)ropeLength_ - ROCK_H / 2));
     }
 
     if (state_ == RopedRockState::RESPAWNING)
@@ -134,12 +134,12 @@ void RopedRock::Draw()
     {
         if (texRope_)
         {
-            SDL_FRect dst = toScreen(ax - ROPE_W / 2, ay, ROPE_W, (int)ROPE_LENGTH);
+            SDL_FRect dst = toScreen(ax - ROPE_W / 2, ay, ROPE_W, (int)ropeLength_);
             SDL_RenderTexture(render.renderer, texRope_, nullptr, &dst);
         }
         if (texRock_)
         {
-            SDL_FRect dst = toScreen(ax - ROCK_W / 2, ay + (int)ROPE_LENGTH, ROCK_W, ROCK_H);
+            SDL_FRect dst = toScreen(ax - ROCK_W / 2, ay + (int)ropeLength_, ROCK_W, ROCK_H);
             SDL_RenderTexture(render.renderer, texRock_, nullptr, &dst);
         }
     }
