@@ -1433,6 +1433,7 @@ void Scene::LoadGameplay()
 	isGameOver_ = false;
 	texGameOver_ = nullptr; // No longer using code-generated text
 	texCheckpointSaved_ = Engine::GetInstance().render->CreateMenuTextTexture("GAME SAVED", { 255, 255, 255, 255 });
+	texDamageVignette_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Damage_Vignette.png");
 	checkpointSaveTimer_ = 0.0f;
 
 	// Game Over Button
@@ -1590,6 +1591,10 @@ void Scene::UpdateGameplay(float dt)
 				}
 			}
 		}
+	}
+
+	if (screenDamageTimer_ > 0.0f) {
+		screenDamageTimer_ -= dt;
 	}
 
 	// ── Automatic Entry Movement (Levels 2, 3, 4) ───────────────────────────
@@ -2212,6 +2217,7 @@ void Scene::UnloadGameplay()
 		if (texHealth_[i]) { Engine::GetInstance().textures->UnLoad(texHealth_[i]); texHealth_[i] = nullptr; }
 	}
 	if (texGameOver_) { SDL_DestroyTexture(texGameOver_); texGameOver_ = nullptr; }
+	if (texDamageVignette_) { Engine::GetInstance().textures->UnLoad(texDamageVignette_); texDamageVignette_ = nullptr; }
 
 	if (texGameOverScreenBase_) { Engine::GetInstance().textures->UnLoad(texGameOverScreenBase_); texGameOverScreenBase_ = nullptr; }
 	if (texGameOverText_) { Engine::GetInstance().textures->UnLoad(texGameOverText_); texGameOverText_ = nullptr; }
@@ -2334,6 +2340,7 @@ bool Scene::RequestCheckpointRespawn()
 	checkpointTransitionPhase_ = CheckpointTransitionPhase::FADE_OUT;
 	checkpointBlackHoldTimer_ = 0.0f;
 	checkpointNotifyAfterFade_ = false;
+	screenDamageTimer_ = 0.0f;
 	SetGameOverVisible(false);
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 450.0f);
 	return true;
@@ -2997,6 +3004,13 @@ void Scene::PostUpdateGameplay()
 			spColor,
 			0.35f
 		);
+	}
+
+	if (screenDamageTimer_ > 0.0f && texDamageVignette_) {
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		Uint8 alpha = (Uint8)(255.0f * (screenDamageTimer_ / 1000.0f));
+		Engine::GetInstance().render->DrawTextureAlphaF(texDamageVignette_, 0.0f, 0.0f, (float)winW, (float)winH, alpha);
 	}
 
 	if (showMapViewer_) {
