@@ -180,3 +180,80 @@ document.addEventListener('keydown', (e) => {
         console.log('✨ You found the truth... or did you?');
     }
 });
+
+// =============================================
+// HERO JS PARTICLES
+// =============================================
+function initParticles() {
+    const canvas = document.getElementById('particles-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    let width, height;
+    let particles = [];
+
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = canvas.parentElement.offsetHeight || window.innerHeight;
+    }
+
+    class Particle {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.size = Math.random() * 2.5 + 0.5;
+            this.speedX = (Math.random() - 0.5) * 0.4;
+            this.speedY = (Math.random() - 0.5) * 0.4 - 0.2; // slight drift up
+            this.opacity = Math.random() * 0.5 + 0.1;
+            this.color = '#337FA5';
+        }
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+
+            // wrap around
+            if (this.x < 0) this.x = width;
+            if (this.x > width) this.x = 0;
+            if (this.y < 0) this.y = height;
+            if (this.y > height) this.y = 0;
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(51, 127, 165, ${this.opacity})`;
+            ctx.fill();
+            
+            // glow
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#5691d3';
+        }
+    }
+
+    function createParticles() {
+        particles = [];
+        const count = Math.min(window.innerWidth / 15, 100); // responsive count
+        for (let i = 0; i < count; i++) {
+            particles.push(new Particle());
+        }
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, width, height);
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+        requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', () => {
+        resize();
+        createParticles();
+    });
+
+    resize();
+    createParticles();
+    animate();
+}
+
+window.addEventListener('DOMContentLoaded', initParticles);

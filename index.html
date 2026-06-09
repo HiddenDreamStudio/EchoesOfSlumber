@@ -49,10 +49,10 @@
 <section id="home" class="hero">
     <!-- Level screenshots collage bg -->
     <div class="hero-bg-levels">
-        <img src="images/level3-1-3.png"         alt="" class="hbl hbl-1">
-        <img src="images/level2-1-4.png"          alt="" class="hbl hbl-2">
-        <img src="images/level-1_totjunt-1-5.png" alt="" class="hbl hbl-3">
-        <img src="images/level4-1-6.png"          alt="" class="hbl hbl-4">
+        <div class="hero-bg-cell"><img src="images/level3-1-3.png"         alt="" class="hbl hbl-3"></div>
+        <div class="hero-bg-cell"><img src="images/level2-1-4.png"          alt="" class="hbl hbl-2"></div>
+        <div class="hero-bg-cell"><img src="images/level-1_totjunt-1-5.png" alt="" class="hbl hbl-1"></div>
+        <div class="hero-bg-cell"><img src="images/level4-1-6.png"          alt="" class="hbl hbl-4"></div>
     </div>
     <!-- Blue tint overlay (rect-17 from Figma) -->
     <div class="hero-blue-tint"></div>
@@ -60,10 +60,8 @@
     <img src="images/white-kid-1-8.png" alt="" class="hero-kid">
     <!-- Blurred teal rect (rect-1 from Figma) -->
     <div class="hero-blur-rect"></div>
-    <!-- Particles -->
-    <img src="images/particles-1-153.png" alt="" class="hero-particle hp1">
-    <img src="images/particles-3-154.png" alt="" class="hero-particle hp3">
-    <img src="images/particles-2-155.png" alt="" class="hero-particle hp2">
+    <!-- Particles Canvas -->
+    <canvas id="particles-canvas" class="hero-particle-canvas"></canvas>
     <!-- Dark vignette -->
     <div class="hero-vignette"></div>
 
