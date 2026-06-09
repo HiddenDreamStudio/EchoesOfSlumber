@@ -47,7 +47,7 @@ public:
 	bool     IsFacingRight() const;
 
 	// Hiding state queried by enemies to disable detection
-	bool IsHiding() const { return isHiding_; }
+	bool IsHiding() const { return isHiding_ || isHidingBehindRock_; }
 
 	// Blanket (cape) collectible – must be collected before hiding is available
 	bool HasBlanket() const { return hasBlanket_; }
@@ -159,8 +159,13 @@ private:
 	// Hide (press H to crouch behind rocks  enemies lose sight of player)
 	bool  isHiding_ = false;
 	bool  isExitingHide_ = false;
+	bool  isHidingBehindRock_ = false;
 	// Visual: gentle alpha pulse while hidden to signal stealth state
 	float hideAlphaTime_ = 0.0f;
+
+public:
+	void SetHidingBehindRock(bool hiding);
+private:
 
 	// Blanket (cape) collectible flag
 	bool hasBlanket_ = false;
