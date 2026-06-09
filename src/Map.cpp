@@ -15,6 +15,7 @@
 #include "Bouncer.h"
 #include "Boss1.h"
 #include "RopedRock.h"
+#include "Antagonist.h"
 #include "Checkpoint.h"
 #include "Box.h"
 #include "Platform.h"
@@ -751,6 +752,21 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     doll->Start();
                     LOG("DropDoll spawned at (%.0f, %.0f), trigger width %.0f",
                         doll->position.getX(), doll->position.getY(), triggerW);
+                }
+                else if (entityType == "Antagonist") {
+                    auto ant = std::dynamic_pointer_cast<Antagonist>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::ANTAGONIST));
+                    ant->position = Vector2D(x, y);
+                    for (pugi::xml_node prop = objectNode.child("properties").child("property");
+                         prop; prop = prop.next_sibling("property"))
+                    {
+                        std::string pname = prop.attribute("name").as_string();
+                        if      (pname == "appear_range") ant->SetAppearRange(prop.attribute("value").as_float(400.0f));
+                        else if (pname == "alpha")        ant->SetAlpha(prop.attribute("value").as_int(180));
+                        else if (pname == "scale")        ant->SetScale(prop.attribute("value").as_float(0.5f));
+                    }
+                    ant->Start();
+                    LOG("Antagonist spawned at (%.0f, %.0f)", ant->position.getX(), ant->position.getY());
                 }
                 else if (entityType == "Platform") {
                     auto platform = std::dynamic_pointer_cast<Platform>(
