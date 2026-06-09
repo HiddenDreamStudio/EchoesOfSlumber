@@ -257,7 +257,7 @@ void Scene::LoadMainMenu()
 	else if (wm == WindowMode::BORDERLESS) windowModeIndex_ = 2;
 	else windowModeIndex_ = 0;
 
-	Engine::GetInstance().discord->UpdatePresence("In Main Menu", "Alpha Phase");
+	Engine::GetInstance().discord->UpdatePresence("In Main Menu", "Release v1.0.0");
     Engine::GetInstance().render->SetCameraSway(false);
 
 	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_Main_Menu.wav", 1.0f);
@@ -446,7 +446,7 @@ void Scene::UpdateMainMenu(float dt)
 				if (t >= 1.0f) {
 					settingsAnimState_ = SettingsAnimState::NONE;
 					settingsButtonsAlpha_ = 1.0f;
-					Engine::GetInstance().discord->UpdatePresence("In Main Menu", "Alpha Phase");
+					Engine::GetInstance().discord->UpdatePresence("In Main Menu", "Release v1.0.0");
 				}
 				break;
 			default: break;
@@ -800,7 +800,7 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 			settingsAnimState_ = SettingsAnimState::FADE_OUT_BUTTONS;
 			settingsAnimTimer_ = 0.0f;
 			optionsSliderSel_ = 0;
-			Engine::GetInstance().discord->UpdatePresence("In Options", "Alpha Phase");
+			Engine::GetInstance().discord->UpdatePresence("In Options", "Release v1.0.0");
 		}
 		break;
 	case BTN_EXIT:
@@ -1321,7 +1321,7 @@ void Scene::LoadGameplay()
 
 	if (currentLevelIndex_ < 0 || (size_t)currentLevelIndex_ >= levels_.size()) currentLevelIndex_ = 0;
 	std::string presenceStr = "Playing: " + levels_[currentLevelIndex_].name;
-	Engine::GetInstance().discord->UpdatePresence(presenceStr.c_str(), "Alpha Phase");
+	Engine::GetInstance().discord->UpdatePresence(presenceStr.c_str(), "Release v1.0.0");
 
 	if (player) {
 		if (currentLevelIndex_ == 0) {
