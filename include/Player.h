@@ -92,6 +92,7 @@ public:
 	int stepsFxId = -1;
 	int gameOverFxId = -1;
 	int slingshotFxId = -1;
+	int capeFxId = -1;
 
 	PhysBody* pbody = nullptr;
 	PhysBody* platformBelow = nullptr;

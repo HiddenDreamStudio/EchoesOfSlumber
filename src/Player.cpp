@@ -154,6 +154,7 @@ bool Player::Start() {
 	stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");
 	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
 	slingshotFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/tirachinas.wav");
+	capeFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/capa.wav");
 
 	return true;
 }
@@ -604,6 +605,7 @@ void Player::Hide(float dt)
 			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
 			anims.SetCurrent("hide");
 			anims.ResetCurrent();
+			Engine::GetInstance().audio->PlayFx(capeFxId);
 			LOG("Player hiding");
 		}
 		else if (isHiding_)
@@ -611,6 +613,7 @@ void Player::Hide(float dt)
 			isHiding_ = false;
 			isExitingHide_ = true;
 			hideCooldown_ = HIDE_COOLDOWN; // cooldown starts on exit
+			Engine::GetInstance().audio->PlayFx(capeFxId);
 			LOG("Player exiting hide — cooldown started (%.0f ms)", HIDE_COOLDOWN);
 		}
 	}
