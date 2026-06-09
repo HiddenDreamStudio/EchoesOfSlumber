@@ -1490,12 +1490,10 @@ void Scene::LoadGameplay()
 	capaCollected_ = false;
 	capaFloatTimer_ = 0.0f;
 
-	// Read cape position from TMX Entities layer. If not found, use a fallback spawn position
+	// Read cape position from TMX Entities layer. If not found, mark as collected to avoid spawning hardcoded one
 	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
-		LOG("WARNING: No Cape entity found in TMX Entities layer, using default fallback position");
-		capaX_ = 450.0f;
-		capaY_ = 650.0f;
-		capaCollected_ = false;
+		LOG("WARNING: No Cape entity found in TMX Entities layer, will not spawn");
+		capaCollected_ = true;
 	}
 
 	capaBody_ = nullptr;
@@ -1551,12 +1549,10 @@ void Scene::LoadGameplay()
 	slingshotCollected_ = false;
 	slingshotFloatTimer_ = 0.0f;
 
-	// Read slingshot position from TMX. If not found, use a fallback spawn position
+	// Read slingshot position from TMX. If not found, mark as collected to avoid spawning hardcoded one
 	if (!Engine::GetInstance().map->GetSlingshotPosition(slingshotX_, slingshotY_)) {
-		LOG("WARNING: No Tirachinas entity found in TMX, using default fallback position");
-		slingshotX_ = 750.0f;
-		slingshotY_ = 650.0f;
-		slingshotCollected_ = false;
+		LOG("WARNING: No Tirachinas entity found in TMX, will not spawn");
+		slingshotCollected_ = true;
 	}
 
 	// Stuffed Animal (Oso) collectible
@@ -1564,12 +1560,10 @@ void Scene::LoadGameplay()
 	stuffedAnimalCollected_ = false;
 	stuffedAnimalFloatTimer_ = 0.0f;
 
-	// Read stuffed animal position from TMX. If not found, use default fallback next to player
+	// Read stuffed animal position from TMX. If not found, mark as collected to avoid spawning hardcoded one
 	if (!Engine::GetInstance().map->GetStuffedAnimalPosition(stuffedAnimalX_, stuffedAnimalY_)) {
-		LOG("WARNING: No Oso/Peluche/StuffedAnimal entity found in TMX, using default fallback position next to player");
-		stuffedAnimalX_ = 200.0f;
-		stuffedAnimalY_ = 672.0f;
-		stuffedAnimalCollected_ = false;
+		LOG("WARNING: No Oso/Peluche/StuffedAnimal entity found in TMX, will not spawn");
+		stuffedAnimalCollected_ = true;
 	}
 
 	// Load Minimap Ornate Frame Texture
