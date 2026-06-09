@@ -52,6 +52,8 @@ public:
 
 
     void LoadSubMap(const std::string& tmxFile, const std::string& spawnId);
+    void RequestSubMapTeleport(const std::string& tmxFile, const std::string& spawnId);
+    void SealBossPortal(float x, float y, float w, float h);
     void CheckPortalCollisions(float dt);
     Vector2D GetSpawnPosition(const std::string& spawnId);
     void ExecuteSubMapLoad();
