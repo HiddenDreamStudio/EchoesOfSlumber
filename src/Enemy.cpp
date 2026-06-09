@@ -4,6 +4,7 @@
 #include "Scene.h"
 #include "Log.h"
 #include "Physics.h"
+#include "Player.h"
 #include "tracy/Tracy.hpp"
 
 Enemy::Enemy() : Entity(EntityType::ENEMY)
@@ -51,7 +52,11 @@ bool Enemy::Update(float dt)
 	}
 	if (isContactWithPlayer_ && playerListener_ != nullptr && contactDamageCooldown_ <= 0.0f)
 	{
-		playerListener_->TakeDamage(1);
+		if (DoesKnockback() && playerListener_->type == EntityType::PLAYER) {
+			static_cast<Player*>(playerListener_)->TakeDamage(1, true);
+		} else {
+			playerListener_->TakeDamage(1);
+		}
 		contactDamageCooldown_ = CONTACT_DAMAGE_INTERVAL;
 	}
 
@@ -133,7 +138,11 @@ void Enemy::OnCollision(PhysBody* physA, PhysBody* physB)
 		playerListener_      = physB->listener;
 		if (contactDamageCooldown_ <= 0.0f)
 		{
-			playerListener_->TakeDamage(1);
+			if (DoesKnockback() && playerListener_->type == EntityType::PLAYER) {
+				static_cast<Player*>(playerListener_)->TakeDamage(1, true);
+			} else {
+				playerListener_->TakeDamage(1);
+			}
 			contactDamageCooldown_ = CONTACT_DAMAGE_INTERVAL;
 		}
 	}
