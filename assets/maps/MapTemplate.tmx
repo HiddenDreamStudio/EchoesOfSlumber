@@ -381,6 +381,12 @@
    </properties>
   </object>
   <object id="1332" name="Player" type="Player" x="7891.41" y="8523.97" width="52.8407" height="52.8407"/>
+  <object id="1820" name="HidingRock" type="HidingRock" x="8200" y="8523" width="64" height="64">
+   <properties>
+    <property name="rock_type" type="int" value="1"/>
+   </properties>
+  </object>
+
   <object id="1333" name="Cape" type="Cape" x="4792.66" y="1573.32"/>
   <object id="1334" name="Enemy" type="SpiderCandy" x="4839.98" y="8524.99" width="64.1457" height="59.3942">
    <properties>
@@ -438,6 +444,11 @@
   </object>
   <object id="1806" name="Antagonist" type="Antagonist" x="643.277" y="6409.15" width="59.4458" height="55.0424"/>
   <object id="1808" name="Antagonist" type="Antagonist" x="5043.55" y="2625.87" width="59.4458" height="55.0424"/>
+  <object id="1809" name="MemoryFragment" type="MemoryFragment" x="3784" y="2637" width="80" height="60">
+   <properties>
+    <property name="video_path" value="assets/video/Anchor_1.mp4"/>
+   </properties>
+  </object>
  </objectgroup>
  <objectgroup id="48" name="Checkpoint">
   <object id="1802" type="CheckPoint" x="7424" y="8533.33">
