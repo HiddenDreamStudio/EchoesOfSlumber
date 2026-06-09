@@ -21,6 +21,7 @@
 #include "Box.h"
 #include "Platform.h"
 #include "Lever.h"
+#include "MemoryFragment.h"
 #include "PushRock.h"
 #include "Boss2.h"
 #include "Window.h"
@@ -864,6 +865,21 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     lever->Start();
                     LOG("Lever spawned at: %f, %f targeting %s", x, y, lever->targetPlatformName.c_str());
                     }
+                else if (entityType == "MemoryFragment") {
+                    auto frag = std::dynamic_pointer_cast<MemoryFragment>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::MEMORY_FRAGMENT));
+                    frag->position = Vector2D(x, y);
+                    for (pugi::xml_node prop = objectNode.child("properties").child("property");
+                         prop; prop = prop.next_sibling("property"))
+                    {
+                        std::string pname = prop.attribute("name").as_string();
+                        if      (pname == "video_path")    frag->SetVideoPath(prop.attribute("value").as_string());
+                        else if (pname == "collect_range") frag->SetCollectRange(prop.attribute("value").as_float(100.0f));
+                        else if (pname == "scale")         frag->SetScale(prop.attribute("value").as_float(0.5f));
+                    }
+                    frag->Start();
+                    LOG("MemoryFragment spawned at (%.0f, %.0f)", frag->position.getX(), frag->position.getY());
+                }
                 // Parse MovingPlatform from Tiled polylines
                 else if (entityType == "MovingPlatform") {
                     auto platform = std::dynamic_pointer_cast<Platform>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));
