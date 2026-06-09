@@ -65,6 +65,7 @@ public:
 	void StartEyelidEffect(float duration);
 	void DrawEyelidEffect();
 	void SetCameraSway(bool active) { cameraSwayActive_ = active; }
+	void StartCameraShake(float durationMs, float intensity);
 
 	// Fade overlay system
 	void StartFade(FadeDirection dir, float durationMs);
@@ -151,4 +152,12 @@ private:
 
 	// Camera Sway
 	bool cameraSwayActive_ = false;
+
+	// Camera Shake
+	bool cameraShakeActive_ = false;
+	float cameraShakeDurationMs_ = 0.0f;
+	float cameraShakeElapsedMs_ = 0.0f;
+	float cameraShakeIntensity_ = 0.0f;
+	float cameraShakeOffsetX_ = 0.0f;
+	float cameraShakeOffsetY_ = 0.0f;
 };

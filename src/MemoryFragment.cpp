@@ -77,6 +77,7 @@ bool MemoryFragment::Update(float dt)
         if (sqrtf(dx * dx + dy * dy) < collectRange_)
         {
             fading_ = true;
+            Engine::GetInstance().render->StartCameraShake(600.0f, 15.0f);
             Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 600.0f);
             return true;
         }
