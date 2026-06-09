@@ -12782,6 +12782,7 @@
   <object id="1294" name="Player" type="Player" x="2428" y="170" width="96" height="96"/>
   <object id="1398" name="Antagonist" type="Antagonist" x="5696.94" y="1544.48" width="59.4458" height="55.0424"/>
   <object id="1399" name="Antagonist" type="Antagonist" x="1318.28" y="4800.48" width="59.4458" height="55.0424"/>
+  <object id="1397" name="WindUpScurry" type="EnemyWindUpScurry" x="1628" y="170" width="64" height="64"/>
  </objectgroup>
  <objectgroup id="8" name="Portals" class="Portals">
   <object id="1291" type="Portal" x="2292" y="2" width="340" height="71.3333">
