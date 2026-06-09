@@ -138,6 +138,22 @@ bool Render::Update(float dt)
         }
     }
 
+    if (cameraShakeActive_) {
+        cameraShakeElapsedMs_ += dt;
+        if (cameraShakeElapsedMs_ >= cameraShakeDurationMs_) {
+            cameraShakeActive_ = false;
+            cameraShakeOffsetX_ = 0.0f;
+            cameraShakeOffsetY_ = 0.0f;
+        } else {
+            float progress = cameraShakeElapsedMs_ / cameraShakeDurationMs_;
+            float damping = 1.0f - progress;
+            float shakeX = (std::sin(totalTime_ * 50.0f) + std::cos(totalTime_ * 30.0f)) * 0.5f * cameraShakeIntensity_ * damping;
+            float shakeY = (std::cos(totalTime_ * 45.0f) + std::sin(totalTime_ * 35.0f)) * 0.5f * cameraShakeIntensity_ * damping;
+            cameraShakeOffsetX_ = shakeX;
+            cameraShakeOffsetY_ = shakeY;
+        }
+    }
+
 	return true;
 }
 
@@ -219,6 +235,14 @@ void Render::StartEyelidEffect(float duration)
     eyelidActive_ = true;
     eyelidElapsed_ = 0.0f;
     eyelidDuration_ = duration;
+}
+
+void Render::StartCameraShake(float durationMs, float intensity)
+{
+    cameraShakeActive_ = true;
+    cameraShakeDurationMs_ = durationMs;
+    cameraShakeElapsedMs_ = 0.0f;
+    cameraShakeIntensity_ = intensity;
 }
 
 void Render::FollowTarget(float dt)
@@ -308,9 +332,11 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 	float scaleY = (drawScaleY > 0.0f) ? drawScaleY : drawScale;
 
 	SDL_FRect rect;
+	float camX = (float)camera.x + (speed != 0.0f ? cameraShakeOffsetX_ : 0.0f);
+	float camY = (float)camera.y + (speed != 0.0f ? cameraShakeOffsetY_ : 0.0f);
 	// Apply world-space zoom centered at the dynamic zoomCenter
-	rect.x = (float)((zoomCenterX + s * ((float)camera.x * speed + (float)x - zoomCenterX)) * scale);
-	rect.y = (float)((zoomCenterY + s * ((float)camera.y * speed + (float)y - zoomCenterY)) * scale);
+	rect.x = (float)((zoomCenterX + s * (camX * speed + (float)x - zoomCenterX)) * scale);
+	rect.y = (float)((zoomCenterY + s * (camY * speed + (float)y - zoomCenterY)) * scale);
 
 	if (section != NULL) {
 		rect.w = (float)(section->w * scale * drawScale * s);
@@ -353,8 +379,8 @@ bool Render::DrawRectangle(const SDL_Rect& rect, Uint8 r, Uint8 g, Uint8 b, Uint
 	SDL_SetRenderDrawColor(renderer, r, g, b, a);
 
 	SDL_FRect rec;
-	float camX = use_camera ? (float)camera.x : 0.0f;
-	float camY = use_camera ? (float)camera.y : 0.0f;
+	float camX = use_camera ? (float)camera.x + cameraShakeOffsetX_ : 0.0f;
+	float camY = use_camera ? (float)camera.y + cameraShakeOffsetY_ : 0.0f;
 	
 	// Apply world-space zoom centered at the dynamic zoomCenter
 	rec.x = (float)((zoomCenterX + s * (camX + (float)rect.x - zoomCenterX)) * scale);
@@ -375,8 +401,8 @@ bool Render::DrawLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b,
 
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(renderer, r, g, b, a);
-	float camX = use_camera ? (float)camera.x : 0.0f;
-	float camY = use_camera ? (float)camera.y : 0.0f;
+	float camX = use_camera ? (float)camera.x + cameraShakeOffsetX_ : 0.0f;
+	float camY = use_camera ? (float)camera.y + cameraShakeOffsetY_ : 0.0f;
 
 	float fx1 = (float)((zoomCenterX + s * (camX + (float)x1 - zoomCenterX)) * scale);
 	float fy1 = (float)((zoomCenterY + s * (camY + (float)y1 - zoomCenterY)) * scale);
@@ -396,8 +422,8 @@ bool Render::DrawCircle(int x, int y, int radius, Uint8 r, Uint8 g, Uint8 b, Uin
 
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(renderer, r, g, b, a);
-	float camX = use_camera ? (float)camera.x : 0.0f;
-	float camY = use_camera ? (float)camera.y : 0.0f;
+	float camX = use_camera ? (float)camera.x + cameraShakeOffsetX_ : 0.0f;
+	float camY = use_camera ? (float)camera.y + cameraShakeOffsetY_ : 0.0f;
 
 	float cx = (float)((zoomCenterX + s * (camX + (float)x - zoomCenterX)) * scale);
 	float cy = (float)((zoomCenterY + s * (camY + (float)y - zoomCenterY)) * scale);
@@ -431,7 +457,7 @@ bool Render::DrawText(const char* text, int x, int y, int w, int h, SDL_Color co
 
 bool Render::IsOnScreenWorldRect(float x, float y, float w, float h, int margin) const
 {
-	float camX = -(float)camera.x, camY = -(float)camera.y;
+	float camX = -((float)camera.x + cameraShakeOffsetX_), camY = -((float)camera.y + cameraShakeOffsetY_);
 	float vW = GetWorldViewportWidth(), vH = GetWorldViewportHeight();
 	return !(x + w + margin < camX || x - margin > camX + vW || y + h + margin < camY || y - margin > camY + vH);
 }
@@ -737,8 +763,8 @@ void Render::DrawPlayerGlow(int worldX, int worldY, float radiusScale, Uint8 alp
 
 	SDL_FRect dst;
 	// Apply world-space zoom centered at the dynamic zoomCenter
-	dst.x = (float)((zoomCenterX + s * ((float)camera.x + (float)worldX - radius - zoomCenterX)) * scale);
-	dst.y = (float)((zoomCenterY + s * ((float)camera.y + (float)worldY - radius - zoomCenterY)) * scale);
+	dst.x = (float)((zoomCenterX + s * ((float)camera.x + cameraShakeOffsetX_ + (float)worldX - radius - zoomCenterX)) * scale);
+	dst.y = (float)((zoomCenterY + s * ((float)camera.y + cameraShakeOffsetY_ + (float)worldY - radius - zoomCenterY)) * scale);
 	dst.w = size * scale * s;
 	dst.h = size * scale * s;
 
@@ -756,8 +782,8 @@ void Render::DrawWhiteGlow(int worldX, int worldY, float radiusScale, Uint8 alph
 	float size = radius * 2.0f;
 
 	SDL_FRect dst;
-	dst.x = (float)((zoomCenterX + s * ((float)camera.x + (float)worldX - radius - zoomCenterX)) * scale);
-	dst.y = (float)((zoomCenterY + s * ((float)camera.y + (float)worldY - radius - zoomCenterY)) * scale);
+	dst.x = (float)((zoomCenterX + s * ((float)camera.x + cameraShakeOffsetX_ + (float)worldX - radius - zoomCenterX)) * scale);
+	dst.y = (float)((zoomCenterY + s * ((float)camera.y + cameraShakeOffsetY_ + (float)worldY - radius - zoomCenterY)) * scale);
 	dst.w = size * scale * s;
 	dst.h = size * scale * s;
 
