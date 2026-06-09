@@ -2,12 +2,95 @@
 // ECHOES OF SLUMBER — script.js
 // =============================================
 
-// Loading Screen — 3s
+// =============================================
+// INTRO LOADING & SPLASH SEQUENCE
+// =============================================
 window.addEventListener('load', () => {
     const loadingScreen = document.getElementById('loading-screen');
-    setTimeout(() => {
+    const splash = document.getElementById('splash-screen');
+    const citm = document.getElementById('citm-splash');
+    const studio = document.getElementById('studio-splash');
+    
+    let isSkipped = false;
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+    
+    function revealWebsite() {
+        document.body.classList.add('loaded');
+    }
+    
+    function skip() {
+        if (isSkipped) return;
+        isSkipped = true;
+        splash.classList.remove('active');
+        splash.classList.add('hidden');
+        revealWebsite();
+    }
+
+    async function startTimeline() {
+        // Show splash screen immediately (rendered behind loading-screen)
+        splash.classList.add('active');
+
+        // 1. Show loading screen for 3 seconds
+        await delay(3000);
+        
+        // Hide loading screen (reveals the black splash screen background)
         loadingScreen.classList.add('hidden');
-    }, 3000);
+        
+        // Listeners for skip
+        splash.addEventListener('click', skip);
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'Enter') {
+                skip();
+            }
+        });
+        
+        if (isSkipped) return;
+        
+        // --- 2. CITM SPLASH ---
+        citm.style.display = 'flex';
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                citm.style.opacity = '1';
+                citm.style.transform = 'scale(1.05)';
+            });
+        });
+        
+        // CITM fade-in (800ms) + hold (1500ms) = 2300ms
+        await delay(2300);
+        if (isSkipped) return;
+        
+        // CITM fade-out (800ms)
+        citm.style.opacity = '0';
+        await delay(800);
+        citm.style.display = 'none';
+        if (isSkipped) return;
+        
+        // --- 3. STUDIO SPLASH ---
+        studio.style.display = 'flex';
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                studio.style.opacity = '1';
+                studio.style.transform = 'scale(1.05)';
+            });
+        });
+        
+        // Studio fade-in (800ms) + hold (1500ms) = 2300ms
+        await delay(2300);
+        if (isSkipped) return;
+        
+        // Studio fade-out (800ms)
+        studio.style.opacity = '0';
+        await delay(800);
+        studio.style.display = 'none';
+        if (isSkipped) return;
+        
+        // --- 4. END SPLASH ---
+        splash.classList.remove('active');
+        splash.classList.add('hidden');
+        revealWebsite();
+    }
+    
+    startTimeline();
 });
 
 // Navbar scroll effect
@@ -19,7 +102,7 @@ window.addEventListener('scroll', () => {
 
 // Mobile menu toggle
 const hamburger = document.getElementById('hamburger');
-const navMenu   = document.getElementById('nav-menu');
+const navMenu = document.getElementById('nav-menu');
 
 hamburger.addEventListener('click', () => {
     hamburger.classList.toggle('active');
@@ -45,7 +128,7 @@ document.addEventListener('click', (e) => {
 
 // Smooth scroll
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function(e) {
+    anchor.addEventListener('click', function (e) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
         if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -94,10 +177,10 @@ window.addEventListener('scroll', () => {
 // =============================================
 async function fetchLatestRelease() {
     const REPO = 'HiddenDreamStudio/EchoesOfSlumber'; // ← update when repo is public
-    const versionTag  = document.getElementById('version-tag');
+    const versionTag = document.getElementById('version-tag');
     const versionName = document.getElementById('version-name');
     const versionDate = document.getElementById('version-date');
-    const fileSizeEl  = document.getElementById('file-size');
+    const fileSizeEl = document.getElementById('file-size');
     const downloadBtn = document.getElementById('download-btn');
 
     try {
@@ -108,13 +191,12 @@ async function fetchLatestRelease() {
         // Version tag — derive phase from tag name
         const tag = data.tag_name || '';
         let phase = 'Latest Release';
-        if (/gold/i.test(tag))        phase = 'Gold Release';
-        else if (/alpha/i.test(tag))  phase = 'Alpha Release';
-        else if (/beta/i.test(tag))   phase = 'Beta Release';
-        else if (/silver/i.test(tag)) phase = 'Silver Release';
+        if (/gold/i.test(tag)) phase = 'Gold Release';
+        else if (/alpha/i.test(tag)) phase = 'Alpha Release';
+        else if (/vertical/i.test(tag)) phase = 'Vertical Slice Release';
 
-        if (versionTag)  versionTag.textContent  = 'LATEST VERSION';
-        if (versionName) versionName.textContent  = `${phase} ${tag}`;
+        if (versionTag) versionTag.textContent = 'LATEST VERSION';
+        if (versionName) versionName.textContent = `${phase}`;
 
         // Release date
         if (versionDate && data.published_at) {
@@ -146,8 +228,8 @@ async function fetchLatestRelease() {
         console.warn('Could not fetch release info:', error.message);
         // Fallback values
         if (versionName) versionName.textContent = 'Gold Release';
-        if (versionDate) versionDate.textContent  = 'Released: 2025';
-        if (fileSizeEl)  fileSizeEl.textContent   = '';
+        if (versionDate) versionDate.textContent = 'Released: 2025';
+        if (fileSizeEl) fileSizeEl.textContent = '';
     }
 }
 
@@ -163,7 +245,7 @@ document.querySelector('#download-btn')?.addEventListener('click', () => {
 // EASTER EGG: KONAMI CODE
 // =============================================
 let konamiCode = [];
-const sequence = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','KeyB','KeyA'];
+const sequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
 
 document.addEventListener('keydown', (e) => {
     konamiCode.push(e.code);
@@ -184,17 +266,36 @@ document.addEventListener('keydown', (e) => {
 // =============================================
 // HERO JS PARTICLES
 // =============================================
-function initParticles() {
-    const canvas = document.getElementById('particles-canvas');
+function initParticlesForCanvas(canvasId) {
+    const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
     let width, height;
     let particles = [];
 
+    // Mouse tracking
+    let mouse = {
+        x: null,
+        y: null,
+        radius: 150 // increased interaction radius for a more dramatic effect
+    };
+
+    const parent = canvas.parentElement;
+    parent.addEventListener('mousemove', (e) => {
+        const rect = parent.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+    });
+
+    parent.addEventListener('mouseleave', () => {
+        mouse.x = null;
+        mouse.y = null;
+    });
+
     function resize() {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = canvas.parentElement.offsetHeight || window.innerHeight;
+        width = canvas.width = canvas.offsetWidth || window.innerWidth;
+        height = canvas.height = canvas.offsetHeight || window.innerHeight;
     }
 
     class Particle {
@@ -202,30 +303,131 @@ function initParticles() {
             this.x = Math.random() * width;
             this.y = Math.random() * height;
             this.size = Math.random() * 2.5 + 0.5;
-            this.speedX = (Math.random() - 0.5) * 0.4;
-            this.speedY = (Math.random() - 0.5) * 0.4 - 0.2; // slight drift up
+            this.baseVx = (Math.random() - 0.5) * 0.4;
+            this.baseVy = (Math.random() - 0.5) * 0.4 - 0.2; // slight drift up
+            this.vx = this.baseVx;
+            this.vy = this.baseVy;
             this.opacity = Math.random() * 0.5 + 0.1;
-            this.color = '#337FA5';
         }
         update() {
-            this.x += this.speedX;
-            this.y += this.speedY;
+            // Check mouse interaction
+            if (mouse.x !== null && mouse.y !== null) {
+                const dx = this.x - mouse.x;
+                const dy = this.y - mouse.y;
+                const distance = Math.hypot(dx, dy);
+                if (distance < mouse.radius) {
+                    const force = (mouse.radius - distance) / mouse.radius; // 0 to 1
+                    const angle = Math.atan2(dy, dx);
+                    
+                    // Swarm vortex pull: pull in towards cursor but orbit it
+                    // Pull force (attraction)
+                    const pullX = Math.cos(angle) * force * 0.5;
+                    const pullY = Math.sin(angle) * force * 0.5;
+                    
+                    // Orbit force (perpendicular)
+                    const orbitX = -Math.sin(angle) * force * 0.8;
+                    const orbitY = Math.cos(angle) * force * 0.8;
+                    
+                    // Apply acceleration
+                    this.vx += -pullX + orbitX;
+                    this.vy += -pullY + orbitY;
+                }
+            }
 
-            // wrap around
-            if (this.x < 0) this.x = width;
-            if (this.x > width) this.x = 0;
-            if (this.y < 0) this.y = height;
-            if (this.y > height) this.y = 0;
+            // Damping / Restoring velocity back to original gentle drift
+            this.vx += (this.baseVx - this.vx) * 0.04;
+            this.vy += (this.baseVy - this.vy) * 0.04;
+
+            // Cap the maximum velocity
+            const speed = Math.hypot(this.vx, this.vy);
+            const maxSpeed = 3.0;
+            if (speed > maxSpeed) {
+                this.vx = (this.vx / speed) * maxSpeed;
+                this.vy = (this.vy / speed) * maxSpeed;
+            }
+
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // wrap around with margin so it looks natural
+            const margin = 20;
+            if (this.x < -margin) this.x = width + margin;
+            if (this.x > width + margin) this.x = -margin;
+            if (this.y < -margin) this.y = height + margin;
+            if (this.y > height + margin) this.y = -margin;
         }
         draw() {
+            let size = this.size;
+            let opacity = this.opacity;
+            let glow = 8;
+
+            // Grow and glow when near mouse
+            if (mouse.x !== null && mouse.y !== null) {
+                const dx = this.x - mouse.x;
+                const dy = this.y - mouse.y;
+                const distance = Math.hypot(dx, dy);
+                if (distance < mouse.radius) {
+                    const factor = (mouse.radius - distance) / mouse.radius;
+                    size += factor * 1.5;
+                    opacity = Math.min(0.9, opacity + factor * 0.45);
+                    glow += factor * 12;
+                }
+            }
+
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(51, 127, 165, ${this.opacity})`;
+            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(86, 145, 211, ${opacity})`;
             ctx.fill();
-            
+
             // glow
-            ctx.shadowBlur = 10;
+            ctx.shadowBlur = glow;
             ctx.shadowColor = '#5691d3';
+        }
+    }
+
+    function drawConnections() {
+        ctx.shadowBlur = 0; // disable glow for line drawing performance
+        const maxDist = 90;
+        
+        // Draw constellation lines between particles
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                const p1 = particles[i];
+                const p2 = particles[j];
+                const dx = p1.x - p2.x;
+                const dy = p1.y - p2.y;
+                const distance = Math.hypot(dx, dy);
+                
+                if (distance < maxDist) {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    
+                    // Opacity fades with distance
+                    const opacity = (1 - distance / maxDist) * 0.16 * Math.min(p1.opacity, p2.opacity);
+                    ctx.strokeStyle = `rgba(86, 145, 211, ${opacity})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Also draw faint line from mouse to nearby particles
+        if (mouse.x !== null && mouse.y !== null) {
+            particles.forEach(p => {
+                const dx = p.x - mouse.x;
+                const dy = p.y - mouse.y;
+                const distance = Math.hypot(dx, dy);
+                if (distance < mouse.radius) {
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(mouse.x, mouse.y);
+                    const opacity = (1 - distance / mouse.radius) * 0.22;
+                    ctx.strokeStyle = `rgba(86, 145, 211, ${opacity})`;
+                    ctx.lineWidth = 0.7;
+                    ctx.stroke();
+                }
+            });
         }
     }
 
@@ -243,6 +445,7 @@ function initParticles() {
             p.update();
             p.draw();
         });
+        drawConnections();
         requestAnimationFrame(animate);
     }
 
@@ -256,4 +459,9 @@ function initParticles() {
     animate();
 }
 
-window.addEventListener('DOMContentLoaded', initParticles);
+function initParticles() {
+    initParticlesForCanvas('particles-canvas');
+    initParticlesForCanvas('download-particles-canvas');
+}
+
+window.addEventListener('load', initParticles);
