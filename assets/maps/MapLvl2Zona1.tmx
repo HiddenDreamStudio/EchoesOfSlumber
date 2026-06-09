@@ -304,14 +304,6 @@
   <object id="485" gid="1528" x="6539" y="842" width="634" height="579"/>
  </objectgroup>
  <objectgroup id="12" name="Entities" visible="0">
-  <object id="347" type="Platform" x="778.485" y="1298" width="273.333" height="92">
-   <properties>
-    <property name="path" value="13887,7380;13887,5800"/>
-    <property name="speed" type="float" value="2"/>
-    <property name="texture" value="assets/textures/TL_environment/plat_4tilesLvl2.png"/>
-    <property name="trigger" type="bool" value="true"/>
-   </properties>
-  </object>
   <object id="351" name="Boss1" type="Boss1" x="8962" y="560" width="236" height="288"/>
   <object id="352" type="RopedRock" x="9610" y="213" width="110" height="148"/>
   <object id="353" type="RopedRock" x="9178.39" y="171.82" width="110" height="148"/>
