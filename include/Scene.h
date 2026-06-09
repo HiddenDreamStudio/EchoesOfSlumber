@@ -320,10 +320,18 @@ private:
 
     // ── Boss fight ────────────────────────────────────────────────────────────
     std::weak_ptr<Boss> activeBoss_;
-    bool  isBossFightActive_ = false;
-    float bossHealthDisplay_ = 1.0f;
-    SDL_Texture* texBossBarEmpty_ = nullptr;
-    SDL_Texture* texBossBarFull_ = nullptr;
+    bool  isBossFightActive_   = false;
+
+    // Boss death video — plays before the post-death map transition / music change
+    bool        bossDeathVideoActive_  = false;
+    bool        bossDeathFading_       = false;
+    bool        bossDeathNeedsMapLoad_ = false;
+    std::string bossDeathVideoPath_;
+    std::string bossDeathMapTarget_;
+    std::string bossDeathSpawnId_;
+    float bossHealthDisplay_   = 1.0f;
+    SDL_Texture* texBossBarEmpty_     = nullptr;
+    SDL_Texture* texBossBarFull_      = nullptr;
     SDL_Texture* texBossBarIndicator_ = nullptr;
 
     void UpdateBossFight(float dt);
