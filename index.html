@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echoes of Slumber | Find the Truth</title>
+    <meta name="description" content="A 2D dark adventure Metroidvania. Find the truth hidden within.">
+    <link href="https://fonts.googleapis.com/css2?family=Jockey+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ==================== LOADING ==================== -->
+<div id="loading-screen">
+    <div class="loading-inner">
+        <img src="images/Loading_Kid.gif" alt="Loading..." class="loading-gif">
+        <div class="loading-bar"><div class="loading-fill"></div></div>
+        <p class="loading-text">entering the subconscious...</p>
+    </div>
+</div>
+
+<!-- ==================== NAV ==================== -->
+<nav class="navbar" id="navbar">
+    <div class="nav-container">
+        <a href="#home" class="nav-brand">
+            <img src="images/node-31.png" alt="Hidden Studios" class="nav-logo-img">
+        </a>
+        <ul class="nav-menu" id="nav-menu">
+            <li><a href="#home"     class="nav-link">HOME</a></li>
+            <li><a href="#gameplay" class="nav-link">Gameplay</a></li>
+            <li><a href="#features" class="nav-link">Features</a></li>
+            <li><a href="#team"     class="nav-link">Team</a></li>
+            <li><a href="#download" class="nav-link">Download</a></li>
+        </ul>
+        <div class="hamburger" id="hamburger">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== HERO ==================== -->
+<section id="home" class="hero">
+    <!-- Level screenshots collage bg -->
+    <div class="hero-bg-levels">
+        <img src="images/level3-1-3.png"         alt="" class="hbl hbl-1">
+        <img src="images/level2-1-4.png"          alt="" class="hbl hbl-2">
+        <img src="images/level-1_totjunt-1-5.png" alt="" class="hbl hbl-3">
+        <img src="images/level4-1-6.png"          alt="" class="hbl hbl-4">
+    </div>
+    <!-- Blue tint overlay (rect-17 from Figma) -->
+    <div class="hero-blue-tint"></div>
+    <!-- Character (white-kid) -->
+    <img src="images/white-kid-1-8.png" alt="" class="hero-kid">
+    <!-- Blurred teal rect (rect-1 from Figma) -->
+    <div class="hero-blur-rect"></div>
+    <!-- Particles -->
+    <img src="images/particles-1-153.png" alt="" class="hero-particle hp1">
+    <img src="images/particles-3-154.png" alt="" class="hero-particle hp3">
+    <img src="images/particles-2-155.png" alt="" class="hero-particle hp2">
+    <!-- Dark vignette -->
+    <div class="hero-vignette"></div>
+
+    <div class="hero-content">
+        <img src="images/node-10.png" alt="Echoes of Slumber" class="hero-logo">
+        <p class="hero-tagline">FIND THE <span class="accent-blue">TRUTH</span></p>
+        <div class="hero-cta-wrap">
+            <a href="#download" class="hero-cta">
+                <img src="images/boto1-29.png" alt="" class="cta-bg">
+                <span class="cta-text">Play now</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="scroll-cue">
+        <div class="scroll-line"></div>
+        <span>scroll</span>
+    </div>
+</section>
+
+<!-- ==================== GAMEPLAY / STORY ==================== -->
+<section id="gameplay" class="gameplay-section">
+    <div class="container">
+        <div class="gameplay-grid">
+
+            <!-- LEFT: video + level thumbs -->
+            <div class="gameplay-left">
+                <div class="video-frame">
+                    <div class="video-wrapper">
+                        <!-- Replace with real iframe when trailer is ready -->
+                        <div class="trailer-placeholder">
+                            <span class="trailer-label">TRAILER</span>
+                        </div>
+                        <!--
+                        <iframe src="https://www.youtube.com/embed/VIDEO_ID?controls=1&rel=0&modestbranding=1"
+                            frameborder="0" allowfullscreen></iframe>
+                        -->
+                    </div>
+                    <div class="vc tl"></div><div class="vc tr"></div>
+                    <div class="vc bl"></div><div class="vc br"></div>
+                </div>
+
+                <div class="levels-strip">
+                    <img src="images/level-1_totjunt-1-5.png" alt="Level 1" class="level-thumb">
+                    <img src="images/level2-1-4.png"           alt="Level 2" class="level-thumb">
+                    <img src="images/level3-1-3.png"           alt="Level 3" class="level-thumb">
+                    <img src="images/level4-1-6.png"           alt="Level 4" class="level-thumb">
+                </div>
+            </div>
+
+            <!-- RIGHT: tabs + story text -->
+            <div class="gameplay-right">
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-tab="story">story</button>
+                    <button class="tab-btn" data-tab="explore">Explore</button>
+                    <button class="tab-btn" data-tab="atmosphere">Atmosphere</button>
+                    <button class="tab-btn" data-tab="skills">skill Progression</button>
+                </div>
+                <div class="tab-content">
+                    <div class="tab-panel active" id="tab-story">
+                        <p>Echoes of Slumber is a 2D dark adventure Metroidvania that combines exploration, action-platforming, and narrative mystery within a compact but meaningful experience. The game follows a child who, after falling into a hidden underground world, becomes separated from their friends and begins a journey to return home.</p>
+                        <p>As they progress, the seemingly peaceful reality around them starts to fracture, revealing that their world is actually a carefully constructed utopic simulation.</p>
+                    </div>
+                    <div class="tab-panel" id="tab-explore">
+                        <p>Through interconnected levels, the player unlocks abilities and uncovers hidden memories and fragmented flashbacks that gradually expose the truth behind the illusion.</p>
+                        <p>The gameplay emphasizes exploration and discovery, rewarding curiosity with narrative depth. A mysterious antagonist subtly guides — or manipulates — the journey.</p>
+                    </div>
+                    <div class="tab-panel" id="tab-atmosphere">
+                        <p>Blending atmospheric storytelling with symbolic themes about reality, memory, and escape. Each zone shifts tone and texture, from dreamlike warmth to cold fracture.</p>
+                        <p>The world reacts to what you know — the more truth you uncover, the more the environment changes around you.</p>
+                    </div>
+                    <div class="tab-panel" id="tab-skills">
+                        <p>Echoes of Slumber delivers a short yet impactful experience where mechanics and narrative are tightly interwoven, culminating in the protagonist's attempt to break free from the fabricated world.</p>
+                        <p>Every ability you unlock reflects a deeper truth uncovered along the way.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ==================== FEATURES ==================== -->
+<section id="features" class="features-section">
+    <div class="container">
+        <h2 class="section-title">Features</h2>
+        <div class="features-grid">
+
+            <!-- Card 1 -->
+            <div class="feat-card scroll-reveal">
+                <div class="feat-img-area">
+                    <img src="images/asset-37-for-1-35.png" alt="" class="feat-bg-asset">
+                </div>
+                <div class="feat-body">
+                    <h3 class="feat-title">4 STORYTELLING LEVELS</h3>
+                    <p class="feat-desc">Explore through a fantasy world with four different regions and experience an immersive environment.</p>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="feat-card scroll-reveal">
+                <div class="feat-img-area">
+                    <img src="images/asset-37-for-2-36.png" alt="" class="feat-bg-asset">
+                </div>
+                <div class="feat-body">
+                    <h3 class="feat-title">FIGHT THE ILLUSIONS</h3>
+                    <p class="feat-desc">Face off against seven enemy types and three bosses.</p>
+                </div>
+            </div>
+
+            <!-- Card 3 wide -->
+            <div class="feat-card feat-wide scroll-reveal">
+                <div class="feat-img-area">
+                    <img src="images/asset-4-1-37.png" alt="" class="feat-bg-asset">
+                </div>
+                <div class="feat-body">
+                    <h3 class="feat-title">GROW YOUR SUBCONSCIOUS</h3>
+                    <p class="feat-desc">Uncover the truth, enhance your skills and locate the missing peace of yours.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ==================== TEAM ==================== -->
+<section id="team" class="team-section">
+    <div class="container">
+        <h2 class="section-title">Team</h2>
+        <div class="team-wrapper">
+
+            <!-- Art Team -->
+            <div class="team-col">
+                <p class="team-col-label">Art team</p>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/juliaaunion.png" alt="Júlia Aunión" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Júlia Aunión</h4>
+                        <span class="member-role">Producer</span>
+                        <p>Narrative Designer, Sound&amp;Music, Environments and UI Designer</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/dottircheong.png" alt="Dottir Cheong" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Dottir Cheong</h4>
+                        <span class="member-role">Art Lead</span>
+                        <p>Animation and Character Design</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/maryna-06.png" alt="Maryna Antonyuk" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Maryna Antonyuk</h4>
+                        <p>Environments and Prop Design</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/nolmos720.png" alt="Nicolás Olmos" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Nicolás Olmos</h4>
+                        <p>Spritesheets coloring</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/agnciatributaria.png" alt="Armin De Biase" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Armin De Biase</h4>
+                        <p>Environments, Animation, VFX and Level Designer</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/mariaguestb67.png" alt="Maria Guest" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Maria Guest</h4>
+                        <p>VFX, Animation and Character Design</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/raangeerr.png" alt="Nadia Power" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Nadia Power</h4>
+                        <p>Narrative Designer and Character Design</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/mikelsanahuja.png" alt="Mikel Sanahuja" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Mikel Sanahuja</h4>
+                        <p>UI and VFX Artist</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/larasequera.png" alt="Lara Sequera" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Lara Sequera</h4>
+                        <p>Narrative Designer, Sound&amp;Music, Environments</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/Nohuely.png" alt="Nohuely Trinidad" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Nohuely Trinidad</h4>
+                        <p>Environments and Character Design</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dev Team -->
+            <div class="team-col">
+                <p class="team-col-label">Development team</p>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/bruno0135.png" alt="Bruno Gómez" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Bruno Gómez</h4>
+                        <p>Engine and Gameplay Developer</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/montse4.png" alt="Montse Medina" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Montse Medina</h4>
+                        <span class="member-role">Game Design Lead</span>
+                        <p>Gameplay Developer and Level Design</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/TheUnrealZaka.png" alt="Zakaria Hamdaoui" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Zakaria Hamdaoui</h4>
+                        <span class="member-role">Development Lead</span>
+                        <p>UI and Lead Developer, API</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/victorpeor.png" alt="Victor Pérez" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Victor Pérez</h4>
+                        <p>Sound and Gameplay Development</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/Fredi223.png" alt="Frederic Bailen" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Frederic Bailen</h4>
+                        <p>Gameplay Developer and Level Design</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/IDK-oss52.png" alt="Aidan Albero" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Aidan Albero</h4>
+                        <p>Gameplay Developer and Level Design</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/BerniF0x.png" alt="Bernat Loza" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Bernat Loza</h4>
+                        <p>Technical Artist</p>
+                    </div>
+                </div>
+
+                <div class="team-member scroll-reveal">
+                    <div class="member-avatar"><img src="https://github.com/MarcPladellorensPerez.png" alt="Marc Pladellorens" loading="lazy"></div>
+                    <div class="member-info">
+                        <h4>Marc Pladellorens</h4>
+                        <p>UI and VFX Artist</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ==================== DOWNLOAD ==================== -->
+<section id="download" class="download-section">
+    <img src="images/particles-2-155.png" alt="" class="dl-particles dl-p1">
+    <img src="images/particles-1-153.png" alt="" class="dl-particles dl-p2">
+    <div class="container">
+        <h2 class="section-title">Download</h2>
+        <div class="download-content scroll-reveal">
+
+            <!-- Left: info + system req -->
+            <div class="download-info">
+                <p class="download-description">
+                    The dream is waiting.<br>
+                    Step inside Echoes of Slumber and discover<br>
+                    what lies beneath the surface of a world<br>
+                    that isn't quite real.
+                </p>
+                <div class="system-requirements">
+                    <h4>System Requirements</h4>
+                    <ul>
+                        <li><i class="fas fa-desktop"></i> Windows 10+</li>
+                        <li><i class="fas fa-memory"></i> 2GB RAM (4GB recommended)</li>
+                        <li><i class="fas fa-hdd"></i> 500MB available space</li>
+                        <li><i class="fas fa-gamepad"></i> Keyboard + Mouse / Controller</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right: version + button -->
+            <div class="download-actions">
+                <div class="version-info">
+                    <span class="version-tag" id="version-tag">LATEST VERSION</span>
+                    <h3 id="version-name">Gold Release</h3>
+                    <p id="version-date">Released: 2025</p>
+                </div>
+
+                <a href="https://github.com/HiddenDreamStudio" target="_blank" class="dl-btn-full" id="download-btn">
+                    <img src="images/boto1-141.png" alt="" class="dl-btn-bg-full">
+                    <div class="dl-btn-inner-full">
+                        <!-- New shadow overlay -->
+                        <div class="dl-btn-inner-shadow"></div>
+                        <img src="images/downloading-updates-143.png" alt="" class="dl-icon-full">
+                        <span class="dl-btn-label-full">DOWNLOAD</span>
+                        <span class="file-size" id="file-size">(loading...)</span>
+                    </div>
+                </a>
+
+                <div class="download-links">
+                    <a href="https://github.com/HiddenDreamStudio" target="_blank" class="btn-outline">
+                        <i class="fab fa-github"></i> View Source
+                    </a>
+                    <a href="https://github.com/HiddenDreamStudio" target="_blank" class="btn-outline">
+                        <i class="fas fa-history"></i> All Releases
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="footer">
+    <div class="container">
+        <div class="footer-logos-row">
+            <img src="images/node-31.png"  alt="Hidden Studios"    class="footer-logo">
+            <img src="images/node-34.png"  alt="CITM / UPC"        class="footer-logo">
+            <img src="images/node-33.png"  alt="Echoes of Slumber" class="footer-logo">
+        </div>
+    </div>
+    <!-- Silhouette assets strip — exactly as in image 1, all #337FA5 -->
+    <div class="footer-silhouettes">
+        <img src="images/asset-1-1-38.png"      alt="" class="sil-asset">
+        <img src="images/asset-37-for-1-35.png" alt="" class="sil-asset">
+        <img src="images/asset-7-1-1-42.png"    alt="" class="sil-asset">
+        <img src="images/asset-9-3-44.png"      alt="" class="sil-asset">
+        <img src="images/asset-2-1-41.png"      alt="" class="sil-asset">
+        <img src="images/asset-7-1-39.png"      alt="" class="sil-asset">
+        <img src="images/asset-3-8-40.png"      alt="" class="sil-asset">
+        <img src="images/asset-9-3-44.png"      alt="" class="sil-asset">
+        <img src="images/asset-7-1-2-43.png"    alt="" class="sil-asset">
+        <img src="images/asset-37-for-2-36.png" alt="" class="sil-asset">
+        <img src="images/asset-4-1-37.png"      alt="" class="sil-asset">
+    </div>
+    <!-- Blue border line like image 1 -->
+    <div class="footer-border"></div>
+</footer>
+
+<script src="js/script.js"></script>
+</body>
+</html>
