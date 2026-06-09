@@ -885,6 +885,15 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     door->Start();
                     LOG("Door spawned at: %f, %f", x, y);
                 }
+                else if (entityType == "Wall") {
+                    float w = objectNode.attribute("width").as_float(64.0f);
+                    float h = objectNode.attribute("height").as_float(64.0f);
+                    PhysBody* wall = Engine::GetInstance().physics.get()->CreateRectangle(
+                        (int)(x + w / 2), (int)(y + h / 2), (int)w, (int)h, bodyType::STATIC, 0.0f);
+                    wall->ctype = ColliderType::PLATFORM;
+                    colliderList.push_back(wall);
+                    LOG("Wall spawned at: %f, %f (%.0fx%.0f)", x, y, w, h);
+                }
                 else if (entityType == "Tirachinas") {
                     mapData.slingshotFound = true;
                     mapData.slingshotX = x;
