@@ -117,7 +117,8 @@ struct DecorationObject
     bool  isFront = false;
     SDL_Texture* texture = nullptr; 
     bool flipH = false;  
-    bool flipV = false; 
+    bool flipV = false;
+    float parallaxSpeed = 1.0f;  // Parallax scroll speed (< 1 = BG slower, > 1 = FG faster)
 };
 
 struct AnimatedPlantObject
@@ -257,4 +258,8 @@ private:
     pugi::xml_document mapFileXML;
     //
     std::list<PhysBody*> colliderList;
+
+public:
+    bool hasInitCamera = false;
+    float initCameraX = 0.0f;
 };
