@@ -344,8 +344,8 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 	} else {
 		int tw, th;
 		Engine::GetInstance().textures->GetSize(texture, tw, th);
-		rect.w = (float)tw * scale * s;
-		rect.h = (float)th * scale * s;
+		rect.w = (float)tw * scale * drawScale * s;
+		rect.h = (float)th * scale * scaleY * s;
 	}
 
 	SDL_FRect srcRect;
