@@ -24,6 +24,7 @@ struct GameState
 	int playerHealth = 3;
 	bool playerHasBlanket = false;
 	bool playerHasSlingshot = false;
+	bool playerHasStuffedAnimal = false;
 
 	// Checkpoint state
 	std::string activeCheckpointId;

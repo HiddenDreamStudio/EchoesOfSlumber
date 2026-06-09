@@ -1207,6 +1207,15 @@ void Scene::UpdateLoading(float dt)
 	if (loadingTimer_ > 800.0f && !mapLoadingFinished_) {
 		int index = targetLevelIndex_;
 		if (index >= 0 && (size_t)index < levels_.size()) {
+			bool hadBlanket = false, hadSlingshot = false, hadBear = false;
+			Player::EquippedItem eqItem = Player::EquippedItem::NONE;
+			if (player) {
+				hadBlanket = player->HasBlanket();
+				hadSlingshot = player->HasSlingshot();
+				hadBear = player->HasStuffedAnimal();
+				eqItem = player->GetEquippedItem();
+			}
+
 			player.reset();
 			Engine::GetInstance().entityManager->CleanUp();
 			Engine::GetInstance().physics->FlushPendingDeletes();
@@ -1235,6 +1244,10 @@ void Scene::UpdateLoading(float dt)
 			healthSlotCount_ = currentLevelIndex_ + 3;
 			if (healthSlotCount_ > MAX_HEALTH_SLOTS) healthSlotCount_ = MAX_HEALTH_SLOTS;
 			if (player) {
+				player->SetHasBlanket(hadBlanket);
+				player->SetHasSlingshot(hadSlingshot);
+				player->SetHasStuffedAnimal(hadBear);
+				player->SetEquippedItem(eqItem);
 				player->maxHealth = healthSlotCount_;
 				player->health = healthSlotCount_;
 			}
@@ -1354,7 +1367,7 @@ void Scene::LoadGameplay()
 	// Silksong: actorSnapshotPaused → music starts silent, fades in during entry
 	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 1.0f);
 	Engine::GetInstance().audio->SetMusicVolume(0.0f);
-	Engine::GetInstance().audio->SetSFXVolume(1.0f); // Reset SFX volume after fade out
+	Engine::GetInstance().audio->SetSFXVolume(sfxVolume_); // Use user configured SFX volume
 
 	LoadPauseMenuButtons();
 
@@ -1640,7 +1653,7 @@ void Scene::UpdateGameplay(float dt)
 			render.SetCameraSway(true);
 			render.SetCameraMovement(true); // CRITICAL: Unlock follow
 			render.SetCameraClamping(true);
-			Engine::GetInstance().audio->SetMusicVolume(1.0f);
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
 			if (player) player->wakeUpAnimStarted = true;
 			LOG("SCENE: Intro Cinematic Finished. CAMERA UNLOCKED.");
 		}
@@ -1649,7 +1662,7 @@ void Scene::UpdateGameplay(float dt)
 
 			Engine::GetInstance().render->cameraZoom = 0.45f + (1.0f - 0.45f) * smoothT;
 			Engine::GetInstance().render->blurIntensity = 2.5f * (1.0f - smoothT);
-			Engine::GetInstance().audio->SetMusicVolume(smoothT);
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_ * smoothT);
 
 			if (player) {
 				float pX = player->GetPosition().getX() + 64.0f;
