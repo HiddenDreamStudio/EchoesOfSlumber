@@ -251,7 +251,7 @@ private:
     void DrawPauseMenu();
     void DrawPauseOptionsPanel(int winW, int winH);
     void HandlePauseMenuUIEvents(UIElement* uiElement);
-    bool HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH);
+    bool HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y, int row2Y);
 
     // Gamepad slider navigation (0 = music, 1 = sfx)
     int   optionsSliderSel_ = 0;

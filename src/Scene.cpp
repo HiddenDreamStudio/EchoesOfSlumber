@@ -616,27 +616,22 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelImgY, panelImgW, panelImgH, alpha);
 	}
 
-	// Content area inside the panel (the white area with icons)
-	// Offset inward from the panel image edges
-	const int contentX = panelImgX + (int)(panelImgW * 0.30f);
-	const int contentW = (int)(panelImgW * 0.62f);
-	const int contentY = panelImgY + (int)(panelImgH * 0.15f);
-	const int contentH = (int)(panelImgH * 0.72f);
+	// Calculate correct positions corresponding to the pre-drawn icons on the board texture
+	const int trackX = panelImgX + (int)(panelImgW * 0.45f);
+	const int trackW = (int)(panelImgW * 0.40f);
 
-	const int rowH = contentH / 3;
+	const int row0Y = panelImgY + (int)(panelImgH * 0.34f); // MUSIC (Icon 1: Musical Note)
+	const int row1Y = panelImgY + (int)(panelImgH * 0.58f); // SOUNDS (Icon 2: Speaker)
+	const int row2Y = panelImgY + (int)(panelImgH * 0.82f); // DISPLAY (Icon 3: Monitor)
 
 	SDL_Color labelColor = { 40, 55, 70, alpha };
 	SDL_Color valColor   = { 30, 45, 60, alpha };
 
-	// Row 0: Music slider
-	int row0Y = contentY + 5;
-	render.DrawMenuTextCentered("MUSIC", { contentX, row0Y, contentW / 2 - 10, 20 }, labelColor);
+	// Row 0: MUSIC
+	render.DrawMenuTextCentered("MUSIC", { trackX, row0Y, trackW / 2, 20 }, labelColor);
 	char vol[8];
-	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { contentX + contentW / 2, row0Y, contentW / 2, 20 }, valColor);
-
-	int trackX = contentX + 10;
-	int trackW = contentW - 20;
+	snprintf(vol, sizeof(vol), "%d", static_cast<int>(musicVolume_ * 100.0f));
+	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row0Y, trackW / 2, 20 }, valColor);
 
 	SDL_Rect mBarBg = { trackX, row0Y + 30, trackW, 8 };
 	render.DrawRectangle(mBarBg, 10, 15, 25, alpha, true, false);
@@ -646,11 +641,10 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 26, 10, 16 };
 	render.DrawRectangle(mKnob, 200, 220, 255, alpha, true, false);
 
-	// Row 1: SFX slider
-	int row1Y = contentY + rowH + 5;
-	render.DrawMenuTextCentered("SFX", { contentX, row1Y, contentW / 2 - 10, 20 }, labelColor);
-	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { contentX + contentW / 2, row1Y, contentW / 2, 20 }, valColor);
+	// Row 1: SOUNDS
+	render.DrawMenuTextCentered("SOUNDS", { trackX, row1Y, trackW / 2, 20 }, labelColor);
+	snprintf(vol, sizeof(vol), "%d", static_cast<int>(sfxVolume_ * 100.0f));
+	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row1Y, trackW / 2, 20 }, valColor);
 
 	SDL_Rect sBarBg = { trackX, row1Y + 30, trackW, 8 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, alpha, true, false);
@@ -660,24 +654,21 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 26, 10, 16 };
 	render.DrawRectangle(sKnob, 200, 220, 255, alpha, true, false);
 
-	// Row 2: Display mode selector
-	int row2Y = contentY + rowH * 2 + 10;
-	render.DrawMenuTextCentered("DISPLAY", { contentX, row2Y, contentW, 20 }, labelColor);
+	// Row 2: DISPLAY
+	render.DrawMenuTextCentered("DISPLAY", { trackX, row2Y, trackW, 20 }, labelColor);
 
 	const char* modeNames[] = { "WINDOWED", "FULLSCREEN", "BORDERLESS" };
 	int arrowW = 30;
-	SDL_Rect leftArrowArea  = { contentX + 10, row2Y + 28, arrowW, 30 };
-	SDL_Rect modeArea       = { contentX + 10 + arrowW, row2Y + 28, contentW - 20 - arrowW * 2, 30 };
-	SDL_Rect rightArrowArea = { contentX + contentW - 10 - arrowW, row2Y + 28, arrowW, 30 };
+	SDL_Rect leftArrowArea  = { trackX + 10, row2Y + 28, arrowW, 30 };
+	SDL_Rect modeArea       = { trackX + 10 + arrowW, row2Y + 28, trackW - 20 - arrowW * 2, 30 };
+	SDL_Rect rightArrowArea = { trackX + trackW - 10 - arrowW, row2Y + 28, arrowW, 30 };
 
 	SDL_Color arrowColor = { 100, 180, 255, alpha };
 	render.DrawMenuTextCentered("<", leftArrowArea, arrowColor);
 	render.DrawMenuTextCentered(modeNames[windowModeIndex_], modeArea, valColor);
 	render.DrawMenuTextCentered(">", rightArrowArea, arrowColor);
 
-	// Back button (row 3) is rendered by the UIElement system (btnBack_)
-
-	// Handle mouse input for sliders and display mode
+	// Handle input for sliders and display mode
 	if (settingsAnimState_ == SettingsAnimState::OPTIONS_ACTIVE)
 	{
 		auto& input = *Engine::GetInstance().input;
@@ -771,11 +762,12 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 			int selY = row0Y;
 			if (optionsSliderSel_ == 1) selY = row1Y;
 			else if (optionsSliderSel_ == 2) selY = row2Y;
-			SDL_Rect selHighlight = { contentX, selY - 4, contentW, 50 };
+			SDL_Rect selHighlight = { trackX - 10, selY - 4, trackW + 20, 50 };
 			render.DrawRectangle(selHighlight, 60, 100, 180, 50, true, false);
 		}
 	}
-}
+	}
+
 
 void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 {
@@ -3923,28 +3915,28 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelImgY, panelImgW, panelImgH, 255);
 	}
 
-	// Content area inside the panel (offset inward from panel image edges)
-	const int contentX = panelImgX + (int)(panelImgW * 0.30f);
-	const int contentW = (int)(panelImgW * 0.62f);
-	const int contentY = panelImgY + (int)(panelImgH * 0.15f);
-	const int contentH = (int)(panelImgH * 0.72f);
+	const int trackX = panelImgX + (int)(panelImgW * 0.45f);
+	const int trackW = (int)(panelImgW * 0.40f);
 
-	const int rowH = contentH / 3;
-	const int trackX = contentX + 10;
-	const int trackW = contentW - 20;
+	const int row0Y = panelImgY + (int)(panelImgH * 0.34f); // MUSIC (Icon 1: Musical Note)
+	const int row1Y = panelImgY + (int)(panelImgH * 0.58f); // SOUNDS (Icon 2: Speaker)
+	const int row2Y = panelImgY + (int)(panelImgH * 0.82f); // DISPLAY (Icon 3: Monitor)
 
-	// Use the content area dimensions for input handling
-	HandleVolumeSliderInput(contentX, contentY, contentW, rowH);
+	// Handle input and close menu if Back clicked/button pressed
+	if (HandleVolumeSliderInput(trackX, trackW, row0Y, row1Y, row2Y)) {
+		showPauseOptions_ = false;
+		SetPauseOptionsPanelVisible(false);
+		return;
+	}
 
 	SDL_Color labelColor = { 40, 55, 70, 255 };
 	SDL_Color valColor   = { 30, 45, 60, 255 };
 
-	// Music slider
-	int row0Y = contentY + 5;
-	render.DrawMenuTextCentered("MUSIC", { contentX, row0Y, contentW / 2 - 10, 20 }, labelColor);
+	// Row 0: MUSIC
+	render.DrawMenuTextCentered("MUSIC", { trackX, row0Y, trackW / 2, 20 }, labelColor);
 	char vol[8];
-	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(musicVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { contentX + contentW / 2, row0Y, contentW / 2, 20 }, valColor);
+	snprintf(vol, sizeof(vol), "%d", static_cast<int>(musicVolume_ * 100.0f));
+	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row0Y, trackW / 2, 20 }, valColor);
 
 	SDL_Rect mBarBg = { trackX, row0Y + 30, trackW, 8 };
 	render.DrawRectangle(mBarBg, 10, 15, 25, 255, true, false);
@@ -3954,11 +3946,10 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 26, 10, 16 };
 	render.DrawRectangle(mKnob, 200, 220, 255, 255, true, false);
 
-	// SFX slider
-	int row1Y = contentY + rowH + 5;
-	render.DrawMenuTextCentered("SFX", { contentX, row1Y, contentW / 2 - 10, 20 }, labelColor);
-	snprintf(vol, sizeof(vol), "%d%%", static_cast<int>(sfxVolume_ * 100.0f));
-	render.DrawMenuTextCentered(vol, { contentX + contentW / 2, row1Y, contentW / 2, 20 }, valColor);
+	// Row 1: SOUNDS
+	render.DrawMenuTextCentered("SOUNDS", { trackX, row1Y, trackW / 2, 20 }, labelColor);
+	snprintf(vol, sizeof(vol), "%d", static_cast<int>(sfxVolume_ * 100.0f));
+	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row1Y, trackW / 2, 20 }, valColor);
 
 	SDL_Rect sBarBg = { trackX, row1Y + 30, trackW, 8 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, 255, true, false);
@@ -3968,9 +3959,8 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 26, 10, 16 };
 	render.DrawRectangle(sKnob, 200, 220, 255, 255, true, false);
 
-	// Back Button
-	int row2Y = contentY + rowH * 2 + 10;
-	SDL_Rect backBtnBg = { contentX + contentW / 2 - 60, row2Y + 10, 120, 36 };
+	// Back Button (Row 2, centered below Display settings area)
+	SDL_Rect backBtnBg = { trackX + trackW / 2 - 60, row2Y + 10, 120, 36 };
 	render.DrawRectangle(backBtnBg, 40, 50, 70, 255, true, false);
 	render.DrawMenuTextCentered("BACK", backBtnBg, { 200, 220, 255, 255 });
 
@@ -3980,7 +3970,7 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 		if (optionsSliderSel_ == 1) selY = row1Y;
 		else if (optionsSliderSel_ == 2) selY = row2Y + 10;
 
-		SDL_Rect selHighlight = { contentX + 4, selY - 2, contentW - 8, 42 };
+		SDL_Rect selHighlight = { trackX - 10, selY - 4, trackW + 20, 50 };
 		if (optionsSliderSel_ == 2) selHighlight = { backBtnBg.x - 4, backBtnBg.y - 2, backBtnBg.w + 8, backBtnBg.h + 4 };
 		render.DrawRectangle(selHighlight, 60, 100, 180, 50, true, false);
 
@@ -4171,13 +4161,13 @@ void Scene::DrawFragments(bool front, int winW, int winH)
 	}
 }
 
-bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH)
+bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y, int row2Y)
 {
 	auto& input = *Engine::GetInstance().input;
 	float dt = Engine::GetInstance().GetDt();
 
-	// Back Button hit box (shared between Main Menu settings and Pause options)
-	SDL_Rect backHit = { panelX + panelW / 2 - 60, panelY + 60 + rowH * 2 + 10, 120, 36 };
+	// Back Button hit box (relative to row2Y)
+	SDL_Rect backHit = { trackX + trackW / 2 - 60, row2Y + 10, 120, 36 };
 
 	// -- Mouse slider dragging / clicks ---------------------------------
 	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN ||
@@ -4195,11 +4185,8 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 			}
 		}
 
-		int trackX = panelX + 20;
-		int trackW = panelW - 40;
-
 		// Music slider hit box
-		SDL_Rect mSliderHit = { trackX - 10, panelY + 60, trackW + 20, 30 };
+		SDL_Rect mSliderHit = { trackX - 10, row0Y + 18, trackW + 20, 32 };
 		if (mouseX >= mSliderHit.x && mouseX <= mSliderHit.x + mSliderHit.w &&
 			mouseY >= mSliderHit.y && mouseY <= mSliderHit.y + mSliderHit.h) {
 
@@ -4210,7 +4197,7 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 		}
 
 		// SFX slider hit box
-		SDL_Rect sSliderHit = { trackX - 10, panelY + 60 + rowH, trackW + 20, 30 };
+		SDL_Rect sSliderHit = { trackX - 10, row1Y + 18, trackW + 20, 32 };
 		if (mouseX >= sSliderHit.x && mouseX <= sSliderHit.x + sSliderHit.w &&
 			mouseY >= sSliderHit.y && mouseY <= sSliderHit.y + sSliderHit.h) {
 
@@ -4222,12 +4209,10 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 	}
 
 	// -- Gamepad D-pad / stick slider navigation --------------------------
-	// Back button shortcuts (B / East)
 	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN) {
 		return true; // Back
 	}
 
-	// D-pad Up/Down or Left Stick Y: switch between Music (0), SFX (1), Back (2)
 	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_UP) == KEY_DOWN ||
 		(input.GetLeftStickY() < -0.5f && sliderRepeatTimer_ <= 0.0f))
 	{
@@ -4241,17 +4226,14 @@ bool Scene::HandleVolumeSliderInput(int panelX, int panelY, int panelW, int rowH
 		sliderRepeatTimer_ = 250.0f;
 	}
 
-	// If Back is selected and A (SOUTH) is pressed, go back
 	if (optionsSliderSel_ == 2 && input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN) {
 		return true;
 	}
 
-	// D-pad Left/Right: step volume by 5%
 	float volStep = 0.05f;
 	bool stepLeft = input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_LEFT) == KEY_DOWN;
 	bool stepRight = input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_RIGHT) == KEY_DOWN;
 
-	// Left stick X: continuous adjust (smooth)
 	float stickX = input.GetLeftStickX();
 	float continuousAdj = 0.0f;
 	if (std::fabs(stickX) > 0.3f)
