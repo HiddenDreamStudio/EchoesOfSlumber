@@ -87,12 +87,19 @@ bool Player::Start() {
 	pushAnim_.SetLoop(true);
 
 	// Load slingshot shoot animation spritesheet (3072x1024 = 12 columns x 4 rows, 256x256 frames)
+	// Phase 1 (charge): row 3 — 12 frames, plays once
+	// Phase 2 (hold):   row 0 — 6 frames, loops while player keeps holding
 	slingshotShootTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Tiraxines.png");
-	for (int i = 0; i < 48; ++i) {
-		SDL_Rect r = { (i % 12) * 256, (i / 12) * 256, 256, 256 };
+	for (int col = 0; col < 12; ++col) {
+		SDL_Rect r = { col * 256, 3 * 256, 256, 256 }; // row 3
 		slingshotAnim_.AddFrame(r, 80);
 	}
 	slingshotAnim_.SetLoop(false);
+	for (int col = 0; col < 6; ++col) {
+		SDL_Rect r = { col * 256, 0 * 256, 256, 256 }; // row 0
+		slingshotHoldAnim_.AddFrame(r, 80);
+	}
+	slingshotHoldAnim_.SetLoop(true);
 
 	// Load Bear Animations from XML
 	bearAppearTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/SS_oso_apareixent-Pintado.png");
@@ -683,7 +690,9 @@ void Player::Slingshot(float dt)
 			isAiming_ = true;
 			isAimingWithGamepad_ = triggerDown;
 			chargeTimer_ = 0.0f;
+			slingshotCharged_ = false;
 			slingshotAnim_.Reset();
+			slingshotHoldAnim_.Reset();
 			LOG("Slingshot aiming started");
 		}
 	}
@@ -747,8 +756,15 @@ void Player::Slingshot(float dt)
 		if (dx > 0) facingRight = false;
 		else if (dx < 0) facingRight = true;
 
-		// Advance slingshot animation based on charge (map charge ratio to frame)
-		slingshotAnim_.Update(dt);
+		// Advance slingshot animation: charge first, then hold loop
+		if (!slingshotCharged_) {
+			slingshotAnim_.Update(dt);
+			if (slingshotAnim_.HasFinishedOnce()) {
+				slingshotCharged_ = true;
+			}
+		} else {
+			slingshotHoldAnim_.Update(dt);
+		}
 
 		// Draw trajectory preview dots (parabolic prediction)
 		float chargeRatio = chargeTimer_ / MAX_CHARGE_TIME;
@@ -774,23 +790,6 @@ void Player::Slingshot(float dt)
 			render->DrawCircle((int)px, (int)py, 3, 200, 180, 140, dotAlpha, true);
 		}
 
-		// Draw subtle charge bar near player feet
-		int barW = 30;
-		int barH = 3;
-		int barX = playerX - barW / 2;
-		int barY = playerY + 55;
-		int fillW = (int)((float)barW * chargeRatio);
-
-		// Background bar
-		SDL_Rect bgBar = { barX, barY, barW, barH };
-		render->DrawRectangle(bgBar, 40, 35, 25, 80, true, true);
-
-		// Fill bar (amber tone)
-		if (fillW > 0) {
-			SDL_Rect fillBar = { barX, barY, fillW, barH };
-			Uint8 fillAlpha = (Uint8)(60.0f + 140.0f * chargeRatio);
-			render->DrawRectangle(fillBar, 200, 170, 100, fillAlpha, true, true);
-		}
 
 		// Stop movement while aiming
 		velocity.x = 0.0f;
@@ -976,9 +975,13 @@ void Player::Draw(float dt) {
 	}
 	else if (isAiming_ && slingshotShootTexture_)
 	{
-		// Slingshot aiming animation — use dedicated spritesheet
+		// Slingshot aiming animation — charge phase or hold phase
 		activeTex = slingshotShootTexture_;
-		animFrame = &slingshotAnim_.GetCurrentFrame();
+		if (slingshotCharged_) {
+			animFrame = &slingshotHoldAnim_.GetCurrentFrame();
+		} else {
+			animFrame = &slingshotAnim_.GetCurrentFrame();
+		}
 		// 256x256 frames -> same half scale as push
 		currentDrawScale = 0.5f;
 	}
@@ -1036,17 +1039,21 @@ void Player::Draw(float dt) {
         }
     }
 
-	SDL_FlipMode flip;
-	if (isPushing_ && velocity.x != 0.0f && !isJumping) {
-		flip = (velocity.x > 0.0f) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-	}
-	else if (spriteNativeRight) {
-		flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-	}
-	else {
-		// This is what your standard animations fall back to
-		flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
-	}
+    SDL_FlipMode flip;
+    if (isAiming_ && slingshotShootTexture_) {
+        // Slingshot sprite: invert to match facing direction
+        flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+    }
+    else if (isPushing_ && velocity.x != 0.0f && !isJumping) {
+        flip = (velocity.x > 0.0f) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+    }
+    else if (spriteNativeRight) {
+        flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+    }
+    else {
+        // This is what your standard animations fall back to
+        flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+    }
 
     if (isWakingUp) {
         facingRight = true; // Force facing left to match wake-up spritesheet
@@ -1285,6 +1292,12 @@ void Player::TakeDamage(int damage)
 
 	if (enemyDirX < 0)      facingRight = true;
 	else if (enemyDirX > 0) facingRight = false;
+
+	// Cancel slingshot aiming on damage so the player doesn't get stuck
+	isAiming_ = false;
+	isAimingWithGamepad_ = false;
+	chargeTimer_ = 0.0f;
+	slingshotCharged_ = false;
 
 	float knockbackForce = 5.0f;
 	float dir = facingRight ? 1.0f : -1.0f;
