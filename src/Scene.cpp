@@ -2204,9 +2204,6 @@ void Scene::DrawBossHUD(int winW, int winH)
     indX = std::max(BAR_X + 4, std::min(indX, BAR_X + BAR_W - IND_SZ - 9));
     int indY = BAR_TOP + BAR_H / 2 - IND_SZ / 2;
     render.DrawTextureAlpha(texBossBarIndicator_, indX, indY, IND_SZ, IND_SZ);
-
-    SDL_Rect nameArea = { BAR_X, BAR_Y - 30, BAR_W, 22 };
-    render.DrawMenuTextCentered(boss->GetBossName(), nameArea, { 230, 220, 200, 255 });
 }
 
 void Scene::UnloadGameplay()
