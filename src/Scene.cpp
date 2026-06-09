@@ -17,7 +17,9 @@
 #include "DiscordManager.h"
 #include "Physics.h"
 #include "Boss.h"
+#include "Boss1.h"
 #include "Checkpoint.h"
+#include "Boss2.h"
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
@@ -2070,7 +2072,7 @@ void Scene::UpdateGameplay(float dt)
 		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
 		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
-	if (!isPaused_ && !isGameOver_) UpdateBossFight();
+	if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
 
 	// Draw cape collectible in-world
 	if (!capaCollected_ && texCapaCollectible_)
@@ -2091,14 +2093,14 @@ void Scene::UpdateGameplay(float dt)
 //  BOSS FIGHT
 // ============================================================================
 
-void Scene::UpdateBossFight()
+void Scene::UpdateBossFight(float dt)
 {
     auto boss = activeBoss_.lock();
 
     // Lazy search: if no boss cached yet, look in the entity list
     if (!boss) {
         for (auto& e : Engine::GetInstance().entityManager->entities) {
-            if (e->type == EntityType::BOSS_1) {
+            if (e->type == EntityType::BOSS_1 || e->type == EntityType::BOSS_2) {
                 boss = std::dynamic_pointer_cast<Boss>(e);
                 if (boss) { activeBoss_ = boss; break; }
             }
@@ -2117,8 +2119,9 @@ void Scene::UpdateBossFight()
 
     if (boss->IsEngaged() && !isBossFightActive_)
     {
-        isBossFightActive_ = true;
-        Engine::GetInstance().audio->PlayMusic("assets/audio/music/boss-battle.wav", 1.5f);
+        isBossFightActive_   = true;
+        bossHealthDisplay_   = 1.0f;
+        Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_Boss_Fight _Music.wav", 2.0f);
         auto& tex = *Engine::GetInstance().textures;
         texBossBarEmpty_     = tex.Load("assets/textures/UI/UI_Boss_HealthBar_Empty.png");
         texBossBarFull_      = tex.Load("assets/textures/UI/UI_Boss_HealthBar_Full.png");
@@ -2129,11 +2132,24 @@ void Scene::UpdateBossFight()
     {
         isBossFightActive_ = false;
         activeBoss_.reset();
-        Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 2.0f);
         auto& tex = *Engine::GetInstance().textures;
         tex.UnLoad(texBossBarEmpty_);     texBossBarEmpty_     = nullptr;
         tex.UnLoad(texBossBarFull_);      texBossBarFull_      = nullptr;
         tex.UnLoad(texBossBarIndicator_); texBossBarIndicator_ = nullptr;
+
+        if (currentMapFile_.find("ZonaBoss") != std::string::npos)
+        {
+            subMapTarget_  = "MapLvl3ZonaAlta.tmx";
+            subMapSpawnId_ = "J";
+            pendingSubMapLoad_ = true;
+            waitingForFade_    = true;
+            fadeTargetScene_   = SceneID::GAMEPLAY;
+            Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1200.0f);
+        }
+        else
+        {
+            Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 2.0f);
+        }
     }
 }
 
@@ -2148,29 +2164,36 @@ void Scene::DrawBossHUD(int winW, int winH)
     const int BAR_W  = 800;
     const int BAR_H  = 50;
     const int BAR_X  = (winW - BAR_W) / 2;
-    const int BAR_Y  = winH - 70;
+    // Drowning Plush's room has a lower ceiling on screen — nudge its HUD down so the title clears it
+    const int BAR_Y  = std::dynamic_pointer_cast<Boss1>(boss) ? 72 : 45;
     const int IND_SZ = 50;
 
     float realPct = boss->GetHealthPercent();
     realPct = (realPct < 0.0f) ? 0.0f : (realPct > 1.0f) ? 1.0f : realPct;
     bossHealthDisplay_ += (realPct - bossHealthDisplay_) * 0.08f;
 
-    render.DrawTextureAlpha(texBossBarEmpty_, BAR_X, BAR_Y, BAR_W, BAR_H);
+    const int NAME_H  = 22;
+    const int BAR_TOP = BAR_Y + NAME_H + 22;
+
+    SDL_Rect nameArea = { BAR_X, BAR_Y, BAR_W, NAME_H };
+    render.DrawMenuTextCentered(boss->GetBossName(), nameArea, { 230, 220, 200, 255 });
+
+    render.DrawTextureAlpha(texBossBarEmpty_, BAR_X, BAR_TOP, BAR_W, BAR_H);
 
     int clipW = (int)(BAR_W * bossHealthDisplay_);
     if (clipW > 0)
     {
         SDL_FRect src = { 0.0f, 0.0f, (float)clipW, (float)BAR_H };
-        SDL_FRect dst = { (float)BAR_X, (float)BAR_Y, (float)clipW, (float)BAR_H };
+        SDL_FRect dst = { (float)BAR_X, (float)BAR_TOP, (float)clipW, (float)BAR_H };
         SDL_RenderTexture(render.renderer, texBossBarFull_, &src, &dst);
     }
 
     int indX = BAR_X + clipW - IND_SZ / 2;
-    indX = std::max(BAR_X + 4, std::min(indX, BAR_X + BAR_W - IND_SZ - 4));
-    int indY = BAR_Y + BAR_H / 2 - IND_SZ / 2;
+    indX = std::max(BAR_X + 4, std::min(indX, BAR_X + BAR_W - IND_SZ - 9));
+    int indY = BAR_TOP + BAR_H / 2 - IND_SZ / 2;
     render.DrawTextureAlpha(texBossBarIndicator_, indX, indY, IND_SZ, IND_SZ);
 
-    SDL_Rect nameArea = { BAR_X, BAR_Y - 55, BAR_W, 22 };
+    SDL_Rect nameArea = { BAR_X, BAR_Y - 30, BAR_W, 22 };
     render.DrawMenuTextCentered(boss->GetBossName(), nameArea, { 230, 220, 200, 255 });
 }
 
@@ -2505,7 +2528,8 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Draw Health HUD ---
-	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_) {
+	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_
+		&& currentMapFile_ != "MapLvl2ZonaBoss.tmx") {
 		SDL_Rect r;
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
@@ -4302,7 +4326,32 @@ void Scene::LoadSubMap(const std::string& tmxFile, const std::string& spawnId)
 	pendingSubMapLoad_ = true;
 
 	waitingForFade_ = true;
-	fadeTargetScene_ = SceneID::GAMEPLAY; 
+	fadeTargetScene_ = SceneID::GAMEPLAY;
+	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 400.0f);
+}
+
+// Spawns a static, invisible collider over a defeated boss's entrance portal so the
+// player can no longer walk back into the arena — same recipe as the "Wall" map entities.
+void Scene::SealBossPortal(float x, float y, float w, float h)
+{
+	int cx = (int)(x + w * 0.5f);
+	int cy = (int)(y + h * 0.5f);
+	PhysBody* wall = Engine::GetInstance().physics->CreateRectangle(cx, cy, (int)w, (int)h, bodyType::STATIC, 0.0f);
+	if (wall) wall->ctype = ColliderType::UNKNOWN;
+}
+
+// Programmatic map switch (e.g. returning the player to the hub after a boss fight) —
+// reuses the same submap fade/load pipeline as portal traversal, just triggered by gameplay logic.
+void Scene::RequestSubMapTeleport(const std::string& tmxFile, const std::string& spawnId)
+{
+	if (waitingForFade_) return;
+
+	subMapTarget_ = tmxFile;
+	subMapSpawnId_ = spawnId;
+	pendingSubMapLoad_ = true;
+
+	waitingForFade_ = true;
+	fadeTargetScene_ = SceneID::GAMEPLAY;
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 400.0f);
 }
 
@@ -4383,8 +4432,16 @@ void Scene::ExecuteSubMapLoad()
     Engine::GetInstance().physics->FlushPendingDeletes();
 
     currentMapFile_ = subMapTarget_;
+    if (currentMapFile_.find("ZonaBoss") != std::string::npos)
+    {
+        Engine::GetInstance().audio->PlayMusic(nullptr);
+    }
+    else
+    {
+        Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 2.0f);
+    }
     Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
-	
+
 	float portalSpawnX = 0.0f, portalSpawnY = 0.0f;
 	bool portalSpawnFound = Engine::GetInstance().map->GetSpawnById(subMapSpawnId_, portalSpawnX, portalSpawnY);
 	

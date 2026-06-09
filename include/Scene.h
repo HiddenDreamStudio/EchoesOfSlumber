@@ -52,6 +52,8 @@ public:
 
 
     void LoadSubMap(const std::string& tmxFile, const std::string& spawnId);
+    void RequestSubMapTeleport(const std::string& tmxFile, const std::string& spawnId);
+    void SealBossPortal(float x, float y, float w, float h);
     void CheckPortalCollisions(float dt);
     Vector2D GetSpawnPosition(const std::string& spawnId);
     void ExecuteSubMapLoad();
@@ -315,7 +317,7 @@ private:
     SDL_Texture* texBossBarFull_      = nullptr;
     SDL_Texture* texBossBarIndicator_ = nullptr;
 
-    void UpdateBossFight();
+    void UpdateBossFight(float dt);
     void DrawBossHUD(int winW, int winH);
 
     // Health HUD (supports up to 6 health slots depending on level/fase)
