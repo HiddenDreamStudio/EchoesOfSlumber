@@ -26,6 +26,7 @@
 #include "tracy/Tracy.hpp"
 #include "Platform.h"
 #include "Door.h"
+#include "BlockCrawler.h"
 #include "Lever.h"
 #include "MemoryFragment.h"
 
@@ -150,6 +151,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::ROPE_ROCK:
 		entity = std::make_shared<RopedRock>();
+		break;
+	case EntityType::BLOCK_CRAWLER:
+		entity = std::make_shared<BlockCrawler>();
 		break;
 	case EntityType::ANTAGONIST:
 		entity = std::make_shared<Antagonist>();
