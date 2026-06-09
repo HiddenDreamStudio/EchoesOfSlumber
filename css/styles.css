@@ -668,8 +668,12 @@ body {
 
 .footer-logos-row {
     display: flex; align-items: center; justify-content: center;
-    gap: 3rem; flex-wrap: wrap; margin-bottom: 1.25rem;
-    position: relative;
+    gap: 3rem; flex-wrap: wrap; margin-bottom: 0;
+    position: absolute;
+    top: 76px; /* Offset from top of footer */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
     z-index: 10;
 }
 .footer-logo {
