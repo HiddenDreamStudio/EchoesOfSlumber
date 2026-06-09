@@ -175,7 +175,14 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12
 </data>
  </layer>
- <objectgroup id="2" name="Portals"/>
+ <objectgroup id="2" name="Portals">
+  <object id="1" type="Portal" x="2908" y="-14" width="166" height="786">
+   <properties>
+    <property name="spawnId" value="Main"/>
+    <property name="target" value="Map2.tmx"/>
+   </properties>
+  </object>
+ </objectgroup>
  <objectgroup id="3" name="Spawns">
   <object id="2" type="Spawn" x="2814" y="576">
    <properties>
