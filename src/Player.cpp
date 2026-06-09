@@ -1179,8 +1179,10 @@ void Player::Attack(float dt)
 
 void Player::TakeDamage(int damage)
 {
-	// Cannot take damage while hiding, sleeping, or waking up
-	if (isInvincible_ || isHiding_ || isKidSleeping_ || isWakingUp) return;
+	// Cannot take damage while hiding, sleeping, waking up, throwing the bear, or transforming
+	if (isInvincible_ || isHiding_ || isKidSleeping_ || isWakingUp || isThrowingBear_ || isBearTransforming_) return;
+
+	Engine::GetInstance().scene->TriggerScreenDamage();
 
 	if (isBearMode_) {
 		bearHealth_ -= damage;

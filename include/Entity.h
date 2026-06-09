@@ -28,6 +28,7 @@ enum class EntityType
 	BOSS_2,
 	BOSS_1,
 	ROPE_ROCK,
+	ENEMY_WINDUP_SCURRY,
 	UNKNOWN
 };
 
