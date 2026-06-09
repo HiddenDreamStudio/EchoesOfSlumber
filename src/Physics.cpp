@@ -386,6 +386,7 @@ void Physics::DeletePhysBody(PhysBody* physBody)
     if (physBody && !B2_IS_NULL(physBody->body) && physBody->listener && physBody->listener->active)
     {
         b2Body_SetUserData(physBody->body, nullptr);
+        b2Body_Disable(physBody->body);
     }
     bodiesToDelete.push_back(physBody);
 }
