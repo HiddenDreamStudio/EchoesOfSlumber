@@ -315,7 +315,7 @@ bool Player::Update(float dt)
 		}
 
 		if (bearToggleDown && hasStuffedAnimal_ && equippedItem_ == EquippedItem::STUFFED_ANIMAL &&
-			!isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isAiming_)
+			!isShowingDamageAnim_ && !isHiding_ && !isHidingBehindRock_ && !isExitingHide_ && !isAiming_)
 		{
 			if (!isBearMode_ && !isBearTransforming_ && !isThrowingBear_ && !isKidSleeping_ && bearCooldownTimer_ <= 0.0f) {
 				isThrowingBear_ = true;
@@ -444,7 +444,7 @@ bool Player::Update(float dt)
 				Hide(dt);
 
 				// All other actions are blocked while hiding
-				if (!isHiding_) {
+				if (!isHiding_ && !isHidingBehindRock_) {
 					if (!isExitingHide_) Move();
 					Jump();
 					if (!isPushing_) Attack(dt);
@@ -457,7 +457,7 @@ bool Player::Update(float dt)
 
 	ApplyPhysics();
 
-	if (velocity.x != 0.0f && !isJumping && !isDead_ && !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isWakingUp && !isBearMode_) {
+	if (velocity.x != 0.0f && !isJumping && !isDead_ && !isShowingDamageAnim_ && !isHiding_ && !isHidingBehindRock_ && !isExitingHide_ && !isWakingUp && !isBearMode_) {
 		stepTimer_ -= dt;
 
 
@@ -476,7 +476,7 @@ bool Player::Update(float dt)
 	if (iFrameTimer_ <= 0.0f)     isInvincible_ = false;
 
 	// Advance hide alpha pulse timer for visual feedback
-	if (isHiding_ || isExitingHide_) hideAlphaTime_ += dt;
+	if (isHiding_ || isHidingBehindRock_ || isExitingHide_) hideAlphaTime_ += dt;
 	else           hideAlphaTime_ = 0.0f;
 
 	Draw(dt);
@@ -496,7 +496,7 @@ void Player::GetPhysicsValues() {
 }
 
 void Player::Move() {
-	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isHidingBehindRock_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
 	bool moveLeft = input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT || input->GetLeftStickX() < -0.2f;
@@ -567,7 +567,7 @@ void Player::Move() {
 }
 
 void Player::Jump() {
-	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isHidingBehindRock_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
 	bool jumpDown = input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
@@ -685,7 +685,7 @@ void Player::Slingshot(float dt)
 {
 	if (!hasSlingshot_ || equippedItem_ != EquippedItem::SLINGSHOT) return;
 
-	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_)
+	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isHidingBehindRock_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_)
 	{
 		isAiming_ = false;
 		isAimingWithGamepad_ = false;
@@ -977,7 +977,7 @@ void Player::Draw(float dt) {
 		// 256x256 frames -> same half scale as push/slingshot
 		currentDrawScale = 0.5f;
 	}
-	else if (isHiding_ || isExitingHide_)
+	else if (isHiding_ || isHidingBehindRock_ || isExitingHide_)
 	{
 		// Hide animation is advanced inside Hide() — just grab the current frame
 		animFrame = &anims.GetCurrentFrame();
@@ -1112,7 +1112,7 @@ void Player::Draw(float dt) {
 	}
 
 	// ── I-frame flicker (not during hide or death) ────────────────────
-	bool skipDraw = !isDead_ && !isHiding_ && !isExitingHide_ && isInvincible_ &&
+	bool skipDraw = !isDead_ && !isHiding_ && !isHidingBehindRock_ && !isExitingHide_ && isInvincible_ &&
 		(static_cast<int>(iFrameTimer_ / 100.0f) % 2 == 0);
 
 	if (!skipDraw) {
@@ -1124,7 +1124,7 @@ void Player::Draw(float dt) {
 
 		// While hiding: gentle alpha pulse (80-180) to signal stealth
 		Uint8 drawAlpha = 255;
-		if (isHiding_ || isExitingHide_) {
+		if (isHiding_ || isHidingBehindRock_ || isExitingHide_) {
 			float pulse = 0.5f + 0.3f * sinf(hideAlphaTime_ * 0.004f);
 			drawAlpha = static_cast<Uint8>(80.0f + 100.0f * pulse);
 			SDL_SetTextureAlphaMod(activeTex, drawAlpha);
@@ -1141,7 +1141,7 @@ void Player::Draw(float dt) {
 		}
 
 		// Restore alpha and color modulation
-		if (isHiding_ || isExitingHide_) {
+		if (isHiding_ || isHidingBehindRock_ || isExitingHide_) {
 			SDL_SetTextureAlphaMod(activeTex, 255);
 		}
 		if (damageFlashTimer_ > 0.0f) {
@@ -1153,7 +1153,7 @@ void Player::Draw(float dt) {
 
 void Player::Attack(float dt)
 {
-	if (isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
+	if (isHiding_ || isHidingBehindRock_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
 	auto& physics = Engine::GetInstance().physics;
@@ -1226,7 +1226,7 @@ void Player::Attack(float dt)
 void Player::TakeDamage(int damage)
 {
 	// Cannot take damage while hiding, sleeping, waking up, throwing the bear, or transforming
-	if (isInvincible_ || isHiding_ || isKidSleeping_ || isWakingUp || isThrowingBear_ || isBearTransforming_) return;
+	if (isInvincible_ || isHiding_ || isHidingBehindRock_ || isKidSleeping_ || isWakingUp || isThrowingBear_ || isBearTransforming_) return;
 
 	Engine::GetInstance().scene->TriggerScreenDamage();
 
@@ -1327,6 +1327,7 @@ void Player::TakeDamage(int damage)
 		health = 0;
 		isDead_ = true;
 		isHiding_ = false;
+		isHidingBehindRock_ = false;
 		anims.SetCurrent("death");
 		Engine::GetInstance().audio->PlayMusic(nullptr);
 		Engine::GetInstance().audio->PlayFx(gameOverFxId);
@@ -1335,6 +1336,7 @@ void Player::TakeDamage(int damage)
 	else
 	{
 		isHiding_ = false;
+		isHidingBehindRock_ = false;
 		if (suppressDamageAnim_)
 		{
 			suppressDamageAnim_ = false;
@@ -1352,6 +1354,7 @@ void Player::Revive()
 {
 	isDead_ = false;
 	isHiding_ = false;
+	isHidingBehindRock_ = false;
 	isInvincible_ = false;
 	isShowingDamageAnim_ = false;
 	isBearMode_ = false;
@@ -1573,6 +1576,23 @@ Vector2D Player::GetPosition() {
 	int x, y;
 	pbody->GetPosition(x, y);
 	return Vector2D(static_cast<float>(x) - texW / 2.0f, static_cast<float>(y) - texH / 2.0f);
+}
+
+void Player::SetHidingBehindRock(bool hiding) {
+	if (hiding == isHidingBehindRock_) return;
+
+	isHidingBehindRock_ = hiding;
+	
+	if (hiding) {
+		velocity.x = 0.0f;
+		Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
+		anims.SetCurrent("hide");
+		anims.ResetCurrent();
+		LOG("Player hiding behind rock");
+	} else {
+		anims.SetCurrent("idle");
+		LOG("Player stopped hiding behind rock");
+	}
 }
 
 void Player::SetPosition(Vector2D pos) {
