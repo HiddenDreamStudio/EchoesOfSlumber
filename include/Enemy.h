@@ -26,6 +26,8 @@ public:
 	bool Destroy() override;
 	void TakeDamage(int damage) override;
 
+	virtual bool DoesKnockback() const { return false; }
+
 	float speed = 2.5f;
 	SDL_Texture* texture = nullptr;
 	int texW = 64;
