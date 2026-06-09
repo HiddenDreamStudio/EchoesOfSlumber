@@ -187,7 +187,9 @@ private:
 	static constexpr float MAX_LAUNCH_SPEED = 12.0f;
 	static constexpr float SLINGSHOT_COOLDOWN = 500.0f;   // ms
 	SDL_Texture* slingshotShootTexture_ = nullptr;
-	Animation    slingshotAnim_;
+	Animation    slingshotAnim_;       // charge-up (row 3: 12 frames, plays once)
+	Animation    slingshotHoldAnim_;   // hold loop (row 0: 6 frames, loops)
+	bool         slingshotCharged_ = false; // true once charge anim finishes
 
 	// Bear mode states, textures, and animations
 	bool         isBearMode_ = false;
@@ -215,7 +217,12 @@ private:
 	// Yoyo trap animation (played when caught by Stitchling)
 	SDL_Texture* yoyoTrapTexture_ = nullptr;
 
+	// Drop Doll minigame animation (played while grabbed by the doll)
+	SDL_Texture* dollGrabbedTexture_ = nullptr;
+	Animation    dollGrabbedAnim_;
+
 public:
 	bool         isYoyoTrapped_ = false;
 	AnimationSet yoyoTrapAnims_;
+	bool         isDollGrabbed_ = false;
 };
