@@ -17,6 +17,7 @@
 #include "Checkpoint.h"
 #include "Box.h"
 #include "Platform.h"
+#include "Lever.h"
 #include "PushRock.h"
 #include "Boss2.h"
 #include "Window.h"
@@ -516,7 +517,7 @@ bool Map::LoadProperties(pugi::xml_node& node, Properties& properties)
     {
         Properties::Property* p = new Properties::Property();
         p->name = propertieNode.attribute("name").as_string();
-        p->value = propertieNode.attribute("value").as_bool(); // (!!) I'm assuming that all values are bool !!
+        p->value = propertieNode.attribute("value").as_bool();
 
         properties.propertyList.push_back(p);
     }
@@ -742,6 +743,9 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     float baseX = objectNode.attribute("x").as_float();
                     float baseY = objectNode.attribute("y").as_float();
 
+                    platform->texW = objectNode.attribute("width").as_int(192);
+                    platform->texH = objectNode.attribute("height").as_int(64);
+
                     pugi::xml_node props = objectNode.child("properties");
                     if (props) {
                         for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
@@ -753,8 +757,14 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                             if (pname == "texture")
                                 platform->texturePath = prop.attribute("value").as_string();
 
-                            if (pname == "trigger")                                         
+                            if (pname == "trigger")
                                 platform->triggerOnPlayer = prop.attribute("value").as_bool();
+
+                            if (pname == "require_lever")
+                                platform->requireLever = prop.attribute("value").as_bool();
+
+                            if (pname == "platform_name")
+                                platform->platformName = prop.attribute("value").as_string();
 
                             if (pname == "path") {
                                 std::string pathStr = prop.attribute("value").as_string();
@@ -778,6 +788,30 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
 
                     platform->Start();
                     LOG("Platform spawned at: %f, %f", baseX, baseY);
+                    }
+                else if (entityType == "Lever") {
+                    auto lever = std::dynamic_pointer_cast<Lever>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::LEVER));
+                    lever->position = Vector2D(x, y);
+
+                    // Leemos el tamaño para la colisión y dibujo
+                    lever->texW = objectNode.attribute("width").as_int(64);
+                    lever->texH = objectNode.attribute("height").as_int(64);
+
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string pname = prop.attribute("name").as_string();
+
+                            if (pname == "target_platform")
+                                lever->targetPlatformName = prop.attribute("value").as_string();
+
+                            if (pname == "locked_by_puzzle")
+                                lever->isLockedByPuzzle = prop.attribute("value").as_bool();
+                        }
+                    }
+                    lever->Start();
+                    LOG("Lever spawned at: %f, %f targeting %s", x, y, lever->targetPlatformName.c_str());
                     }
                 // Parse MovingPlatform from Tiled polylines
                 else if (entityType == "MovingPlatform") {
