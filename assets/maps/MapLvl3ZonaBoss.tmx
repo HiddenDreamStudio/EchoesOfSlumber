@@ -111,7 +111,8 @@
   <object id="25" gid="126" x="296.676" y="1254.32" width="138.467" height="216.333"/>
  </objectgroup>
  <objectgroup id="4" name="Entities">
-  <object id="27" name="Boss2" type="Boss2" x="1037.66" y="946.684" width="272" height="264"/>
+  <object id="27" name="Wall" type="Wall" x="2549.78" y="600.848" width="193.212" height="579.152"/>
+  <object id="30" name="Boss2" type="Boss2" x="1718.55" y="1086.18" width="272" height="264"/>
  </objectgroup>
  <layer id="1" name="Map" width="43" height="20">
   <properties>
