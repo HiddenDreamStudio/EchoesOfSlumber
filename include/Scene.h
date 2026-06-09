@@ -3,6 +3,8 @@
 #include "Player.h"
 #include "UIManager.h"
 #include "UIElement.h"
+#include "PuzzleManager.h"
+#include "PuzzleManager3.h"
 #include <map>
 #include <set>
 #include <utility>
@@ -209,6 +211,16 @@ private:
     };
     std::vector<LevelInfo> levels_;
     int currentLevelIndex_ = 0;
+
+    PuzzleManager* puzzleManager_ = nullptr;
+    bool isPuzzleMap_ = false;
+    bool puzzleTimeoutPending_ = false;
+
+    PuzzleManager3* puzzleManager3_ = nullptr;
+    bool isLvl3Map_ = false;   
+    bool isLvl3Puzzle_ = false;
+    bool isPuzzleMap3Lever_ = false;  
+    bool isPuzzleMap3Buttons_ = false;
 
     // Automatic entry movement (Level 2+)
     bool  isAutoEntering_ = false;

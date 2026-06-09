@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="40" height="31" tilewidth="64" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="180">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="40" height="31" tilewidth="64" tileheight="64" infinite="0" nextlayerid="9" nextobjectid="186">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -357,7 +357,7 @@
  <tileset firstgid="101" source="Assets level 1/Back.tsx"/>
  <tileset firstgid="144" source="Assets level 1/Front.tsx"/>
  <tileset firstgid="186" source="Assets level 1/Middle.tsx"/>
- <imagelayer id="4" name="Bakground" offsetx="-3" offsety="-2815" repeaty="1">
+ <imagelayer id="4" name="Bakground" offsetx="-3" offsety="-2815">
   <image source="../textures/fons_enviroment/Level 1_Totjunt.png" width="11072" height="13056"/>
  </imagelayer>
  <objectgroup id="6" name="Background"/>
@@ -388,7 +388,7 @@
 13,0,0,0,0,0,0,21,22,5,13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,15,12,12,
 13,0,0,0,0,0,0,0,0,21,38,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,15,4,22,5,
 13,0,0,0,0,0,0,0,0,0,29,46,2,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,15,4,22,22,23,0,0,
-13,0,0,0,0,0,0,0,0,0,0,21,22,22,33,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,21,22,22,22,23,0,0,0,0,0,
+13,0,0,0,0,0,0,0,0,0,0,21,22,22,33,2,3,0,0,0,0,0,0,0,6,7,7,7,7,7,27,22,22,22,23,0,0,0,0,0,
 13,0,0,0,0,0,0,0,0,0,0,0,0,0,21,22,28,7,46,2,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,12,12,13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,21,22,5,14,2,2,2,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -458,6 +458,13 @@
     <property name="target" value="MapTemplate.tmx"/>
    </properties>
   </object>
+ </objectgroup>
+ <objectgroup id="8" name="PuzzleObjects">
+  <object id="180" name="puzzle_square" type="puzzle_square" x="798.667" y="237.333" width="126.667" height="84"/>
+  <object id="181" name="puzzle_triangle" type="puzzle_triangle" x="2342" y="1470" width="122" height="131"/>
+  <object id="182" name="puzzle_star" x="249" y="690" width="136" height="135"/>
+  <object id="183" name="puzzle_diamond" x="345" y="1777" width="91" height="88"/>
+  <object id="184" name="puzzle_circle" x="2022" y="188" width="90" height="136"/>
  </objectgroup>
  <objectgroup id="3" name="Spawns">
   <object id="9" type="Spawn" x="1344.5" y="1862.5">

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="49" nextobjectid="1810">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="49" nextobjectid="1821">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -375,13 +375,8 @@
  <objectgroup id="33" name="AnimatedPlants Front"/>
  <objectgroup id="9" name="Entities">
   <object id="1332" name="Player" type="Player" x="7891.41" y="8523.97" width="52.8407" height="52.8407"/>
-  <object id="1820" name="HidingRock" type="HidingRock" x="8200" y="8523" width="64" height="64">
-   <properties>
-    <property name="rock_type" type="int" value="1"/>
-   </properties>
-  </object>
-  <object id="1333" name="Cape" type="Cape" x="4792.66" y="1573.32"/>
-  <object id="1334" name="Enemy" type="SpiderCandy" x="4839.98" y="8524.99" width="64.1457" height="59.3942">
+  <object id="1333" name="Cape" type="Cape" x="4008.66" y="615.32"/>
+  <object id="1334" name="Enemy" type="SpiderCandy" x="5882.4" y="8528.02" width="64.1457" height="59.3942">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
@@ -423,7 +418,7 @@
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="1345" name="Enemy" type="SpiderCandy" x="3962.3" y="544.045" width="108" height="100">
+  <object id="1345" name="Enemy" type="SpiderCandy" x="3626.3" y="536.045" width="108" height="100">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
@@ -434,6 +429,32 @@
   <object id="1809" name="MemoryFragment" type="MemoryFragment" x="3784" y="2637" width="80" height="60">
    <properties>
     <property name="video_path" value="assets/video/Anchor_1.mp4"/>
+   </properties>
+  </object>
+  <object id="1811" name="HidingRock" type="HidingRock" x="6286.79" y="8529.7" width="64" height="64">
+   <properties>
+    <property name="rock_type" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="1817" name="HidingRock" type="HidingRock" x="840.727" y="6480.12" width="64" height="64">
+   <properties>
+    <property name="rock_type" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="1818" name="HidingRock" type="HidingRock" x="3964.97" y="3531.64" width="64" height="64">
+   <properties>
+    <property name="rock_type" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="1819" name="HidingRock" type="HidingRock" x="5155.88" y="3534.67" width="64" height="64">
+   <properties>
+    <property name="rock_type" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="1820" name="Enemy" type="SpiderCandy" x="9842" y="8482" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
  </objectgroup>
@@ -22718,7 +22739,7 @@
   <object id="1411" gid="204" x="6151.5" y="6470.05" width="495" height="736"/>
   <object id="1412" gid="204" x="8837.5" y="8652.05" width="495" height="736"/>
   <object id="1414" gid="208" x="9130.77" y="7559.14" width="707.861" height="563"/>
-  <object id="1415" gid="208" x="5252.68" y="8633.08" width="904" height="719"/>
+  <object id="1415" gid="208" x="5248" y="8640" width="476.517" height="379"/>
   <object id="1416" gid="197" x="3350.33" y="6017.35" width="233.688" height="214.939"/>
   <object id="1417" gid="197" x="4642.5" y="6929.05" width="161" height="181"/>
   <object id="1418" gid="207" x="6544.68" y="8760.28" width="606.017" height="503.088"/>
@@ -22734,7 +22755,7 @@
   <object id="1449" gid="1073742026" x="4017.67" y="3373.64" width="240" height="342"/>
   <object id="1450" gid="197" x="5155.67" y="3341.64" width="349" height="321"/>
   <object id="1452" gid="216" x="4575.67" y="3647.64" width="248" height="193"/>
-  <object id="1453" gid="217" x="3560.12" y="3646.55" width="255" height="198"/>
+  <object id="1453" gid="217" x="3614.67" y="3622.31" width="255" height="198"/>
   <object id="1746" gid="109" x="3779.01" y="1913.79" width="155" height="223"/>
   <object id="1747" gid="111" x="3163.19" y="3905.61" width="210.535" height="86.2513"/>
   <object id="1748" gid="112" x="2253.93" y="7560.51" width="188.235" height="165.217"/>
