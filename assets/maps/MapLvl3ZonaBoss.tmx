@@ -141,7 +141,14 @@
 28,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,30,12,12
 </data>
  </layer>
- <objectgroup id="5" name="Portals"/>
+ <objectgroup id="5" name="Portals">
+  <object id="28" type="Portal" x="2680" y="618.636" width="119" height="547.728">
+   <properties>
+    <property name="spawnId" value="J"/>
+    <property name="target" value="MapLvl3ZonaAlta.tmx"/>
+   </properties>
+  </object>
+ </objectgroup>
  <objectgroup id="6" name="Spawns">
   <object id="29" type="Spawn" x="2478" y="1153">
    <properties>
