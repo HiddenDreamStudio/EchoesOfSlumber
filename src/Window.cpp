@@ -133,27 +133,23 @@ void Window::SetWindowMode(WindowMode mode)
 	case WindowMode::WINDOWED:
 		SDL_SetWindowFullscreen(window, false);
 		SDL_SetWindowBordered(window, true);
+		SDL_RestoreWindow(window); // Un-maximize if it was maximized
+		SDL_SetWindowResizable(window, false); // Lock size in normal windowed mode
 		SDL_SetWindowSize(window, width, height); // Restore config resolution
 		SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 		break;
 	case WindowMode::FULLSCREEN:
-		// Fullscreen usually changes resolution to match display
-		SDL_SetWindowFullscreenMode(window, nullptr);
-		SDL_SetWindowFullscreen(window, true);
-		SDL_SetWindowBordered(window, false); // Best practice for exclusive fullscreen
+		// User requested Fullscreen to be a maximized window with borders (X and minimize visible)
+		SDL_SetWindowFullscreen(window, false);
+		SDL_SetWindowBordered(window, true);
+		SDL_SetWindowResizable(window, true); // Must be resizable to maximize
+		SDL_MaximizeWindow(window);
 		break;
 	case WindowMode::BORDERLESS:
-	{
-		// Borderless fullscreen windowed: cover the entire display without exclusive fullscreen
-		SDL_SetWindowFullscreen(window, false);
-		SDL_SetWindowBordered(window, false);
-		SDL_DisplayID display = SDL_GetDisplayForWindow(window);
-		SDL_Rect bounds;
-		if (SDL_GetDisplayBounds(display, &bounds)) {
-			SDL_SetWindowSize(window, bounds.w, bounds.h);
-			SDL_SetWindowPosition(window, bounds.x, bounds.y);
-		}
+		// User requested Borderless to be actual fullscreen without borders or minimize buttons
+		SDL_RestoreWindow(window);
+		SDL_SetWindowFullscreenMode(window, nullptr);
+		SDL_SetWindowFullscreen(window, true);
 		break;
-	}
 	}
 }
