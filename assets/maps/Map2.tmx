@@ -310,6 +310,21 @@
  </objectgroup>
  <objectgroup id="8" name="Entities">
   <object id="64" name="Player" type="Player" x="5692" y="9572" width="96" height="96"/>
+  <object id="77" type="Platform" x="3365" y="7300" width="256" height="64">
+   <properties>
+    <property name="path" value="3365,7311;3365,5800"/>
+    <property name="platform_name" value="Ascensor1"/>
+    <property name="require_lever" type="bool" value="true"/>
+    <property name="speed" type="float" value="4"/>
+    <property name="texture" value="assets/textures/TL_environment/plat_4tilesLvl2.png"/>
+    <property name="trigger" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="78" type="Lever" x="3717" y="7350" width="128" height="128">
+   <properties>
+    <property name="target_platform" value="Ascensor1"/>
+   </properties>
+  </object>
  </objectgroup>
  <layer id="1" name="Map" width="136" height="158">
   <properties>
