@@ -551,7 +551,6 @@ void Boss1::UpdateFSM(float dt)
             {
                 deathSequenceDone_ = true;
                 isEngaged_ = false;
-                scn.RequestSubMapTeleport("Map2.tmx", "Main");
                 // Seal the entrance portal (Map2.tmx, object id 70) — boss is gone, no reason to come back
                 scn.SealBossPortal(1145.33f, 3668.0f, 284.667f, 604.0f);
                 Destroy();
