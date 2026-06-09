@@ -459,7 +459,7 @@ void Scene::UpdateMainMenu(float dt)
 		{
 			settingsAnimState_ = SettingsAnimState::FADE_OUT_OPTIONS;
 			settingsAnimTimer_ = 0.0f;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 	}
 }
@@ -712,14 +712,14 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 				windowModeIndex_ = (windowModeIndex_ + 2) % 3;
 				WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
 				Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 			if (mx >= rightArrowArea.x && mx <= rightArrowArea.x + rightArrowArea.w &&
 				my >= rightArrowArea.y && my <= rightArrowArea.y + rightArrowArea.h) {
 				windowModeIndex_ = (windowModeIndex_ + 1) % 3;
 				WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
 				Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 		}
 
@@ -757,7 +757,7 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 				windowModeIndex_ = (windowModeIndex_ + (stepRight ? 1 : 2)) % 3;
 				WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
 				Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 		}
 
@@ -779,7 +779,7 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 	if (waitingForFade_)      return;
 	if (settingsCooldown_ > 0) return;
 
-	Engine::GetInstance().audio->PlayFx(menuClickFxId);
+	Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 
 	switch (uiElement->id)
 	{
@@ -1154,7 +1154,7 @@ void Scene::UpdateTutorialTextCard(float dt)
 
 	if (tutorialTimer_ > pt1Start) {
 		if (!pt1Played_) {
-			Engine::GetInstance().audio->PlayFx(fxTitleCardPt1_);
+			Engine::GetInstance().audio->PlayFx(fxTitleCardPt1_, 0, true);
 			pt1Played_ = true;
 		}
 		float elapsed = tutorialTimer_ - pt1Start;
@@ -1178,7 +1178,7 @@ void Scene::UpdateTutorialTextCard(float dt)
 
 	if (tutorialTimer_ > pt2Start) {
 		if (!pt2Played_) {
-			Engine::GetInstance().audio->PlayFx(fxTitleCardPt2_);
+			Engine::GetInstance().audio->PlayFx(fxTitleCardPt2_, 0, true);
 			pt2Played_ = true;
 		}
 		SDL_Color mainColor = { white.r, white.g, white.b, 255 };
@@ -1704,7 +1704,7 @@ void Scene::UpdateGameplay(float dt)
 			showInventory_ = false;
 			isPaused_ = false;
 			SetPauseMenuVisible(false);
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (!isPaused_ && !showMapViewer_) {
 			showInventory_ = true;
@@ -1725,7 +1725,7 @@ void Scene::UpdateGameplay(float dt)
 			else if (stuffed) inventorySel_ = 2;
 			else inventorySel_ = -1;
 
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 	}
 
@@ -1741,7 +1741,7 @@ void Scene::UpdateGameplay(float dt)
 			showInventory_ = false;
 			isPaused_ = false;
 			SetPauseMenuVisible(false);
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (showPauseOptions_) {
 			showPauseOptions_ = false;
@@ -1803,7 +1803,7 @@ void Scene::UpdateGameplay(float dt)
 				{
 					showMemoryViewer_ = false;
 					activeMemoryIndex_ = -1;
-					Engine::GetInstance().audio->PlayFx(menuClickFxId);
+					Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 				}
 				else
 				{
@@ -1812,18 +1812,18 @@ void Scene::UpdateGameplay(float dt)
 					if (mx < frameX + frameW * 0.3f)
 					{
 						activeMemoryPage_ = (activeMemoryPage_ - 1 + pageCount) % pageCount;
-						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+						Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 					}
 					else if (mx > frameX + frameW * 0.7f)
 					{
 						activeMemoryPage_ = (activeMemoryPage_ + 1) % pageCount;
-						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+						Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 					}
 					else
 					{
 						showMemoryViewer_ = false;
 						activeMemoryIndex_ = -1;
-						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+						Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 					}
 				}
 			}
@@ -1836,7 +1836,7 @@ void Scene::UpdateGameplay(float dt)
 			{
 				showMemoryViewer_ = false;
 				activeMemoryIndex_ = -1;
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 
 			// Arrow keys or D-pad to change pages
@@ -1844,13 +1844,13 @@ void Scene::UpdateGameplay(float dt)
 				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_LEFT) == KEY_DOWN)
 			{
 				activeMemoryPage_ = (activeMemoryPage_ - 1 + pageCount) % pageCount;
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 			if (input.GetKey(SDL_SCANCODE_RIGHT) == KEY_DOWN ||
 				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_RIGHT) == KEY_DOWN)
 			{
 				activeMemoryPage_ = (activeMemoryPage_ + 1) % pageCount;
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 		}
 
@@ -2406,7 +2406,7 @@ bool Scene::RequestCheckpointActivation(const std::string& checkpointId, const V
 	if (checkpointId.empty() || IsCheckpointTransitionActive() || isGameOver_ || waitingForFade_)
 		return false;
 
-	Engine::GetInstance().audio->PlayFx(checkpointFxId);
+	Engine::GetInstance().audio->PlayFx(checkpointFxId, 0, true);
 
 	pendingCheckpointId_ = checkpointId;
 	pendingCheckpointSpawn_ = spawnPosition;
@@ -3219,19 +3219,19 @@ void Scene::DrawInventory(int winW, int winH)
 		{
 			inventorySel_ = 0;
 			invRepeatTimer = 250.0f;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (pressUp && slingshot)
 		{
 			inventorySel_ = 1;
 			invRepeatTimer = 250.0f;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (pressRight && stuffed)
 		{
 			inventorySel_ = 2;
 			invRepeatTimer = 250.0f;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 
 		// Equip on A/SOUTH press
@@ -3240,17 +3240,17 @@ void Scene::DrawInventory(int winW, int winH)
 			if (inventorySel_ == 0 && blanket)
 			{
 				player->SetEquippedItem(Player::EquippedItem::BLANKET);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 			else if (inventorySel_ == 1 && slingshot)
 			{
 				player->SetEquippedItem(Player::EquippedItem::SLINGSHOT);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 			else if (inventorySel_ == 2 && stuffed)
 			{
 				player->SetEquippedItem(Player::EquippedItem::STUFFED_ANIMAL);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 		}
 	}
@@ -3261,17 +3261,17 @@ void Scene::DrawInventory(int winW, int winH)
 		if (hoverLeft && blanket)
 		{
 			player->SetEquippedItem(Player::EquippedItem::BLANKET);
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (hoverTop && slingshot)
 		{
 			player->SetEquippedItem(Player::EquippedItem::SLINGSHOT);
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (hoverRight && stuffed)
 		{
 			player->SetEquippedItem(Player::EquippedItem::STUFFED_ANIMAL);
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 	}
 
@@ -3389,21 +3389,21 @@ void Scene::DrawInventory(int winW, int winH)
 			showMemoryViewer_ = true;
 			activeMemoryIndex_ = 0;
 			activeMemoryPage_ = 0;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (hover2)
 		{
 			showMemoryViewer_ = true;
 			activeMemoryIndex_ = 1;
 			activeMemoryPage_ = 0;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (hover3)
 		{
 			showMemoryViewer_ = true;
 			activeMemoryIndex_ = 2;
 			activeMemoryPage_ = 0;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 	}
 
@@ -4105,7 +4105,7 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 {
 	if (waitingForFade_) return;
 
-	Engine::GetInstance().audio->PlayFx(menuClickFxId);
+	Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 
 	switch (uiElement->id)
 	{

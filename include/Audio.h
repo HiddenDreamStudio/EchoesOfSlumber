@@ -33,7 +33,8 @@ public:
 	int LoadFx(const char* path);
 
 	// Play a previously loaded WAV
-	bool PlayFx(int fx, int repeat = 0);
+	bool PlayFx(int fx, int repeat = 0, bool isUI = false);
+	void StopFx();
 
 	// Volume control
     void SetMusicVolume(float volume); // 0.0f - 1.0f
@@ -53,7 +54,8 @@ private:
 
     // Streams
     SDL_AudioStream* music_stream_{ nullptr }; // for background music (single)
-    SDL_AudioStream* sfx_stream_{ nullptr };   // simple shared SFX stream
+    static constexpr int NUM_SFX_CHANNELS = 16;
+    SDL_AudioStream* sfx_channels_[NUM_SFX_CHANNELS]{}; // shared SFX streams
 
     // Loaded sounds
     SoundData music_data_{};
