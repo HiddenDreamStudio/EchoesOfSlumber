@@ -297,12 +297,15 @@ void Render::SetBackgroundColor(SDL_Color color) { background = color; }
 void Render::SetViewPort(const SDL_Rect& rect) { SDL_SetRenderViewport(renderer, &rect); }
 void Render::ResetViewPort() { SDL_SetRenderViewport(renderer, &viewport); }
 
-bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* section, float speed, double angle, int pivotX, int pivotY, SDL_FlipMode flip, float drawScale) const
+bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* section, float speed, double angle, int pivotX, int pivotY, SDL_FlipMode flip, float drawScale, float drawScaleY) const
 {
 	bool ret = true;
 	int scale = Engine::GetInstance().window->GetScale();
 	float s = cameraZoom;
 	if (speed == 0.0f) s = 1.0f; // UI elements don't zoom
+
+	// drawScaleY <= 0 means "use drawScale for the vertical axis too" (uniform scale, the common case)
+	float scaleY = (drawScaleY > 0.0f) ? drawScaleY : drawScale;
 
 	SDL_FRect rect;
 	// Apply world-space zoom centered at the dynamic zoomCenter
@@ -311,7 +314,7 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 
 	if (section != NULL) {
 		rect.w = (float)(section->w * scale * drawScale * s);
-		rect.h = (float)(section->h * scale * drawScale * s);
+		rect.h = (float)(section->h * scale * scaleY * s);
 	} else {
 		int tw, th;
 		Engine::GetInstance().textures->GetSize(texture, tw, th);
