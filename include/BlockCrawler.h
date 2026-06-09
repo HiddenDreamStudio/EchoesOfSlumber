@@ -45,6 +45,18 @@ private:
 	void EnterState(State newState);
 	void Draw();
 	void UpdatePhysicsForCurrentFrame();
+	void PlayBlockCrawlerFx(int fxId);
+
+private:
+	int moveFxId_ = -1;
+	int apilarFxId_ = -1;
+	int desapilarFxId_ = -1;
+	int hitFxId_ = -1;
+	int dieFxId_ = -1;
+	int noDamageFxId_ = -1;
+	
+	float moveFxTimer_ = 0.0f;
+	float moveFxInterval_ = 320.0f; // move.wav length
 
 private:
 	State currentState_ = State::MOVE;
