@@ -557,16 +557,21 @@ body {
 .dl-btn-inner-shadow {
     position: absolute;
     inset: 0;
-    border-radius: inherit;
-    box-shadow: inset 0 146px 4px 0 #487cb7;
+    background-color: #487cb7;
+    -webkit-mask-image: url('../images/boto1-141.png');
+    mask-image: url('../images/boto1-141.png');
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
     pointer-events: none;
     z-index: -1;
+    mix-blend-mode: multiply;
 }
 .dl-btn-inner-full {
     position: absolute;
     inset: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem;
     pointer-events: none;
+    z-index: 1;
 }
 .dl-icon-full { width: 20px; height: auto; margin-bottom: 0.1rem; }
 .dl-btn-label-full {
@@ -643,11 +648,14 @@ body {
 .sil-inner {
     position: absolute;
     inset: 0;
-    background-color: lightgray;
-    background-position: 50%;
-    background-size: cover;
-    background-repeat: no-repeat;
-    border-radius: inherit;
+    -webkit-mask-image: var(--bg-img);
+    mask-image: var(--bg-img);
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-position: bottom;
+    mask-position: bottom;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
 }
 
 /* Blue border line at top of footer, like image 1 */
