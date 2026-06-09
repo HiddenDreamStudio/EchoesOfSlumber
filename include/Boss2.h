@@ -70,6 +70,8 @@ private:
 
     Boss2State state_      = Boss2State::WAITING;
     float      stateTimer_ = 0.0f;
+    float      deathTeleportTimer_ = 0.0f; // counts up once the death animation finishes
+    bool       deathSequenceDone_  = false; // guards the teleport/portal-seal so they fire exactly once
     float      attackDir_  = 1.0f;  // +1 = right, -1 = left (toward player, fixed at fight start)
 
     // ── Extra physics bodies ──────────────────────────────────────────────────
@@ -136,6 +138,7 @@ private:
     static constexpr float EXPOSE_DURATION  = 3000.0f;
     static constexpr float STUN_DURATION    =  500.0f;
     static constexpr float DEATH_DURATION   = 1500.0f;
+    static constexpr float DEATH_TELEPORT_DELAY = 2000.0f; // ms after the death animation finishes before returning the player to the hub
 
     // ── Timers (phase 2 overrides) ────────────────────────────────────────────
     static constexpr float CHARGE_DURATION_P2       =  500.0f;
