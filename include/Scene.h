@@ -317,7 +317,7 @@ private:
     SDL_Texture* texBossBarFull_      = nullptr;
     SDL_Texture* texBossBarIndicator_ = nullptr;
 
-    void UpdateBossFight();
+    void UpdateBossFight(float dt);
     void DrawBossHUD(int winW, int winH);
 
     // Health HUD (supports up to 6 health slots depending on level/fase)
