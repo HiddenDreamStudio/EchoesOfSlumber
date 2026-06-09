@@ -643,7 +643,6 @@ body {
 }
 .sil {
     position: absolute;
-    opacity: 0.2;
     pointer-events: none;
 }
 .sil.sil-flip {
