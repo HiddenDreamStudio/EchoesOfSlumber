@@ -84,6 +84,7 @@ public:
     PhysBody* CreateCircleSensor(int x, int y, int radious, bodyType type);
     PhysBody* CreateChain(int x, int y, int* points, int size, bodyType type, float friction = 0.6f);
     PhysBody* CreateConvexPolygon(int x, int y, int* points, int size, bodyType type, float friction = 0.6f);
+    void UpdateConvexPolygon(PhysBody* physBody, int* points, int size, float scale = 1.0f, float friction = 0.6f, bool isSensor = false);
 
     // Invoked from our event processing
     void BeginContact(b2ShapeId shapeA, b2ShapeId shapeB);
