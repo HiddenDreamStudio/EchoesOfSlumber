@@ -78,6 +78,30 @@ bool Player::Start() {
 	texH = 128;
 	drawScale = 0.5f;
 
+	// Load individual hide animation
+	hideTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Hide.png");
+	if (hideTexture_) {
+		int hideW = 0, hideH = 0;
+		Engine::GetInstance().textures->GetSize(hideTexture_, hideW, hideH);
+		int cols = 4;
+		int rows = 3;
+		int frameW = hideW / cols;
+		int frameH = hideH / rows;
+		int totalFrames = 12;
+		// Forward: crouching (frames 0 → 11)
+		for (int i = 0; i < totalFrames; ++i) {
+			SDL_Rect r = { (i % cols) * frameW, (i / cols) * frameH, frameW, frameH };
+			hideAnim_.AddFrame(r, 80);
+		}
+		hideAnim_.SetLoop(false);
+		// Reverse: standing up (frames 11 → 0)
+		for (int i = totalFrames - 1; i >= 0; --i) {
+			SDL_Rect r = { (i % cols) * frameW, (i / cols) * frameH, frameW, frameH };
+			hideExitAnim_.AddFrame(r, 80);
+		}
+		hideExitAnim_.SetLoop(false);
+	}
+
 	// Load push animation spritesheet (256x256 tiles, 5 columns, 20 frames)
 	pushTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/spritesheetempujarcaja.png");
 	for (int i = 0; i < 20; ++i) {
@@ -632,7 +656,7 @@ void Player::Hide(float dt)
 	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
-	bool hideDown = input->GetKey(SDL_SCANCODE_H) == KEY_DOWN ||
+	bool hideDown = input->GetKey(SDL_SCANCODE_E) == KEY_DOWN ||
 		input->GetGamepadButton(SDL_GAMEPAD_BUTTON_NORTH) == KEY_DOWN;
 
 	// Cannot hide without the blanket (cape collectible) or if it's not equipped
@@ -657,8 +681,7 @@ void Player::Hide(float dt)
 			isHiding_ = true;
 			velocity.x = 0.0f;
 			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
-			anims.SetCurrent("hide");
-			anims.ResetCurrent();
+			hideAnim_.Reset();
 			Engine::GetInstance().audio->PlayFx(capeFxId);
 			LOG("Player hiding");
 		}
@@ -666,7 +689,8 @@ void Player::Hide(float dt)
 		{
 			isHiding_ = false;
 			isExitingHide_ = true;
-			hideCooldown_ = HIDE_COOLDOWN; // cooldown starts on exit
+			hideExitAnim_.Reset(); // start stand-up animation from frame 0 (= crouched pose)
+			hideCooldown_ = HIDE_COOLDOWN;
 			Engine::GetInstance().audio->PlayFx(capeFxId);
 			LOG("Player exiting hide — cooldown started (%.0f ms)", HIDE_COOLDOWN);
 		}
@@ -675,21 +699,13 @@ void Player::Hide(float dt)
 	if (isHiding_)
 	{
 		velocity.x = 0.0f;
-		if (!anims.HasFinishedOnce("hide"))
-			anims.Update(dt);
+		// hideAnim_ is advanced in Draw() to avoid double-update
 	}
 
 	if (isExitingHide_)
 	{
 		velocity.x = 0.0f;
-		anims.UpdateBackwards(dt);
-
-		if (anims.GetCurrentFrameIndex() == 0)
-		{
-			isExitingHide_ = false;
-			anims.SetCurrent("idle");
-			LOG("Player stopped hiding");
-		}
+		// hideAnim_ is advanced backwards in Draw() to avoid double-update
 	}
 }
 
@@ -999,8 +1015,29 @@ void Player::Draw(float dt) {
 	}
 	else if (isHiding_ || isHidingBehindRock_ || isExitingHide_)
 	{
-		// Hide animation is advanced inside Hide() — just grab the current frame
-		animFrame = &anims.GetCurrentFrame();
+		if (isExitingHide_)
+		{
+			// Stand-up: play hideExitAnim_ (= SS_Hide reversed) forward
+			hideExitAnim_.Update(dt);
+			animFrame = &hideExitAnim_.GetCurrentFrame();
+			LOG("ExitHide frame=%d w=%d h=%d", hideExitAnim_.GetCurrentFrameIndex(), animFrame->w, animFrame->h);
+			if (hideExitAnim_.HasFinishedOnce())
+			{
+				isExitingHide_ = false;
+				anims.SetCurrent("idle");
+				LOG("ExitHide done -> idle");
+			}
+		}
+		else
+		{
+			// Crouching: play hideAnim_ forward
+			if (!hideAnim_.HasFinishedOnce())
+				hideAnim_.Update(dt);
+			animFrame = &hideAnim_.GetCurrentFrame();
+		}
+		activeTex = hideTexture_;
+		float fw = static_cast<float>(animFrame ? animFrame->w : 0);
+		currentDrawScale = (fw > 0.0f) ? (128.0f / fw) : 0.5f;
 	}
 	else if (isPushing_ && velocity.x != 0.0f && !isJumping)
 	{
@@ -1247,6 +1284,11 @@ void Player::Attack(float dt)
 
 void Player::TakeDamage(int damage)
 {
+	TakeDamage(damage, false);
+}
+
+void Player::TakeDamage(int damage, bool applyKnockback)
+{
 	// Cannot take damage while hiding, sleeping, waking up, throwing the bear, or transforming
 	if (isInvincible_ || isHiding_ || isHidingBehindRock_ || isKidSleeping_ || isWakingUp || isThrowingBear_ || isBearTransforming_) return;
 
@@ -1280,10 +1322,14 @@ void Player::TakeDamage(int damage)
 		if (enemyDirX < 0)      facingRight = true;
 		else if (enemyDirX > 0) facingRight = false;
 
-		float knockbackForce = 5.0f;
-		float dir = facingRight ? 1.0f : -1.0f;
-		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
-		Engine::GetInstance().audio->PlayFx(bearDamageFxId);
+		if (applyKnockback) {
+			float knockbackForce = 16.0f;
+			float dir = facingRight ? 1.0f : -1.0f;
+			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -4.0f, true);
+			Engine::GetInstance().audio->PlayFx(bearDamageFxId);
+			knockbackX_ = dir * knockbackForce;
+			knockbackTimer_ = 200.0f;
+		}
 
 		if (bearHealth_ <= 0) {
 			bearHealth_ = 0;
@@ -1341,9 +1387,13 @@ void Player::TakeDamage(int damage)
 	chargeTimer_ = 0.0f;
 	slingshotCharged_ = false;
 
-	float knockbackForce = 5.0f;
-	float dir = facingRight ? 1.0f : -1.0f;
-	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
+	if (applyKnockback) {
+		float knockbackForce = 16.0f;
+		float dir = facingRight ? 1.0f : -1.0f;
+		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -4.0f, true);
+		knockbackX_ = dir * knockbackForce;
+		knockbackTimer_ = 200.0f;
+	}
 
 	if (health <= 0)
 	{
@@ -1609,12 +1659,13 @@ void Player::SetHidingBehindRock(bool hiding) {
 	if (hiding) {
 		velocity.x = 0.0f;
 		Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
-		anims.SetCurrent("hide");
-		anims.ResetCurrent();
+		hideAnim_.Reset();
 		LOG("Player hiding behind rock");
 	} else {
-		anims.SetCurrent("idle");
-		LOG("Player stopped hiding behind rock");
+		// Play stand-up animation instead of snapping to idle
+		isExitingHide_ = true;
+		hideExitAnim_.Reset();
+		LOG("Player stopped hiding behind rock — playing stand-up anim");
 	}
 }
 

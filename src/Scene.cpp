@@ -268,7 +268,8 @@ void Scene::LoadMainMenu()
 	texMenuChild_ = Engine::GetInstance().textures->Load("assets/textures/Menu/IL_NenFront_01.png");
 	texMenuButton_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
 	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
-	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_NEW_Sound_Menu_Base.png");
+	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
+	texSettingsPause_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
 
 	const char* fragPaths[NUM_FRAGMENTS] = {
 		"assets/textures/Menu/UI_Fragment1.png",
@@ -338,12 +339,13 @@ void Scene::LoadMainMenu()
 
 void Scene::UnloadMainMenu()
 {
-	Engine::GetInstance().uiManager->CleanUp();
+		Engine::GetInstance().uiManager->CleanUp();
 	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_);                       texMenuLogo_ = nullptr; }
 	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_);  texMenuChild_ = nullptr; }
 	if (texMenuButton_) { Engine::GetInstance().textures->UnLoad(texMenuButton_); texMenuButton_ = nullptr; }
 	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
 	if (texSettingsBase_) { Engine::GetInstance().textures->UnLoad(texSettingsBase_); texSettingsBase_ = nullptr; }
+	if (texSettingsPause_) { Engine::GetInstance().textures->UnLoad(texSettingsPause_); texSettingsPause_ = nullptr; }
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		if (fragments_[i].tex) { Engine::GetInstance().textures->UnLoad(fragments_[i].tex); fragments_[i].tex = nullptr; }
 	}
@@ -610,63 +612,67 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 	// Draw the base panel image centered in the left half
 	const int leftHalf = winW / 2;
 
-	// Panel image is 840x544, scale to fit nicely in the left half
-	const float panelScale = (float)leftHalf * 0.85f / 840.0f;
+	// Render texture using the original 840.0f width, but make it significantly taller (780.0f height)
+	const float panelScale = (float)leftHalf / 840.0f * 0.85f;
 	const int panelImgW = (int)(840.0f * panelScale);
-	const int panelImgH = (int)(544.0f * panelScale);
+	const int panelImgH = (int)(780.0f * panelScale);
 	const int panelImgX = (leftHalf - panelImgW) / 2;
 	const int panelImgY = (winH - panelImgH) / 2;
 
+	// Shift the background texture up slightly so texts sit better in the white space
+	const int panelRenderY = panelImgY - (int)(100.0f * panelScale);
+
 	if (texSettingsBase_) {
-		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelImgY, panelImgW, panelImgH, alpha);
+		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelRenderY, panelImgW, panelImgH, alpha);
 	}
 
-	// Calculate correct positions corresponding to the pre-drawn icons on the board texture
-	const int trackX = panelImgX + (int)(panelImgW * 0.45f);
-	const int trackW = (int)(panelImgW * 0.40f);
+	// Track area — aligned with the panel's icon positions
+	const int trackX = panelImgX + (int)(panelImgW * 0.44f);
+	const int trackW = (int)(panelImgW * 0.42f);
 
-	const int row0Y = panelImgY + (int)(panelImgH * 0.34f); // MUSIC (Icon 1: Musical Note)
-	const int row1Y = panelImgY + (int)(panelImgH * 0.58f); // SOUNDS (Icon 2: Speaker)
-	const int row2Y = panelImgY + (int)(panelImgH * 0.82f); // DISPLAY (Icon 3: Monitor)
+	// Better-spaced rows to avoid overlap with panel icons
+	const int row0Y = panelImgY + (int)(panelImgH * 0.32f); // MUSIC
+	const int row1Y = panelImgY + (int)(panelImgH * 0.48f); // SOUNDS
+	const int row2Y = panelImgY + (int)(panelImgH * 0.62f); // DISPLAY
 
 	SDL_Color labelColor = { 40, 55, 70, alpha };
 	SDL_Color valColor   = { 30, 45, 60, alpha };
 
-	// Row 0: MUSIC
+	// --- Row 0: MUSIC ---
 	render.DrawMenuTextCentered("MUSIC", { trackX, row0Y, trackW / 2, 20 }, labelColor);
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(musicVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row0Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect mBarBg = { trackX, row0Y + 30, trackW, 8 };
+	SDL_Rect mBarBg = { trackX, row0Y + 25, trackW, 6 };
 	render.DrawRectangle(mBarBg, 10, 15, 25, alpha, true, false);
 	int mFill = static_cast<int>(static_cast<float>(trackW) * musicVolume_);
-	SDL_Rect mBarFill = { trackX, row0Y + 30, mFill, 8 };
+	SDL_Rect mBarFill = { trackX, row0Y + 25, mFill, 6 };
 	render.DrawRectangle(mBarFill, 100, 180, 255, alpha, true, false);
-	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 26, 10, 16 };
+	SDL_Rect mKnob = { trackX + mFill - 4, row0Y + 22, 8, 12 };
 	render.DrawRectangle(mKnob, 200, 220, 255, alpha, true, false);
 
-	// Row 1: SOUNDS
+	// --- Row 1: SOUNDS ---
 	render.DrawMenuTextCentered("SOUNDS", { trackX, row1Y, trackW / 2, 20 }, labelColor);
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(sfxVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row1Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect sBarBg = { trackX, row1Y + 30, trackW, 8 };
+	SDL_Rect sBarBg = { trackX, row1Y + 25, trackW, 6 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, alpha, true, false);
 	int sFill = static_cast<int>(static_cast<float>(trackW) * sfxVolume_);
-	SDL_Rect sBarFill = { trackX, row1Y + 30, sFill, 8 };
+	SDL_Rect sBarFill = { trackX, row1Y + 25, sFill, 6 };
 	render.DrawRectangle(sBarFill, 100, 180, 255, alpha, true, false);
-	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 26, 10, 16 };
+	SDL_Rect sKnob = { trackX + sFill - 4, row1Y + 22, 8, 12 };
 	render.DrawRectangle(sKnob, 200, 220, 255, alpha, true, false);
 
-	// Row 2: DISPLAY
+	// --- Row 2: DISPLAY ---
 	render.DrawMenuTextCentered("DISPLAY", { trackX, row2Y, trackW, 20 }, labelColor);
 
 	const char* modeNames[] = { "WINDOWED", "FULLSCREEN", "BORDERLESS" };
 	int arrowW = 30;
-	SDL_Rect leftArrowArea  = { trackX + 10, row2Y + 28, arrowW, 30 };
-	SDL_Rect modeArea       = { trackX + 10 + arrowW, row2Y + 28, trackW - 20 - arrowW * 2, 30 };
-	SDL_Rect rightArrowArea = { trackX + trackW - 10 - arrowW, row2Y + 28, arrowW, 30 };
+	SDL_Rect leftArrowArea  = { trackX - 10, row2Y + 24, arrowW, 26 }; // Moved further left
+	SDL_Rect modeArea       = { trackX + arrowW, row2Y + 24, trackW - arrowW * 2, 26 };
+	SDL_Rect rightArrowArea = { trackX + trackW - arrowW + 10, row2Y + 24, arrowW, 26 }; // Moved further right
 
 	SDL_Color arrowColor = { 100, 180, 255, alpha };
 	render.DrawMenuTextCentered("<", leftArrowArea, arrowColor);
@@ -1207,6 +1213,12 @@ void Scene::UpdateLoading(float dt)
 	if (loadingTimer_ > 800.0f && !mapLoadingFinished_) {
 		int index = targetLevelIndex_;
 		if (index >= 0 && (size_t)index < levels_.size()) {
+			// Save player progress before destroying old player
+			bool savedHasBlanket = capaCollected_;
+			bool savedHasSlingshot = slingshotCollected_;
+			bool savedHasStuffedAnimal = stuffedAnimalCollected_;
+			int savedHealth = player ? player->health : 3;
+
 			player.reset();
 			Engine::GetInstance().entityManager->CleanUp();
 			Engine::GetInstance().physics->FlushPendingDeletes();
@@ -1236,9 +1248,20 @@ void Scene::UpdateLoading(float dt)
 			if (healthSlotCount_ > MAX_HEALTH_SLOTS) healthSlotCount_ = MAX_HEALTH_SLOTS;
 			if (player) {
 				player->maxHealth = healthSlotCount_;
-				player->health = healthSlotCount_;
+				// For level transitions (not first load), preserve health up to the new max
+				if (currentLevelIndex_ > 0 && savedHealth > 0) {
+					player->health = std::min(savedHealth, healthSlotCount_);
+				} else {
+					player->health = healthSlotCount_;
+				}
+				// Restore collected items from previous level
+				player->SetHasBlanket(savedHasBlanket);
+				player->SetHasSlingshot(savedHasSlingshot);
 			}
-			currentHealthUI_ = healthSlotCount_;
+			capaCollected_ = savedHasBlanket;
+			slingshotCollected_ = savedHasSlingshot;
+			stuffedAnimalCollected_ = savedHasStuffedAnimal;
+			currentHealthUI_ = player ? player->health : healthSlotCount_;
 			activeHealthAnim_ = 0;
 			isGameOver_ = false;
 			inGameIntroActive_ = false;
@@ -1254,6 +1277,43 @@ void Scene::UpdateLoading(float dt)
 				}
 				hasPendingLevelSpawn_ = false;
 				pendingLevelSpawnId_ = "";
+			}
+
+			
+			isLvl3Map_ = (currentMapFile_ == "Map3.tmx");
+			isLvl3Puzzle_ = false;
+			isPuzzleMap3Lever_ = isLvl3Map_;
+			isPuzzleMap3Buttons_ = false;
+
+			if (isLvl3Map_) {
+				if (!puzzleManager3_) puzzleManager3_ = new PuzzleManager3();
+				puzzleManager3_->Init(Engine::GetInstance().render->renderer);
+
+				LeverData3 lever;
+				SDL_FRect blockedPortal = { 0, 0, 48, 96 };
+
+				for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects()) {
+					if (obj.name == "Lever") lever.worldRect = obj.rect;
+				}
+				for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+					if (portal.spawnId == "PuzzleMain") {
+						blockedPortal = { portal.x, portal.y, portal.w, portal.h };
+						break;
+					}
+				}
+				
+				SDL_FRect portalA = { 0,0,0,0 }, portalB = { 0,0,0,0 };
+				for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+					if (portal.spawnId == "A") portalA = { portal.x, portal.y, portal.w, portal.h };
+					if (portal.spawnId == "B") portalB = { portal.x, portal.y, portal.w, portal.h };
+				}
+				puzzleManager3_->LoadExtraPortals(portalA, portalB);
+				puzzleManager3_->LoadLever(lever, blockedPortal);
+				LOG("PUZZLE3: Init en LoadMap. Palanca (%.0f,%.0f) Portal (%.0f,%.0f)",
+					lever.worldRect.x, lever.worldRect.y, blockedPortal.x, blockedPortal.y);
+			}
+			else {
+				if (puzzleManager3_) { delete puzzleManager3_; puzzleManager3_ = nullptr; }
 			}
 
 			mapLoadingFinished_ = true;
@@ -2088,7 +2148,52 @@ void Scene::UpdateGameplay(float dt)
 		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
 		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
-	if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
+if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
+
+if (isPuzzleMap_ && puzzleManager_ && player && !isPaused_ && !isGameOver_) {
+    SDL_FRect pRect = {
+        player->position.getX(),
+        player->position.getY(),
+        48.0f,
+        80.0f
+    };
+    float camX = Engine::GetInstance().render->camera.x;
+    float camY = Engine::GetInstance().render->camera.y;
+    float pScrX = player->position.getX() + camX + 24.0f;
+    float pScrY = player->position.getY() + camY + 40.0f;
+    puzzleManager_->Update(dt, pRect, pScrX, pScrY);
+
+    if (puzzleManager_->IsTimedOut() && !puzzleTimeoutPending_) {
+        puzzleTimeoutPending_ = true;
+        waitingForFade_ = true;
+        pendingSubMapLoad_ = true;
+        subMapTarget_ = currentMapFile_;
+        Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 600.0f);
+    }
+}
+
+if (puzzleManager3_ && player && !isPaused_ && !isGameOver_) {
+	SDL_FRect pRect = {
+		player->position.getX(),
+		player->position.getY(),
+		48.0f, 80.0f
+	};
+
+	if (isLvl3Map_) {
+		bool keyP = Engine::GetInstance().input->GetKey(SDL_SCANCODE_P) == KEY_DOWN;
+		puzzleManager3_->UpdateLever(dt, pRect, keyP);
+	}
+
+	if (isLvl3Puzzle_) {
+		// Mouse en world space
+		Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
+		float mwx = mousePos.getX() - Engine::GetInstance().render->camera.x;
+		float mwy = mousePos.getY() - Engine::GetInstance().render->camera.y;
+		bool click = Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN;
+		puzzleManager3_->UpdateButtons(dt, pRect, mwx, mwy, click);
+	}
+}
+// --- FIN PUZZLE3 UPDATE ---
 
 	// Draw cape collectible in-world
 	if (!capaCollected_ && texCapaCollectible_)
@@ -2111,6 +2216,9 @@ void Scene::UpdateGameplay(float dt)
 
 void Scene::UpdateBossFight(float dt)
 {
+    if (videoSkipCooldown_ > 0.0f) {
+        videoSkipCooldown_ -= dt;
+    }
     // ── End-game final cinematic: fade to black, play video, go to main menu ──
     if (endGameFading_)
     {
@@ -2127,10 +2235,13 @@ void Scene::UpdateBossFight(float dt)
     if (endGameVideoActive_)
     {
         auto& input = *Engine::GetInstance().input;
-        bool skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
-                             input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
-                             input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
-                             Engine::GetInstance().cinematics->HasSkipBeenRequested();
+        bool skipRequested = false;
+        if (videoSkipCooldown_ <= 0.0f) {
+            skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
+                            Engine::GetInstance().cinematics->HasSkipBeenRequested();
+        }
 
         if (skipRequested || !Engine::GetInstance().cinematics->IsPlaying())
         {
@@ -2138,6 +2249,41 @@ void Scene::UpdateBossFight(float dt)
                 Engine::GetInstance().cinematics->StopVideo();
             }
             endGameVideoActive_ = false;
+            
+            // Queue next video: Credits
+            creditsVideoActive_ = true;
+            videoSkipCooldown_ = 1000.0f; // 1 second cooldown
+            Engine::GetInstance().cinematics->PlayVideo("assets/video/Credits_Videos.mp4");
+            Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
+        }
+        else 
+        {
+            // Draw "Press SPACE to Skip" overlay while playing
+            int winW = 0, winH = 0;
+            Engine::GetInstance().window->GetWindowSize(winW, winH);
+            SDL_Color skipColor = { 255, 255, 255, 120 };
+            Engine::GetInstance().render->DrawMenuTextCentered("Press SPACE to Skip", { winW - 300, winH - 60, 280, 30 }, skipColor, 0.4f);
+        }
+        return;
+    }
+
+    if (creditsVideoActive_)
+    {
+        auto& input = *Engine::GetInstance().input;
+        bool skipRequested = false;
+        if (videoSkipCooldown_ <= 0.0f) {
+            skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
+                            Engine::GetInstance().cinematics->HasSkipBeenRequested();
+        }
+
+        if (skipRequested || !Engine::GetInstance().cinematics->IsPlaying())
+        {
+            if (skipRequested) {
+                Engine::GetInstance().cinematics->StopVideo();
+            }
+            creditsVideoActive_ = false;
             
             // Queue immediate scene change to MAIN MENU
             hasPendingSceneChange = true;
@@ -2292,6 +2438,19 @@ void Scene::DrawBossHUD(int winW, int winH)
 
 void Scene::UnloadGameplay()
 {
+	if (puzzleManager_) {
+		delete puzzleManager_;
+		puzzleManager_ = nullptr;
+	}
+	isPuzzleMap_ = false;
+
+	if (puzzleManager3_) {
+		delete puzzleManager3_;
+		puzzleManager3_ = nullptr;
+	}
+	isPuzzleMap3Lever_ = false;
+	isPuzzleMap3Buttons_ = false;
+
 	Engine::GetInstance().uiManager->CleanUp();
 	player.reset();
 	Engine::GetInstance().entityManager->CleanUp();
@@ -2622,6 +2781,23 @@ void Scene::PostUpdateGameplay()
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
 		DrawBottomFog(winW, winH);
+	}
+
+
+	if (isPuzzleMap_ && puzzleManager_) {
+		float camX = Engine::GetInstance().render->camera.x;
+		float camY = Engine::GetInstance().render->camera.y;
+		puzzleManager_->Render(Engine::GetInstance().render->renderer, camX, camY);
+	}
+
+	if ((isLvl3Map_ || isLvl3Puzzle_) && puzzleManager3_) {
+		float camX = Engine::GetInstance().render->camera.x;
+		float camY = Engine::GetInstance().render->camera.y;
+		int winW, winH;
+		SDL_GetRenderOutputSize(Engine::GetInstance().render->renderer, &winW, &winH);
+		puzzleManager3_->RenderLever(Engine::GetInstance().render->renderer, camX, camY);
+		puzzleManager3_->RenderButtons(Engine::GetInstance().render->renderer, camX, camY);
+		puzzleManager3_->RenderFlash(Engine::GetInstance().render->renderer, winW, winH);
 	}
 
 	// --- Draw Health HUD ---
@@ -3110,6 +3286,14 @@ void Scene::PostUpdateGameplay()
 	}
 	else if (isPaused_ && !showInventory_) {
 		DrawPauseMenu();
+	}
+
+	// Make sure the game is hidden while videos are playing
+	if (endGameVideoActive_ || creditsVideoActive_ || bossDeathVideoActive_) {
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		SDL_Rect fullscreen = { 0, 0, winW, winH };
+		Engine::GetInstance().render->DrawRectangle(fullscreen, 0, 0, 0, 255, true, false);
 	}
 } 
 		// ── Inventory ─────────────────────────────────────────────────────────────────
@@ -3602,25 +3786,30 @@ void Scene::DrawMapViewer(int winW, int winH)
 	SDL_Rect fullBg = { 0, 0, winW, winH };
 	render.DrawRectangle(fullBg, 5, 8, 15, 240, true, false);
 
-	SDL_Rect titleBar = { 0, 0, winW, 36 };
+	// Title bar — tall enough so text isn't clipped
+	const int titleBarH = 60;
+	SDL_Rect titleBar = { 0, 0, winW, titleBarH };
 	render.DrawRectangle(titleBar, 10, 16, 30, 255, true, false);
-	SDL_Rect titleAccent = { 0, 34, winW, 2 };
+	SDL_Rect titleAccent = { 0, titleBarH - 2, winW, 2 };
 	render.DrawRectangle(titleAccent, 80, 140, 200, 255, true, false);
-	render.DrawMenuTextCentered("MAP", { 0, 2, winW, 30 }, { 180, 210, 240, 255 });
+	render.DrawMenuTextCentered("MAP", { 0, 10, winW, 40 }, { 180, 210, 240, 255 });
 
-	SDL_Rect hintBar = { 0, winH - 28, winW, 28 };
+	// Bottom hint bar — taller to avoid text clipping
+	const int hintBarH = 44;
+	SDL_Rect hintBar = { 0, winH - hintBarH, winW, hintBarH };
 	render.DrawRectangle(hintBar, 10, 16, 30, 220, true, false);
 	if (Engine::GetInstance().input->IsGamepadConnected())
 		render.DrawText("L-Stick: pan  |  R2: zoom in  |  L2: zoom out  |  West: buy map  |  Touchpad: back",
-			winW / 2 - 340, winH - 22, 0, 0, { 120, 160, 200, 200 });
+			winW / 2 - 340, winH - hintBarH + 12, 0, 0, { 120, 160, 200, 200 });
 	else
 		render.DrawText("Left click + drag: pan  |  +/-: zoom  |  M: buy map  |  ESC: back",
-			winW / 2 - 290, winH - 22, 0, 0, { 120, 160, 200, 200 });
+			winW / 2 - 290, winH - hintBarH + 12, 0, 0, { 120, 160, 200, 200 });
 
+	// Map viewport area — inset between the bars with a small margin
 	const int viewX = 10;
-	const int viewY = 42;
+	const int viewY = titleBarH + 4;
 	const int viewW = winW - 20;
-	const int viewH = winH - 42 - 30;
+	const int viewH = winH - viewY - hintBarH - 4;
 
 	SDL_Rect clipRect = { viewX * scale, viewY * scale, viewW * scale, viewH * scale };
 	SDL_SetRenderClipRect(render.renderer, &clipRect);
@@ -3881,7 +4070,8 @@ void Scene::LoadPauseMenuButtons()
 	texPauseButtonWhite_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
 	texPauseButtonBlack_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_black.png");
 	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
-	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_NEW_Sound_Menu_Base.png");
+	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
+	texSettingsPause_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
 
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
@@ -3917,6 +4107,17 @@ void Scene::LoadPauseMenuButtons()
 		btnMenu->SetHoverTexture(texButtonFragmented_);
 		btnCont->SetHoverTexture(texButtonFragmented_);
 	}
+
+	// Create Back button for the Options Panel
+	SDL_Rect backOptPos = { winW / 2 - btnW / 2, winH / 2 + 185, btnW, btnH }; // Lowered by 25 pixels
+	auto btnOptBack = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_BACK, "back", backOptPos, this);
+	if (btnOptBack) {
+		btnOptBack->isVisible = false;
+		btnOptBack->state = UIElementState::DISABLED;
+		if (texPauseButtonWhite_) btnOptBack->SetTexture(texPauseButtonWhite_);
+		if (texButtonFragmented_) btnOptBack->SetHoverTexture(texButtonFragmented_);
+	}
+
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = winH / 2 - 100;
@@ -4026,23 +4227,29 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 {
 	auto& render = *Engine::GetInstance().render;
 
-	// Panel image is 840x544, scale to fit nicely centered on screen
-	const float panelScale = (float)winW * 0.45f / 840.0f;
+	// Render texture using the original 840.0f width, but make it significantly taller (780.0f height)
+	const float panelScale = (float)winW * 0.50f / 840.0f;
 	const int panelImgW = (int)(840.0f * panelScale);
-	const int panelImgH = (int)(544.0f * panelScale);
+	const int panelImgH = (int)(780.0f * panelScale);
 	const int panelImgX = (winW - panelImgW) / 2;
 	const int panelImgY = (winH - panelImgH) / 2;
 
-	if (texSettingsBase_) {
-		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelImgY, panelImgW, panelImgH, 255);
+	// Shift the background texture up slightly so texts sit better in the white space
+	const int panelRenderY = panelImgY - (int)(100.0f * panelScale);
+
+	if (texSettingsPause_) {
+		SDL_FRect pRect = { (float)panelImgX, (float)panelRenderY, (float)panelImgW, (float)panelImgH };
+		SDL_RenderTexture(render.renderer, texSettingsPause_, nullptr, &pRect);
 	}
 
-	const int trackX = panelImgX + (int)(panelImgW * 0.45f);
-	const int trackW = (int)(panelImgW * 0.40f);
+	// Track area for sliders and controls — positioned to align with panel icons
+	const int trackX = panelImgX + (int)(panelImgW * 0.44f);
+	const int trackW = (int)(panelImgW * 0.42f);
 
-	const int row0Y = panelImgY + (int)(panelImgH * 0.34f); // MUSIC (Icon 1: Musical Note)
-	const int row1Y = panelImgY + (int)(panelImgH * 0.58f); // SOUNDS (Icon 2: Speaker)
-	const int row2Y = panelImgY + (int)(panelImgH * 0.82f); // DISPLAY (Icon 3: Monitor)
+	// 3 rows evenly distributed
+	const int row0Y = panelImgY + (int)(panelImgH * 0.33f); // MUSIC
+	const int row1Y = panelImgY + (int)(panelImgH * 0.49f); // SOUNDS
+	const int row2Y = panelImgY + (int)(panelImgH * 0.62f); // DISPLAY
 
 	// Handle input and close menu if Back clicked/button pressed
 	if (HandleVolumeSliderInput(trackX, trackW, row0Y, row1Y, row2Y)) {
@@ -4054,46 +4261,86 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	SDL_Color labelColor = { 40, 55, 70, 255 };
 	SDL_Color valColor   = { 30, 45, 60, 255 };
 
-	// Row 0: MUSIC
+	// --- Row 0: MUSIC ---
 	render.DrawMenuTextCentered("MUSIC", { trackX, row0Y, trackW / 2, 20 }, labelColor);
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(musicVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row0Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect mBarBg = { trackX, row0Y + 30, trackW, 8 };
+	SDL_Rect mBarBg = { trackX, row0Y + 25, trackW, 6 };
 	render.DrawRectangle(mBarBg, 10, 15, 25, 255, true, false);
 	int mFill = static_cast<int>(static_cast<float>(trackW) * musicVolume_);
-	SDL_Rect mBarFill = { trackX, row0Y + 30, mFill, 8 };
+	SDL_Rect mBarFill = { trackX, row0Y + 25, mFill, 6 };
 	render.DrawRectangle(mBarFill, 100, 180, 255, 255, true, false);
-	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 26, 10, 16 };
+	SDL_Rect mKnob = { trackX + mFill - 4, row0Y + 22, 8, 12 };
 	render.DrawRectangle(mKnob, 200, 220, 255, 255, true, false);
 
-	// Row 1: SOUNDS
+	// --- Row 1: SOUNDS ---
 	render.DrawMenuTextCentered("SOUNDS", { trackX, row1Y, trackW / 2, 20 }, labelColor);
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(sfxVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row1Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect sBarBg = { trackX, row1Y + 30, trackW, 8 };
+	SDL_Rect sBarBg = { trackX, row1Y + 25, trackW, 6 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, 255, true, false);
 	int sFill = static_cast<int>(static_cast<float>(trackW) * sfxVolume_);
-	SDL_Rect sBarFill = { trackX, row1Y + 30, sFill, 8 };
+	SDL_Rect sBarFill = { trackX, row1Y + 25, sFill, 6 };
 	render.DrawRectangle(sBarFill, 100, 180, 255, 255, true, false);
-	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 26, 10, 16 };
+	SDL_Rect sKnob = { trackX + sFill - 4, row1Y + 22, 8, 12 };
 	render.DrawRectangle(sKnob, 200, 220, 255, 255, true, false);
 
-	// Back Button (Row 2, centered below Display settings area)
-	SDL_Rect backBtnBg = { trackX + trackW / 2 - 60, row2Y + 10, 120, 36 };
-	render.DrawRectangle(backBtnBg, 40, 50, 70, 255, true, false);
-	render.DrawMenuTextCentered("BACK", backBtnBg, { 200, 220, 255, 255 });
+	// --- Row 2: DISPLAY ---
+	render.DrawMenuTextCentered("DISPLAY", { trackX, row2Y, trackW, 20 }, labelColor);
 
-	// -- Gamepad selection indicator ----
+	const char* modeNames[] = { "WINDOWED", "FULLSCREEN", "BORDERLESS" };
+	int arrowW = 30;
+	SDL_Rect leftArrowArea  = { trackX + 10, row2Y + 24, arrowW, 26 };
+	SDL_Rect modeArea       = { trackX + 10 + arrowW, row2Y + 24, trackW - 20 - arrowW * 2, 26 };
+	SDL_Rect rightArrowArea = { trackX + trackW - 10 - arrowW, row2Y + 24, arrowW, 26 };
+
+	SDL_Color arrowColor = { 100, 180, 255, 255 };
+	render.DrawMenuTextCentered("<", leftArrowArea, arrowColor);
+	render.DrawMenuTextCentered(modeNames[windowModeIndex_], modeArea, valColor);
+	render.DrawMenuTextCentered(">", rightArrowArea, arrowColor);
+
+	// Handle display mode clicks
+	auto& input = *Engine::GetInstance().input;
+	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN) {
+		Vector2D mousePos = input.GetMousePosition();
+		int mx = (int)mousePos.getX();
+		int my = (int)mousePos.getY();
+
+		if (mx >= leftArrowArea.x && mx <= leftArrowArea.x + leftArrowArea.w &&
+			my >= leftArrowArea.y && my <= leftArrowArea.y + leftArrowArea.h) {
+			windowModeIndex_ = (windowModeIndex_ + 2) % 3;
+			WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+			Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		if (mx >= rightArrowArea.x && mx <= rightArrowArea.x + rightArrowArea.w &&
+			my >= rightArrowArea.y && my <= rightArrowArea.y + rightArrowArea.h) {
+			windowModeIndex_ = (windowModeIndex_ + 1) % 3;
+			WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+			Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+	}
+
+	// --- Gamepad selection indicator ---
 	if (Engine::GetInstance().input->IsGamepadConnected()) {
 		int selY = row0Y;
 		if (optionsSliderSel_ == 1) selY = row1Y;
-		else if (optionsSliderSel_ == 2) selY = row2Y + 10;
+		else if (optionsSliderSel_ == 2) selY = row2Y;
 
-		SDL_Rect selHighlight = { trackX - 10, selY - 4, trackW + 20, 50 };
-		if (optionsSliderSel_ == 2) selHighlight = { backBtnBg.x - 4, backBtnBg.y - 2, backBtnBg.w + 8, backBtnBg.h + 4 };
+		SDL_Rect selHighlight;
+		if (optionsSliderSel_ == 3) {
+			int winW = 0, winH = 0;
+			Engine::GetInstance().window->GetWindowSize(winW, winH);
+			int btnW = 315;
+			selHighlight = { winW / 2 - btnW / 2 - 4, winH / 2 + 160 - 2, btnW + 8, 130 + 4 }; // Approximate
+		}
+		else {
+			selHighlight = { trackX - 10, selY - 4, trackW + 20, 46 };
+		}
 		render.DrawRectangle(selHighlight, 60, 100, 180, 50, true, false);
 
 		render.DrawMenuTextCentered(">", { selHighlight.x, selHighlight.y + selHighlight.h / 2 - 10, 16, 20 }, { 100, 200, 255, 255 });
@@ -4288,8 +4535,11 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 	auto& input = *Engine::GetInstance().input;
 	float dt = Engine::GetInstance().GetDt();
 
-	// Back Button hit box (relative to row2Y)
-	SDL_Rect backHit = { trackX + trackW / 2 - 60, row2Y + 10, 120, 36 };
+	// -- ESC key to go back --
+	if (input.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN) {
+		Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		return true;
+	}
 
 	// -- Mouse slider dragging / clicks ---------------------------------
 	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN ||
@@ -4299,16 +4549,8 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 		int mouseX = (int)mousePos.getX();
 		int mouseY = (int)mousePos.getY();
 
-		// Check Back button click
-		if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN) {
-			if (mouseX >= backHit.x && mouseX <= backHit.x + backHit.w &&
-				mouseY >= backHit.y && mouseY <= backHit.y + backHit.h) {
-				return true; // Go back
-			}
-		}
-
 		// Music slider hit box
-		SDL_Rect mSliderHit = { trackX - 10, row0Y + 18, trackW + 20, 32 };
+		SDL_Rect mSliderHit = { trackX - 10, row0Y + 15, trackW + 20, 28 };
 		if (mouseX >= mSliderHit.x && mouseX <= mSliderHit.x + mSliderHit.w &&
 			mouseY >= mSliderHit.y && mouseY <= mSliderHit.y + mSliderHit.h) {
 
@@ -4319,7 +4561,7 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 		}
 
 		// SFX slider hit box
-		SDL_Rect sSliderHit = { trackX - 10, row1Y + 18, trackW + 20, 32 };
+		SDL_Rect sSliderHit = { trackX - 10, row1Y + 15, trackW + 20, 28 };
 		if (mouseX >= sSliderHit.x && mouseX <= sSliderHit.x + sSliderHit.w &&
 			mouseY >= sSliderHit.y && mouseY <= sSliderHit.y + sSliderHit.h) {
 
@@ -4344,11 +4586,12 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_DOWN) == KEY_DOWN ||
 		(input.GetLeftStickY() > 0.5f && sliderRepeatTimer_ <= 0.0f))
 	{
-		optionsSliderSel_ = std::min(2, optionsSliderSel_ + 1);
+		optionsSliderSel_ = std::min(3, optionsSliderSel_ + 1);
 		sliderRepeatTimer_ = 250.0f;
 	}
 
-	if (optionsSliderSel_ == 2 && input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN) {
+	// Row 3 = BACK: confirm with South button
+	if (optionsSliderSel_ == 3 && input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN) {
 		return true;
 	}
 
@@ -4382,6 +4625,15 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 		}
 		if (stepLeft || stepRight || continuousAdj != 0.0f)
 			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
+	}
+	else if (optionsSliderSel_ == 2) {
+		// Display mode switching via gamepad
+		if (stepLeft || stepRight) {
+			windowModeIndex_ = (windowModeIndex_ + (stepRight ? 1 : 2)) % 3;
+			WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+			Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
 	}
 
 	if (sliderRepeatTimer_ > 0.0f)
@@ -4466,11 +4718,55 @@ void Scene::CheckPortalCollisions(float dt)
 {
 	if (!player || waitingForFade_ || isPaused_ || bossDeathVideoActive_ || bossDeathFading_ || endGameVideoActive_) return;
 
+	if (isPuzzleMap_ && puzzleManager_ && !puzzleManager_->IsPortalOpen()) {
+		SDL_FRect exitRect = puzzleManager_->GetExitPortalRect();
+		float px2 = player->position.getX() + 32.0f;
+		float py2 = player->position.getY() + 48.0f;
+		if (px2 >= exitRect.x && px2 <= exitRect.x + exitRect.w &&
+			py2 >= exitRect.y && py2 <= exitRect.y + exitRect.h) {
+			return;  
+		}
+	}
+
+	if (isLvl3Map_ && puzzleManager3_ && !puzzleManager3_->IsLeverActivated()) {
+		SDL_FRect blocked3 = puzzleManager3_->GetBlockedPortalRect();
+		float pcx3 = player->position.getX() + 32.0f;
+		float pcy3 = player->position.getY() + 48.0f;
+		if (pcx3 >= blocked3.x && pcx3 <= blocked3.x + blocked3.w &&
+			pcy3 >= blocked3.y && pcy3 <= blocked3.y + blocked3.h) {
+			return;
+		}
+	}
+
+	// Bloquear portales A y B hasta que se completen los botones
+	if (isPuzzleMap3Lever_ && puzzleManager3_ && !puzzleManager3_->AreBothButtonsDone()) {
+		SDL_FRect pA = puzzleManager3_->GetPortalARect();
+		SDL_FRect pB = puzzleManager3_->GetPortalBRect();
+		float pcx3 = player->position.getX() + 32.0f;
+		float pcy3 = player->position.getY() + 48.0f;
+		if ((pA.w > 0 && pcx3 >= pA.x && pcx3 <= pA.x + pA.w && pcy3 >= pA.y && pcy3 <= pA.y + pA.h) ||
+			(pB.w > 0 && pcx3 >= pB.x && pcx3 <= pB.x + pB.w && pcy3 >= pB.y && pcy3 <= pB.y + pB.h)) {
+			return;
+		}
+	}
+
 	if (portalCooldown_ > 0.0f) {
 		portalCooldown_ -= dt;
 		return;
 	}
 
+
+	SDL_FRect blockedExit = { 0,0,0,0 };
+	bool hasBlockedExit = false;
+	if (isPuzzleMap_ && puzzleManager_ && !puzzleManager_->IsPortalOpen()) {
+		blockedExit = puzzleManager_->GetExitPortalRect();
+		hasBlockedExit = true;
+	}
+
+	if (isPuzzleMap3Lever_ && puzzleManager3_ && !puzzleManager3_->IsLeverActivated()) {
+		blockedExit = puzzleManager3_->GetBlockedPortalRect();
+		hasBlockedExit = true;
+	}
 	auto portals = Engine::GetInstance().map->GetPortals();
 	if (portals.empty()) return;
 
@@ -4484,6 +4780,15 @@ void Scene::CheckPortalCollisions(float dt)
 		if (pcx >= portal.x && pcx <= portal.x + portal.w &&
 			pcy >= portal.y && pcy <= portal.y + portal.h)
 		{
+
+			if (hasBlockedExit) {
+				float pcx2 = player->position.getX() + 32.0f;
+				float pcy2 = player->position.getY() + 48.0f;
+				if (pcx2 >= blockedExit.x && pcx2 <= blockedExit.x + blockedExit.w &&
+					pcy2 >= blockedExit.y && pcy2 <= blockedExit.y + blockedExit.h) {
+					continue; 
+				}
+			}
 
 			bool isLevelPortal = portal.targetFile.size() < 4 ||
 				portal.targetFile.substr(portal.targetFile.size() - 4) != ".tmx";
@@ -4599,7 +4904,118 @@ void Scene::ExecuteSubMapLoad()
 	Engine::GetInstance().render->cameraZoom = 1.0f;
 	Engine::GetInstance().render->blurIntensity = 0.0f;
 
-    portalCooldown_ = 1500.0f;
+	portalCooldown_ = 1500.0f;
+
+	isPuzzleMap_ = (currentMapFile_ == "MapLvl1ZonaPuzzle.tmx");
+	if (isPuzzleMap_) {
+		if (!puzzleManager_) puzzleManager_ = new PuzzleManager();
+		puzzleManager_->Init(Engine::GetInstance().render->renderer);
+
+		std::vector<PuzzleFigure> figuresOnly;
+		SDL_FRect exitRect = { 0, 0, 48, 48 };
+
+		for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects()) {
+			PuzzleFigure f;
+			f.name = obj.name;
+			f.worldRect = obj.rect;
+			figuresOnly.push_back(f);
+		}
+
+		for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+			if (portal.spawnId == "spawn_return_puzzle_exit") {
+				exitRect = { portal.x, portal.y, portal.w, portal.h };
+				LOG("PUZZLE: Exit portal encontrado en (%.0f, %.0f) size %.0fx%.0f",
+					portal.x, portal.y, portal.w, portal.h);
+				break;
+			}
+		}
+
+		puzzleManager_->LoadFiguresFromObjects(figuresOnly, exitRect);
+		puzzleTimeoutPending_ = false;
+
+		LOG("PUZZLE: Loaded %d figures. Exit portal at (%.0f, %.0f)", (int)figuresOnly.size(), exitRect.x, exitRect.y);
+	}
+	else {
+		if (puzzleManager_) {
+			delete puzzleManager_;
+			puzzleManager_ = nullptr;
+		}
+	}
+
+	// --- PUZZLE3 INIT ---
+	isLvl3Map_ = (currentMapFile_ == "Map3.tmx");
+	isLvl3Puzzle_ = (currentMapFile_ == "MapLvl3ZonaPuzzle3.tmx");
+	LOG("PUZZLE3 DEBUG: currentMapFile_='%s', isLvl3Puzzle_=%d", currentMapFile_.c_str(), (int)isLvl3Puzzle_);
+
+	if (isLvl3Map_ || isLvl3Puzzle_) {
+		if (!puzzleManager3_) puzzleManager3_ = new PuzzleManager3();
+		puzzleManager3_->Init(Engine::GetInstance().render->renderer);
+
+		if (isLvl3Map_) {
+			// Cargar palanca y portal bloqueado desde PuzzleObjects del mapa
+			LeverData3 lever;
+			SDL_FRect blockedPortal = { 0, 0, 48, 96 };
+
+			for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects()) {
+				if (obj.name == "Lever") {
+					lever.worldRect = obj.rect;
+				}
+			}
+
+			// Portal bloqueado: leer desde layer Portals con spawnId = "spawn_puzzle3_entrance"
+			for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+				if (portal.spawnId == "PuzzleMain" && portal.target == "MapLvl3ZonaPuzzle3.tmx") {
+					blockedPortal = { portal.x, portal.y, portal.w, portal.h };
+					LOG("PUZZLE3: Portal bloqueado encontrado en (%.0f, %.0f)", portal.x, portal.y);
+					break;
+				}
+			}
+
+			puzzleManager3_->LoadLever(lever, blockedPortal);
+
+			SDL_FRect portalA = { 0,0,0,0 }, portalB = { 0,0,0,0 };
+			for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+				if (portal.spawnId == "A") portalA = { portal.x, portal.y, portal.w, portal.h };
+				if (portal.spawnId == "B") portalB = { portal.x, portal.y, portal.w, portal.h };
+			}
+			puzzleManager3_->LoadExtraPortals(portalA, portalB);
+			LOG("PUZZLE3: Palanca cargada en (%.0f, %.0f)", lever.worldRect.x, lever.worldRect.y);
+		}
+
+		if (isLvl3Puzzle_) {
+			// Cargar botones desde PuzzleObjects
+			std::vector<ButtonData3> buttons;
+			for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects3()) {
+				std::string fullName = obj.name;
+				int clicks = 1;
+				size_t sep = fullName.find('|');
+				if (sep != std::string::npos) {
+					clicks = std::stoi(fullName.substr(sep + 1));
+					fullName = fullName.substr(0, sep);
+				}
+				if (fullName == "Button" || fullName == "button_2") {
+					ButtonData3 btn;
+					btn.worldRect = obj.rect;
+					btn.requiredClicks = clicks;
+					buttons.push_back(btn);
+					LOG("PUZZLE3: Boton '%s' cargado, requiredClicks=%d", fullName.c_str(), clicks);
+				}
+			}
+			puzzleManager3_->LoadButtons(buttons);
+
+		}
+	}
+	else {
+		if (puzzleManager3_) {
+			delete puzzleManager3_;
+			puzzleManager3_ = nullptr;
+		}
+		isLvl3Map_ = false;
+		isLvl3Puzzle_ = false;
+	}
+
+	isPuzzleMap3Lever_ = isLvl3Map_;
+	isPuzzleMap3Buttons_ = isLvl3Puzzle_;
 	LOG("PORTAL: Sub-map load complete. Final health=%d", player->health);
 }
 

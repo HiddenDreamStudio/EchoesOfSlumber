@@ -3,6 +3,8 @@
 #include "Player.h"
 #include "UIManager.h"
 #include "UIElement.h"
+#include "PuzzleManager.h"
+#include "PuzzleManager3.h"
 #include <map>
 #include <set>
 #include <utility>
@@ -210,6 +212,16 @@ private:
     std::vector<LevelInfo> levels_;
     int currentLevelIndex_ = 0;
 
+    PuzzleManager* puzzleManager_ = nullptr;
+    bool isPuzzleMap_ = false;
+    bool puzzleTimeoutPending_ = false;
+
+    PuzzleManager3* puzzleManager3_ = nullptr;
+    bool isLvl3Map_ = false;   
+    bool isLvl3Puzzle_ = false;
+    bool isPuzzleMap3Lever_ = false;  
+    bool isPuzzleMap3Buttons_ = false;
+
     // Automatic entry movement (Level 2+)
     bool  isAutoEntering_ = false;
     float autoEntryStartX_ = 0.0f;
@@ -327,6 +339,8 @@ private:
     // Boss death video — plays before the post-death map transition / music change
     bool        bossDeathVideoActive_  = false;
     bool        endGameVideoActive_    = false;
+    bool        creditsVideoActive_    = false;
+    float       videoSkipCooldown_     = 0.0f;
     bool        endGameFading_         = false;  // fade-out before final cinematic
     bool        endGameTriggered_      = false;  // true once end sequence fires; never reset
     bool        bossDeathFading_       = false;
@@ -477,6 +491,7 @@ private:
     SDL_Texture* texMenuChild_ = nullptr;
     SDL_Texture* texMenuButton_ = nullptr;
     SDL_Texture* texSettingsBase_ = nullptr;
+    SDL_Texture* texSettingsPause_ = nullptr;
 
     std::shared_ptr<UIElement> btnPlay_;
     std::shared_ptr<UIElement> btnSettings_;
