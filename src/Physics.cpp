@@ -264,6 +264,41 @@ PhysBody* Physics::CreateConvexPolygon(int x, int y, int* points, int size, body
     return pbody;
 }
 
+void Physics::UpdateConvexPolygon(PhysBody* physBody, int* points, int size, float scale, float friction, bool isSensor)
+{
+    if (!physBody || !b2Body_IsValid(physBody->body)) return;
+
+    // Destroy all existing shapes on the body
+    int shapeCount = b2Body_GetShapeCount(physBody->body);
+    if (shapeCount > 0) {
+        std::vector<b2ShapeId> shapes(shapeCount);
+        b2Body_GetShapes(physBody->body, shapes.data(), shapeCount);
+        for (int i = 0; i < shapeCount; ++i) {
+            b2DestroyShape(shapes[i], true); // true = update mass
+        }
+    }
+
+    const int count = size / 2;
+    std::vector<b2Vec2> verts(count);
+    for (int i = 0; i < count; ++i)
+    {
+        verts[i].x = PIXEL_TO_METERS(points[i * 2 + 0] * scale);
+        verts[i].y = PIXEL_TO_METERS(points[i * 2 + 1] * scale);
+    }
+
+    b2Hull hull = b2ComputeHull(verts.data(), count);
+    if (hull.count > 0) {
+        b2Polygon poly = b2MakePolygon(&hull, 0.0f);
+        b2ShapeDef sdef = b2DefaultShapeDef();
+        sdef.density = 1.0f;
+        sdef.material.friction = friction;
+        sdef.enableContactEvents = true;
+        sdef.enableSensorEvents = true;
+        sdef.isSensor = isSensor;
+        b2CreatePolygonShape(physBody->body, &sdef, &poly);
+    }
+}
+
 bool Physics::PostUpdate()
 {
     bool ret = true;

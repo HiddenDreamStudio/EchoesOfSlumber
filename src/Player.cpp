@@ -1225,6 +1225,11 @@ void Player::Attack(float dt)
 
 void Player::TakeDamage(int damage)
 {
+	TakeDamage(damage, false);
+}
+
+void Player::TakeDamage(int damage, bool applyKnockback)
+{
 	// Cannot take damage while hiding, sleeping, waking up, throwing the bear, or transforming
 	if (isInvincible_ || isHiding_ || isHidingBehindRock_ || isKidSleeping_ || isWakingUp || isThrowingBear_ || isBearTransforming_) return;
 
@@ -1258,9 +1263,13 @@ void Player::TakeDamage(int damage)
 		if (enemyDirX < 0)      facingRight = true;
 		else if (enemyDirX > 0) facingRight = false;
 
-		float knockbackForce = 5.0f;
-		float dir = facingRight ? 1.0f : -1.0f;
-		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
+		if (applyKnockback) {
+			float knockbackForce = 16.0f;
+			float dir = facingRight ? 1.0f : -1.0f;
+			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -4.0f, true);
+			knockbackX_ = dir * knockbackForce;
+			knockbackTimer_ = 200.0f;
+		}
 
 		if (bearHealth_ <= 0) {
 			bearHealth_ = 0;
@@ -1318,9 +1327,13 @@ void Player::TakeDamage(int damage)
 	chargeTimer_ = 0.0f;
 	slingshotCharged_ = false;
 
-	float knockbackForce = 5.0f;
-	float dir = facingRight ? 1.0f : -1.0f;
-	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
+	if (applyKnockback) {
+		float knockbackForce = 16.0f;
+		float dir = facingRight ? 1.0f : -1.0f;
+		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -4.0f, true);
+		knockbackX_ = dir * knockbackForce;
+		knockbackTimer_ = 200.0f;
+	}
 
 	if (health <= 0)
 	{
