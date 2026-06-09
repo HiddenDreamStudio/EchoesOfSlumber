@@ -381,6 +381,12 @@
    </properties>
   </object>
   <object id="1332" name="Player" type="Player" x="7891.41" y="8523.97" width="52.8407" height="52.8407"/>
+  <object id="1820" name="HidingRock" type="HidingRock" x="8200" y="8523" width="64" height="64">
+   <properties>
+    <property name="rock_type" type="int" value="1"/>
+   </properties>
+  </object>
+
   <object id="1333" name="Cape" type="Cape" x="4792.66" y="1573.32"/>
   <object id="1334" name="Enemy" type="SpiderCandy" x="4839.98" y="8524.99" width="64.1457" height="59.3942">
    <properties>
