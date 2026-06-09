@@ -339,6 +339,8 @@ private:
     // Boss death video — plays before the post-death map transition / music change
     bool        bossDeathVideoActive_  = false;
     bool        endGameVideoActive_    = false;
+    bool        creditsVideoActive_    = false;
+    float       videoSkipCooldown_     = 0.0f;
     bool        endGameFading_         = false;  // fade-out before final cinematic
     bool        endGameTriggered_      = false;  // true once end sequence fires; never reset
     bool        bossDeathFading_       = false;
