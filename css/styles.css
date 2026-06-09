@@ -145,10 +145,10 @@ body {
     background: var(--bg);
 }
 
-/* Figma group-4: level screenshots 2x2 at 25% opacity */
+/* Figma group-4: level screenshots in a row at 25% opacity */
 .hero-bg-levels {
     position: absolute; inset: 0; z-index: 0;
-    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+    display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr;
     opacity: 0.25;
 }
 .hero-bg-cell {
