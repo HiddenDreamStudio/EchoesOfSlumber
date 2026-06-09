@@ -33,7 +33,7 @@ public:
 private:
 	static constexpr float MAX_LIFETIME = 4000.0f;  // ms
 	static constexpr int   PROJ_RADIUS = 8;          // physics radius
-	static constexpr float DRAW_SCALE = 0.06f;       // 1600x918 * 0.06 ~ 96x55px
+	static constexpr float DRAW_SCALE = 0.5f;       // Reduced size to fit better
 	static constexpr int   DAMAGE = 1;
 
 	float dirX_ = 1.0f;
@@ -41,6 +41,6 @@ private:
 	float power_ = 5.0f;
 	float lifetime_ = 0.0f;
 
-	int texW = 1600;
-	int texH = 918;
+	int texW = 0;
+	int texH = 0;
 };
