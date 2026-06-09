@@ -37,6 +37,7 @@ public:
 	void SetPosition(Vector2D pos);
 
 	void TakeDamage(int damage) override;
+	void TakeDamage(int damage, bool applyKnockback);
 	void Revive();
 	void StartWakeUp(float speedMultiplier = 1.0f);
 	bool IsDead() const { return isDead_; }
@@ -161,6 +162,9 @@ private:
 	bool  isHidingBehindRock_ = false;
 	// Visual: gentle alpha pulse while hidden to signal stealth state
 	float hideAlphaTime_ = 0.0f;
+	SDL_Texture* hideTexture_ = nullptr;
+	Animation    hideAnim_;      // frames 0→11: crouching
+	Animation    hideExitAnim_; // frames 11→0: standing up
 
 public:
 	void SetHidingBehindRock(bool hiding);
