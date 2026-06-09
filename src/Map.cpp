@@ -11,6 +11,7 @@
 #include "EnemyC.h"
 #include "EnemyPlush.h"
 #include "EnemyStitchling.h"
+#include "EnemyWindUpScurry.h"
 #include "Bouncer.h"
 #include "Boss1.h"
 #include "RopedRock.h"
@@ -663,6 +664,12 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     stitchling->position = Vector2D(x, y);
                     stitchling->Start();
                     LOG("EnemyStitchling spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "EnemyWindUpScurry" || entityType == "WindUpScurry") {
+                    auto scurry = std::dynamic_pointer_cast<EnemyWindUpScurry>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_WINDUP_SCURRY));
+                    scurry->position = Vector2D(x, y);
+                    scurry->Start();
+                    LOG("EnemyWindUpScurry spawned at: %f, %f", x, y);
                 }
                 else if (entityType == "Bouncer") {
                     float w = objectNode.attribute("width").as_float(96.0f);
