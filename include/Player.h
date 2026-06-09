@@ -37,6 +37,7 @@ public:
 	void SetPosition(Vector2D pos);
 
 	void TakeDamage(int damage) override;
+	void TakeDamage(int damage, bool applyKnockback);
 	void Revive();
 	void StartWakeUp(float speedMultiplier = 1.0f);
 	bool IsDead() const { return isDead_; }

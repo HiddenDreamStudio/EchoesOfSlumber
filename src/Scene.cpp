@@ -266,7 +266,8 @@ void Scene::LoadMainMenu()
 	texMenuChild_ = Engine::GetInstance().textures->Load("assets/textures/Menu/IL_NenFront_01.png");
 	texMenuButton_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
 	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
-	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_NEW_Sound_Menu_Base.png");
+	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
+	texSettingsPause_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
 
 	const char* fragPaths[NUM_FRAGMENTS] = {
 		"assets/textures/Menu/UI_Fragment1.png",
@@ -336,12 +337,13 @@ void Scene::LoadMainMenu()
 
 void Scene::UnloadMainMenu()
 {
-	Engine::GetInstance().uiManager->CleanUp();
+		Engine::GetInstance().uiManager->CleanUp();
 	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_);                       texMenuLogo_ = nullptr; }
 	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_);  texMenuChild_ = nullptr; }
 	if (texMenuButton_) { Engine::GetInstance().textures->UnLoad(texMenuButton_); texMenuButton_ = nullptr; }
 	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
 	if (texSettingsBase_) { Engine::GetInstance().textures->UnLoad(texSettingsBase_); texSettingsBase_ = nullptr; }
+	if (texSettingsPause_) { Engine::GetInstance().textures->UnLoad(texSettingsPause_); texSettingsPause_ = nullptr; }
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		if (fragments_[i].tex) { Engine::GetInstance().textures->UnLoad(fragments_[i].tex); fragments_[i].tex = nullptr; }
 	}
@@ -608,15 +610,15 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 	// Draw the base panel image centered in the left half
 	const int leftHalf = winW / 2;
 
-	// Panel image is 840x694, scale to fit nicely in the left half
+	// Render texture using the original 840.0f width, but make it significantly taller (780.0f height)
 	const float panelScale = (float)leftHalf / 840.0f * 0.85f;
 	const int panelImgW = (int)(840.0f * panelScale);
-	const int panelImgH = (int)(694.0f * panelScale);
+	const int panelImgH = (int)(780.0f * panelScale);
 	const int panelImgX = (leftHalf - panelImgW) / 2;
 	const int panelImgY = (winH - panelImgH) / 2;
 
 	// Shift the background texture up slightly so texts sit better in the white space
-	const int panelRenderY = panelImgY - (int)(45.0f * panelScale);
+	const int panelRenderY = panelImgY - (int)(100.0f * panelScale);
 
 	if (texSettingsBase_) {
 		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelRenderY, panelImgW, panelImgH, alpha);
@@ -627,9 +629,9 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 	const int trackW = (int)(panelImgW * 0.42f);
 
 	// Better-spaced rows to avoid overlap with panel icons
-	const int row0Y = panelImgY + (int)(panelImgH * 0.26f); // MUSIC
-	const int row1Y = panelImgY + (int)(panelImgH * 0.50f); // SOUNDS
-	const int row2Y = panelImgY + (int)(panelImgH * 0.71f); // DISPLAY (raised slightly)
+	const int row0Y = panelImgY + (int)(panelImgH * 0.32f); // MUSIC
+	const int row1Y = panelImgY + (int)(panelImgH * 0.48f); // SOUNDS
+	const int row2Y = panelImgY + (int)(panelImgH * 0.62f); // DISPLAY
 
 	SDL_Color labelColor = { 40, 55, 70, alpha };
 	SDL_Color valColor   = { 30, 45, 60, alpha };
@@ -666,9 +668,9 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 
 	const char* modeNames[] = { "WINDOWED", "FULLSCREEN", "BORDERLESS" };
 	int arrowW = 30;
-	SDL_Rect leftArrowArea  = { trackX + 10, row2Y + 24, arrowW, 26 };
-	SDL_Rect modeArea       = { trackX + 10 + arrowW, row2Y + 24, trackW - 20 - arrowW * 2, 26 };
-	SDL_Rect rightArrowArea = { trackX + trackW - 10 - arrowW, row2Y + 24, arrowW, 26 };
+	SDL_Rect leftArrowArea  = { trackX - 10, row2Y + 24, arrowW, 26 }; // Moved further left
+	SDL_Rect modeArea       = { trackX + arrowW, row2Y + 24, trackW - arrowW * 2, 26 };
+	SDL_Rect rightArrowArea = { trackX + trackW - arrowW + 10, row2Y + 24, arrowW, 26 }; // Moved further right
 
 	SDL_Color arrowColor = { 100, 180, 255, alpha };
 	render.DrawMenuTextCentered("<", leftArrowArea, arrowColor);
@@ -3823,7 +3825,8 @@ void Scene::LoadPauseMenuButtons()
 	texPauseButtonWhite_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
 	texPauseButtonBlack_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_black.png");
 	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
-	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_NEW_Sound_Menu_Base.png");
+	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
+	texSettingsPause_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
 
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
@@ -3979,25 +3982,29 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 {
 	auto& render = *Engine::GetInstance().render;
 
-	// Panel image is 840x694, scale to fit nicely centered on screen
+	// Render texture using the original 840.0f width, but make it significantly taller (780.0f height)
 	const float panelScale = (float)winW * 0.50f / 840.0f;
 	const int panelImgW = (int)(840.0f * panelScale);
-	const int panelImgH = (int)(694.0f * panelScale);
+	const int panelImgH = (int)(780.0f * panelScale);
 	const int panelImgX = (winW - panelImgW) / 2;
 	const int panelImgY = (winH - panelImgH) / 2;
 
-	if (texSettingsBase_) {
-		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelImgY, panelImgW, panelImgH, 255);
+	// Shift the background texture up slightly so texts sit better in the white space
+	const int panelRenderY = panelImgY - (int)(100.0f * panelScale);
+
+	if (texSettingsPause_) {
+		SDL_FRect pRect = { (float)panelImgX, (float)panelRenderY, (float)panelImgW, (float)panelImgH };
+		SDL_RenderTexture(render.renderer, texSettingsPause_, nullptr, &pRect);
 	}
 
 	// Track area for sliders and controls — positioned to align with panel icons
 	const int trackX = panelImgX + (int)(panelImgW * 0.44f);
 	const int trackW = (int)(panelImgW * 0.42f);
 
-	// 3 rows evenly distributed (matched with Main Menu layout)
-	const int row0Y = panelImgY + (int)(panelImgH * 0.29f); // MUSIC (lowered slightly)
-	const int row1Y = panelImgY + (int)(panelImgH * 0.50f); // SOUNDS
-	const int row2Y = panelImgY + (int)(panelImgH * 0.74f); // DISPLAY
+	// 3 rows evenly distributed
+	const int row0Y = panelImgY + (int)(panelImgH * 0.33f); // MUSIC
+	const int row1Y = panelImgY + (int)(panelImgH * 0.49f); // SOUNDS
+	const int row2Y = panelImgY + (int)(panelImgH * 0.62f); // DISPLAY
 
 	// Handle input and close menu if Back clicked/button pressed
 	if (HandleVolumeSliderInput(trackX, trackW, row0Y, row1Y, row2Y)) {

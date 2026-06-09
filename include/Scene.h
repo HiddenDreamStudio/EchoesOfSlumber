@@ -464,6 +464,7 @@ private:
     SDL_Texture* texMenuChild_ = nullptr;
     SDL_Texture* texMenuButton_ = nullptr;
     SDL_Texture* texSettingsBase_ = nullptr;
+    SDL_Texture* texSettingsPause_ = nullptr;
 
     std::shared_ptr<UIElement> btnPlay_;
     std::shared_ptr<UIElement> btnSettings_;

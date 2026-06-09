@@ -14,6 +14,7 @@ public:
 	bool Start() override;
 	bool CleanUp() override;
 	void TakeDamage(int damage) override;
+	bool DoesKnockback() const override { return true; }
 
 	void SetPatrolPoints(float leftX, float rightX); // Kept for compatibility but unused
 
