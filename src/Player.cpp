@@ -166,9 +166,25 @@ bool Player::Start() {
 	pickCoinFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/coin-collision-sound-342335.wav");
 	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump2.wav");
 	landFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/land.wav");
-	stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");
+	/*stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");*/
 	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
+	slingshotFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/tirachinas.wav");
+	capeFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/capa.wav");
+	// Comprobar en qué nivel estamos y cargar su sonido de pasos correspondiente
+	int nivelActual = Engine::GetInstance().scene->GetCurrentLevelIndex();
 
+	if (nivelActual == 0) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level1_1.wav");
+	}
+	else if (nivelActual == 1) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level2_2.wav");
+	}
+	else if (nivelActual == 2) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level3_3.wav");
+	}
+	else if (nivelActual == 3) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level4_4.wav");
+	}
 	return true;
 }
 
@@ -629,6 +645,7 @@ void Player::Hide(float dt)
 			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
 			anims.SetCurrent("hide");
 			anims.ResetCurrent();
+			Engine::GetInstance().audio->PlayFx(capeFxId);
 			LOG("Player hiding");
 		}
 		else if (isHiding_)
@@ -636,6 +653,7 @@ void Player::Hide(float dt)
 			isHiding_ = false;
 			isExitingHide_ = true;
 			hideCooldown_ = HIDE_COOLDOWN; // cooldown starts on exit
+			Engine::GetInstance().audio->PlayFx(capeFxId);
 			LOG("Player exiting hide — cooldown started (%.0f ms)", HIDE_COOLDOWN);
 		}
 	}
@@ -822,6 +840,8 @@ void Player::Slingshot(float dt)
 
 			proj->SetLaunch(dirX, dirY, launchSpeed);
 			proj->Start();
+
+			Engine::GetInstance().audio->PlayFx(slingshotFxId);
 
 			LOG("Slingshot fired! angle=%.1f speed=%.1f", aimAngle_ * RADTODEG, launchSpeed);
 		}
