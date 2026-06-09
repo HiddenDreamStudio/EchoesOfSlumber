@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <tileset version="1.10" tiledversion="1.11.2" name="BlockCrawlerHit" tilewidth="256" tileheight="256" tilecount="7" columns="7">
- <image source="../spritesheets/SS_Enemics_Level2/spritesheetBlock_Crawler_Hit.png" width="1792" height="256"/>
+ <image source="../spritesheets/SS_Enemics_Level1/SP_BlocCrawler_hit.png" width="1792" height="256"/>
  <tile id="0" type="BlockCrawlerHit">
   <animation>
    <frame tileid="0" duration="100"/>

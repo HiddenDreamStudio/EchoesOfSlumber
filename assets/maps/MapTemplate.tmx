@@ -430,6 +430,12 @@
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
+  <object id="1807" name="Enemy" type="BlockCrawler" x="7625.29" y="8521.31" width="59.4458" height="55.0424">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
   <object id="1806" name="Antagonist" type="Antagonist" x="643.277" y="6409.15" width="59.4458" height="55.0424"/>
   <object id="1808" name="Antagonist" type="Antagonist" x="5043.55" y="2625.87" width="59.4458" height="55.0424"/>
   <object id="1809" name="MemoryFragment" type="MemoryFragment" x="3784" y="2637" width="80" height="60">

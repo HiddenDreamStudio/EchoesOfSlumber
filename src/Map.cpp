@@ -15,6 +15,7 @@
 #include "Bouncer.h"
 #include "Boss1.h"
 #include "RopedRock.h"
+#include "BlockCrawler.h"
 #include "Antagonist.h"
 #include "Checkpoint.h"
 #include "Box.h"
@@ -631,6 +632,24 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     enemy->SetPatrolPoints(patrolLeft, patrolRight);
                     enemy->Start();
                     LOG("Enemy (SpiderCandy) spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
+                }
+                else if (entityType == "BlockCrawler") {
+                    auto blockCrawler = std::dynamic_pointer_cast<BlockCrawler>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BLOCK_CRAWLER));
+                    blockCrawler->position = Vector2D(x, y);
+
+                    float patrolLeft = x - 200.0f;
+                    float patrolRight = x + 200.0f;
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string propName = prop.attribute("name").as_string();
+                            if (propName == "patrol_left")  patrolLeft = prop.attribute("value").as_float();
+                            if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
+                        }
+                    }
+                    blockCrawler->SetPatrolPoints(patrolLeft, patrolRight);
+                    blockCrawler->Start();
+                    LOG("BlockCrawler spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
                 }
                 else if (entityType == "EnemyB") {
                     auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
