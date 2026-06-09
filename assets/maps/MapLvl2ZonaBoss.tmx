@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="48" height="12" tilewidth="64" tileheight="64" infinite="0" nextlayerid="5" nextobjectid="15">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="48" height="12" tilewidth="64" tileheight="64" infinite="0" nextlayerid="6" nextobjectid="3">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 2/TL_Nivell_2_01.png" width="640" height="640"/>
   <tile id="0">
@@ -153,6 +153,9 @@
    </objectgroup>
   </tile>
  </tileset>
+ <imagelayer id="5" name="Background" offsetx="-416" offsety="-128">
+  <image source="../textures/fons_enviroment/Map2.5.png" width="3739" height="1034"/>
+ </imagelayer>
  <layer id="1" name="Map" width="48" height="12">
   <properties>
    <property name="Draw" type="bool" value="true"/>

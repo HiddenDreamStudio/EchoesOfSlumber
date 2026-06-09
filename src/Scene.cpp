@@ -19,6 +19,7 @@
 #include "Boss.h"
 #include "Boss1.h"
 #include "Checkpoint.h"
+#include "Boss2.h"
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
@@ -2071,7 +2072,7 @@ void Scene::UpdateGameplay(float dt)
 		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
 		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
-	if (!isPaused_ && !isGameOver_) UpdateBossFight();
+	if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
 
 	// Draw cape collectible in-world
 	if (!capaCollected_ && texCapaCollectible_)
@@ -2092,14 +2093,14 @@ void Scene::UpdateGameplay(float dt)
 //  BOSS FIGHT
 // ============================================================================
 
-void Scene::UpdateBossFight()
+void Scene::UpdateBossFight(float dt)
 {
     auto boss = activeBoss_.lock();
 
     // Lazy search: if no boss cached yet, look in the entity list
     if (!boss) {
         for (auto& e : Engine::GetInstance().entityManager->entities) {
-            if (e->type == EntityType::BOSS_1) {
+            if (e->type == EntityType::BOSS_1 || e->type == EntityType::BOSS_2) {
                 boss = std::dynamic_pointer_cast<Boss>(e);
                 if (boss) { activeBoss_ = boss; break; }
             }
@@ -2118,9 +2119,9 @@ void Scene::UpdateBossFight()
 
     if (boss->IsEngaged() && !isBossFightActive_)
     {
-        isBossFightActive_ = true;
-        Engine::GetInstance().audio->PlayMusic(
-            "assets/audio/music/Echoes_of_Slumber_Boss_Fight _Music.wav", 2.0f);
+        isBossFightActive_   = true;
+        bossHealthDisplay_   = 1.0f;
+        Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_Boss_Fight _Music.wav", 2.0f);
         auto& tex = *Engine::GetInstance().textures;
         texBossBarEmpty_     = tex.Load("assets/textures/UI/UI_Boss_HealthBar_Empty.png");
         texBossBarFull_      = tex.Load("assets/textures/UI/UI_Boss_HealthBar_Full.png");
@@ -2131,11 +2132,24 @@ void Scene::UpdateBossFight()
     {
         isBossFightActive_ = false;
         activeBoss_.reset();
-        Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 2.0f);
         auto& tex = *Engine::GetInstance().textures;
         tex.UnLoad(texBossBarEmpty_);     texBossBarEmpty_     = nullptr;
         tex.UnLoad(texBossBarFull_);      texBossBarFull_      = nullptr;
         tex.UnLoad(texBossBarIndicator_); texBossBarIndicator_ = nullptr;
+
+        if (currentMapFile_.find("ZonaBoss") != std::string::npos)
+        {
+            subMapTarget_  = "MapLvl3ZonaAlta.tmx";
+            subMapSpawnId_ = "J";
+            pendingSubMapLoad_ = true;
+            waitingForFade_    = true;
+            fadeTargetScene_   = SceneID::GAMEPLAY;
+            Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1200.0f);
+        }
+        else
+        {
+            Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 2.0f);
+        }
     }
 }
 
@@ -2178,6 +2192,9 @@ void Scene::DrawBossHUD(int winW, int winH)
     indX = std::max(BAR_X + 4, std::min(indX, BAR_X + BAR_W - IND_SZ - 9));
     int indY = BAR_TOP + BAR_H / 2 - IND_SZ / 2;
     render.DrawTextureAlpha(texBossBarIndicator_, indX, indY, IND_SZ, IND_SZ);
+
+    SDL_Rect nameArea = { BAR_X, BAR_Y - 30, BAR_W, 22 };
+    render.DrawMenuTextCentered(boss->GetBossName(), nameArea, { 230, 220, 200, 255 });
 }
 
 void Scene::UnloadGameplay()
@@ -4415,6 +4432,14 @@ void Scene::ExecuteSubMapLoad()
     Engine::GetInstance().physics->FlushPendingDeletes();
 
     currentMapFile_ = subMapTarget_;
+    if (currentMapFile_.find("ZonaBoss") != std::string::npos)
+    {
+        Engine::GetInstance().audio->PlayMusic(nullptr);
+    }
+    else
+    {
+        Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 2.0f);
+    }
     Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
 
 	float portalSpawnX = 0.0f, portalSpawnY = 0.0f;
