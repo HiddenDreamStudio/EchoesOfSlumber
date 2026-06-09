@@ -151,11 +151,25 @@ bool Player::Start() {
 	pickCoinFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/coin-collision-sound-342335.wav");
 	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump2.wav"); 
 	landFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/land.wav");
-	stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");
+	/*stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");*/
 	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
 	slingshotFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/tirachinas.wav");
 	capeFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/capa.wav");
+	// Comprobar en qué nivel estamos y cargar su sonido de pasos correspondiente
+	int nivelActual = Engine::GetInstance().scene->GetCurrentLevelIndex();
 
+	if (nivelActual == 0) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level1_1.wav");
+	}
+	else if (nivelActual == 1) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level2_2.wav");
+	}
+	else if (nivelActual == 2) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level3_3.wav");
+	}
+	else if (nivelActual == 3) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level4_4.wav");
+	}
 	return true;
 }
 

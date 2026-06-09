@@ -152,7 +152,7 @@ private:
 	float damageFlashTimer_ = 0.0f;
 
 	float stepTimer_ = 0.0f;
-	static constexpr float STEP_COOLDOWN = 350.0f;
+	static constexpr float STEP_COOLDOWN = 550.0f;
 
 	// Hide (press H to crouch behind rocks  enemies lose sight of player)
 	bool  isHiding_ = false;

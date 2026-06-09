@@ -37,6 +37,7 @@ public:
     Vector2D GetPlayerPosition();
     void     SetPlayerPosition(Vector2D pos);
     SceneID  GetCurrentScene() const { return currentScene; }
+    int      GetCurrentLevelIndex() const { return currentLevelIndex_; }
     std::string GetTilePosDebug() const { return ""; }
     int GetMenuClickFxId() const { return menuClickFxId; }
 
