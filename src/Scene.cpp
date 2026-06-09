@@ -4702,5 +4702,6 @@ void Scene::TriggerEndGameCinematic()
     // Stop the game music immediately and fade the screen to black.
     // The actual video is launched in UpdateBossFight() once the screen is fully black.
     Engine::GetInstance().audio->SetMusicVolume(0.0f);
+    Engine::GetInstance().render->StartCameraShake(1200.0f, 15.0f);
     Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1200.0f);
 }
