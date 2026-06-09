@@ -708,10 +708,19 @@ void Boss2::UpdateFSM(float dt)
 
     // ── DEATH ────────────────────────────────────────────────────────────────
     case Boss2State::DEATH:
-        if (stateTimer_ >= DEATH_DURATION)
+        if (stateTimer_ >= DEATH_DURATION && !deathSequenceDone_)
         {
-            isEngaged_ = false;
-            pendingToDelete = true;
+            deathTeleportTimer_ += dt;
+            if (deathTeleportTimer_ >= DEATH_TELEPORT_DELAY)
+            {
+                deathSequenceDone_ = true;
+                isEngaged_ = false;
+                auto& scn = *Engine::GetInstance().scene;
+                scn.RequestSubMapTeleport("MapLvl3ZonaAlta.tmx", "J");
+                // Seal the entrance portal (MapLvl3ZonaAlta.tmx, object id 395) — boss is gone, no reason to come back
+                scn.SealBossPortal(2948.0f, 3694.64f, 680.0f, 686.728f);
+                pendingToDelete = true;
+            }
         }
         break;
     }
