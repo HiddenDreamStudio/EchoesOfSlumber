@@ -109,4 +109,11 @@ private:
     static constexpr int   DOLL_H          = 56;
     static constexpr float DAMAGE_INTERVAL = 5000.0f;
     static constexpr float SPEED_INCREASE  = 0.08f;
+
+    // Audio
+    int   fxCaida_   = -1;
+    int   fxAttach_  = -1;
+    int   fxMolesta_ = -1;
+    float molesTimer_ = 0.0f;
+    static constexpr float MOLES_INTERVAL = 2200.0f; // ms — replay interval for the loop
 };
