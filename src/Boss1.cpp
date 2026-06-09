@@ -43,32 +43,49 @@ bool Boss1::Start()
     texSpit_   = tex.Load("assets/textures/AS_props/AS_escupitajo.png");
     texPuddle_ = tex.Load("assets/textures/AS_props/AS_Charco.png");
 
-    texMove_ = tex.Load((std::string(DIR) + "spritesheet_Drowning_Plush_Moverse_bajo_suelo.png").c_str());
-    for (int i = 0; i < 28; i++) animMove_.AddFrame({i * 73, 0, 73, 73}, 60);
+    texMove_ = tex.Load((std::string(DIR) + "SP_DrowningPlush_movimiento_bajo_suelo_fase1.png").c_str());
+    for (int i = 0; i < 10; i++) animMove_.AddFrame({i * 256, 0, 256, 256}, 60);
     animMove_.SetLoop(true);
 
-    texAlert_ = tex.Load((std::string(DIR) + "spritesheetDrowning_Plush_Idle_Cansado.png").c_str());
-    for (int i = 1; i < 16; i++) animAlert_.AddFrame({i * 128, 0, 128, 128}, 80);
-    animAlert_.SetLoop(true);
+    // Cansado: 5-frame intro plays once, then the 12-frame loop takes over while exposed
+    texCansado_ = tex.Load((std::string(DIR) + "SP_DrowningPlush_cansado_fase1.png").c_str());
+    for (int i = 0; i < 5; i++) animCansado_.AddFrame({i * 256, 0, 256, 256}, 80);
+    animCansado_.SetLoop(false);
 
-    texAttack_ = tex.Load((std::string(DIR) + "spritesheet_Drowning_Plush_Ataque.png").c_str());
-    for (int i = 0; i < 26; i++) animAttack_.AddFrame({i * 79, 0, 79, 79}, 60);
+    texCansadoLoop_ = tex.Load((std::string(DIR) + "SP_DrowningPlush_cansado_loop_fase1.png").c_str());
+    for (int i = 0; i < 12; i++) animCansadoLoop_.AddFrame({i * 256, 0, 256, 256}, 80);
+    animCansadoLoop_.SetLoop(true);
+
+    texAttack_ = tex.Load((std::string(DIR) + "SP_DrowningPlush_salir_suelo_fase1.png").c_str());
+    for (int i = 0; i < 32; i++) animAttack_.AddFrame({i * 256, 0, 256, 256}, 60);
     animAttack_.SetLoop(false);
 
-    texHit_ = tex.Load((std::string(DIR) + "spritesheet_Drowning_Plush_Hit.png").c_str());
+    texHit_ = tex.Load((std::string(DIR) + "SP_DrowningPlush_hit_fase1.png").c_str());
     for (int i = 0; i < 6; i++) animHit_.AddFrame({i * 256, 0, 256, 256}, 100);
     animHit_.SetLoop(false);
 
-    texDive_ = tex.Load((std::string(DIR) + "spritesheet_Drowning_Plush_Sumergirse.png").c_str());
-    for (int i = 0; i < 18; i++) animDive_.AddFrame({i * 114, 0, 114, 114}, 80);
+    texDive_ = tex.Load((std::string(DIR) + "SP_Drowning_Plush_sumergirse.png").c_str());
+    for (int i = 0; i < 18; i++) animDive_.AddFrame({i * 256, 0, 256, 256}, 80);
     animDive_.SetLoop(false);
+
+    texP2Move_ = tex.Load((std::string(DIR) + "SS_Drowningplush2afase.png").c_str());
+    for (int i = 0; i < 12; i++) animP2Move_.AddFrame({i * 512,    0, 512, 512}, 70);
+    for (int i = 0; i < 8;  i++) animP2Move_.AddFrame({i * 512,  512, 512, 512}, 70);
+    for (int i = 0; i < 5;  i++) animP2Move_.AddFrame({i * 512, 1024, 512, 512}, 70);
+    for (int i = 0; i < 11; i++) animP2Move_.AddFrame({i * 512, 1536, 512, 512}, 70);
+    animP2Move_.SetLoop(true);
+
+    // Escupir — fila 2 (y=512), columnas 3-7 (5 frames donde el boss escupe;
+    // la columna 8 de esa fila está vacía en la spritesheet)
+    for (int i = 3; i <= 7; i++) animP2Spit_.AddFrame({i * 512, 512, 512, 512}, 100);
+    animP2Spit_.SetLoop(false);
 
     // ── Calibrate floorY_ immediately via downward raycast so the first jump arc
     // and underground strip are correct from the start (no waiting for first landing).
     float hitX, hitY;
     int rcX     = (int)undergroundX_;
     int rcStart = (int)floorY_ - 100; // start well above expected floor
-    int rcEnd   = (int)floorY_ + 200; // search below
+    int rcEnd   = (int)floorY_ + 600; // search far below to guarantee hitting the floor
     if (Engine::GetInstance().physics->RayCastWorld(rcX, rcStart, rcX, rcEnd, hitX, hitY))
     {
         floorY_          = hitY;
@@ -87,10 +104,12 @@ bool Boss1::CleanUp()
     tex.UnLoad(texSpit_);
     tex.UnLoad(texPuddle_);
     tex.UnLoad(texMove_);
-    tex.UnLoad(texAlert_);
+    tex.UnLoad(texCansado_);
+    tex.UnLoad(texCansadoLoop_);
     tex.UnLoad(texAttack_);
     tex.UnLoad(texHit_);
     tex.UnLoad(texDive_);
+    tex.UnLoad(texP2Move_);
     return true;
 }
 
@@ -229,9 +248,12 @@ void Boss1::TransitionTo(Boss1State newState)
     // Reset non-looping animations on entry
     switch (newState)
     {
-    case Boss1State::DIVE:    animDive_.Reset();    break;
-    case Boss1State::STUNNED: animHit_.Reset();     break;
-    case Boss1State::JUMP:    animAttack_.Reset();  break;
+    case Boss1State::DIVE:       animDive_.Reset();    break;
+    case Boss1State::DEATH:      animDive_.Reset();    deathTeleportTimer_ = 0.0f; deathSequenceDone_ = false; break;
+    case Boss1State::STUNNED:    animHit_.Reset();     break;
+    case Boss1State::JUMP:       animAttack_.Reset();  break;
+    case Boss1State::VULNERABLE: animCansado_.Reset(); break;
+    case Boss1State::P2_SPIT:    animP2Spit_.Reset();  break;
     default: break;
     }
 }
@@ -346,7 +368,6 @@ void Boss1::OnPhaseChange(int newPhase)
         // No destruir el cuerpo ni transicionar aquí — TakeDamage irá a STUNNED
         // y DIVE usará p2WasHitInVulnerable_ para ir a P2_INTRO después
         p2WallCrosses_        = 0;
-        p2NextSpit_           = 1 + rand() % 2;
         p2NextSurface_        = 7 + rand() % 2;
         p2WasHitInVulnerable_ = true; // para que DIVE vaya a P2_INTRO
         auto& scn = *Engine::GetInstance().scene;
@@ -378,7 +399,7 @@ void Boss1::UpdateFSM(float dt)
     UpdateP2(dt);
 
     // Facing direction: always toward player except during wall move (follow movement dir)
-    if (state_ == Boss1State::P2_WALL_MOVE || state_ == Boss1State::P2_SPIT)
+    if (state_ == Boss1State::P2_WALL_MOVE)
         facingRight_ = (p2MoveDir_ > 0.0f);
     else if (scn.player)
         facingRight_ = (playerCX > undergroundX_);
@@ -519,13 +540,22 @@ void Boss1::UpdateFSM(float dt)
             TransitionTo(Boss1State::DIVE);
         break;
 
-    // ── DEATH ────────────────────────────────────────────────────────────────
+    // ── DEATH — reuses the "submerge" animation; once it finishes, wait a beat
+    //           then send the player back to the hub (Map2 — spawn "Main") ────
     case Boss1State::DEATH:
         velocity.x = 0.0f;
-        if (stateTimer_ >= DEATH_DURATION)
+        if (animDive_.HasFinishedOnce() && !deathSequenceDone_)
         {
-            isEngaged_ = false;
-            Destroy();
+            deathTeleportTimer_ += dt;
+            if (deathTeleportTimer_ >= DEATH_TELEPORT_DELAY)
+            {
+                deathSequenceDone_ = true;
+                isEngaged_ = false;
+                scn.RequestSubMapTeleport("Map2.tmx", "Main");
+                // Seal the entrance portal (Map2.tmx, object id 70) — boss is gone, no reason to come back
+                scn.SealBossPortal(1145.33f, 3668.0f, 284.667f, 604.0f);
+                Destroy();
+            }
         }
         break;
 
@@ -574,18 +604,13 @@ void Boss1::UpdateFSM(float dt)
                 // Return to P1-style surface attack (faster timings)
                 p2WallCrosses_ = 0;
                 p2NextSurface_ = 7 + rand() % 2;
-                p2NextSpit_    = 1 + rand() % 2;
                 TransitionTo(Boss1State::UNDERGROUND);
-            }
-            else if (p2WallCrosses_ >= p2NextSpit_)
-            {
-                // Spit attack at the wall
-                p2NextSpit_ = p2WallCrosses_ + 1 + rand() % 2;
-                TransitionTo(Boss1State::P2_SPIT);
             }
             else
             {
-                p2MoveDir_ = -p2MoveDir_; // flip and keep going
+                // Spit every time it reaches a wall — P2_SPIT flips p2MoveDir_
+                // after firing, so it naturally alternates between both walls.
+                TransitionTo(Boss1State::P2_SPIT);
             }
         }
 
@@ -598,17 +623,13 @@ void Boss1::UpdateFSM(float dt)
         position.setX(undergroundX_);
         position.setY(floorY_);
 
-        // After the pause, fire once toward the player
+        // After the pause, fire once — always away from the wall, into the arena.
+        // p2MoveDir_ still holds the direction the boss was moving when it hit the
+        // wall (it only flips below, after firing), so -p2MoveDir_ points inward —
+        // this naturally alternates sides as the boss alternates walls.
         if (stateTimer_ >= P2_SPIT_PAUSE && !p2SpitBody_)
         {
-            int px, py;
-            float dir = 1.0f;
-            if (scn.player && scn.player->pbody)
-            {
-                scn.player->pbody->GetPosition(px, py);
-                dir = ((float)px > undergroundX_) ? 1.0f : -1.0f;
-            }
-            SpawnSpit(dir);
+            SpawnSpit(-p2MoveDir_);
         }
         // Brief moment after firing → flip direction, resume wall move
         if (stateTimer_ >= P2_SPIT_PAUSE + 500.0f)
@@ -670,40 +691,53 @@ void Boss1::Draw(float dt)
     }
 
     // ── Helper lambdas — center on undergroundX_, bottom anchored ────────────
-    static constexpr int   GROUND_OFFSET  = 12;
-    static constexpr float ATTACK_SCALE   = 2.0f;
-    static constexpr float HIT_SCALE      = 0.6f;
-    static constexpr float DIVE_SCALE     = 1.2f;
+    static constexpr int   GROUND_OFFSET   = 12;
+    static constexpr float SPRITE_SCALE    = 0.85f;  // Fase 1 sheets are now uniformly 256×256
+    static constexpr float SPRITE_WIDTH_MUL = 1.15f; // extra horizontal stretch on top of SPRITE_SCALE
 
-    auto drawUnder = [&](SDL_Texture* tex, Animation& anim, float scale = 1.0f) {
+    auto drawUnder = [&](SDL_Texture* tex, Animation& anim, float scale = 1.0f, float widthMul = 1.0f) {
         if (!tex) return;
         SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
         anim.Update(dt);
         const SDL_Rect& f = anim.GetCurrentFrame();
         if (f.w == 0 || f.h == 0) return;
-        int sw = (int)(f.w * scale);
+        float scaleX = scale * widthMul;
+        int sw = (int)(f.w * scaleX);
         int sh = (int)(f.h * scale);
         render.DrawTexture(tex, (int)undergroundX_ - sw / 2,
-                           (int)floorY_ - sh + GROUND_OFFSET, &f, 1.0f, 0, INT_MAX, INT_MAX, flip, scale);
+                           (int)floorY_ - sh + GROUND_OFFSET, &f, 1.0f, 0, INT_MAX, INT_MAX, flip, scaleX, scale);
     };
-    auto drawSurf = [&](SDL_Texture* tex, Animation& anim, float bottomY, float scale = 1.0f) {
+    auto drawSurf = [&](SDL_Texture* tex, Animation& anim, float bottomY, float scale = 1.0f, float widthMul = 1.0f) {
         if (!tex) return;
         SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
         anim.Update(dt);
         const SDL_Rect& f = anim.GetCurrentFrame();
         if (f.w == 0 || f.h == 0) return;
-        int sw = (int)(f.w * scale);
+        float scaleX = scale * widthMul;
+        int sw = (int)(f.w * scaleX);
         int sh = (int)(f.h * scale);
         render.DrawTexture(tex, (int)undergroundX_ - sw / 2,
-                           (int)bottomY - sh + GROUND_OFFSET, &f, 1.0f, 0, INT_MAX, INT_MAX, flip, scale);
+                           (int)bottomY - sh + GROUND_OFFSET, &f, 1.0f, 0, INT_MAX, INT_MAX, flip, scaleX, scale);
     };
 
-    // ── P2_INTRO / P2_WALL_MOVE / P2_SPIT ────────────────────────────────────
-    if (state_ == Boss1State::P2_INTRO ||
-        state_ == Boss1State::P2_WALL_MOVE ||
-        state_ == Boss1State::P2_SPIT)
+    // ── P2_INTRO ──────────────────────────────────────────────────────────────
+    if (state_ == Boss1State::P2_INTRO)
     {
         drawUnder(texMove_, animMove_);
+        return;
+    }
+
+    // ── P2_WALL_MOVE / P2_SPIT ────────────────────────────────────────────────
+    if (state_ == Boss1State::P2_WALL_MOVE ||
+        state_ == Boss1State::P2_SPIT)
+    {
+        // Play the spit frames once; once they finish, resume the regular looping
+        // sprite animation instead of freezing on the last spit frame.
+        if (state_ == Boss1State::P2_SPIT && !animP2Spit_.HasFinishedOnce())
+            drawUnder(texP2Move_, animP2Spit_, 0.25f);
+        else
+            drawUnder(texP2Move_, animP2Move_, 0.25f);
+
         if (Engine::GetInstance().physics->IsDebug())
         {
             SDL_Rect kz = { (int)undergroundX_ - (int)P2_KILL_HALF_W,
@@ -717,28 +751,28 @@ void Boss1::Draw(float dt)
     // ── UNDERGROUND ───────────────────────────────────────────────────────────
     if (state_ == Boss1State::UNDERGROUND)
     {
-        drawUnder(texMove_, animMove_);
+        drawUnder(texMove_, animMove_, SPRITE_SCALE, SPRITE_WIDTH_MUL);
         return;
     }
 
-    // ── JUMP — Ataque animation (desde el suelo, sin salto) ───────────────────
+    // ── JUMP — Salir del suelo (desde el suelo, sin salto) ────────────────────
     if (state_ == Boss1State::JUMP)
     {
-        drawUnder(texAttack_, animAttack_, ATTACK_SCALE);
+        drawUnder(texAttack_, animAttack_, SPRITE_SCALE, SPRITE_WIDTH_MUL);
         return;
     }
 
     // ── DIVE — Sumergirse animation ────────────────────────────────────────────
     if (state_ == Boss1State::DIVE)
     {
-        drawUnder(texDive_, animDive_, DIVE_SCALE);
+        drawUnder(texDive_, animDive_, SPRITE_SCALE, SPRITE_WIDTH_MUL);
         return;
     }
 
     // ── DEATH — reutiliza Sumergirse (se hunde) ────────────────────────────────
     if (state_ == Boss1State::DEATH)
     {
-        drawUnder(texDive_, animDive_, DIVE_SCALE);
+        drawUnder(texDive_, animDive_, SPRITE_SCALE, SPRITE_WIDTH_MUL);
         return;
     }
 
@@ -750,7 +784,12 @@ void Boss1::Draw(float dt)
     undergroundX_ = (float)bx;
 
     if (state_ == Boss1State::STUNNED)
-        drawSurf(texHit_, animHit_, bodyBottom, HIT_SCALE);
-    else // VULNERABLE — Idle Cansado (quieto, esperando ser golpeado)
-        drawSurf(texAlert_, animAlert_, bodyBottom);
+        drawSurf(texHit_, animHit_, bodyBottom, SPRITE_SCALE, SPRITE_WIDTH_MUL);
+    else // VULNERABLE — Cansado: 5-frame intro plays once, then loops while exposed
+    {
+        if (!animCansado_.HasFinishedOnce())
+            drawSurf(texCansado_, animCansado_, bodyBottom, SPRITE_SCALE, SPRITE_WIDTH_MUL);
+        else
+            drawSurf(texCansadoLoop_, animCansadoLoop_, bodyBottom, SPRITE_SCALE, SPRITE_WIDTH_MUL);
+    }
 }

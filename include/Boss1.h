@@ -74,6 +74,8 @@ private:
 
     Boss1State state_      = Boss1State::WAITING;
     float      stateTimer_ = 0.0f;
+    float      deathTeleportTimer_ = 0.0f; // counts up once the death animation finishes
+    bool       deathSequenceDone_  = false; // guards the teleport/portal-seal so they fire exactly once
 
     // ── Underground tracking ──────────────────────────────────────────────────
     float undergroundX_    = 0.0f;
@@ -97,16 +99,16 @@ private:
 
     // ── Timers / thresholds ───────────────────────────────────────────────────
     static constexpr float MIN_ALIGN_TIME         = 600.0f;  // P1 — ms player must be over strip
-    static constexpr float MIN_ALIGN_TIME_P2      = 250.0f;  // P2 — faster
+    static constexpr float MIN_ALIGN_TIME_P2      = 400.0f;  // P2 — faster than P1, but gentler than before
     static constexpr float EXIT_PAUSE_DURATION    = 400.0f;
     static constexpr float PRE_JUMP_DELAY         = 900.0f;  // P1 tell duration
-    static constexpr float PRE_JUMP_DELAY_P2      = 400.0f;  // P2 tell duration
+    static constexpr float PRE_JUMP_DELAY_P2      = 650.0f;  // P2 tell duration — shorter than P1, but gives more reaction time than before
     static constexpr float JUMP_ALIGN_THRESHOLD   = 24.0f;
     static constexpr float VULNERABLE_DURATION_P1 = 4000.0f;
-    static constexpr float VULNERABLE_DURATION_P2 = 2500.0f;
+    static constexpr float VULNERABLE_DURATION_P2 = 3200.0f;
     static constexpr float STUN_DURATION          = 380.0f;
     static constexpr float DIVE_DURATION          = 300.0f;
-    static constexpr float DEATH_DURATION         = 1200.0f;
+    static constexpr float DEATH_TELEPORT_DELAY   = 2000.0f; // ms after the death animation finishes before returning the player to the hub
 
     // ── Movement ─────────────────────────────────────────────────────────────
     static constexpr float UNDERGROUND_SPEED_P1 = 180.0f;
@@ -117,7 +119,6 @@ private:
     float p2WallRight_     = 0.0f;
     float p2MoveDir_       = 1.0f;  // +1 right, -1 left
     int   p2WallCrosses_   = 0;     // crossings since last surface attack
-    int   p2NextSpit_      = 2;     // crossing to spit at (1–3, randomised)
     int   p2NextSurface_   = 9;     // crossing to surface at (8–10, randomised)
 
     static constexpr float P2_INTRO_DURATION  = 2000.0f; // ms pause before wall move starts
@@ -159,21 +160,26 @@ private:
     static constexpr int BODY_H      = 128;
     static constexpr int BODY_H_OPEN = 40;
 
-    // ── Animations (all Drowning Plush — frame width = frame height) ──────────
+    // ── Animations (Fase 1 — Drowning Plush, all sheets 256×256 frames) ───────
     bool facingRight_ = false;
 
-    SDL_Texture* texSpit_    = nullptr; // Escupitajo prop
-    SDL_Texture* texPuddle_  = nullptr; // Charco prop
+    SDL_Texture* texSpit_        = nullptr; // Escupitajo prop
+    SDL_Texture* texPuddle_      = nullptr; // Charco prop
 
-    SDL_Texture* texMove_    = nullptr; // Moverse bajo suelo  — 73×73,  28 frames
-    SDL_Texture* texAlert_   = nullptr; // Idle Cansado        — 128×128, 16 frames
-    SDL_Texture* texAttack_  = nullptr; // Ataque              — 79×79,  26 frames
-    SDL_Texture* texHit_     = nullptr; // Hit                 — 256×256, 6 frames
-    SDL_Texture* texDive_    = nullptr; // Sumergirse          — 114×114, 18 frames
+    SDL_Texture* texMove_        = nullptr; // Movimiento bajo suelo — 256×256, 10 frames
+    SDL_Texture* texCansado_     = nullptr; // Cansado (intro)       — 256×256,  5 frames
+    SDL_Texture* texCansadoLoop_ = nullptr; // Cansado (loop)        — 256×256, 12 frames
+    SDL_Texture* texAttack_      = nullptr; // Salir del suelo       — 256×256, 32 frames
+    SDL_Texture* texHit_         = nullptr; // Hit                   — 256×256,  6 frames
+    SDL_Texture* texDive_        = nullptr; // Sumergirse            — 256×256, 18 frames
+    SDL_Texture* texP2Move_      = nullptr; // Fase 2 wall-to-wall   — 512×512, multi-row
 
     Animation animMove_;
-    Animation animAlert_;
+    Animation animCansado_;
+    Animation animCansadoLoop_;
     Animation animAttack_;
     Animation animHit_;
     Animation animDive_;
+    Animation animP2Move_;
+    Animation animP2Spit_;  // Fase 2 escupir — fila 2, columnas 4-8 de texP2Move_
 };
