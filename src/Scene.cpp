@@ -1279,6 +1279,43 @@ void Scene::UpdateLoading(float dt)
 				pendingLevelSpawnId_ = "";
 			}
 
+			
+			isLvl3Map_ = (currentMapFile_ == "Map3.tmx");
+			isLvl3Puzzle_ = false;
+			isPuzzleMap3Lever_ = isLvl3Map_;
+			isPuzzleMap3Buttons_ = false;
+
+			if (isLvl3Map_) {
+				if (!puzzleManager3_) puzzleManager3_ = new PuzzleManager3();
+				puzzleManager3_->Init(Engine::GetInstance().render->renderer);
+
+				LeverData3 lever;
+				SDL_FRect blockedPortal = { 0, 0, 48, 96 };
+
+				for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects()) {
+					if (obj.name == "Lever") lever.worldRect = obj.rect;
+				}
+				for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+					if (portal.spawnId == "PuzzleMain") {
+						blockedPortal = { portal.x, portal.y, portal.w, portal.h };
+						break;
+					}
+				}
+				
+				SDL_FRect portalA = { 0,0,0,0 }, portalB = { 0,0,0,0 };
+				for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+					if (portal.spawnId == "A") portalA = { portal.x, portal.y, portal.w, portal.h };
+					if (portal.spawnId == "B") portalB = { portal.x, portal.y, portal.w, portal.h };
+				}
+				puzzleManager3_->LoadExtraPortals(portalA, portalB);
+				puzzleManager3_->LoadLever(lever, blockedPortal);
+				LOG("PUZZLE3: Init en LoadMap. Palanca (%.0f,%.0f) Portal (%.0f,%.0f)",
+					lever.worldRect.x, lever.worldRect.y, blockedPortal.x, blockedPortal.y);
+			}
+			else {
+				if (puzzleManager3_) { delete puzzleManager3_; puzzleManager3_ = nullptr; }
+			}
+
 			mapLoadingFinished_ = true;
 			LOG("SCENE: Map %s loaded", currentMapFile_.c_str());
 		} else {
@@ -2111,7 +2148,52 @@ void Scene::UpdateGameplay(float dt)
 		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
 		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
-	if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
+if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
+
+if (isPuzzleMap_ && puzzleManager_ && player && !isPaused_ && !isGameOver_) {
+    SDL_FRect pRect = {
+        player->position.getX(),
+        player->position.getY(),
+        48.0f,
+        80.0f
+    };
+    float camX = Engine::GetInstance().render->camera.x;
+    float camY = Engine::GetInstance().render->camera.y;
+    float pScrX = player->position.getX() + camX + 24.0f;
+    float pScrY = player->position.getY() + camY + 40.0f;
+    puzzleManager_->Update(dt, pRect, pScrX, pScrY);
+
+    if (puzzleManager_->IsTimedOut() && !puzzleTimeoutPending_) {
+        puzzleTimeoutPending_ = true;
+        waitingForFade_ = true;
+        pendingSubMapLoad_ = true;
+        subMapTarget_ = currentMapFile_;
+        Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 600.0f);
+    }
+}
+
+if (puzzleManager3_ && player && !isPaused_ && !isGameOver_) {
+	SDL_FRect pRect = {
+		player->position.getX(),
+		player->position.getY(),
+		48.0f, 80.0f
+	};
+
+	if (isLvl3Map_) {
+		bool keyP = Engine::GetInstance().input->GetKey(SDL_SCANCODE_P) == KEY_DOWN;
+		puzzleManager3_->UpdateLever(dt, pRect, keyP);
+	}
+
+	if (isLvl3Puzzle_) {
+		// Mouse en world space
+		Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
+		float mwx = mousePos.getX() - Engine::GetInstance().render->camera.x;
+		float mwy = mousePos.getY() - Engine::GetInstance().render->camera.y;
+		bool click = Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN;
+		puzzleManager3_->UpdateButtons(dt, pRect, mwx, mwy, click);
+	}
+}
+// --- FIN PUZZLE3 UPDATE ---
 
 	// Draw cape collectible in-world
 	if (!capaCollected_ && texCapaCollectible_)
@@ -2315,6 +2397,19 @@ void Scene::DrawBossHUD(int winW, int winH)
 
 void Scene::UnloadGameplay()
 {
+	if (puzzleManager_) {
+		delete puzzleManager_;
+		puzzleManager_ = nullptr;
+	}
+	isPuzzleMap_ = false;
+
+	if (puzzleManager3_) {
+		delete puzzleManager3_;
+		puzzleManager3_ = nullptr;
+	}
+	isPuzzleMap3Lever_ = false;
+	isPuzzleMap3Buttons_ = false;
+
 	Engine::GetInstance().uiManager->CleanUp();
 	player.reset();
 	Engine::GetInstance().entityManager->CleanUp();
@@ -2645,6 +2740,23 @@ void Scene::PostUpdateGameplay()
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
 		DrawBottomFog(winW, winH);
+	}
+
+
+	if (isPuzzleMap_ && puzzleManager_) {
+		float camX = Engine::GetInstance().render->camera.x;
+		float camY = Engine::GetInstance().render->camera.y;
+		puzzleManager_->Render(Engine::GetInstance().render->renderer, camX, camY);
+	}
+
+	if ((isLvl3Map_ || isLvl3Puzzle_) && puzzleManager3_) {
+		float camX = Engine::GetInstance().render->camera.x;
+		float camY = Engine::GetInstance().render->camera.y;
+		int winW, winH;
+		SDL_GetRenderOutputSize(Engine::GetInstance().render->renderer, &winW, &winH);
+		puzzleManager3_->RenderLever(Engine::GetInstance().render->renderer, camX, camY);
+		puzzleManager3_->RenderButtons(Engine::GetInstance().render->renderer, camX, camY);
+		puzzleManager3_->RenderFlash(Engine::GetInstance().render->renderer, winW, winH);
 	}
 
 	// --- Draw Health HUD ---
@@ -4557,11 +4669,55 @@ void Scene::CheckPortalCollisions(float dt)
 {
 	if (!player || waitingForFade_ || isPaused_ || bossDeathVideoActive_ || bossDeathFading_ || endGameVideoActive_) return;
 
+	if (isPuzzleMap_ && puzzleManager_ && !puzzleManager_->IsPortalOpen()) {
+		SDL_FRect exitRect = puzzleManager_->GetExitPortalRect();
+		float px2 = player->position.getX() + 32.0f;
+		float py2 = player->position.getY() + 48.0f;
+		if (px2 >= exitRect.x && px2 <= exitRect.x + exitRect.w &&
+			py2 >= exitRect.y && py2 <= exitRect.y + exitRect.h) {
+			return;  
+		}
+	}
+
+	if (isLvl3Map_ && puzzleManager3_ && !puzzleManager3_->IsLeverActivated()) {
+		SDL_FRect blocked3 = puzzleManager3_->GetBlockedPortalRect();
+		float pcx3 = player->position.getX() + 32.0f;
+		float pcy3 = player->position.getY() + 48.0f;
+		if (pcx3 >= blocked3.x && pcx3 <= blocked3.x + blocked3.w &&
+			pcy3 >= blocked3.y && pcy3 <= blocked3.y + blocked3.h) {
+			return;
+		}
+	}
+
+	// Bloquear portales A y B hasta que se completen los botones
+	if (isPuzzleMap3Lever_ && puzzleManager3_ && !puzzleManager3_->AreBothButtonsDone()) {
+		SDL_FRect pA = puzzleManager3_->GetPortalARect();
+		SDL_FRect pB = puzzleManager3_->GetPortalBRect();
+		float pcx3 = player->position.getX() + 32.0f;
+		float pcy3 = player->position.getY() + 48.0f;
+		if ((pA.w > 0 && pcx3 >= pA.x && pcx3 <= pA.x + pA.w && pcy3 >= pA.y && pcy3 <= pA.y + pA.h) ||
+			(pB.w > 0 && pcx3 >= pB.x && pcx3 <= pB.x + pB.w && pcy3 >= pB.y && pcy3 <= pB.y + pB.h)) {
+			return;
+		}
+	}
+
 	if (portalCooldown_ > 0.0f) {
 		portalCooldown_ -= dt;
 		return;
 	}
 
+
+	SDL_FRect blockedExit = { 0,0,0,0 };
+	bool hasBlockedExit = false;
+	if (isPuzzleMap_ && puzzleManager_ && !puzzleManager_->IsPortalOpen()) {
+		blockedExit = puzzleManager_->GetExitPortalRect();
+		hasBlockedExit = true;
+	}
+
+	if (isPuzzleMap3Lever_ && puzzleManager3_ && !puzzleManager3_->IsLeverActivated()) {
+		blockedExit = puzzleManager3_->GetBlockedPortalRect();
+		hasBlockedExit = true;
+	}
 	auto portals = Engine::GetInstance().map->GetPortals();
 	if (portals.empty()) return;
 
@@ -4575,6 +4731,15 @@ void Scene::CheckPortalCollisions(float dt)
 		if (pcx >= portal.x && pcx <= portal.x + portal.w &&
 			pcy >= portal.y && pcy <= portal.y + portal.h)
 		{
+
+			if (hasBlockedExit) {
+				float pcx2 = player->position.getX() + 32.0f;
+				float pcy2 = player->position.getY() + 48.0f;
+				if (pcx2 >= blockedExit.x && pcx2 <= blockedExit.x + blockedExit.w &&
+					pcy2 >= blockedExit.y && pcy2 <= blockedExit.y + blockedExit.h) {
+					continue; 
+				}
+			}
 
 			bool isLevelPortal = portal.targetFile.size() < 4 ||
 				portal.targetFile.substr(portal.targetFile.size() - 4) != ".tmx";
@@ -4690,7 +4855,118 @@ void Scene::ExecuteSubMapLoad()
 	Engine::GetInstance().render->cameraZoom = 1.0f;
 	Engine::GetInstance().render->blurIntensity = 0.0f;
 
-    portalCooldown_ = 1500.0f;
+	portalCooldown_ = 1500.0f;
+
+	isPuzzleMap_ = (currentMapFile_ == "MapLvl1ZonaPuzzle.tmx");
+	if (isPuzzleMap_) {
+		if (!puzzleManager_) puzzleManager_ = new PuzzleManager();
+		puzzleManager_->Init(Engine::GetInstance().render->renderer);
+
+		std::vector<PuzzleFigure> figuresOnly;
+		SDL_FRect exitRect = { 0, 0, 48, 48 };
+
+		for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects()) {
+			PuzzleFigure f;
+			f.name = obj.name;
+			f.worldRect = obj.rect;
+			figuresOnly.push_back(f);
+		}
+
+		for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+			if (portal.spawnId == "spawn_return_puzzle_exit") {
+				exitRect = { portal.x, portal.y, portal.w, portal.h };
+				LOG("PUZZLE: Exit portal encontrado en (%.0f, %.0f) size %.0fx%.0f",
+					portal.x, portal.y, portal.w, portal.h);
+				break;
+			}
+		}
+
+		puzzleManager_->LoadFiguresFromObjects(figuresOnly, exitRect);
+		puzzleTimeoutPending_ = false;
+
+		LOG("PUZZLE: Loaded %d figures. Exit portal at (%.0f, %.0f)", (int)figuresOnly.size(), exitRect.x, exitRect.y);
+	}
+	else {
+		if (puzzleManager_) {
+			delete puzzleManager_;
+			puzzleManager_ = nullptr;
+		}
+	}
+
+	// --- PUZZLE3 INIT ---
+	isLvl3Map_ = (currentMapFile_ == "Map3.tmx");
+	isLvl3Puzzle_ = (currentMapFile_ == "MapLvl3ZonaPuzzle3.tmx");
+	LOG("PUZZLE3 DEBUG: currentMapFile_='%s', isLvl3Puzzle_=%d", currentMapFile_.c_str(), (int)isLvl3Puzzle_);
+
+	if (isLvl3Map_ || isLvl3Puzzle_) {
+		if (!puzzleManager3_) puzzleManager3_ = new PuzzleManager3();
+		puzzleManager3_->Init(Engine::GetInstance().render->renderer);
+
+		if (isLvl3Map_) {
+			// Cargar palanca y portal bloqueado desde PuzzleObjects del mapa
+			LeverData3 lever;
+			SDL_FRect blockedPortal = { 0, 0, 48, 96 };
+
+			for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects()) {
+				if (obj.name == "Lever") {
+					lever.worldRect = obj.rect;
+				}
+			}
+
+			// Portal bloqueado: leer desde layer Portals con spawnId = "spawn_puzzle3_entrance"
+			for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+				if (portal.spawnId == "PuzzleMain" && portal.target == "MapLvl3ZonaPuzzle3.tmx") {
+					blockedPortal = { portal.x, portal.y, portal.w, portal.h };
+					LOG("PUZZLE3: Portal bloqueado encontrado en (%.0f, %.0f)", portal.x, portal.y);
+					break;
+				}
+			}
+
+			puzzleManager3_->LoadLever(lever, blockedPortal);
+
+			SDL_FRect portalA = { 0,0,0,0 }, portalB = { 0,0,0,0 };
+			for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+				if (portal.spawnId == "A") portalA = { portal.x, portal.y, portal.w, portal.h };
+				if (portal.spawnId == "B") portalB = { portal.x, portal.y, portal.w, portal.h };
+			}
+			puzzleManager3_->LoadExtraPortals(portalA, portalB);
+			LOG("PUZZLE3: Palanca cargada en (%.0f, %.0f)", lever.worldRect.x, lever.worldRect.y);
+		}
+
+		if (isLvl3Puzzle_) {
+			// Cargar botones desde PuzzleObjects
+			std::vector<ButtonData3> buttons;
+			for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects3()) {
+				std::string fullName = obj.name;
+				int clicks = 1;
+				size_t sep = fullName.find('|');
+				if (sep != std::string::npos) {
+					clicks = std::stoi(fullName.substr(sep + 1));
+					fullName = fullName.substr(0, sep);
+				}
+				if (fullName == "Button" || fullName == "button_2") {
+					ButtonData3 btn;
+					btn.worldRect = obj.rect;
+					btn.requiredClicks = clicks;
+					buttons.push_back(btn);
+					LOG("PUZZLE3: Boton '%s' cargado, requiredClicks=%d", fullName.c_str(), clicks);
+				}
+			}
+			puzzleManager3_->LoadButtons(buttons);
+
+		}
+	}
+	else {
+		if (puzzleManager3_) {
+			delete puzzleManager3_;
+			puzzleManager3_ = nullptr;
+		}
+		isLvl3Map_ = false;
+		isLvl3Puzzle_ = false;
+	}
+
+	isPuzzleMap3Lever_ = isLvl3Map_;
+	isPuzzleMap3Buttons_ = isLvl3Puzzle_;
 	LOG("PORTAL: Sub-map load complete. Final health=%d", player->health);
 }
 
