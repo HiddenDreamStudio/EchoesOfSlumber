@@ -17,6 +17,7 @@
 #include "DiscordManager.h"
 #include "Physics.h"
 #include "Boss.h"
+#include "Boss1.h"
 #include "Checkpoint.h"
 #include "Boss2.h"
 #include <cstdlib>
@@ -2163,26 +2164,33 @@ void Scene::DrawBossHUD(int winW, int winH)
     const int BAR_W  = 800;
     const int BAR_H  = 50;
     const int BAR_X  = (winW - BAR_W) / 2;
-    const int BAR_Y  = winH - 650;
+    // Drowning Plush's room has a lower ceiling on screen — nudge its HUD down so the title clears it
+    const int BAR_Y  = std::dynamic_pointer_cast<Boss1>(boss) ? 72 : 45;
     const int IND_SZ = 50;
 
     float realPct = boss->GetHealthPercent();
     realPct = (realPct < 0.0f) ? 0.0f : (realPct > 1.0f) ? 1.0f : realPct;
     bossHealthDisplay_ += (realPct - bossHealthDisplay_) * 0.08f;
 
-    render.DrawTextureAlpha(texBossBarEmpty_, BAR_X, BAR_Y, BAR_W, BAR_H);
+    const int NAME_H  = 22;
+    const int BAR_TOP = BAR_Y + NAME_H + 22;
+
+    SDL_Rect nameArea = { BAR_X, BAR_Y, BAR_W, NAME_H };
+    render.DrawMenuTextCentered(boss->GetBossName(), nameArea, { 230, 220, 200, 255 });
+
+    render.DrawTextureAlpha(texBossBarEmpty_, BAR_X, BAR_TOP, BAR_W, BAR_H);
 
     int clipW = (int)(BAR_W * bossHealthDisplay_);
     if (clipW > 0)
     {
         SDL_FRect src = { 0.0f, 0.0f, (float)clipW, (float)BAR_H };
-        SDL_FRect dst = { (float)BAR_X, (float)BAR_Y, (float)clipW, (float)BAR_H };
+        SDL_FRect dst = { (float)BAR_X, (float)BAR_TOP, (float)clipW, (float)BAR_H };
         SDL_RenderTexture(render.renderer, texBossBarFull_, &src, &dst);
     }
 
     int indX = BAR_X + clipW - IND_SZ / 2;
-    indX = std::max(BAR_X + 4, std::min(indX, BAR_X + BAR_W - IND_SZ - 12));
-    int indY = BAR_Y + BAR_H / 2 - IND_SZ / 2;
+    indX = std::max(BAR_X + 4, std::min(indX, BAR_X + BAR_W - IND_SZ - 9));
+    int indY = BAR_TOP + BAR_H / 2 - IND_SZ / 2;
     render.DrawTextureAlpha(texBossBarIndicator_, indX, indY, IND_SZ, IND_SZ);
 
     SDL_Rect nameArea = { BAR_X, BAR_Y - 30, BAR_W, 22 };
@@ -2520,7 +2528,8 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Draw Health HUD ---
-	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_ && !isBossFightActive_) {
+	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_
+		&& currentMapFile_ != "MapLvl2ZonaBoss.tmx") {
 		SDL_Rect r;
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
@@ -4317,7 +4326,32 @@ void Scene::LoadSubMap(const std::string& tmxFile, const std::string& spawnId)
 	pendingSubMapLoad_ = true;
 
 	waitingForFade_ = true;
-	fadeTargetScene_ = SceneID::GAMEPLAY; 
+	fadeTargetScene_ = SceneID::GAMEPLAY;
+	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 400.0f);
+}
+
+// Spawns a static, invisible collider over a defeated boss's entrance portal so the
+// player can no longer walk back into the arena — same recipe as the "Wall" map entities.
+void Scene::SealBossPortal(float x, float y, float w, float h)
+{
+	int cx = (int)(x + w * 0.5f);
+	int cy = (int)(y + h * 0.5f);
+	PhysBody* wall = Engine::GetInstance().physics->CreateRectangle(cx, cy, (int)w, (int)h, bodyType::STATIC, 0.0f);
+	if (wall) wall->ctype = ColliderType::UNKNOWN;
+}
+
+// Programmatic map switch (e.g. returning the player to the hub after a boss fight) —
+// reuses the same submap fade/load pipeline as portal traversal, just triggered by gameplay logic.
+void Scene::RequestSubMapTeleport(const std::string& tmxFile, const std::string& spawnId)
+{
+	if (waitingForFade_) return;
+
+	subMapTarget_ = tmxFile;
+	subMapSpawnId_ = spawnId;
+	pendingSubMapLoad_ = true;
+
+	waitingForFade_ = true;
+	fadeTargetScene_ = SceneID::GAMEPLAY;
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 400.0f);
 }
 
@@ -4407,7 +4441,7 @@ void Scene::ExecuteSubMapLoad()
         Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 2.0f);
     }
     Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
-	
+
 	float portalSpawnX = 0.0f, portalSpawnY = 0.0f;
 	bool portalSpawnFound = Engine::GetInstance().map->GetSpawnById(subMapSpawnId_, portalSpawnX, portalSpawnY);
 	
