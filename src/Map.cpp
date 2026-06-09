@@ -1490,3 +1490,64 @@ bool Map::GetSpawnById(const std::string& id, float& outX, float& outY) const
     }
     return false;
 }
+
+std::vector<Map::MapObject> Map::GetPuzzleObjects() const
+{
+    std::vector<Map::MapObject> result;
+
+    for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
+        groupNode; groupNode = groupNode.next_sibling("objectgroup"))
+    {
+        if (std::string(groupNode.attribute("name").as_string()) != "PuzzleObjects") continue;
+
+        for (pugi::xml_node obj = groupNode.child("object"); obj; obj = obj.next_sibling("object"))
+        {
+            Map::MapObject mo;
+            mo.name = obj.attribute("name").as_string();
+            mo.rect.x = obj.attribute("x").as_float();
+            mo.rect.y = obj.attribute("y").as_float();
+            mo.rect.w = obj.attribute("width").as_float(48.0f);
+            mo.rect.h = obj.attribute("height").as_float(48.0f);
+            result.push_back(mo);
+        }
+        break;
+    }
+
+    return result;
+}
+
+std::vector<Map::MapObject> Map::GetPuzzleObjects3() const
+{
+    std::vector<Map::MapObject> result;
+
+    for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
+        groupNode; groupNode = groupNode.next_sibling("objectgroup"))
+    {
+        if (std::string(groupNode.attribute("name").as_string()) != "PuzzleObjects3") continue;
+
+        for (pugi::xml_node obj = groupNode.child("object"); obj; obj = obj.next_sibling("object"))
+        {
+            Map::MapObject mo;
+            mo.name = obj.attribute("name").as_string();
+            mo.rect.x = obj.attribute("x").as_float();
+            mo.rect.y = obj.attribute("y").as_float();
+            mo.rect.w = obj.attribute("width").as_float(48.0f);
+            mo.rect.h = obj.attribute("height").as_float(48.0f);
+
+            for (pugi::xml_node prop = obj.child("properties").child("property");
+                prop; prop = prop.next_sibling("property"))
+            {
+                std::string propName = prop.attribute("name").as_string();
+                if (propName == "requiredClicks") {
+                    int clicks = prop.attribute("value").as_int(1);
+                    mo.name += "|" + std::to_string(clicks);
+                }
+            }
+
+            result.push_back(mo);
+        }
+        break;
+    }
+
+    return result;
+}
