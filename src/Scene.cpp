@@ -1008,7 +1008,7 @@ void Scene::UpdateIntroCinematic(float dt)
 		if (render.IsFadeComplete()) {
 			LOG("SCENE: INTRO - Fading to video complete. Starting video with fade-in.");
 			introCinState_ = IntroCinState::PLAYING_VIDEO;
-			Engine::GetInstance().cinematics->PlayVideo("assets/video/Animatica_Enbrut.mp4");
+			Engine::GetInstance().cinematics->PlayVideo("assets/video/animatica_inici.MOV");
 			render.StartFade(FadeDirection::FADE_IN, 1200.0f);
 		}
 		break;
