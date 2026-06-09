@@ -60,9 +60,16 @@ bool Antagonist::Update(float dt)
     {
     case AntagonistState::IDLE:
     {
+        // If the end-game sequence already fired (e.g. map reloaded after death),
+        // remove this entity silently so it can never trigger the cinematic again.
+        auto& scn = *Engine::GetInstance().scene;
+        if (scn.IsEndGameTriggered()) {
+            pendingToDelete = true;
+            break;
+        }
+
         animIdle_.Update(dt);
 
-        auto& scn = *Engine::GetInstance().scene;
         if (scn.player && scn.player->pbody)
         {
             int px, py;
@@ -80,8 +87,10 @@ bool Antagonist::Update(float dt)
 
     case AntagonistState::DISAPPEARING:
         animDisappear_.Update(dt);
-        if (animDisappear_.HasFinishedOnce())
+        if (animDisappear_.HasFinishedOnce()) {
             pendingToDelete = true;
+            Engine::GetInstance().scene->TriggerEndGameCinematic();
+        }
         break;
     }
 
