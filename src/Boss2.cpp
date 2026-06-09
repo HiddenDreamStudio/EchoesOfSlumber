@@ -716,7 +716,6 @@ void Boss2::UpdateFSM(float dt)
                 deathSequenceDone_ = true;
                 isEngaged_ = false;
                 auto& scn = *Engine::GetInstance().scene;
-                scn.RequestSubMapTeleport("MapLvl3ZonaAlta.tmx", "J");
                 // Seal the entrance portal (MapLvl3ZonaAlta.tmx, object id 395) — boss is gone, no reason to come back
                 scn.SealBossPortal(2948.0f, 3694.64f, 680.0f, 686.728f);
                 pendingToDelete = true;
