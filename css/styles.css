@@ -655,7 +655,7 @@ body {
     background-position: bottom;
     background-size: contain;
     background-repeat: no-repeat;
-    filter: brightness(0) saturate(100%) invert(43%) sepia(55%) saturate(446%) hue-rotate(165deg) brightness(90%) contrast(90%);
+    filter: brightness(0) saturate(100%) invert(6%) sepia(48%) saturate(2206%) hue-rotate(193deg) brightness(94%) contrast(98%);
 }
 
 /* Blue border line at top of footer, like image 1 */
