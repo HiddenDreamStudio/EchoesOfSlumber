@@ -153,6 +153,7 @@ bool Player::Start() {
 	landFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/land.wav");
 	stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");
 	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
+	slingshotFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/tirachinas.wav");
 
 	return true;
 }
@@ -810,6 +811,8 @@ void Player::Slingshot(float dt)
 
 			proj->SetLaunch(dirX, dirY, launchSpeed);
 			proj->Start();
+
+			Engine::GetInstance().audio->PlayFx(slingshotFxId);
 
 			LOG("Slingshot fired! angle=%.1f speed=%.1f", aimAngle_ * RADTODEG, launchSpeed);
 		}
