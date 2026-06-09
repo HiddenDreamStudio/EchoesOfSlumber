@@ -655,7 +655,6 @@ body {
     background-position: bottom;
     background-size: contain;
     background-repeat: no-repeat;
-    filter: url('#tint-09101d');
 }
 
 /* Blue border line at top of footer, like image 1 */
