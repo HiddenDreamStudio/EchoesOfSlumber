@@ -28,6 +28,7 @@
 #include "Door.h"
 #include "BlockCrawler.h"
 #include "Lever.h"
+#include "HidingRock.h"
 #include "MemoryFragment.h"
 
 EntityManager::EntityManager() : Module()
@@ -160,6 +161,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::ENEMY_WINDUP_SCURRY:
 		entity = std::make_shared<EnemyWindUpScurry>();
+		break;
+	case EntityType::HIDING_ROCK:
+		entity = std::make_shared<HidingRock>();
 		break;
 	case EntityType::MEMORY_FRAGMENT:
 		entity = std::make_shared<MemoryFragment>();
