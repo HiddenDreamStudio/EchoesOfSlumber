@@ -12,6 +12,7 @@
 #include "SlingshotProjectile.h"
 #include "tracy/Tracy.hpp"
 #include "Door.h"
+#include "Platform.h"
 #include <algorithm>
 
 Player::Player() : Entity(EntityType::PLAYER),
@@ -60,15 +61,15 @@ bool Player::Start() {
 	wakeUpTexture = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/Aixecant-se/ss_Aixecant-se_definitiu.png");
 
 	// Track the grid dimensions for the new 2560x2560 stacked texture
-	int columns = 10; 
+	int columns = 10;
 
 	for (int i = 0; i < 93; ++i) {
-	    // Calculate row and column indices for a 10x10 layout
-	    int col = i % columns;
-	    int row = i / columns;
-	
-	    SDL_Rect r = { col * 256, row * 256, 256, 256 };
-	    wakeUpAnim.AddFrame(r, 120);
+		// Calculate row and column indices for a 10x10 layout
+		int col = i % columns;
+		int row = i / columns;
+
+		SDL_Rect r = { col * 256, row * 256, 256, 256 };
+		wakeUpAnim.AddFrame(r, 120);
 	}
 
 	wakeUpAnim.SetLoop(false);
@@ -86,12 +87,19 @@ bool Player::Start() {
 	pushAnim_.SetLoop(true);
 
 	// Load slingshot shoot animation spritesheet (3072x1024 = 12 columns x 4 rows, 256x256 frames)
+	// Phase 1 (charge): row 3 — 12 frames, plays once
+	// Phase 2 (hold):   row 0 — 6 frames, loops while player keeps holding
 	slingshotShootTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Tiraxines.png");
-	for (int i = 0; i < 48; ++i) {
-		SDL_Rect r = { (i % 12) * 256, (i / 12) * 256, 256, 256 };
+	for (int col = 0; col < 12; ++col) {
+		SDL_Rect r = { col * 256, 3 * 256, 256, 256 }; // row 3
 		slingshotAnim_.AddFrame(r, 80);
 	}
 	slingshotAnim_.SetLoop(false);
+	for (int col = 0; col < 6; ++col) {
+		SDL_Rect r = { col * 256, 0 * 256, 256, 256 }; // row 0
+		slingshotHoldAnim_.AddFrame(r, 80);
+	}
+	slingshotHoldAnim_.SetLoop(true);
 
 	// Load Bear Animations from XML
 	bearAppearTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/SS_oso_apareixent-Pintado.png");
@@ -139,6 +147,13 @@ bool Player::Start() {
 	yoyoTrapAnims_.SetCurrent("yoyo");
 	yoyoTrapAnims_.SetLoop("yoyo", true);
 
+	// Load Drop Doll minigame animation (player squirms while grabbed — 2048x2048 = 8x8 grid, 256x256 frames)
+	dollGrabbedTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_prota_dropdoll.png");
+	for (int i = 0; i < 64; ++i) {
+		SDL_Rect r = { (i % 8) * 256, (i / 8) * 256, 256, 256 };
+		dollGrabbedAnim_.AddFrame(r, 80);
+	}
+	dollGrabbedAnim_.SetLoop(true);
 
 	hasStuffedAnimal_ = false;
 	equippedItem_ = EquippedItem::NONE;
@@ -149,11 +164,27 @@ bool Player::Start() {
 	pbody->ctype = ColliderType::PLAYER;
 
 	pickCoinFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/coin-collision-sound-342335.wav");
-	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump2.wav"); 
+	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump2.wav");
 	landFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/land.wav");
-	stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");
+	/*stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/steps.wav");*/
 	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
+	slingshotFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/tirachinas.wav");
+	capeFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/capa.wav");
+	// Comprobar en qué nivel estamos y cargar su sonido de pasos correspondiente
+	int nivelActual = Engine::GetInstance().scene->GetCurrentLevelIndex();
 
+	if (nivelActual == 0) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level1_1.wav");
+	}
+	else if (nivelActual == 1) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level2_2.wav");
+	}
+	else if (nivelActual == 2) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level3_3.wav");
+	}
+	else if (nivelActual == 3) {
+		stepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/pasos_level4_4.wav");
+	}
 	return true;
 }
 
@@ -173,15 +204,22 @@ bool Player::Update(float dt)
 
 	GetPhysicsValues();
 
+	if (platformDropTimer_ > 0.0f) {
+		platformDropTimer_ -= dt;
+		if (platformDropTimer_ <= 0.0f) {
+			platformBelow = nullptr;
+		}
+	}
+
 	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F10) == KEY_DOWN) {
 		godMode_ = !godMode_;
 		b2Body_SetGravityScale(pbody->body, godMode_ ? 0.0f : 1.0f);
-		
+
 		b2Filter filter = b2DefaultFilter();
 		if (godMode_) {
 			filter.maskBits = 0x00000000;
 		}
-		
+
 		int shapeCount = b2Body_GetShapeCount(pbody->body);
 		b2ShapeId shapes[10];
 		b2Body_GetShapes(pbody->body, shapes, shapeCount);
@@ -189,7 +227,7 @@ bool Player::Update(float dt)
 			b2Shape_SetFilter(shapes[i], filter);
 		}
 		LOG("God Mode: %s", godMode_ ? "ON" : "OFF");
-		
+
 		if (godMode_) {
 			isJumping = false;
 		} else {
@@ -208,7 +246,7 @@ bool Player::Update(float dt)
 		float godSpeed = 12.0f;
 		velocity.x = 0.0f;
 		velocity.y = 0.0f;
-		
+
 		if (input->GetKey(SDL_SCANCODE_W) == KEY_REPEAT || input->GetKey(SDL_SCANCODE_UP) == KEY_REPEAT || input->GetLeftStickY() < -0.2f) {
 			velocity.y = -godSpeed;
 		}
@@ -223,10 +261,10 @@ bool Player::Update(float dt)
 			velocity.x = godSpeed;
 			facingRight = false; // facingRight=false means facing RIGHT
 		}
-		
+
 		Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity.x, velocity.y);
 		anims.SetCurrent("jump");
-		
+
 		Draw(dt);
 		return true;
 	}
@@ -277,8 +315,8 @@ bool Player::Update(float dt)
 			}
 		}
 
-		if (bearToggleDown && hasStuffedAnimal_ && equippedItem_ == EquippedItem::STUFFED_ANIMAL && 
-		    !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isAiming_) 
+		if (bearToggleDown && hasStuffedAnimal_ && equippedItem_ == EquippedItem::STUFFED_ANIMAL &&
+			!isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isAiming_)
 		{
 			if (!isBearMode_ && !isBearTransforming_ && !isThrowingBear_ && !isKidSleeping_ && bearCooldownTimer_ <= 0.0f) {
 				isThrowingBear_ = true;
@@ -423,14 +461,14 @@ bool Player::Update(float dt)
 	if (velocity.x != 0.0f && !isJumping && !isDead_ && !isShowingDamageAnim_ && !isHiding_ && !isExitingHide_ && !isWakingUp && !isBearMode_) {
 		stepTimer_ -= dt;
 
-		
+
 		if (stepTimer_ <= 0.0f) {
 			Engine::GetInstance().audio->PlayFx(stepsFxId);
 			stepTimer_ = STEP_COOLDOWN;
 		}
 	}
 	else {
-		
+
 		stepTimer_ = 0.0f;
 	}
 
@@ -459,7 +497,7 @@ void Player::GetPhysicsValues() {
 }
 
 void Player::Move() {
-	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
 	bool moveLeft = input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT || input->GetLeftStickX() < -0.2f;
@@ -530,23 +568,31 @@ void Player::Move() {
 }
 
 void Player::Jump() {
-	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
 	bool jumpDown = input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
-	                input->GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN;
-	bool jumpUp   = input->GetKey(SDL_SCANCODE_SPACE) == KEY_UP ||
-	                input->GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_UP;
+		input->GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN;
+	bool jumpUp = input->GetKey(SDL_SCANCODE_SPACE) == KEY_UP ||
+		input->GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_UP;
 
 	if (jumpDown) {
 		if (!isJumping) {
+			// Reseteamos la Y para que la fuerza del salto se aplique siempre igual
+			b2Vec2 currentVel = Engine::GetInstance().physics->GetLinearVelocity(pbody);
+			Engine::GetInstance().physics->SetLinearVelocity(pbody, currentVel.x, 0.0f);
+			velocity.y = 0.0f;
+
 			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 0.0f, -jumpForce, true);
 			if (anims.Has("jump")) anims.SetCurrent("jump");
 			isJumping = true;
 
+			// Limpiar platformBelow al saltar para no arrastrar la velocidad
+			platformBelow = nullptr;
+
 			Engine::GetInstance().audio->PlayFx(jumpFxId);
 
-			// Spawn jump dust (Centered at bottom of 100px capsule)
+			// Spawn jump dust
 			Engine::GetInstance().entityManager->SpawnVFX(
 				Vector2D(position.getX(), position.getY() + 50.0f),
 				"assets/textures/spritesheets/SS_Pols_01.png",
@@ -555,6 +601,7 @@ void Player::Jump() {
 		}
 	}
 
+	// Salto variable: corta la velocidad si sueltas el botón
 	if (jumpUp && isJumping) {
 		float vy = Engine::GetInstance().physics->GetYVelocity(pbody);
 		if (vy < 0.0f) {
@@ -565,19 +612,14 @@ void Player::Jump() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Hide mechanic
-//   • Pressing H toggles the hiding state (subject to 15-second cooldown).
-//   • While hiding the player stands still and plays the "hide" animation once,
-//     then freezes on the last frame.
-//   • Enemies query IsHiding() and skip pathfinding entirely.
-//   • Cooldown of HIDE_COOLDOWN ms starts when the player exits hiding.
 // ─────────────────────────────────────────────────────────────────────────────
 void Player::Hide(float dt)
 {
-	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isYoyoTrapped_) return;
+	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
 	bool hideDown = input->GetKey(SDL_SCANCODE_H) == KEY_DOWN ||
-	                input->GetGamepadButton(SDL_GAMEPAD_BUTTON_NORTH) == KEY_DOWN;
+		input->GetGamepadButton(SDL_GAMEPAD_BUTTON_NORTH) == KEY_DOWN;
 
 	// Cannot hide without the blanket (cape collectible) or if it's not equipped
 	if (!hasBlanket_ || equippedItem_ != EquippedItem::BLANKET) {
@@ -603,6 +645,7 @@ void Player::Hide(float dt)
 			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
 			anims.SetCurrent("hide");
 			anims.ResetCurrent();
+			Engine::GetInstance().audio->PlayFx(capeFxId);
 			LOG("Player hiding");
 		}
 		else if (isHiding_)
@@ -610,6 +653,7 @@ void Player::Hide(float dt)
 			isHiding_ = false;
 			isExitingHide_ = true;
 			hideCooldown_ = HIDE_COOLDOWN; // cooldown starts on exit
+			Engine::GetInstance().audio->PlayFx(capeFxId);
 			LOG("Player exiting hide — cooldown started (%.0f ms)", HIDE_COOLDOWN);
 		}
 	}
@@ -626,7 +670,6 @@ void Player::Hide(float dt)
 		velocity.x = 0.0f;
 		anims.UpdateBackwards(dt);
 
-		// Si vuelve al frame 0, ya está completamente visible y levantado
 		if (anims.GetCurrentFrameIndex() == 0)
 		{
 			isExitingHide_ = false;
@@ -638,16 +681,12 @@ void Player::Hide(float dt)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Slingshot mechanic
-//   • Left mouse button press: begin charging
-//   • Hold: accumulate charge, compute aim angle from player→mouse
-//   • Release: fire projectile with charge-scaled speed
-//   • Visual: trajectory preview dots + charge bar + slingshot animation
 // ─────────────────────────────────────────────────────────────────────────────
 void Player::Slingshot(float dt)
 {
 	if (!hasSlingshot_ || equippedItem_ != EquippedItem::SLINGSHOT) return;
 
-	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_ || isYoyoTrapped_)
+	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_)
 	{
 		isAiming_ = false;
 		isAimingWithGamepad_ = false;
@@ -669,7 +708,9 @@ void Player::Slingshot(float dt)
 			isAiming_ = true;
 			isAimingWithGamepad_ = triggerDown;
 			chargeTimer_ = 0.0f;
+			slingshotCharged_ = false;
 			slingshotAnim_.Reset();
+			slingshotHoldAnim_.Reset();
 			LOG("Slingshot aiming started");
 		}
 	}
@@ -733,8 +774,15 @@ void Player::Slingshot(float dt)
 		if (dx > 0) facingRight = false;
 		else if (dx < 0) facingRight = true;
 
-		// Advance slingshot animation based on charge (map charge ratio to frame)
-		slingshotAnim_.Update(dt);
+		// Advance slingshot animation: charge first, then hold loop
+		if (!slingshotCharged_) {
+			slingshotAnim_.Update(dt);
+			if (slingshotAnim_.HasFinishedOnce()) {
+				slingshotCharged_ = true;
+			}
+		} else {
+			slingshotHoldAnim_.Update(dt);
+		}
 
 		// Draw trajectory preview dots (parabolic prediction)
 		float chargeRatio = chargeTimer_ / MAX_CHARGE_TIME;
@@ -746,7 +794,7 @@ void Player::Slingshot(float dt)
 		// Simulate trajectory (in meters, then convert to pixels)
 		float simVx = dirX * launchSpeed;
 		float simVy = dirY * launchSpeed;
-		float gravity = 10.0f; // matches GRAVITY_Y magnitude
+		float gravity = 10.0f;
 
 		for (int i = 1; i <= 5; i++)
 		{
@@ -760,23 +808,6 @@ void Player::Slingshot(float dt)
 			render->DrawCircle((int)px, (int)py, 3, 200, 180, 140, dotAlpha, true);
 		}
 
-		// Draw subtle charge bar near player feet
-		int barW = 30;
-		int barH = 3;
-		int barX = playerX - barW / 2;
-		int barY = playerY + 55;
-		int fillW = (int)((float)barW * chargeRatio);
-
-		// Background bar
-		SDL_Rect bgBar = { barX, barY, barW, barH };
-		render->DrawRectangle(bgBar, 40, 35, 25, 80, true, true);
-
-		// Fill bar (amber tone)
-		if (fillW > 0) {
-			SDL_Rect fillBar = { barX, barY, fillW, barH };
-			Uint8 fillAlpha = (Uint8)(60.0f + 140.0f * chargeRatio);
-			render->DrawRectangle(fillBar, 200, 170, 100, fillAlpha, true, true);
-		}
 
 		// Stop movement while aiming
 		velocity.x = 0.0f;
@@ -793,7 +824,6 @@ void Player::Slingshot(float dt)
 
 		if (shouldFire)
 		{
-			// Fire!
 			isAiming_ = false;
 			isAimingWithGamepad_ = false;
 			slingshotCooldown_ = SLINGSHOT_COOLDOWN;
@@ -811,23 +841,40 @@ void Player::Slingshot(float dt)
 			proj->SetLaunch(dirX, dirY, launchSpeed);
 			proj->Start();
 
+			Engine::GetInstance().audio->PlayFx(slingshotFxId);
+
 			LOG("Slingshot fired! angle=%.1f speed=%.1f", aimAngle_ * RADTODEG, launchSpeed);
 		}
 	}
 }
+
 void Player::ApplyPhysics() {
+	if (isDollGrabbed_) {
+		Engine::GetInstance().physics->SetLinearVelocity(pbody, { 0.0f, 0.0f });
+		return;
+	}
 	if (isJumping == true) {
 		velocity.y = Engine::GetInstance().physics->GetYVelocity(pbody);
+	}
+
+	if (platformBelow != nullptr && !isJumping) {
+		float platVelX = Engine::GetInstance().physics->GetXVelocity(platformBelow);
+		float platVelY = Engine::GetInstance().physics->GetYVelocity(platformBelow);
+
+		velocity.x += platVelX;
+
+		if (platVelY > 0.0f) {
+			velocity.y = platVelY + 1.5f;
+		}
 	}
 
 	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
 
 	// Synchronize rock velocity to avoid jitter and clipping
 	if (isPushing_ && pushedRockBody_ != nullptr) {
-		// Only synchronize when pushing towards the rock or stopping
-		if ((pushDir_ == 1.0f && velocity.x > 0.0f) || 
-		    (pushDir_ == -1.0f && velocity.x < 0.0f) || 
-		    velocity.x == 0.0f) {
+		if ((pushDir_ == 1.0f && velocity.x > 0.0f) ||
+			(pushDir_ == -1.0f && velocity.x < 0.0f) ||
+			velocity.x == 0.0f) {
 			Engine::GetInstance().physics->SetXVelocity(pushedRockBody_, velocity.x);
 		}
 	}
@@ -922,6 +969,15 @@ void Player::Draw(float dt) {
 		// 857x480 frames → scale down to match ~128px character height
 		currentDrawScale = 0.27f;
 	}
+	else if (isDollGrabbed_ && dollGrabbedTexture_)
+	{
+		// Drop Doll minigame — player squirms while the doll clings to their head
+		dollGrabbedAnim_.Update(dt);
+		activeTex = dollGrabbedTexture_;
+		animFrame = &dollGrabbedAnim_.GetCurrentFrame();
+		// 256x256 frames -> same half scale as push/slingshot
+		currentDrawScale = 0.5f;
+	}
 	else if (isHiding_ || isExitingHide_)
 	{
 		// Hide animation is advanced inside Hide() — just grab the current frame
@@ -939,13 +995,17 @@ void Player::Draw(float dt) {
 	}
 	else if (isAiming_ && slingshotShootTexture_)
 	{
-		// Slingshot aiming animation — use dedicated spritesheet
+		// Slingshot aiming animation — charge phase or hold phase
 		activeTex = slingshotShootTexture_;
-		animFrame = &slingshotAnim_.GetCurrentFrame();
+		if (slingshotCharged_) {
+			animFrame = &slingshotHoldAnim_.GetCurrentFrame();
+		} else {
+			animFrame = &slingshotAnim_.GetCurrentFrame();
+		}
 		// 256x256 frames -> same half scale as push
 		currentDrawScale = 0.5f;
 	}
-	else 
+	else
 	{
 		bool shouldUpdate = true;
 		if (isJumping && anims.GetCurrentName() == "jump") {
@@ -988,7 +1048,7 @@ void Player::Draw(float dt) {
 		drawX -= static_cast<int>(pushDir_ * 35.0f);
 	}
 
-// --- Fix: In Player::Draw() ---
+	// --- Fix: In Player::Draw() ---
 
     // 1. Move the flip calculation UP so the wake-up block can use it
     bool spriteNativeRight = false;
@@ -1000,7 +1060,11 @@ void Player::Draw(float dt) {
     }
 
     SDL_FlipMode flip;
-    if (isPushing_ && velocity.x != 0.0f && !isJumping) {
+    if (isAiming_ && slingshotShootTexture_) {
+        // Slingshot sprite: invert to match facing direction
+        flip = facingRight ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+    }
+    else if (isPushing_ && velocity.x != 0.0f && !isJumping) {
         flip = (velocity.x > 0.0f) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
     }
     else if (spriteNativeRight) {
@@ -1040,7 +1104,7 @@ void Player::Draw(float dt) {
 		float kidScale = 0.5f;
 		int kidDrawX = static_cast<int>(bearSummonPosition_.getX() - (static_cast<float>(kidFrame.w) * kidScale) / 2.0f);
 		int kidDrawY = static_cast<int>(bearSummonPosition_.getY() - (static_cast<float>(kidFrame.h) * kidScale) / 2.0f);
-		
+
 		SDL_FlipMode kidFlip = bearSummonFacingRight_ ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
 		render->ApplyAmbientTint(throwBearTexture_);
@@ -1090,7 +1154,7 @@ void Player::Draw(float dt) {
 
 void Player::Attack(float dt)
 {
-	if (isHiding_ || isExitingHide_ || isYoyoTrapped_) return;
+	if (isHiding_ || isExitingHide_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
 	auto& physics = Engine::GetInstance().physics;
@@ -1100,10 +1164,11 @@ void Player::Attack(float dt)
 	bool attackDown = false;
 	if (isBearMode_) {
 		attackDown = input->GetMouseButtonDown(1) == KEY_DOWN ||
-		             input->GetGamepadButton(SDL_GAMEPAD_BUTTON_WEST) == KEY_DOWN;
-	} else {
+			input->GetGamepadButton(SDL_GAMEPAD_BUTTON_WEST) == KEY_DOWN;
+	}
+	else {
 		attackDown = input->GetKey(SDL_SCANCODE_J) == KEY_DOWN ||
-		             input->GetGamepadButton(SDL_GAMEPAD_BUTTON_WEST) == KEY_DOWN;
+			input->GetGamepadButton(SDL_GAMEPAD_BUTTON_WEST) == KEY_DOWN;
 	}
 
 	if (attackDown && !isAttacking_ && attackCooldown_ <= 0.0f)
@@ -1112,7 +1177,8 @@ void Player::Attack(float dt)
 		if (isBearMode_) {
 			attackTimer_ = 480.0f; // 6 frames * 80ms
 			bearAttackAnims_.ResetCurrent();
-		} else {
+		}
+		else {
 			attackTimer_ = ATTACK_DURATION;
 		}
 		attackCooldown_ = ATTACK_COOLDOWN;
@@ -1160,8 +1226,10 @@ void Player::Attack(float dt)
 
 void Player::TakeDamage(int damage)
 {
-	// Cannot take damage while hiding, sleeping, or waking up
-	if (isInvincible_ || isHiding_ || isKidSleeping_ || isWakingUp) return;
+	// Cannot take damage while hiding, sleeping, waking up, throwing the bear, or transforming
+	if (isInvincible_ || isHiding_ || isKidSleeping_ || isWakingUp || isThrowingBear_ || isBearTransforming_) return;
+
+	Engine::GetInstance().scene->TriggerScreenDamage();
 
 	if (isBearMode_) {
 		bearHealth_ -= damage;
@@ -1244,6 +1312,12 @@ void Player::TakeDamage(int damage)
 
 	if (enemyDirX < 0)      facingRight = true;
 	else if (enemyDirX > 0) facingRight = false;
+
+	// Cancel slingshot aiming on damage so the player doesn't get stuck
+	isAiming_ = false;
+	isAimingWithGamepad_ = false;
+	chargeTimer_ = 0.0f;
+	slingshotCharged_ = false;
 
 	float knockbackForce = 5.0f;
 	float dir = facingRight ? 1.0f : -1.0f;
@@ -1354,6 +1428,10 @@ bool Player::CleanUp()
 		Engine::GetInstance().textures->UnLoad(throwBearTexture_);
 		throwBearTexture_ = nullptr;
 	}
+	if (dollGrabbedTexture_) {
+		Engine::GetInstance().textures->UnLoad(dollGrabbedTexture_);
+		dollGrabbedTexture_ = nullptr;
+	}
 	return true;
 }
 
@@ -1380,20 +1458,29 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 		// Check if the player lands on top of the platform
 		if (playerY < platY) {
 			platformBelow = physB;
+			platformDropTimer_ = 0.0f;
+
+			float platVy = Engine::GetInstance().physics->GetYVelocity(physB);
+			if (platVy > 0.0f) {
+				b2Vec2 currentVel = Engine::GetInstance().physics->GetLinearVelocity(pbody);
+				if (currentVel.y > platVy) {
+					Engine::GetInstance().physics->SetLinearVelocity(pbody, currentVel.x, platVy);
+					velocity.y = platVy;
+				}
+			}
+
 			if (isJumping) {
-				// Play landing sound effect
 				Engine::GetInstance().audio->PlayFx(landFxId);
 
-				// Spawn landing dust (Centered at bottom of capsule)
 				Engine::GetInstance().entityManager->SpawnVFX(
 					Vector2D(position.getX(), position.getY() + 50.0f),
 					"assets/textures/spritesheets/SS_Pols_01.png",
 					12, 794, 202, 0.03f, 0.0f, 0.2f
 				);
-				// Allow jump animation to play the landing frames (after frame 7)
+
 				if (anims.GetCurrentName() == "jump") {
-					// We don't reset to idle immediately to let landing frames show
-				} else {
+				}
+				else {
 					anims.SetCurrent("idle");
 				}
 			}
@@ -1451,7 +1538,7 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 					}
 				}
 				isJumping = false;
-				
+
 			}
 		}
 		break;
@@ -1463,8 +1550,15 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB) {
 
 void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB)
 {
-	if (physB->ctype == ColliderType::PLATFORM)
-		platformBelow = nullptr;
+	if (physB->ctype == ColliderType::PLATFORM) {
+		if (isJumping) {
+			platformBelow = nullptr;
+			platformDropTimer_ = 0.0f;
+		}
+		else if (platformBelow == physB) {
+			platformDropTimer_ = 100.0f;
+		}
+	}
 
 	if (physB->ctype == ColliderType::PUSH_ROCK) {
 		pushContactCount_--;

@@ -37,6 +37,7 @@ public:
     Vector2D GetPlayerPosition();
     void     SetPlayerPosition(Vector2D pos);
     SceneID  GetCurrentScene() const { return currentScene; }
+    int      GetCurrentLevelIndex() const { return currentLevelIndex_; }
     std::string GetTilePosDebug() const { return ""; }
     int GetMenuClickFxId() const { return menuClickFxId; }
 
@@ -52,6 +53,8 @@ public:
 
 
     void LoadSubMap(const std::string& tmxFile, const std::string& spawnId);
+    void RequestSubMapTeleport(const std::string& tmxFile, const std::string& spawnId);
+    void SealBossPortal(float x, float y, float w, float h);
     void CheckPortalCollisions(float dt);
     Vector2D GetSpawnPosition(const std::string& spawnId);
     void ExecuteSubMapLoad();
@@ -79,6 +82,7 @@ private:
     float sfxVolume_ = 0.8f;
     int menuClickFxId = -1;
     bool isFullscreen_ = false;
+    int checkpointFxId = -1;
 
     // =========================================================================
     //  MAIN MENU
@@ -292,6 +296,9 @@ public:
     bool bearNotifHasStuffed_ = false;
     void ShowNoBearNotification(bool hasStuffedAnimal);
 
+    float screenDamageTimer_ = 0.0f;
+    void TriggerScreenDamage() { screenDamageTimer_ = 1000.0f; }
+
 private:
     // Button IDs — pause menu
     static constexpr int BTN_PAUSE_CONTINUE = 20;
@@ -319,7 +326,7 @@ private:
     SDL_Texture* texBossBarFull_ = nullptr;
     SDL_Texture* texBossBarIndicator_ = nullptr;
 
-    void UpdateBossFight();
+    void UpdateBossFight(float dt);
     void DrawBossHUD(int winW, int winH);
 
     // Health HUD (supports up to 6 health slots depending on level/fase)
@@ -379,6 +386,7 @@ private:
     // Checkpoint notification
     SDL_Texture* texCheckpointSaved_ = nullptr;
     SDL_Texture* texNoCapeNotif_ = nullptr;
+    SDL_Texture* texDamageVignette_ = nullptr;
 
     // Pause menu textures
     SDL_Texture* texPauseBackground_ = nullptr;
