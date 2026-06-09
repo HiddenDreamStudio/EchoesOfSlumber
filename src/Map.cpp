@@ -41,7 +41,7 @@ static SDL_FlipMode flipMode(bool h, bool v) {
     return SDL_FLIP_NONE;
 }
 
-Map::Map() : Module(), mapLoaded(false)
+Map::Map() : Module(), mapLoaded(false), hasInitCamera(false), initCameraX(0.0f)
 {
     name = "map";
 }
@@ -72,29 +72,60 @@ bool Map::Update(float dt)
     bool ret = true;
 
     if (mapLoaded) {
+        if (Engine::GetInstance().scene->GetCurrentScene() != SceneID::GAMEPLAY) {
+            return true;
+        }
 
         Render* render = Engine::GetInstance().render.get();
         int scale = Engine::GetInstance().window->GetScale();
 
+        if (!hasInitCamera) {
+            initCameraX = (float)render->camera.x;
+            hasInitCamera = true;
+        }
+
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
+                // Parallax relative to initial camera position (X only, Y stays locked)
+                int imgDrawX = static_cast<int>(imgLayer->offsetX + (float)(render->camera.x - initCameraX) * (imgLayer->parallaxFactorX - 1.0f));
                 Engine::GetInstance().render->DrawTexture(
                     imgLayer->texture,
-                    static_cast<int>(imgLayer->offsetX),
+                    imgDrawX,
                     static_cast<int>(imgLayer->offsetY),
                     nullptr,
                     1.0f
                 );
             }
         }
+        // Find player position for player-centric parallax
+        Vector2D playerPos(0.0f, 0.0f);
+        bool foundPlayer = false;
+        if (Engine::GetInstance().entityManager) {
+            for (const auto& entity : Engine::GetInstance().entityManager->entities) {
+                if (entity && entity->type == EntityType::PLAYER) {
+                    playerPos = entity->position;
+                    foundPlayer = true;
+                    break;
+                }
+            }
+        }
+
         for (const auto& deco : mapData.decorationObjects) {
             if (deco->texture && !deco->isFront) {
-                // Culling: check if object is visible on screen
-                if (!render->IsOnScreenWorldRect(deco->x, deco->y - deco->height, deco->width, deco->height))
-                    continue;
+                int drawX = (int)deco->x;
+                if (foundPlayer) {
+                    drawX = (int)(deco->x + (playerPos.getX() - deco->x) * (deco->parallaxSpeed - 1.0f));
+                }
 
-                // Stable rendering with DrawTexture (supports world-space zoom)
-                render->DrawTexture(deco->texture, (int)deco->x, (int)(deco->y - deco->height), nullptr, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV));
+                if (!render->IsOnScreenWorldRect((float)drawX, deco->y - deco->height, deco->width, deco->height))
+                    continue;
+                
+                int tw = 0, th = 0;
+                Engine::GetInstance().textures->GetSize(deco->texture, tw, th);
+                float drawScaleX = (tw > 0) ? (deco->width / (float)tw) : 1.0f;
+                float drawScaleY = (th > 0) ? (deco->height / (float)th) : 1.0f;
+
+                render->DrawTexture(deco->texture, drawX, (int)(deco->y - deco->height), nullptr, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV), drawScaleX, drawScaleY);
             }
         }
 
@@ -150,14 +181,41 @@ bool Map::PostUpdate()
     if (mapLoaded == false)
         return true;
 
+    if (Engine::GetInstance().scene->GetCurrentScene() != SceneID::GAMEPLAY) {
+        return true;
+    }
+
     Render* render = Engine::GetInstance().render.get();
+
+    // Find player position for player-centric parallax
+    Vector2D playerPos(0.0f, 0.0f);
+    bool foundPlayer = false;
+    if (Engine::GetInstance().entityManager) {
+        for (const auto& entity : Engine::GetInstance().entityManager->entities) {
+            if (entity && entity->type == EntityType::PLAYER) {
+                playerPos = entity->position;
+                foundPlayer = true;
+                break;
+            }
+        }
+    }
 
     for (const auto& deco : mapData.decorationObjects) {
         if (deco->texture && deco->isFront) {
-            if (!render->IsOnScreenWorldRect(deco->x, deco->y - deco->height, deco->width, deco->height))
+            int drawX = (int)deco->x;
+            if (foundPlayer) {
+                drawX = (int)(deco->x + (playerPos.getX() - deco->x) * (deco->parallaxSpeed - 1.0f));
+            }
+
+            if (!render->IsOnScreenWorldRect((float)drawX, deco->y - deco->height, deco->width, deco->height))
                 continue;
 
-            render->DrawTexture(deco->texture, (int)deco->x, (int)(deco->y - deco->height), nullptr, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV));
+            int tw = 0, th = 0;
+            Engine::GetInstance().textures->GetSize(deco->texture, tw, th);
+            float drawScaleX = (tw > 0) ? (deco->width / (float)tw) : 1.0f;
+            float drawScaleY = (th > 0) ? (deco->height / (float)th) : 1.0f;
+
+            render->DrawTexture(deco->texture, drawX, (int)(deco->y - deco->height), nullptr, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV), drawScaleX, drawScaleY);
         }
     }
 
@@ -245,6 +303,8 @@ bool Map::CleanUp()
 
     mapData.capeFound = false;
     mapLoaded = false;
+    hasInitCamera = false;
+    initCameraX = 0.0f;
 
     return true;
 }
@@ -1136,7 +1196,30 @@ void Map::LoadImageLayers()
         imgLayer->name = imgNode.attribute("name").as_string();
         imgLayer->offsetX = imgNode.attribute("offsetx").as_float(0.0f);
         imgLayer->offsetY = imgNode.attribute("offsety").as_float(0.0f);
-        imgLayer->parallaxFactorX = imgNode.attribute("parallaxx").as_float(1.0f);
+
+        // Determine default parallax factor based on layer name if not explicitly set in TMX
+        float defaultParallax = 1.0f;
+        std::string lowerName = imgLayer->name;
+        for (char& c : lowerName) c = ::tolower(c);
+
+        if (lowerName.find("background") != std::string::npos || 
+            lowerName.find("back") != std::string::npos || 
+            lowerName.find("fondo") != std::string::npos || 
+            lowerName.find("bakground") != std::string::npos) 
+        {
+            defaultParallax = 0.95f; // Default background image parallax
+        }
+        else if (lowerName.find("foreground") != std::string::npos || 
+                 lowerName.find("front") != std::string::npos) 
+        {
+            defaultParallax = 1.05f; // Default foreground image parallax
+        }
+
+        // Check if parallaxx attribute is explicitly set in TMX, otherwise use defaultParallax
+        // Apply a 0.25f damping factor to prevent aggressive layouts from detaching
+        pugi::xml_attribute pxAttr = imgNode.attribute("parallaxx");
+        float rawParallax = pxAttr ? pxAttr.as_float() : defaultParallax;
+        imgLayer->parallaxFactorX = 1.0f + (rawParallax - 1.0f) * 0.25f;
         imgLayer->parallaxFactorY = imgNode.attribute("parallaxy").as_float(1.0f);
         imgLayer->source = imgNode.child("image").attribute("source").as_string();
 
@@ -1163,6 +1246,37 @@ void Map::LoadDecorationObjects()
             if (groupName == excluded) { skip = true; break; }
         }
         if (skip) continue; 
+
+        // Determine parallax speed and front/back based on Tiled layer name
+        // Hollow Knight-style depth: BG slower, Middleground 1:1, FG faster
+        float layerParallax = 1.0f;
+        bool  layerIsFront  = false;
+
+        std::string lowerGroupName = groupName;
+        for (char& c : lowerGroupName) c = ::tolower(c);
+
+        if (lowerGroupName.find("background") != std::string::npos || 
+            lowerGroupName.find("back") != std::string::npos || 
+            lowerGroupName.find("fondo") != std::string::npos || 
+            lowerGroupName.find("bakground") != std::string::npos) 
+        {
+            layerParallax = 0.98f; // Extremely subtle background decoration parallax
+            layerIsFront  = false;
+        }
+        else if (lowerGroupName.find("foreground") != std::string::npos || 
+                 lowerGroupName.find("front") != std::string::npos) 
+        {
+            layerParallax = 1.02f; // Extremely subtle foreground decoration parallax
+            layerIsFront  = true;
+        }
+        // Middleground and everything else stays at 1.0, isFront = false
+
+        // TMX parallaxx attribute overrides the default if present
+        // Apply a 0.25f damping factor to prevent aggressive layouts from detaching
+        float tmxParallaxx = groupNode.attribute("parallaxx").as_float(0.0f);
+        if (tmxParallaxx > 0.0f) {
+            layerParallax = 1.0f + (tmxParallaxx - 1.0f) * 0.25f;
+        }
 
         std::vector<DecorationObject*> layerDecos;
 
@@ -1229,10 +1343,11 @@ void Map::LoadDecorationObjects()
             deco->width = objNode.attribute("width").as_float();
             deco->height = objNode.attribute("height").as_float();
             deco->rotation = objNode.attribute("rotation").as_double(0.0);
-            deco->isFront = (groupName == "Assets front");
+            deco->isFront = layerIsFront;
             deco->gid = gid;
             deco->flipH = (rawGid & FLIPPED_HORIZONTALLY_FLAG) != 0;
             deco->flipV = (rawGid & FLIPPED_VERTICALLY_FLAG) != 0;
+            deco->parallaxSpeed = layerParallax;
 
             auto it = ts->tileTextures.find(relativeId);
             deco->texture = (it != ts->tileTextures.end()) ? it->second : nullptr;

@@ -374,19 +374,12 @@
  <objectgroup id="42" name="AnimatedPlants"/>
  <objectgroup id="33" name="AnimatedPlants Front"/>
  <objectgroup id="9" name="Entities">
-  <object id="1331" name="Enemy" type="Bouncer" x="6677.61" y="8532.91" width="59.4458" height="55.0424">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
   <object id="1332" name="Player" type="Player" x="7891.41" y="8523.97" width="52.8407" height="52.8407"/>
   <object id="1820" name="HidingRock" type="HidingRock" x="8200" y="8523" width="64" height="64">
    <properties>
     <property name="rock_type" type="int" value="1"/>
    </properties>
   </object>
-
   <object id="1333" name="Cape" type="Cape" x="4792.66" y="1573.32"/>
   <object id="1334" name="Enemy" type="SpiderCandy" x="4839.98" y="8524.99" width="64.1457" height="59.3942">
    <properties>
@@ -431,12 +424,6 @@
    </properties>
   </object>
   <object id="1345" name="Enemy" type="SpiderCandy" x="3962.3" y="544.045" width="108" height="100">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="1807" name="Enemy" type="BlockCrawler" x="7625.29" y="8521.31" width="59.4458" height="55.0424">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
