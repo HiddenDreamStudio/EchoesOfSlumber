@@ -38,6 +38,7 @@ public:
 
 	void TakeDamage(int damage) override;
 	void Revive();
+	void StartWakeUp(float speedMultiplier = 1.0f);
 	bool IsDead() const { return isDead_; }
 
 	// Map viewer helpers
@@ -114,8 +115,9 @@ private:
 	AnimationSet anims;
 	Animation wakeUpAnim;
 	SDL_Texture* wakeUpTexture = nullptr;
+	float wakeUpAnimSpeed_ = 1.0f;
 	float drawScale = 0.5f;
-	bool facingRight = true;
+	bool facingRight = false; // false = facing right (variable is named counter-intuitively; true = facing left)
 	PhysBody* currentGround = nullptr;
 
 	//  Hide cooldown 

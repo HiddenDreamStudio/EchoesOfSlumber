@@ -2,6 +2,8 @@
 
 #include "Input.h"
 #include "Render.h"
+#include <memory>
+#include <string>
 
 enum class EntityType
 {

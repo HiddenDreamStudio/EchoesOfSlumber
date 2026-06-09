@@ -13,6 +13,7 @@
 #include "tracy/Tracy.hpp"
 #include "Door.h"
 #include "Platform.h"
+#include <algorithm>
 
 Player::Player() : Entity(EntityType::PLAYER),
 texW(128), texH(128),
@@ -166,6 +167,11 @@ bool Player::Update(float dt)
 		return true;
 	}
 
+	if (Engine::GetInstance().scene->IsCheckpointTransitionActive()) {
+		Draw(0.0f);
+		return true;
+	}
+
 	GetPhysicsValues();
 
 	if (platformDropTimer_ > 0.0f) {
@@ -194,6 +200,14 @@ bool Player::Update(float dt)
 
 		if (godMode_) {
 			isJumping = false;
+		} else {
+			// Exiting godmode: zero velocity so godspeed doesn't bleed into first normal frame
+			Engine::GetInstance().physics->SetLinearVelocity(pbody, 0.0f, 0.0f);
+			velocity.x = 0.0f;
+			velocity.y = 0.0f;
+			// Reset animation from "jump" (forced by godmode) to "idle" so the sprite
+			// flip convention doesn't invert when Move() switches to "run"
+			anims.SetCurrent("idle");
 		}
 	}
 
@@ -211,11 +225,11 @@ bool Player::Update(float dt)
 		}
 		if (input->GetKey(SDL_SCANCODE_A) == KEY_REPEAT || input->GetKey(SDL_SCANCODE_LEFT) == KEY_REPEAT || input->GetLeftStickX() < -0.2f) {
 			velocity.x = -godSpeed;
-			facingRight = true;
+			facingRight = true;  // facingRight=true means facing LEFT (matching Move() convention)
 		}
 		if (input->GetKey(SDL_SCANCODE_D) == KEY_REPEAT || input->GetKey(SDL_SCANCODE_RIGHT) == KEY_REPEAT || input->GetLeftStickX() > 0.2f) {
 			velocity.x = godSpeed;
-			facingRight = false;
+			facingRight = false; // facingRight=false means facing RIGHT
 		}
 
 		Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity.x, velocity.y);
@@ -239,7 +253,7 @@ bool Player::Update(float dt)
 	{
 		// Fast-swap equipped items during gameplay (blocked in bear mode)
 		auto& input = *Engine::GetInstance().input;
-		bool canSwap = !isBearMode_ && !isBearTransforming_;
+		bool canSwap = !isBearMode_ && !isBearTransforming_ && !isThrowingBear_ && !isKidSleeping_;
 		if (canSwap) {
 			if (input.GetKey(SDL_SCANCODE_1) == KEY_DOWN && hasBlanket_) {
 				equippedItem_ = EquippedItem::BLANKET;
@@ -255,9 +269,12 @@ bool Player::Update(float dt)
 			}
 		}
 
-		// Toggle bear mode
-		bool bearToggleDown = input.GetKey(SDL_SCANCODE_O) == KEY_DOWN ||
-			input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN;
+		// Toggle bear mode (blocked during throw, transform, and sleep transitions)
+		bool bearToggleDown = false;
+		if (!isBearTransforming_ && !isThrowingBear_ && !isKidSleeping_) {
+			bearToggleDown = input.GetKey(SDL_SCANCODE_O) == KEY_DOWN ||
+			                 input.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN;
+		}
 
 		if (bearToggleDown) {
 			if (!hasStuffedAnimal_) {
@@ -299,7 +316,10 @@ bool Player::Update(float dt)
 
 				// Teleport player physics body back to kid position
 				pbody->SetPosition((int)bearSummonPosition_.getX(), (int)bearSummonPosition_.getY());
-
+				
+				// Restore facing direction to when the bear was summoned
+				facingRight = bearSummonFacingRight_;
+				
 				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
 				LOG("Player exited bear mode, kid is sleeping at summon position");
 			}
@@ -314,7 +334,34 @@ bool Player::Update(float dt)
 					isThrowingBear_ = false;
 					isBearTransforming_ = true;
 					bearAppearAnims_.ResetCurrent();
-					LOG("Player starting bear transformation");
+
+					// Teleport bear to a far position in the direction the player is facing
+					float spawnOffset = 300.0f; // Distance from the player
+					float targetX = bearSummonPosition_.getX();
+					if (bearSummonFacingRight_) {
+						// bearSummonFacingRight_ = true means facing left
+						targetX -= spawnOffset;
+					} else {
+						// bearSummonFacingRight_ = false means facing right
+						targetX += spawnOffset;
+					}
+
+					float hitX = 0.0f, hitY = 0.0f;
+					if (Engine::GetInstance().physics->RayCastWorld(
+						(int)bearSummonPosition_.getX(), (int)bearSummonPosition_.getY(),
+						(int)targetX, (int)bearSummonPosition_.getY(),
+						hitX, hitY))
+					{
+						// There's a wall or obstacle! Spawn slightly back from the hit point
+						if (bearSummonFacingRight_) {
+							targetX = hitX + 50.0f;
+						} else {
+							targetX = hitX - 50.0f;
+						}
+					}
+
+					pbody->SetPosition((int)targetX, (int)bearSummonPosition_.getY());
+					LOG("Player starting bear transformation at far position: %.1f", targetX);
 				}
 			}
 			else if (isKidSleeping_) {
@@ -960,12 +1007,14 @@ void Player::Draw(float dt) {
 
 	// --- Fix: In Player::Draw() ---
 
-		// 1. Move the flip calculation UP so the wake-up block can use it
-	bool spriteNativeRight = false;
-	const std::string& animName = anims.GetCurrentName();
-	if (animName == "jump" || animName == "turnaround" || animName == "idle") {
-		spriteNativeRight = true;
-	}
+    // 1. Move the flip calculation UP so the wake-up block can use it
+    bool spriteNativeRight = false;
+    if (!isBearMode_ && !isBearTransforming_ && !isThrowingBear_ && !isKidSleeping_) {
+        const std::string& animName = anims.GetCurrentName();
+        if (animName == "jump" || animName == "turnaround" || animName == "idle") {
+            spriteNativeRight = true; // these sprites natively face RIGHT
+        }
+    }
 
 	SDL_FlipMode flip;
 	if (isPushing_ && velocity.x != 0.0f && !isJumping) {
@@ -979,27 +1028,29 @@ void Player::Draw(float dt) {
 		flip = facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 	}
 
-	if (isWakingUp) {
-		if (wakeUpAnimStarted) {
-			wakeUpAnim.Update(dt);
-			if (wakeUpAnim.HasFinishedOnce()) {
-				isWakingUp = false;
-			}
-		}
-		if (isWakingUp) {
-			const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
-			float wakeScale = 0.65f;
-			int wakeWidth = (int)(256.0f * wakeScale);
-			int wakeHeight = (int)(256.0f * wakeScale);
-			int wakeDrawX = xInt - (wakeWidth / 2) - 60;
-			int wakeDrawY = yInt + 50 - wakeHeight + 15;
-
-			render->ApplyAmbientTint(wakeUpTexture);
-			render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, wakeScale);
-			render->ResetAmbientTint(wakeUpTexture);
-			return;
-		}
-	}
+    if (isWakingUp) {
+        facingRight = true; // Force facing left to match wake-up spritesheet
+        if (wakeUpAnimStarted) {
+            wakeUpAnim.Update(dt * wakeUpAnimSpeed_);
+            if (wakeUpAnim.HasFinishedOnce()) {
+                isWakingUp = false;
+				wakeUpAnimSpeed_ = 1.0f;
+            }
+        }
+        if (isWakingUp) {
+            const SDL_Rect& wuFrame = wakeUpAnim.GetCurrentFrame();
+            float wakeScale = 0.65f;
+            int wakeWidth = (int)(256.0f * wakeScale);
+            int wakeHeight = (int)(256.0f * wakeScale); 
+            int wakeDrawX = xInt - (wakeWidth / 2) - 60;
+            int wakeDrawY = yInt + 50 - wakeHeight + 15;
+            
+            render->ApplyAmbientTint(wakeUpTexture);
+            render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, wakeScale);
+            render->ResetAmbientTint(wakeUpTexture);
+            return;
+        }
+    }
 
 	if (drawingBear && throwBearTexture_) {
 		const SDL_Rect& kidFrame = throwBearAnims_.GetCurrentFrame();
@@ -1175,7 +1226,10 @@ void Player::TakeDamage(int damage)
 
 			// Teleport player physics body back to kid position
 			pbody->SetPosition((int)bearSummonPosition_.getX(), (int)bearSummonPosition_.getY());
-
+			
+			// Restore facing direction to when the bear was summoned
+			facingRight = bearSummonFacingRight_;
+			
 			Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
 			LOG("Bear health depleted! Exiting bear mode, returning to kid.");
 		}
@@ -1256,8 +1310,23 @@ void Player::Revive()
 	isAiming_ = false;
 	chargeTimer_ = 0.0f;
 	slingshotCooldown_ = 0.0f;
+	isYoyoTrapped_ = false;
+	knockbackX_ = 0.0f;
+	knockbackTimer_ = 0.0f;
+	velocity = { 0.0f, 0.0f };
+	if (pbody) Engine::GetInstance().physics->SetLinearVelocity(pbody, 0.0f, 0.0f);
 	anims.SetCurrent("idle");
 	damageFlashTimer_ = 0.0f;
+}
+
+void Player::StartWakeUp(float speedMultiplier)
+{
+	Revive();
+	isWakingUp = true;
+	wakeUpAnimStarted = true;
+	wakeUpAnimSpeed_ = std::max(0.1f, speedMultiplier);
+	wakeUpAnim.Reset();
+	facingRight = true; // Force facing left to match wake-up spritesheet
 }
 
 bool Player::CleanUp()
