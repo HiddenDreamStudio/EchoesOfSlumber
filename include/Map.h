@@ -144,6 +144,7 @@ struct PortalData {
     std::string targetSpawn; 
     std::string selfId;     
     std::string spawnId;
+    std::string target;  
 };
 
 struct SpawnData {
@@ -247,6 +248,14 @@ public:
 
     std::vector<PortalData> GetPortals() const;
     bool GetSpawnById(const std::string& id, float& outX, float& outY) const;
+
+    struct MapObject {
+        std::string name;
+        SDL_FRect rect;
+    };
+    std::vector<MapObject> GetPuzzleObjects() const;
+    std::vector<MapObject> GetPuzzleObjects3() const;
+
 
 public:
     std::string mapFileName;
