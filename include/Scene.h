@@ -37,6 +37,7 @@ public:
     Vector2D GetPlayerPosition();
     void     SetPlayerPosition(Vector2D pos);
     SceneID  GetCurrentScene() const { return currentScene; }
+    int      GetCurrentLevelIndex() const { return currentLevelIndex_; }
     std::string GetTilePosDebug() const { return ""; }
     int GetMenuClickFxId() const { return menuClickFxId; }
 
@@ -81,6 +82,7 @@ private:
     float sfxVolume_ = 0.8f;
     int menuClickFxId = -1;
     bool isFullscreen_ = false;
+    int checkpointFxId = -1;
 
     // =========================================================================
     //  MAIN MENU
