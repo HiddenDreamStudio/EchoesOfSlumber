@@ -284,7 +284,9 @@ private:
 
 public:
     void SetGameOverVisible(bool visible);
+    void TriggerEndGameCinematic();
     void ResetHealthUI(int health);
+    bool IsEndGameTriggered() const { return endGameTriggered_; }
     float wakeUpNotifTimer_ = 0.0f;
     static constexpr float WAKEUP_NOTIF_DURATION = 4000.0f;
     float checkpointSaveTimer_ = 0.0f;
@@ -324,6 +326,9 @@ private:
 
     // Boss death video — plays before the post-death map transition / music change
     bool        bossDeathVideoActive_  = false;
+    bool        endGameVideoActive_    = false;
+    bool        endGameFading_         = false;  // fade-out before final cinematic
+    bool        endGameTriggered_      = false;  // true once end sequence fires; never reset
     bool        bossDeathFading_       = false;
     bool        bossDeathNeedsMapLoad_ = false;
     std::string bossDeathVideoPath_;
