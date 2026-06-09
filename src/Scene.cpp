@@ -2107,6 +2107,42 @@ void Scene::UpdateGameplay(float dt)
 
 void Scene::UpdateBossFight(float dt)
 {
+    // Fading to black before boss death video — wait for fade, then launch video
+    if (bossDeathFading_)
+    {
+        if (!Engine::GetInstance().render->IsFadingOut())
+        {
+            bossDeathFading_ = false;
+            Engine::GetInstance().cinematics->PlayVideo(bossDeathVideoPath_.c_str());
+            Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 1.0f);
+            bossDeathVideoActive_ = true;
+        }
+        return;
+    }
+
+    // If a boss death video is playing, wait for it to finish before transitioning
+    if (bossDeathVideoActive_)
+    {
+        if (!Engine::GetInstance().cinematics->IsPlaying())
+        {
+            bossDeathVideoActive_ = false;
+            if (bossDeathNeedsMapLoad_)
+            {
+                subMapTarget_      = bossDeathMapTarget_;
+                subMapSpawnId_     = bossDeathSpawnId_;
+                pendingSubMapLoad_ = true;
+                waitingForFade_    = true;
+                fadeTargetScene_   = SceneID::GAMEPLAY;
+                Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1200.0f);
+            }
+            else
+            {
+                Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 2.0f);
+            }
+        }
+        return;
+    }
+
     auto boss = activeBoss_.lock();
 
     // Lazy search: if no boss cached yet, look in the entity list
@@ -2143,25 +2179,22 @@ void Scene::UpdateBossFight(float dt)
     if (boss->IsDead() && isBossFightActive_)
     {
         isBossFightActive_ = false;
-        activeBoss_.reset();
         auto& tex = *Engine::GetInstance().textures;
         tex.UnLoad(texBossBarEmpty_);     texBossBarEmpty_     = nullptr;
         tex.UnLoad(texBossBarFull_);      texBossBarFull_      = nullptr;
         tex.UnLoad(texBossBarIndicator_); texBossBarIndicator_ = nullptr;
 
-        if (currentMapFile_.find("ZonaBoss") != std::string::npos)
-        {
-            subMapTarget_  = "MapLvl3ZonaAlta.tmx";
-            subMapSpawnId_ = "J";
-            pendingSubMapLoad_ = true;
-            waitingForFade_    = true;
-            fadeTargetScene_   = SceneID::GAMEPLAY;
-            Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1200.0f);
-        }
-        else
-        {
-            Engine::GetInstance().audio->PlayMusic("assets/audio/music/backgroundmusic.wav", 2.0f);
-        }
+        // Pick video and destination based on which boss died
+        bool isB1 = std::dynamic_pointer_cast<Boss1>(boss) != nullptr;
+        const char* videoPath  = isB1 ? "assets/video/Anchor_2.mp4"   : "assets/video/Anchor_3.mp4";
+        bossDeathNeedsMapLoad_ = true;
+        bossDeathMapTarget_    = isB1 ? "Map2.tmx"                     : "MapLvl3ZonaAlta.tmx";
+        bossDeathSpawnId_      = isB1 ? "Main"                         : "J";
+
+        activeBoss_.reset();
+        bossDeathVideoPath_ = videoPath;
+        bossDeathFading_    = true;
+        Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 600.0f);
     }
 }
 
@@ -4380,7 +4413,7 @@ Vector2D Scene::GetSpawnPosition(const std::string& spawnId)
 
 void Scene::CheckPortalCollisions(float dt)
 {
-	if (!player || waitingForFade_ || isPaused_) return;
+	if (!player || waitingForFade_ || isPaused_ || bossDeathVideoActive_ || bossDeathFading_) return;
 
 	if (portalCooldown_ > 0.0f) {
 		portalCooldown_ -= dt;
