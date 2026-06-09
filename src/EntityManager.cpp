@@ -27,6 +27,7 @@
 #include "Platform.h"
 #include "Door.h"
 #include "Lever.h"
+#include "MemoryFragment.h"
 
 EntityManager::EntityManager() : Module()
 {
@@ -155,6 +156,9 @@ std::shared_ptr<Entity> EntityManager::CreateEntity(EntityType type)
 		break;
 	case EntityType::ENEMY_WINDUP_SCURRY:
 		entity = std::make_shared<EnemyWindUpScurry>();
+		break;
+	case EntityType::MEMORY_FRAGMENT:
+		entity = std::make_shared<MemoryFragment>();
 		break;
 	default:
 		break;
