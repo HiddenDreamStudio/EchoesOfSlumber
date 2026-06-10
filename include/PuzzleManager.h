@@ -8,7 +8,7 @@ class Player;
 
 struct PuzzleFigure {
     std::string name;
-    SDL_FRect worldRect;   
+    SDL_FRect worldRect = { 0.0f, 0.0f, 0.0f, 0.0f };   
     bool collected = false;
 };
 
