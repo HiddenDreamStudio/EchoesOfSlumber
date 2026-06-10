@@ -9,6 +9,7 @@
 #include "Player.h"
 #include "Textures.h"
 #include "Animation.h"
+#include "Audio.h"
 #include "Log.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,6 +93,15 @@ bool Boss1::Start()
         floorCalibrated_ = true;
     }
 
+    // ── Audio ─────────────────────────────────────────────────────────────────
+    auto& audio = *Engine::GetInstance().audio;
+    fxJump_         = audio.LoadFx("assets/audio/Enemies/Drowning Plush/Drowningplush_jump.wav");
+    fxAterrizaje_   = audio.LoadFx("assets/audio/Enemies/Drowning Plush/Drowningplush_death hit.wav");
+    fxHit_          = audio.LoadFx("assets/audio/Enemies/Drowning Plush/Drowningplush_hit.wav");
+    fxBocaAbierta_  = audio.LoadFx("assets/audio/Enemies/Drowning Plush/Drowningplush_abriendo boca.wav");
+    fxDisparo_      = audio.LoadFx("assets/audio/Enemies/Drowning Plush/Drowningplush_Escupitajo.wav");
+    fxImpactoSuelo_ = audio.LoadFx("assets/audio/Enemies/Drowning Plush/Drowningplush_Escupitajo Suelo.wav");
+
     return true;
 }
 
@@ -170,6 +180,7 @@ void Boss1::SpawnSpit(float dirX)
     b2Body_SetLinearVelocity(p2SpitBody_->body, vel);
     p2SpitHitPlayer_ = false;
     p2SpitHitFloor_  = false;
+    Engine::GetInstance().audio->PlayFx(fxDisparo_);
 }
 
 void Boss1::DestroySpit()
@@ -192,6 +203,7 @@ void Boss1::SpawnPuddle(float x)
     p2PuddleBody_->ctype    = ColliderType::PUDDLE;
     p2PuddleTimer_   = P2_PUDDLE_DURATION;
     p2PlayerInPuddle_= false;
+    Engine::GetInstance().audio->PlayFx(fxImpactoSuelo_);
 }
 
 void Boss1::DestroyPuddle()
@@ -246,14 +258,15 @@ void Boss1::TransitionTo(Boss1State newState)
     exitPauseTimer_  = 0.0f;
 
     // Reset non-looping animations on entry
+    auto& audio = *Engine::GetInstance().audio;
     switch (newState)
     {
     case Boss1State::DIVE:       animDive_.Reset();    break;
     case Boss1State::DEATH:      animDive_.Reset();    deathTeleportTimer_ = 0.0f; deathSequenceDone_ = false; break;
     case Boss1State::STUNNED:    animHit_.Reset();     break;
-    case Boss1State::JUMP:       animAttack_.Reset();  break;
-    case Boss1State::VULNERABLE: animCansado_.Reset(); break;
-    case Boss1State::P2_SPIT:    animP2Spit_.Reset();  break;
+    case Boss1State::JUMP:       animAttack_.Reset();  audio.PlayFx(fxJump_);        break;
+    case Boss1State::VULNERABLE: animCansado_.Reset(); audio.PlayFx(fxAterrizaje_);  break;
+    case Boss1State::P2_SPIT:    animP2Spit_.Reset();  audio.PlayFx(fxBocaAbierta_); break;
     default: break;
     }
 }
@@ -277,6 +290,8 @@ void Boss1::TakeDamage(int damage)
     int oldPhase = phase_;
     CheckPhaseTransition();
     bool justEnteredP2 = (phase_ == 2 && oldPhase == 1);
+
+    Engine::GetInstance().audio->PlayFx(fxHit_);
 
     if (health <= 0)
     {

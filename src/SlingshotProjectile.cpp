@@ -6,6 +6,7 @@
 #include "Log.h"
 #include "EntityManager.h"
 #include "Scene.h"
+#include "Audio.h"
 #include <cmath>
 
 SlingshotProjectile::SlingshotProjectile() : Entity(EntityType::SLINGSHOT_PROJECTILE)
@@ -93,6 +94,9 @@ bool SlingshotProjectile::Update(float dt)
 
 void SlingshotProjectile::OnCollision(PhysBody* physA, PhysBody* physB)
 {
+	if (thudFxId != -1) {
+		Engine::GetInstance().audio->PlayFx(thudFxId);
+	}
 	switch (physB->ctype)
 	{
 	case ColliderType::ENEMY:
