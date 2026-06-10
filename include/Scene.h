@@ -188,11 +188,6 @@ private:
     void UnloadTutorialTextCard();
     void UpdateTutorialTextCard(float dt);
     float tutorialTimer_ = 0.0f;
-    SDL_Texture* texTutorialSeparator_ = nullptr;
-    int fxTitleCardPt1_ = -1;
-    int fxTitleCardPt2_ = -1;
-    bool pt1Played_ = false;
-    bool pt2Played_ = false;
 
     // ── Loading Screen ────────────────────────────────────────────────────────
     void LoadLoading();
