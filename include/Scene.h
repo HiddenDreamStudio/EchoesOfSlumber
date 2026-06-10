@@ -510,17 +510,17 @@ private:
 
     struct MenuFragment {
         SDL_Texture* tex = nullptr;
-        float x, y;            // base position (randomized)
-        float w, h;            // drawn size
-        float floatSpeed;       // oscillation speed (rad/s)
-        float floatAmplitude;   // oscillation range (px)
-        float floatPhase;       // initial phase offset
-        float driftX;           // horizontal micro-drift speed
-        float driftPhase;       // horizontal drift phase
-        float rotation;         // current rotation angle
-        float rotSpeed;         // degrees per second
-        bool  inFront;          // drawn in front of the character?
-        Uint8 alpha;            // alpha
+        float x = 0.0f, y = 0.0f;            // base position (randomized)
+        float w = 0.0f, h = 0.0f;            // drawn size
+        float floatSpeed = 0.0f;       // oscillation speed (rad/s)
+        float floatAmplitude = 0.0f;   // oscillation range (px)
+        float floatPhase = 0.0f;       // initial phase offset
+        float driftX = 0.0f;           // horizontal micro-drift speed
+        float driftPhase = 0.0f;       // horizontal drift phase
+        float rotation = 0.0f;         // current rotation angle
+        float rotSpeed = 0.0f;         // degrees per second
+        bool  inFront = false;          // drawn in front of the character?
+        Uint8 alpha = 255;            // alpha
     };
 
     MenuFragment fragments_[NUM_FRAGMENTS];
