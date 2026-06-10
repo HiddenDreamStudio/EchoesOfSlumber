@@ -205,4 +205,14 @@ private:
     SDL_Texture* texShockwave_   = nullptr;
     SDL_Texture* texButton_      = nullptr;
     Animation animShockwave_;
+
+    // Audio
+    int fxIntro_        = -1;
+    int fxIdleLoop_     = -1;
+    int fxPunch_        = -1;
+    int fxShockwave_    = -1;
+    int fxExposeBtn_    = -1;
+    int fxStunned_      = -1;
+    int fxDeath_        = -1;
+    int fxHit_          = -1;
 };

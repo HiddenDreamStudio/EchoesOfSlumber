@@ -5,7 +5,8 @@
 #include "Scene.h"
 #include "Log.h"
 #include "Physics.h"
-#include "carmel_hulls.h"
+#include "Audio.h"
+#include "CarmelHulls.h"
 
 EnemyCarmel::EnemyCarmel()
 {
@@ -38,6 +39,14 @@ bool EnemyCarmel::Start()
 	blowupAnims_.SetLoop("blowup", false);
 	blowupTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Carmel_Blowup.png");
 
+	idleFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy idle.wav");
+	moveFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Move.wav");
+	alertFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Alert.wav");
+	deathFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy_death.wav");
+	hitFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy_daño.wav");
+	attackFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy_atack.wav");
+
+	idleFxTimer_ = 2000.0f + (rand() % 3000);
 	int bx = (int)position.getX() + 32;
 	int by = (int)position.getY() + 32;
 	
@@ -116,6 +125,11 @@ void EnemyCarmel::UpdateFSM(float dt)
 	{
 	case EnemyCarmelState::IDLE:
 		velocity.x = 0.0f;
+		idleFxTimer_ -= dt;
+		if (idleFxTimer_ <= 0.0f) {
+			PlaySpiderFx(idleFxId_);
+			idleFxTimer_ = 2000.0f + (rand() % 3000);
+		}
 		if (totalDist < DETECTION_RADIUS) {
 			TransitionTo(EnemyCarmelState::SCARED);
 		}
@@ -162,6 +176,12 @@ void EnemyCarmel::UpdateFSM(float dt)
 				turnDelayTimer_ = TURN_DELAY;
 			}
 
+			moveFxTimer_ -= dt;
+			if (moveFxTimer_ <= 0.0f) {
+				PlaySpiderFx(moveFxId_);
+				moveFxTimer_ = moveFxInterval_;
+			}
+
 			velocity.x   = currentDirX_ * CHASE_SPEED;
 			facingRight_ = (currentDirX_ > 0.0f);
 		}
@@ -190,6 +210,7 @@ void EnemyCarmel::TransitionTo(EnemyCarmelState newState)
 	case EnemyCarmelState::SCARED:
 		stateTimer_ = SCARED_DURATION;
 		scaredAnims_.ResetCurrent();
+		PlaySpiderFx(alertFxId_);
 		lastFrameIndex_ = -1;
 		LOG("SpiderCandy: SCARED");
 		break;
@@ -204,11 +225,13 @@ void EnemyCarmel::TransitionTo(EnemyCarmelState newState)
 
 	case EnemyCarmelState::CHASE:
 		stateTimer_ = 2000.0f;
+		moveFxTimer_ = 0.0f; // Force immediate play
 		LOG("SpiderCandy: CHASE");
 		break;
 		
 	case EnemyCarmelState::DEATH:
 		LOG("SpiderCandy: DEATH");
+		PlaySpiderFx(deathFxId_);
 		Destroy();
 		break;
 
@@ -222,6 +245,7 @@ void EnemyCarmel::TakeDamage(int damage)
 	if (state_ == EnemyCarmelState::DEATH) return;
 
 	health -= damage;
+	PlaySpiderFx(hitFxId_);
 	LOG("SpiderCandy took %d damage -> health: %d/%d", damage, health, maxHealth);
 
 	int bodyX, bodyY;
@@ -317,3 +341,30 @@ void EnemyCarmel::Draw(float dt)
 	}
 }
 
+void EnemyCarmel::PlaySpiderFx(int fxId)
+{
+	if (fxId <= 0) return;
+	auto& scene = Engine::GetInstance().scene;
+	if (scene == nullptr || pbody == nullptr || scene->player == nullptr || scene->player->pbody == nullptr) return;
+
+	int bodyX, bodyY;
+	int playerX, playerY;
+	pbody->GetPosition(bodyX, bodyY);
+	scene->player->pbody->GetPosition(playerX, playerY);
+
+	float dx = (float)(playerX - bodyX);
+	float dy = (float)(playerY - bodyY);
+	float distSq = dx * dx + dy * dy;
+
+	if (distSq < 1000000.0f)
+	{
+		Engine::GetInstance().audio->PlayFx(fxId);
+	}
+}
+
+void EnemyCarmel::OnCollision(PhysBody* physA, PhysBody* physB)
+{
+	if (physB->ctype == ColliderType::PLAYER && state_ == EnemyCarmelState::CHASE) {
+		PlaySpiderFx(attackFxId_);
+	}
+}
