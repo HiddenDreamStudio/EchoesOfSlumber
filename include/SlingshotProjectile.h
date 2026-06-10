@@ -29,6 +29,7 @@ public:
 public:
 	SDL_Texture* texture = nullptr;
 	PhysBody* pbody = nullptr;
+	int thudFxId = -1;
 
 private:
 	static constexpr float MAX_LIFETIME = 4000.0f;  // ms

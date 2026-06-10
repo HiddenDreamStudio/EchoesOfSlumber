@@ -5,6 +5,7 @@
 #include "Scene.h"
 #include "Textures.h"
 #include "Window.h"
+#include "Audio.h"
 #include "Log.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -125,6 +126,17 @@ bool Boss2::Start()
     for (int i = 0; i < 13; i++) animShockwave_.AddFrame({i * 200, 0, 200, 500}, 60);
     animShockwave_.SetLoop(false);
 
+    // ── Audio ─────────────────────────────────────────────────────────────────
+    auto& audio = *Engine::GetInstance().audio;
+    fxIntro_     = audio.LoadFx("assets/audio/Enemies/Music Box/MusicBox_Intro.wav");
+    fxIdleLoop_  = audio.LoadFx("assets/audio/Enemies/Music Box/MusicBox_Idlle-loop.wav");
+    fxPunch_     = audio.LoadFx("assets/audio/Enemies/Music Box/MusicBox_Punch.wav");
+    fxShockwave_ = audio.LoadFx("assets/audio/Enemies/Music Box/MusicBox_Shockwave-loop.wav");
+    fxExposeBtn_ = audio.LoadFx("assets/audio/Enemies/Music Box/MusicBox_Expose-button.wav");
+    fxStunned_   = audio.LoadFx("assets/audio/Enemies/Music Box/MusicBox_Stunned.wav");
+    fxDeath_     = audio.LoadFx("assets/audio/Enemies/Music Box/MusicBox_Death.wav");
+    fxHit_       = audio.LoadFx("assets/audio/Enemies/Music Box/MusicBox_Hit.wav");
+
     return true;
 }
 
@@ -202,6 +214,7 @@ void Boss2::SpawnShockwave()
     shockwaveIdleFrame_  = 0;
     shockwaveFrameTimer_ = 0.0f;
     shockwaveOutro_      = false;
+    Engine::GetInstance().audio->PlayFx(fxShockwave_);
 }
 
 void Boss2::UpdateShockwave(float dt)
@@ -299,6 +312,7 @@ void Boss2::SpawnTallWave()
     tallWaveIdleFrame_  = 0;
     tallWaveFrameTimer_ = 0.0f;
     tallWaveOutro_      = false;
+    Engine::GetInstance().audio->PlayFx(fxShockwave_);
 }
 
 void Boss2::UpdateTallWave(float dt)
@@ -424,6 +438,19 @@ void Boss2::TransitionTo(Boss2State newState)
         default: break;
         }
     }
+
+    // Audio
+    auto& audio = *Engine::GetInstance().audio;
+    switch (newState)
+    {
+    case Boss2State::INTRO:         audio.PlayFx(fxIntro_);     break;
+    case Boss2State::PUNCH:         audio.PlayFx(fxPunch_);     break;
+    case Boss2State::GROUND_SLAM:   audio.PlayFx(fxPunch_);     break;
+    case Boss2State::EXPOSE_BUTTON: audio.PlayFx(fxExposeBtn_); break;
+    case Boss2State::STUNNED:       audio.PlayFx(fxStunned_);   break;
+    case Boss2State::DEATH:         audio.PlayFx(fxDeath_);     break;
+    default: break;
+    }
 }
 
 // ─── TakeDamage ──────────────────────────────────────────────────────────────
@@ -431,6 +458,8 @@ void Boss2::TransitionTo(Boss2State newState)
 void Boss2::TakeDamage(int damage)
 {
     if (state_ != Boss2State::EXPOSE_BUTTON) return;
+
+    Engine::GetInstance().audio->PlayFx(fxHit_);
 
     health -= damage;
     if (health < 0) health = 0;
