@@ -1,4 +1,6 @@
 #pragma once
+#include <memory>
+#include <string>
 #include "Input.h"
 #include "Render.h"
 #include "Module.h"

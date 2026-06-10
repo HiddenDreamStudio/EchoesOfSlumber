@@ -58,10 +58,11 @@ bool SaveSystem::Update(float dt)
 	{
 		pendingSave_ = false;
 		CollectGameState();
-		bool saveOk = WriteXML(quickSavePath_);
+		std::string savePath = (activeSlotIndex_ >= 0) ? GetSlotFilename(activeSlotIndex_) : quickSavePath_;
+		bool saveOk = WriteXML(savePath);
 		if (!saveOk)
 		{
-			LOG("SaveSystem: Quick save failed for %s", quickSavePath_.c_str());
+			LOG("SaveSystem: Quick save failed for %s", savePath.c_str());
 		}
 	}
 
@@ -122,17 +123,18 @@ bool SaveSystem::QuickSaveAt(float playerPosX, float playerPosY, const std::stri
 
 bool SaveSystem::QuickLoad()
 {
-	LOG("SaveSystem: QuickLoad (F5)");
+	std::string loadPath = (activeSlotIndex_ >= 0) ? GetSlotFilename(activeSlotIndex_) : quickSavePath_;
+	LOG("SaveSystem: QuickLoad from %s", loadPath.c_str());
 
-	if (!SaveFileExists(quickSavePath_))
+	if (!SaveFileExists(loadPath))
 	{
-		LOG("SaveSystem: No quicksave file found");
+		LOG("SaveSystem: No save file found at %s", loadPath.c_str());
 		return false;
 	}
 
-	if (!ReadXML(quickSavePath_))
+	if (!ReadXML(loadPath))
 	{
-		LOG("SaveSystem: Failed to read quicksave");
+		LOG("SaveSystem: Failed to read save from %s", loadPath.c_str());
 		return false;
 	}
 
@@ -142,17 +144,18 @@ bool SaveSystem::QuickLoad()
 
 bool SaveSystem::QuickLoadImmediate()
 {
-	LOG("SaveSystem: QuickLoadImmediate");
+	std::string loadPath = (activeSlotIndex_ >= 0) ? GetSlotFilename(activeSlotIndex_) : quickSavePath_;
+	LOG("SaveSystem: QuickLoadImmediate from %s", loadPath.c_str());
 
-	if (!SaveFileExists(quickSavePath_))
+	if (!SaveFileExists(loadPath))
 	{
-		LOG("SaveSystem: No quicksave file found");
+		LOG("SaveSystem: No save file found at %s", loadPath.c_str());
 		return false;
 	}
 
-	if (!ReadXML(quickSavePath_))
+	if (!ReadXML(loadPath))
 	{
-		LOG("SaveSystem: Failed to read quicksave");
+		LOG("SaveSystem: Failed to read save from %s", loadPath.c_str());
 		return false;
 	}
 
@@ -162,10 +165,11 @@ bool SaveSystem::QuickLoadImmediate()
 
 bool SaveSystem::HasValidSave() const
 {
-	if (!SaveFileExists(quickSavePath_)) return false;
+	std::string path = (activeSlotIndex_ >= 0) ? GetSlotFilename(activeSlotIndex_) : quickSavePath_;
+	if (!SaveFileExists(path)) return false;
 
 	pugi::xml_document doc;
-	if (!doc.load_file(quickSavePath_.c_str())) return false;
+	if (!doc.load_file(path.c_str())) return false;
 
 	pugi::xml_node root = doc.child("savegame");
 	if (!root) return false;
@@ -263,6 +267,7 @@ void SaveSystem::CollectPlayerState()
 	gameState_.playerHealth = scene->player ? scene->player->health : 3;
 	gameState_.playerHasBlanket = scene->player ? scene->player->HasBlanket() : false;
 	gameState_.playerHasSlingshot = scene->player ? scene->player->HasSlingshot() : false;
+	gameState_.playerHasStuffedAnimal = scene->player ? scene->player->HasStuffedAnimal() : false;
 
 	if (pendingCheckpointPositionOverride_)
 	{
@@ -343,12 +348,14 @@ void SaveSystem::ApplyPlayerState()
 		scene->player->health = gameState_.playerHealth;
 		scene->player->SetHasBlanket(gameState_.playerHasBlanket);
 		scene->player->SetHasSlingshot(gameState_.playerHasSlingshot);
+		scene->player->SetHasStuffedAnimal(gameState_.playerHasStuffedAnimal);
 		scene->player->Revive();
 		scene->ResetHealthUI(scene->player->health);
 	}
 
-	scene->capaCollected_ = gameState_.playerHasBlanket;
-	scene->slingshotCollected_ = gameState_.playerHasSlingshot;
+	if (gameState_.playerHasBlanket) scene->capaCollected_ = true;
+	if (gameState_.playerHasSlingshot) scene->slingshotCollected_ = true;
+	if (gameState_.playerHasStuffedAnimal) scene->stuffedAnimalCollected_ = true;
 
 	LOG("SaveSystem: Player position restored (%.1f, %.1f)",
 		gameState_.playerPosX, gameState_.playerPosY);
@@ -495,6 +502,7 @@ bool SaveSystem::WriteXML(const std::string& filename)
 	stateNode.append_attribute("health") = gameState_.playerHealth;
 	stateNode.append_attribute("hasBlanket") = gameState_.playerHasBlanket;
 	stateNode.append_attribute("hasSlingshot") = gameState_.playerHasSlingshot;
+	stateNode.append_attribute("hasStuffedAnimal") = gameState_.playerHasStuffedAnimal;
 
 	// Entities node (placeholder for future)
 	pugi::xml_node entitiesNode = root.append_child("entities");
@@ -568,6 +576,7 @@ bool SaveSystem::ReadXML(const std::string& filename)
 			gameState_.playerHealth = stateNode.attribute("health").as_int(3);
 			gameState_.playerHasBlanket = stateNode.attribute("hasBlanket").as_bool(false);
 			gameState_.playerHasSlingshot = stateNode.attribute("hasSlingshot").as_bool(false);
+			gameState_.playerHasStuffedAnimal = stateNode.attribute("hasStuffedAnimal").as_bool(false);
 		}
 	}
 
@@ -577,4 +586,87 @@ bool SaveSystem::ReadXML(const std::string& filename)
 
 	LOG("SaveSystem: Save file loaded from %s", filename.c_str());
 	return true;
+}
+
+// ============================================================================
+//  Slot-based save system
+// ============================================================================
+
+void SaveSystem::SetActiveSlot(int slot)
+{
+	if (slot < 0 || slot > 2) {
+		activeSlotIndex_ = -1;  // fallback to legacy
+	}
+	else {
+		activeSlotIndex_ = slot;
+	}
+	LOG("SaveSystem: Active slot set to %d", activeSlotIndex_);
+}
+
+std::string SaveSystem::GetSlotFilename(int slot) const
+{
+	return saveFolderPath_ + "slot" + std::to_string(slot + 1) + ".xml";
+}
+
+bool SaveSystem::SlotHasValidSave(int slot) const
+{
+	if (slot < 0 || slot > 2) return false;
+
+	std::string path = GetSlotFilename(slot);
+	if (!SaveFileExists(path)) return false;
+
+	pugi::xml_document doc;
+	if (!doc.load_file(path.c_str())) return false;
+
+	pugi::xml_node root = doc.child("savegame");
+	if (!root) return false;
+
+	pugi::xml_node playerNode = root.child("player");
+	if (playerNode)
+	{
+		pugi::xml_node stateNode = playerNode.child("state");
+		if (stateNode)
+		{
+			int health = stateNode.attribute("health").as_int(0);
+			return health > 0;
+		}
+	}
+
+	return false;
+}
+
+std::string SaveSystem::GetSlotInfoString(int slot) const
+{
+	if (!SlotHasValidSave(slot)) {
+		return "EMPTY SLOT";
+	}
+
+	std::string path = GetSlotFilename(slot);
+	pugi::xml_document doc;
+	if (!doc.load_file(path.c_str())) return "EMPTY SLOT";
+
+	pugi::xml_node root = doc.child("savegame");
+	if (!root) return "EMPTY SLOT";
+
+	pugi::xml_node sceneNode = root.child("scene");
+	std::string mapPath = sceneNode ? sceneNode.attribute("map").as_string() : "";
+
+	std::string lvlName = "Unknown Level";
+	if (!mapPath.empty()) {
+		if (mapPath.find("MapTemplate.tmx") != std::string::npos) lvlName = "Rock Bottom";
+		else if (mapPath.find("Map2.tmx") != std::string::npos) lvlName = "Shattered Ruins";
+		else if (mapPath.find("Map3.tmx") != std::string::npos) lvlName = "Forest Borderlines";
+		else if (mapPath.find("Map4.tmx") != std::string::npos) lvlName = "Forgotten Playground";
+	}
+
+	pugi::xml_node playerNode = root.child("player");
+	int health = 0;
+	if (playerNode) {
+		pugi::xml_node stateNode = playerNode.child("state");
+		if (stateNode) {
+			health = stateNode.attribute("health").as_int(0);
+		}
+	}
+
+	return "Slot " + std::to_string(slot + 1) + ": " + lvlName + " (" + std::to_string(health) + " HP)";
 }

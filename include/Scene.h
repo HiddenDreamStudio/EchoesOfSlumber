@@ -3,6 +3,8 @@
 #include "Player.h"
 #include "UIManager.h"
 #include "UIElement.h"
+#include "PuzzleManager.h"
+#include "PuzzleManager3.h"
 #include <map>
 #include <set>
 #include <utility>
@@ -111,6 +113,46 @@ private:
     int   menuBtnX_ = 0;   // button X position
     int   menuBtnW_ = 0;   // button width
 
+    // ── Play sub-screen animation (New Game / Continue / Slots) ──────────────
+    enum class PlaySubState {
+        NONE,               // main menu buttons visible
+        FADE_OUT_BUTTONS,   // fading out Play/Options/Exit
+        FADE_IN_OPTS,       // fading in New Game / Continue / Back
+        OPTS_ACTIVE,        // sub-options fully interactive
+        FADE_OUT_OPTS_TO_SLOTS, // fading out opts to show slots
+        FADE_IN_SLOTS,      // fading in 3 save slot buttons + back
+        SLOTS_ACTIVE,       // save slots fully interactive
+        FADE_OUT_SLOTS,     // fading out slots back to sub-options
+        FADE_IN_OPTS_FROM_SLOTS, // fading opts back in after slots
+        FADE_OUT_OPTS,      // fading out sub-options to return to main
+        FADE_IN_BUTTONS     // fading main buttons back in
+    };
+    PlaySubState playSubState_ = PlaySubState::NONE;
+    float playSubAnimTimer_ = 0.0f;
+    float playSubAlpha_     = 0.0f;  // alpha for New Game / Continue / Back
+    float playSlotsAlpha_   = 0.0f;  // alpha for slot buttons
+    bool isSlotSelectionForNewGame_ = false;
+    bool loadingFromSaveSlot_ = false;
+    bool loadedFromSave_ = false;
+
+    static constexpr int BTN_PLAY_NEWGAME  = 20;
+    static constexpr int BTN_PLAY_CONTINUE = 21;
+    static constexpr int BTN_PLAY_BACK     = 22;
+    static constexpr int BTN_SLOT_1        = 23;
+    static constexpr int BTN_SLOT_2        = 24;
+    static constexpr int BTN_SLOT_3        = 25;
+    static constexpr int BTN_SLOTS_BACK    = 26;
+
+    std::shared_ptr<UIElement> btnNewGame_;
+    std::shared_ptr<UIElement> btnContinue_;
+    std::shared_ptr<UIElement> btnPlayBack_;
+    std::shared_ptr<UIElement> btnSlot1_;
+    std::shared_ptr<UIElement> btnSlot2_;
+    std::shared_ptr<UIElement> btnSlot3_;
+    std::shared_ptr<UIElement> btnSlotsBack_;
+
+    void DrawPlaySubScreen(int winW, int winH);
+
     void LoadMainMenu();
     void UnloadMainMenu();
     void UpdateMainMenu(float dt);
@@ -188,11 +230,13 @@ private:
     void UnloadTutorialTextCard();
     void UpdateTutorialTextCard(float dt);
     float tutorialTimer_ = 0.0f;
-    SDL_Texture* texTutorialSeparator_ = nullptr;
-    int fxTitleCardPt1_ = -1;
-    int fxTitleCardPt2_ = -1;
-    bool pt1Played_ = false;
-    bool pt2Played_ = false;
+
+    // ── Loading Kid Sprite ────────────────────────────────────────────────────
+    SDL_Texture* texLoadingKid_ = nullptr;
+    static constexpr int LOADING_KID_FRAME_W  = 256;  // pixels per frame
+    static constexpr int LOADING_KID_FRAME_H  = 256;
+    static constexpr int LOADING_KID_FRAMES   = 17;
+    static constexpr float LOADING_KID_FPS    = 12.0f; // ~83ms per frame
 
     // ── Loading Screen ────────────────────────────────────────────────────────
     void LoadLoading();
@@ -211,6 +255,16 @@ private:
     };
     std::vector<LevelInfo> levels_;
     int currentLevelIndex_ = 0;
+
+    PuzzleManager* puzzleManager_ = nullptr;
+    bool isPuzzleMap_ = false;
+    bool puzzleTimeoutPending_ = false;
+
+    PuzzleManager3* puzzleManager3_ = nullptr;
+    bool isLvl3Map_ = false;   
+    bool isLvl3Puzzle_ = false;
+    bool isPuzzleMap3Lever_ = false;  
+    bool isPuzzleMap3Buttons_ = false;
 
     // Automatic entry movement (Level 2+)
     bool  isAutoEntering_ = false;
@@ -329,6 +383,8 @@ private:
     // Boss death video — plays before the post-death map transition / music change
     bool        bossDeathVideoActive_  = false;
     bool        endGameVideoActive_    = false;
+    bool        creditsVideoActive_    = false;
+    float       videoSkipCooldown_     = 0.0f;
     bool        endGameFading_         = false;  // fade-out before final cinematic
     bool        endGameTriggered_      = false;  // true once end sequence fires; never reset
     bool        bossDeathFading_       = false;
@@ -476,9 +532,11 @@ private:
 
     // ── Main menu textures ────────────────────────────────────────────────────
     SDL_Texture* texMenuLogo_ = nullptr;
+    SDL_Texture* texMenuHiddenLogo_ = nullptr;
     SDL_Texture* texMenuChild_ = nullptr;
     SDL_Texture* texMenuButton_ = nullptr;
     SDL_Texture* texSettingsBase_ = nullptr;
+    SDL_Texture* texSettingsPause_ = nullptr;
 
     std::shared_ptr<UIElement> btnPlay_;
     std::shared_ptr<UIElement> btnSettings_;

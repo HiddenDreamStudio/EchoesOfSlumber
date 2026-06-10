@@ -37,6 +37,7 @@ public:
 	void SetPosition(Vector2D pos);
 
 	void TakeDamage(int damage) override;
+	void TakeDamage(int damage, bool applyKnockback);
 	void Revive();
 	void StartWakeUp(float speedMultiplier = 1.0f);
 	bool IsDead() const { return isDead_; }
@@ -73,7 +74,6 @@ private:
 	void Attack(float dt);
 	void Hide(float dt);
 	void Slingshot(float dt);
-	void Teleport();
 	void ApplyPhysics();
 	void Draw(float dt);
 
@@ -91,8 +91,17 @@ public:
 	int landFxId = -1;
 	int stepsFxId = -1;
 	int gameOverFxId = -1;
-	int slingshotFxId = -1;
+	int slingshotAimFxId = -1;
+	int slingshotShootFxId = -1;
+	int slingshotThudFxId = -1;
 	int capeFxId = -1;
+
+	// Bear Audio
+	int bearAppearFxId = -1;
+	int bearDeathFxId = -1;
+	int bearStepsFxId = -1;
+	int bearDamageFxId = -1;
+	int bearSlapFxId = -1;
 
 	PhysBody* pbody = nullptr;
 	PhysBody* platformBelow = nullptr;
@@ -161,9 +170,15 @@ private:
 	bool  isHidingBehindRock_ = false;
 	// Visual: gentle alpha pulse while hidden to signal stealth state
 	float hideAlphaTime_ = 0.0f;
+	SDL_Texture* hideTexture_ = nullptr;
+	Animation    hideAnim_;      // player body crouching
+	Animation    hideExitAnim_; // player body standing up
+	Animation    hideCapeAnim_; // cape crouching
+	Animation    hideExitCapeAnim_; // cape standing up
 
 public:
 	void SetHidingBehindRock(bool hiding);
+	void UpdateHideCollision();
 private:
 
 	// Blanket (cape) collectible flag

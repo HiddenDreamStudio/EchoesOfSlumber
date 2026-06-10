@@ -6,6 +6,7 @@
 #include "Log.h"
 #include "EntityManager.h"
 #include "Scene.h"
+#include "Audio.h"
 #include <cmath>
 
 SlingshotProjectile::SlingshotProjectile() : Entity(EntityType::SLINGSHOT_PROJECTILE)
@@ -52,7 +53,7 @@ bool SlingshotProjectile::Update(float dt)
 
 		SDL_Rect section = { 0, 0, texW, texH };
 		Engine::GetInstance().render->DrawTexture(texture, x - drawW / 2, y - drawH / 2,
-			&section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, DRAW_SCALE);
+			&section, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, DRAW_SCALE);
 		return true;
 	}
 
@@ -85,7 +86,7 @@ bool SlingshotProjectile::Update(float dt)
 
 	Engine::GetInstance().render->ApplyAmbientTint(texture);
 	Engine::GetInstance().render->DrawTexture(texture, x - drawW / 2, y - drawH / 2,
-		&section, 1.0f, angle, drawW / 2, drawH / 2, SDL_FLIP_NONE, DRAW_SCALE);
+		&section, 1.0f, -1.0f, angle, drawW / 2, drawH / 2, SDL_FLIP_NONE, DRAW_SCALE);
 	Engine::GetInstance().render->ResetAmbientTint(texture);
 
 	return true;
@@ -93,6 +94,9 @@ bool SlingshotProjectile::Update(float dt)
 
 void SlingshotProjectile::OnCollision(PhysBody* physA, PhysBody* physB)
 {
+	if (thudFxId != -1) {
+		Engine::GetInstance().audio->PlayFx(thudFxId);
+	}
 	switch (physB->ctype)
 	{
 	case ColliderType::ENEMY:

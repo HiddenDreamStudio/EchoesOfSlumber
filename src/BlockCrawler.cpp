@@ -6,6 +6,7 @@
 #include "Scene.h"
 #include "Player.h"
 #include "Physics.h"
+#include "Audio.h"
 
 namespace {
     struct FrameBox {
@@ -57,6 +58,13 @@ bool BlockCrawler::Start()
 	wallTexture_ = Engine::GetInstance().textures.get()->Load("assets/textures/spritesheets/SS_Enemics_Level1/SP_BlocCrawler_wall.png");
 	hitTexture_  = Engine::GetInstance().textures.get()->Load("assets/textures/spritesheets/SS_Enemics_Level1/SP_BlocCrawler_hit.png");
 	dieTexture_  = Engine::GetInstance().textures.get()->Load("assets/textures/spritesheets/SS_Enemics_Level1/SP_BlocCrawler_die.png");
+
+	moveFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/BlockCrawler/move.wav");
+	apilarFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/BlockCrawler/bock crawler_apilar.wav");
+	desapilarFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/BlockCrawler/Block crawler_desapila.wav");
+	hitFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/BlockCrawler/Block crawler_recibe golpe.wav");
+	dieFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/BlockCrawler/Block crawler_die.wav");
+	noDamageFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/BlockCrawler/NoDamage.wav");
 
 	// Load Animations
 	moveAnims_.LoadFromTSX("assets/textures/animations/BlockCrawlerMove.xml", { {0, "move"} });
@@ -192,6 +200,13 @@ void BlockCrawler::UpdateFSM(float dt)
 	switch (currentState_) {
 		case State::MOVE: {
 			moveAnims_.Update(dt);
+			
+			moveFxTimer_ += dt;
+			if (moveFxTimer_ >= moveFxInterval_) {
+				PlayBlockCrawlerFx(moveFxId_);
+				moveFxTimer_ = 0.0f;
+			}
+
 			// Patrol logic
 			if (movingRight_) {
 				b2Vec2 vel = Engine::GetInstance().physics->GetLinearVelocity(pbody);
@@ -259,10 +274,15 @@ void BlockCrawler::EnterState(State newState)
 	switch (currentState_) {
 		case State::MOVE:
 			moveAnims_.SetCurrent("move");
+			if (stateTimer_ > 0.0f || health < maxHealth) {
+				PlayBlockCrawlerFx(desapilarFxId_);
+			}
+			moveFxTimer_ = moveFxInterval_; // Force immediate play of move
 			break;
 		case State::WALL: {
 			wallAnims_.SetCurrent("wall");
 			wallAnims_.ResetCurrent();
+			PlayBlockCrawlerFx(apilarFxId_);
 			auto pl = Engine::GetInstance().scene->player;
 			if (pl && pl->pbody) {
 				int px, py, ex, ey;
@@ -277,6 +297,7 @@ void BlockCrawler::EnterState(State newState)
 		case State::HIT:
 			hitAnims_.SetCurrent("hit");
 			hitAnims_.ResetCurrent();
+			PlayBlockCrawlerFx(hitFxId_);
 			break;
 		case State::DEATH:
 			if (pbody != nullptr) {
@@ -284,6 +305,7 @@ void BlockCrawler::EnterState(State newState)
 			}
 			dieAnims_.SetCurrent("die");
 			dieAnims_.ResetCurrent();
+			PlayBlockCrawlerFx(dieFxId_);
 			break;
 	}
 	UpdatePhysicsForCurrentFrame();
@@ -294,7 +316,10 @@ void BlockCrawler::TakeDamage(int damage)
 	if (currentState_ == State::DEATH || currentState_ == State::HIT) return;
 	
 	// Invulnerable in move state
-	if (currentState_ == State::MOVE) return;
+	if (currentState_ == State::MOVE) {
+		PlayBlockCrawlerFx(noDamageFxId_);
+		return;
+	}
 
 	health -= damage;
 
@@ -367,7 +392,7 @@ void BlockCrawler::Draw()
 		int ry = (int)(position.getY() + currentPhysHalfH_ - renderH) + spriteBottomOffset;
 
 		SDL_FlipMode flip = facingRight_ ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
-		Engine::GetInstance().render->DrawTexture(tex, rx, ry, &rect, 1.0f, 0, INT_MAX, INT_MAX, flip, renderScale);
+		Engine::GetInstance().render->DrawTexture(tex, rx, ry, &rect, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, renderScale);
 	}
 }
 
@@ -384,4 +409,26 @@ bool BlockCrawler::CleanUp()
 	}
 
 	return true;
+}
+
+void BlockCrawler::PlayBlockCrawlerFx(int fxId)
+{
+	if (fxId <= 0) return;
+	auto& scene = Engine::GetInstance().scene;
+	if (scene == nullptr || pbody == nullptr || scene->player == nullptr || scene->player->pbody == nullptr) return;
+
+	int bodyX, bodyY;
+	int playerX, playerY;
+	pbody->GetPosition(bodyX, bodyY);
+	scene->player->pbody->GetPosition(playerX, playerY);
+
+	float dx = (float)(playerX - bodyX);
+	float dy = (float)(playerY - bodyY);
+	float distSq = dx * dx + dy * dy;
+
+	// Only play if within ~1000 pixels
+	if (distSq < 1000000.0f)
+	{
+		Engine::GetInstance().audio->PlayFx(fxId);
+	}
 }

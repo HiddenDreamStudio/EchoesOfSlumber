@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
+#include <filesystem>
 
 // ----------------------------------------------------------------------------
 // Button IDs  (main menu)
@@ -246,8 +247,14 @@ void Scene::LoadMainMenu()
 	settingsAnimTimer_ = 0.0f;
 	settingsButtonsAlpha_ = 1.0f;
 	settingsOptionsAlpha_ = 0.0f;
-	musicVolume_ = 1.0f;
-	sfxVolume_ = 1.0f;
+	playSubState_ = PlaySubState::NONE;
+	playSubAnimTimer_ = 0.0f;
+	playSubAlpha_ = 0.0f;
+	playSlotsAlpha_ = 0.0f;
+	isSlotSelectionForNewGame_ = false;
+	loadingFromSaveSlot_ = false;
+	loadedFromSave_ = false;
+
 	Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
 	Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
 
@@ -268,7 +275,9 @@ void Scene::LoadMainMenu()
 	texMenuChild_ = Engine::GetInstance().textures->Load("assets/textures/Menu/IL_NenFront_01.png");
 	texMenuButton_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
 	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
-	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_NEW_Sound_Menu_Base.png");
+	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
+	texSettingsPause_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
+	texMenuHiddenLogo_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_HiddenLogo.png");
 
 	const char* fragPaths[NUM_FRAGMENTS] = {
 		"assets/textures/Menu/UI_Fragment1.png",
@@ -334,16 +343,58 @@ void Scene::LoadMainMenu()
 		if (texMenuButton_) btnBack_->SetTexture(texMenuButton_);
 		if (texButtonFragmented_) btnBack_->SetHoverTexture(texButtonFragmented_);
 	}
+
+	menuBtnX_ = btnX;
+	menuBtnW_ = btnW;
+
+	// --- Play sub-screen buttons (New Game / Continue / Back) ---
+	btnNewGame_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PLAY_NEWGAME, "new game", playPos, this);
+	btnContinue_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PLAY_CONTINUE, "continue", settingsPos, this);
+	btnPlayBack_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PLAY_BACK, "back", exitPos, this);
+
+	// --- Save slot buttons (Slot 1 / Slot 2 / Slot 3 / Back) ---
+	btnSlot1_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SLOT_1, "slot 1", playPos, this);
+	btnSlot2_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SLOT_2, "slot 2", settingsPos, this);
+	btnSlot3_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SLOT_3, "slot 3", exitPos, this);
+	btnSlotsBack_ = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_SLOTS_BACK, "back", backPos, this);
+
+	// Setup textures and hide play sub-screen buttons initially
+	std::vector<std::shared_ptr<UIElement>> playSubBtns = {
+		btnNewGame_, btnContinue_, btnPlayBack_, btnSlot1_, btnSlot2_, btnSlot3_, btnSlotsBack_
+	};
+	for (auto& btn : playSubBtns) {
+		if (btn) {
+			btn->alphaMod = 0.0f;
+			btn->isVisible = false;
+			btn->state = UIElementState::DISABLED;
+			if (texMenuButton_) btn->SetTexture(texMenuButton_);
+			if (texButtonFragmented_) btn->SetHoverTexture(texButtonFragmented_);
+		}
+	}
 }
 
 void Scene::UnloadMainMenu()
 {
 	Engine::GetInstance().uiManager->CleanUp();
+	btnPlay_ = nullptr;
+	btnSettings_ = nullptr;
+	btnExit_ = nullptr;
+	btnBack_ = nullptr;
+	btnNewGame_ = nullptr;
+	btnContinue_ = nullptr;
+	btnPlayBack_ = nullptr;
+	btnSlot1_ = nullptr;
+	btnSlot2_ = nullptr;
+	btnSlot3_ = nullptr;
+	btnSlotsBack_ = nullptr;
+
 	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_);                       texMenuLogo_ = nullptr; }
+	if (texMenuHiddenLogo_) { Engine::GetInstance().textures->UnLoad(texMenuHiddenLogo_); texMenuHiddenLogo_ = nullptr; }
 	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_);  texMenuChild_ = nullptr; }
 	if (texMenuButton_) { Engine::GetInstance().textures->UnLoad(texMenuButton_); texMenuButton_ = nullptr; }
 	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
 	if (texSettingsBase_) { Engine::GetInstance().textures->UnLoad(texSettingsBase_); texSettingsBase_ = nullptr; }
+	if (texSettingsPause_) { Engine::GetInstance().textures->UnLoad(texSettingsPause_); texSettingsPause_ = nullptr; }
 	for (int i = 0; i < NUM_FRAGMENTS; i++) {
 		if (fragments_[i].tex) { Engine::GetInstance().textures->UnLoad(fragments_[i].tex); fragments_[i].tex = nullptr; }
 	}
@@ -451,6 +502,203 @@ void Scene::UpdateMainMenu(float dt)
 			}
 		}
 
+		// -- Play sub-screen animation state machine ----------------------
+		if (playSubState_ != PlaySubState::NONE &&
+			playSubState_ != PlaySubState::OPTS_ACTIVE &&
+			playSubState_ != PlaySubState::SLOTS_ACTIVE)
+		{
+			playSubAnimTimer_ += dt;
+			float t = playSubAnimTimer_ / FADE_DURATION;
+			if (t > 1.0f) t = 1.0f;
+
+			switch (playSubState_) {
+			case PlaySubState::FADE_OUT_BUTTONS:
+				settingsButtonsAlpha_ = 1.0f - t;
+				if (btnPlay_) btnPlay_->alphaMod = settingsButtonsAlpha_;
+				if (btnSettings_) btnSettings_->alphaMod = settingsButtonsAlpha_;
+				if (btnExit_) btnExit_->alphaMod = settingsButtonsAlpha_;
+				if (t >= 1.0f) {
+					if (btnPlay_) { btnPlay_->isVisible = false; btnPlay_->state = UIElementState::DISABLED; }
+					if (btnSettings_) { btnSettings_->isVisible = false; btnSettings_->state = UIElementState::DISABLED; }
+					if (btnExit_) { btnExit_->isVisible = false; btnExit_->state = UIElementState::DISABLED; }
+
+					playSubState_ = PlaySubState::FADE_IN_OPTS;
+					playSubAnimTimer_ = 0.0f;
+					playSubAlpha_ = 0.0f;
+
+					if (btnNewGame_) { btnNewGame_->isVisible = true; btnNewGame_->state = UIElementState::NORMAL; btnNewGame_->alphaMod = 0.0f; }
+					if (btnContinue_) {
+						btnContinue_->isVisible = true;
+						auto& saveSys = Engine::GetInstance().saveSystem;
+						bool anySave = saveSys->SlotHasValidSave(0) || saveSys->SlotHasValidSave(1) || saveSys->SlotHasValidSave(2);
+						btnContinue_->state = anySave ? UIElementState::NORMAL : UIElementState::DISABLED;
+						btnContinue_->alphaMod = 0.0f;
+					}
+					if (btnPlayBack_) { btnPlayBack_->isVisible = true; btnPlayBack_->state = UIElementState::NORMAL; btnPlayBack_->alphaMod = 0.0f; }
+				}
+				break;
+
+			case PlaySubState::FADE_IN_OPTS:
+				playSubAlpha_ = t;
+				if (btnNewGame_) btnNewGame_->alphaMod = t;
+				if (btnContinue_ && btnContinue_->state != UIElementState::DISABLED) btnContinue_->alphaMod = t;
+				else if (btnContinue_) btnContinue_->alphaMod = t * 0.5f;
+				if (btnPlayBack_) btnPlayBack_->alphaMod = t;
+				if (t >= 1.0f) {
+					playSubState_ = PlaySubState::OPTS_ACTIVE;
+					playSubAlpha_ = 1.0f;
+					if (btnNewGame_) btnNewGame_->alphaMod = 1.0f;
+					if (btnContinue_ && btnContinue_->state != UIElementState::DISABLED) btnContinue_->alphaMod = 1.0f;
+					else if (btnContinue_) btnContinue_->alphaMod = 0.5f;
+					if (btnPlayBack_) btnPlayBack_->alphaMod = 1.0f;
+				}
+				break;
+
+			case PlaySubState::FADE_OUT_OPTS_TO_SLOTS:
+				playSubAlpha_ = 1.0f - t;
+				if (btnNewGame_) btnNewGame_->alphaMod = playSubAlpha_;
+				if (btnContinue_ && btnContinue_->state != UIElementState::DISABLED) btnContinue_->alphaMod = playSubAlpha_;
+				else if (btnContinue_) btnContinue_->alphaMod = playSubAlpha_ * 0.5f;
+				if (btnPlayBack_) btnPlayBack_->alphaMod = playSubAlpha_;
+				if (t >= 1.0f) {
+					if (btnNewGame_) { btnNewGame_->isVisible = false; btnNewGame_->state = UIElementState::DISABLED; }
+					if (btnContinue_) { btnContinue_->isVisible = false; btnContinue_->state = UIElementState::DISABLED; }
+					if (btnPlayBack_) { btnPlayBack_->isVisible = false; btnPlayBack_->state = UIElementState::DISABLED; }
+
+					playSubState_ = PlaySubState::FADE_IN_SLOTS;
+					playSubAnimTimer_ = 0.0f;
+					playSlotsAlpha_ = 0.0f;
+
+					auto& saveSys = Engine::GetInstance().saveSystem;
+					if (btnSlot1_) {
+						btnSlot1_->text = saveSys->GetSlotInfoString(0);
+						btnSlot1_->isVisible = true;
+						btnSlot1_->alphaMod = 0.0f;
+						if (isSlotSelectionForNewGame_) {
+							btnSlot1_->state = UIElementState::NORMAL;
+						} else {
+							btnSlot1_->state = saveSys->SlotHasValidSave(0) ? UIElementState::NORMAL : UIElementState::DISABLED;
+						}
+					}
+					if (btnSlot2_) {
+						btnSlot2_->text = saveSys->GetSlotInfoString(1);
+						btnSlot2_->isVisible = true;
+						btnSlot2_->alphaMod = 0.0f;
+						if (isSlotSelectionForNewGame_) {
+							btnSlot2_->state = UIElementState::NORMAL;
+						} else {
+							btnSlot2_->state = saveSys->SlotHasValidSave(1) ? UIElementState::NORMAL : UIElementState::DISABLED;
+						}
+					}
+					if (btnSlot3_) {
+						btnSlot3_->text = saveSys->GetSlotInfoString(2);
+						btnSlot3_->isVisible = true;
+						btnSlot3_->alphaMod = 0.0f;
+						if (isSlotSelectionForNewGame_) {
+							btnSlot3_->state = UIElementState::NORMAL;
+						} else {
+							btnSlot3_->state = saveSys->SlotHasValidSave(2) ? UIElementState::NORMAL : UIElementState::DISABLED;
+						}
+					}
+					if (btnSlotsBack_) { btnSlotsBack_->isVisible = true; btnSlotsBack_->state = UIElementState::NORMAL; btnSlotsBack_->alphaMod = 0.0f; }
+				}
+				break;
+
+			case PlaySubState::FADE_IN_SLOTS:
+				playSlotsAlpha_ = t;
+				if (btnSlot1_) btnSlot1_->alphaMod = (btnSlot1_->state == UIElementState::DISABLED) ? t * 0.5f : t;
+				if (btnSlot2_) btnSlot2_->alphaMod = (btnSlot2_->state == UIElementState::DISABLED) ? t * 0.5f : t;
+				if (btnSlot3_) btnSlot3_->alphaMod = (btnSlot3_->state == UIElementState::DISABLED) ? t * 0.5f : t;
+				if (btnSlotsBack_) btnSlotsBack_->alphaMod = t;
+				if (t >= 1.0f) {
+					playSubState_ = PlaySubState::SLOTS_ACTIVE;
+					playSlotsAlpha_ = 1.0f;
+					if (btnSlot1_) btnSlot1_->alphaMod = (btnSlot1_->state == UIElementState::DISABLED) ? 0.5f : 1.0f;
+					if (btnSlot2_) btnSlot2_->alphaMod = (btnSlot2_->state == UIElementState::DISABLED) ? 0.5f : 1.0f;
+					if (btnSlot3_) btnSlot3_->alphaMod = (btnSlot3_->state == UIElementState::DISABLED) ? 0.5f : 1.0f;
+					if (btnSlotsBack_) btnSlotsBack_->alphaMod = 1.0f;
+				}
+				break;
+
+			case PlaySubState::FADE_OUT_SLOTS:
+				playSlotsAlpha_ = 1.0f - t;
+				if (btnSlot1_) btnSlot1_->alphaMod = (btnSlot1_->state == UIElementState::DISABLED) ? playSlotsAlpha_ * 0.5f : playSlotsAlpha_;
+				if (btnSlot2_) btnSlot2_->alphaMod = (btnSlot2_->state == UIElementState::DISABLED) ? playSlotsAlpha_ * 0.5f : playSlotsAlpha_;
+				if (btnSlot3_) btnSlot3_->alphaMod = (btnSlot3_->state == UIElementState::DISABLED) ? playSlotsAlpha_ * 0.5f : playSlotsAlpha_;
+				if (btnSlotsBack_) btnSlotsBack_->alphaMod = playSlotsAlpha_;
+				if (t >= 1.0f) {
+					if (btnSlot1_) { btnSlot1_->isVisible = false; btnSlot1_->state = UIElementState::DISABLED; }
+					if (btnSlot2_) { btnSlot2_->isVisible = false; btnSlot2_->state = UIElementState::DISABLED; }
+					if (btnSlot3_) { btnSlot3_->isVisible = false; btnSlot3_->state = UIElementState::DISABLED; }
+					if (btnSlotsBack_) { btnSlotsBack_->isVisible = false; btnSlotsBack_->state = UIElementState::DISABLED; }
+
+					playSubState_ = PlaySubState::FADE_IN_OPTS_FROM_SLOTS;
+					playSubAnimTimer_ = 0.0f;
+					playSubAlpha_ = 0.0f;
+
+					if (btnNewGame_) { btnNewGame_->isVisible = true; btnNewGame_->state = UIElementState::NORMAL; btnNewGame_->alphaMod = 0.0f; }
+					if (btnContinue_) {
+						btnContinue_->isVisible = true;
+						auto& saveSys = Engine::GetInstance().saveSystem;
+						bool anySave = saveSys->SlotHasValidSave(0) || saveSys->SlotHasValidSave(1) || saveSys->SlotHasValidSave(2);
+						btnContinue_->state = anySave ? UIElementState::NORMAL : UIElementState::DISABLED;
+						btnContinue_->alphaMod = 0.0f;
+					}
+					if (btnPlayBack_) { btnPlayBack_->isVisible = true; btnPlayBack_->state = UIElementState::NORMAL; btnPlayBack_->alphaMod = 0.0f; }
+				}
+				break;
+
+			case PlaySubState::FADE_IN_OPTS_FROM_SLOTS:
+				playSubAlpha_ = t;
+				if (btnNewGame_) btnNewGame_->alphaMod = t;
+				if (btnContinue_ && btnContinue_->state != UIElementState::DISABLED) btnContinue_->alphaMod = t;
+				else if (btnContinue_) btnContinue_->alphaMod = t * 0.5f;
+				if (btnPlayBack_) btnPlayBack_->alphaMod = t;
+				if (t >= 1.0f) {
+					playSubState_ = PlaySubState::OPTS_ACTIVE;
+					playSubAlpha_ = 1.0f;
+					if (btnNewGame_) btnNewGame_->alphaMod = 1.0f;
+					if (btnContinue_ && btnContinue_->state != UIElementState::DISABLED) btnContinue_->alphaMod = 1.0f;
+					else if (btnContinue_) btnContinue_->alphaMod = 0.5f;
+					if (btnPlayBack_) btnPlayBack_->alphaMod = 1.0f;
+				}
+				break;
+
+			case PlaySubState::FADE_OUT_OPTS:
+				playSubAlpha_ = 1.0f - t;
+				if (btnNewGame_) btnNewGame_->alphaMod = playSubAlpha_;
+				if (btnContinue_ && btnContinue_->state != UIElementState::DISABLED) btnContinue_->alphaMod = playSubAlpha_;
+				else if (btnContinue_) btnContinue_->alphaMod = playSubAlpha_ * 0.5f;
+				if (btnPlayBack_) btnPlayBack_->alphaMod = playSubAlpha_;
+				if (t >= 1.0f) {
+					if (btnNewGame_) { btnNewGame_->isVisible = false; btnNewGame_->state = UIElementState::DISABLED; }
+					if (btnContinue_) { btnContinue_->isVisible = false; btnContinue_->state = UIElementState::DISABLED; }
+					if (btnPlayBack_) { btnPlayBack_->isVisible = false; btnPlayBack_->state = UIElementState::DISABLED; }
+
+					playSubState_ = PlaySubState::FADE_IN_BUTTONS;
+					playSubAnimTimer_ = 0.0f;
+					settingsButtonsAlpha_ = 0.0f;
+
+					if (btnPlay_) { btnPlay_->isVisible = true; btnPlay_->state = UIElementState::NORMAL; btnPlay_->alphaMod = 0.0f; }
+					if (btnSettings_) { btnSettings_->isVisible = true; btnSettings_->state = UIElementState::NORMAL; btnSettings_->alphaMod = 0.0f; }
+					if (btnExit_) { btnExit_->isVisible = true; btnExit_->state = UIElementState::NORMAL; btnExit_->alphaMod = 0.0f; }
+				}
+				break;
+
+			case PlaySubState::FADE_IN_BUTTONS:
+				settingsButtonsAlpha_ = t;
+				if (btnPlay_) btnPlay_->alphaMod = settingsButtonsAlpha_;
+				if (btnSettings_) btnSettings_->alphaMod = settingsButtonsAlpha_;
+				if (btnExit_) btnExit_->alphaMod = settingsButtonsAlpha_;
+				if (t >= 1.0f) {
+					playSubState_ = PlaySubState::NONE;
+					settingsButtonsAlpha_ = 1.0f;
+					Engine::GetInstance().discord->UpdatePresence("In Main Menu", "Release v1.0.0");
+				}
+				break;
+			}
+		}
+
 		// ESC / B to go back from options
 		auto& inp2 = *Engine::GetInstance().input;
 		if (settingsAnimState_ == SettingsAnimState::OPTIONS_ACTIVE &&
@@ -459,7 +707,25 @@ void Scene::UpdateMainMenu(float dt)
 		{
 			settingsAnimState_ = SettingsAnimState::FADE_OUT_OPTIONS;
 			settingsAnimTimer_ = 0.0f;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
+		}
+
+		// ESC / B to go back from play sub-screens
+		if (inp2.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+			inp2.GetGamepadButton(SDL_GAMEPAD_BUTTON_EAST) == KEY_DOWN)
+		{
+			if (playSubState_ == PlaySubState::OPTS_ACTIVE) {
+				playSubState_ = PlaySubState::FADE_OUT_OPTS;
+				playSubAnimTimer_ = 0.0f;
+				Engine::GetInstance().uiManager->ResetFocus();
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
+			}
+			else if (playSubState_ == PlaySubState::SLOTS_ACTIVE) {
+				playSubState_ = PlaySubState::FADE_OUT_SLOTS;
+				playSubAnimTimer_ = 0.0f;
+				Engine::GetInstance().uiManager->ResetFocus();
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
+			}
 		}
 	}
 }
@@ -597,8 +863,59 @@ void Scene::PostUpdateMainMenu()
 		render.DrawTextureAlphaF(texMenuLogo_, renderLogoX, renderLogoY, (float)logoW, (float)logoH, 255);
 	}
 
+	// Render studio logo bottom-left and version text bottom-right
+	Uint8 bottomAlpha = 0;
+	if (menuAnimState_ == MenuAnimState::IDLE) {
+		bottomAlpha = 255;
+	} else if (menuAnimState_ == MenuAnimState::FADE_FRAGS_BTNS) {
+		float f = menuAnimTimer_ / 2000.0f;
+		if (f > 1.0f) f = 1.0f;
+		bottomAlpha = (Uint8)(255 * f);
+	}
+	bottomAlpha = (Uint8)((float)bottomAlpha * settingsButtonsAlpha_);
+
+	if (bottomAlpha > 0) {
+		// 1. Bottom-left: UI_HiddenLogo.png
+		if (texMenuHiddenLogo_) {
+			float hW = 0, hH = 0;
+			SDL_GetTextureSize(texMenuHiddenLogo_, &hW, &hH);
+			float targetH = 100.0f;
+			float scale = targetH / hH;
+			float targetW = hW * scale;
+
+			float centerBaselineY = (float)winH - 20.0f - 50.0f;
+			float logoY = centerBaselineY - targetH / 2.0f;
+			float logoX = 20.0f;
+
+			render.DrawTextureAlphaF(texMenuHiddenLogo_, logoX, logoY, targetW, targetH, bottomAlpha);
+		}
+
+		// 2. Bottom-right: "v1.0.0"
+		SDL_Color versionColor = { 255, 255, 255, bottomAlpha };
+		SDL_Texture* txVersion = render.CreateMenuTextTexture("v1.0.0", versionColor);
+		if (txVersion) {
+			float vW = 0, vH = 0;
+			SDL_GetTextureSize(txVersion, &vW, &vH);
+			float textScale = 0.4f;
+			float drawW = vW * textScale;
+			float drawH = vH * textScale;
+
+			float centerBaselineY = (float)winH - 20.0f - 50.0f;
+			float versionY = centerBaselineY - drawH / 2.0f;
+			float versionX = (float)winW - drawW - 20.0f;
+
+			render.DrawTextureAlphaF(txVersion, versionX, versionY, drawW, drawH, bottomAlpha);
+			SDL_DestroyTexture(txVersion);
+		}
+	}
+
 	if (showSettings_ || settingsOptionsAlpha_ > 0.0f)
 		DrawSettingsInPlace(winW, winH);
+}
+
+void Scene::DrawPlaySubScreen(int winW, int winH)
+{
+	// Headers removed as requested
 }
 
 void Scene::DrawSettingsInPlace(int winW, int winH)
@@ -610,63 +927,67 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 	// Draw the base panel image centered in the left half
 	const int leftHalf = winW / 2;
 
-	// Panel image is 840x544, scale to fit nicely in the left half
-	const float panelScale = (float)leftHalf * 0.85f / 840.0f;
+	// Render texture using the original 840.0f width, but make it significantly taller (780.0f height)
+	const float panelScale = (float)leftHalf / 840.0f * 0.85f;
 	const int panelImgW = (int)(840.0f * panelScale);
-	const int panelImgH = (int)(544.0f * panelScale);
+	const int panelImgH = (int)(780.0f * panelScale);
 	const int panelImgX = (leftHalf - panelImgW) / 2;
 	const int panelImgY = (winH - panelImgH) / 2;
 
+	// Shift the background texture up slightly so texts sit better in the white space
+	const int panelRenderY = panelImgY - (int)(100.0f * panelScale);
+
 	if (texSettingsBase_) {
-		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelImgY, panelImgW, panelImgH, alpha);
+		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelRenderY, panelImgW, panelImgH, alpha);
 	}
 
-	// Calculate correct positions corresponding to the pre-drawn icons on the board texture
-	const int trackX = panelImgX + (int)(panelImgW * 0.45f);
-	const int trackW = (int)(panelImgW * 0.40f);
+	// Track area — aligned with the panel's icon positions
+	const int trackX = panelImgX + (int)(panelImgW * 0.44f);
+	const int trackW = (int)(panelImgW * 0.42f);
 
-	const int row0Y = panelImgY + (int)(panelImgH * 0.34f); // MUSIC (Icon 1: Musical Note)
-	const int row1Y = panelImgY + (int)(panelImgH * 0.58f); // SOUNDS (Icon 2: Speaker)
-	const int row2Y = panelImgY + (int)(panelImgH * 0.82f); // DISPLAY (Icon 3: Monitor)
+	// Better-spaced rows to avoid overlap with panel icons
+	const int row0Y = panelImgY + (int)(panelImgH * 0.32f); // MUSIC
+	const int row1Y = panelImgY + (int)(panelImgH * 0.48f); // SOUNDS
+	const int row2Y = panelImgY + (int)(panelImgH * 0.62f); // DISPLAY
 
 	SDL_Color labelColor = { 40, 55, 70, alpha };
 	SDL_Color valColor   = { 30, 45, 60, alpha };
 
-	// Row 0: MUSIC
+	// --- Row 0: MUSIC ---
 	render.DrawMenuTextCentered("MUSIC", { trackX, row0Y, trackW / 2, 20 }, labelColor);
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(musicVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row0Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect mBarBg = { trackX, row0Y + 30, trackW, 8 };
+	SDL_Rect mBarBg = { trackX, row0Y + 25, trackW, 6 };
 	render.DrawRectangle(mBarBg, 10, 15, 25, alpha, true, false);
 	int mFill = static_cast<int>(static_cast<float>(trackW) * musicVolume_);
-	SDL_Rect mBarFill = { trackX, row0Y + 30, mFill, 8 };
+	SDL_Rect mBarFill = { trackX, row0Y + 25, mFill, 6 };
 	render.DrawRectangle(mBarFill, 100, 180, 255, alpha, true, false);
-	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 26, 10, 16 };
+	SDL_Rect mKnob = { trackX + mFill - 4, row0Y + 22, 8, 12 };
 	render.DrawRectangle(mKnob, 200, 220, 255, alpha, true, false);
 
-	// Row 1: SOUNDS
+	// --- Row 1: SOUNDS ---
 	render.DrawMenuTextCentered("SOUNDS", { trackX, row1Y, trackW / 2, 20 }, labelColor);
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(sfxVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row1Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect sBarBg = { trackX, row1Y + 30, trackW, 8 };
+	SDL_Rect sBarBg = { trackX, row1Y + 25, trackW, 6 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, alpha, true, false);
 	int sFill = static_cast<int>(static_cast<float>(trackW) * sfxVolume_);
-	SDL_Rect sBarFill = { trackX, row1Y + 30, sFill, 8 };
+	SDL_Rect sBarFill = { trackX, row1Y + 25, sFill, 6 };
 	render.DrawRectangle(sBarFill, 100, 180, 255, alpha, true, false);
-	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 26, 10, 16 };
+	SDL_Rect sKnob = { trackX + sFill - 4, row1Y + 22, 8, 12 };
 	render.DrawRectangle(sKnob, 200, 220, 255, alpha, true, false);
 
-	// Row 2: DISPLAY
+	// --- Row 2: DISPLAY ---
 	render.DrawMenuTextCentered("DISPLAY", { trackX, row2Y, trackW, 20 }, labelColor);
 
 	const char* modeNames[] = { "WINDOWED", "FULLSCREEN", "BORDERLESS" };
 	int arrowW = 30;
-	SDL_Rect leftArrowArea  = { trackX + 10, row2Y + 28, arrowW, 30 };
-	SDL_Rect modeArea       = { trackX + 10 + arrowW, row2Y + 28, trackW - 20 - arrowW * 2, 30 };
-	SDL_Rect rightArrowArea = { trackX + trackW - 10 - arrowW, row2Y + 28, arrowW, 30 };
+	SDL_Rect leftArrowArea  = { trackX - 10, row2Y + 24, arrowW, 26 }; // Moved further left
+	SDL_Rect modeArea       = { trackX + arrowW, row2Y + 24, trackW - arrowW * 2, 26 };
+	SDL_Rect rightArrowArea = { trackX + trackW - arrowW + 10, row2Y + 24, arrowW, 26 }; // Moved further right
 
 	SDL_Color arrowColor = { 100, 180, 255, alpha };
 	render.DrawMenuTextCentered("<", leftArrowArea, arrowColor);
@@ -712,14 +1033,14 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 				windowModeIndex_ = (windowModeIndex_ + 2) % 3;
 				WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
 				Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 			if (mx >= rightArrowArea.x && mx <= rightArrowArea.x + rightArrowArea.w &&
 				my >= rightArrowArea.y && my <= rightArrowArea.y + rightArrowArea.h) {
 				windowModeIndex_ = (windowModeIndex_ + 1) % 3;
 				WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
 				Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 		}
 
@@ -757,7 +1078,7 @@ void Scene::DrawSettingsInPlace(int winW, int winH)
 				windowModeIndex_ = (windowModeIndex_ + (stepRight ? 1 : 2)) % 3;
 				WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
 				Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 		}
 
@@ -779,18 +1100,86 @@ void Scene::HandleMainMenuUIEvents(UIElement* uiElement)
 	if (waitingForFade_)      return;
 	if (settingsCooldown_ > 0) return;
 
-	Engine::GetInstance().audio->PlayFx(menuClickFxId);
+	Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 
 	switch (uiElement->id)
 	{
 	case BTN_PLAY:
-		LOG("Main Menu: Play");
-		waitingForFade_ = true;
-		fadeTargetScene_ = SceneID::INTRO_CINEMATIC;
-		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 800.0f);
+		if (playSubState_ == PlaySubState::NONE && settingsAnimState_ == SettingsAnimState::NONE) {
+			LOG("Main Menu: Play clicked (opening sub-menu)");
+			playSubState_ = PlaySubState::FADE_OUT_BUTTONS;
+			playSubAnimTimer_ = 0.0f;
+			Engine::GetInstance().uiManager->ResetFocus();
+			Engine::GetInstance().discord->UpdatePresence("In Play Sub-menu", "Release v1.0.0");
+		}
+		break;
+	case BTN_PLAY_NEWGAME:
+		if (playSubState_ == PlaySubState::OPTS_ACTIVE) {
+			LOG("Play Sub-menu: New Game selected");
+			isSlotSelectionForNewGame_ = true;
+			playSubState_ = PlaySubState::FADE_OUT_OPTS_TO_SLOTS;
+			playSubAnimTimer_ = 0.0f;
+			Engine::GetInstance().uiManager->ResetFocus();
+		}
+		break;
+	case BTN_PLAY_CONTINUE:
+		if (playSubState_ == PlaySubState::OPTS_ACTIVE) {
+			LOG("Play Sub-menu: Continue selected");
+			isSlotSelectionForNewGame_ = false;
+			playSubState_ = PlaySubState::FADE_OUT_OPTS_TO_SLOTS;
+			playSubAnimTimer_ = 0.0f;
+			Engine::GetInstance().uiManager->ResetFocus();
+		}
+		break;
+	case BTN_PLAY_BACK:
+		if (playSubState_ == PlaySubState::OPTS_ACTIVE) {
+			LOG("Play Sub-menu: Back to Main Menu");
+			playSubState_ = PlaySubState::FADE_OUT_OPTS;
+			playSubAnimTimer_ = 0.0f;
+			Engine::GetInstance().uiManager->ResetFocus();
+		}
+		break;
+	case BTN_SLOT_1:
+	case BTN_SLOT_2:
+	case BTN_SLOT_3:
+		if (playSubState_ == PlaySubState::SLOTS_ACTIVE) {
+			int slotIdx = uiElement->id - BTN_SLOT_1;
+			auto& saveSys = Engine::GetInstance().saveSystem;
+			if (isSlotSelectionForNewGame_) {
+				LOG("Slot Selection: Starting New Game in Slot %d", slotIdx + 1);
+				saveSys->SetActiveSlot(slotIdx);
+
+				// Delete any existing save file for this slot to start fresh
+				std::string savePath = saveSys->GetSlotFilename(slotIdx);
+				std::error_code ec;
+				std::filesystem::remove(savePath, ec);
+
+				waitingForFade_ = true;
+				fadeTargetScene_ = SceneID::INTRO_CINEMATIC;
+				Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 800.0f);
+			} else {
+				LOG("Slot Selection: Continuing Game from Slot %d", slotIdx + 1);
+				if (saveSys->SlotHasValidSave(slotIdx)) {
+					saveSys->SetActiveSlot(slotIdx);
+					loadingFromSaveSlot_ = true;
+					loadedFromSave_ = true;
+					waitingForFade_ = true;
+					fadeTargetScene_ = SceneID::LOADING;
+					Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 800.0f);
+				}
+			}
+		}
+		break;
+	case BTN_SLOTS_BACK:
+		if (playSubState_ == PlaySubState::SLOTS_ACTIVE) {
+			LOG("Slot Selection: Back to Play Sub-menu");
+			playSubState_ = PlaySubState::FADE_OUT_SLOTS;
+			playSubAnimTimer_ = 0.0f;
+			Engine::GetInstance().uiManager->ResetFocus();
+		}
 		break;
 	case BTN_SETTINGS:
-		if (settingsAnimState_ == SettingsAnimState::NONE) {
+		if (settingsAnimState_ == SettingsAnimState::NONE && playSubState_ == PlaySubState::NONE) {
 			settingsAnimState_ = SettingsAnimState::FADE_OUT_BUTTONS;
 			settingsAnimTimer_ = 0.0f;
 			optionsSliderSel_ = 0;
@@ -840,13 +1229,13 @@ void Scene::LoadIntro()
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
 
 	texCitmLogo_ = Engine::GetInstance().textures->Load("assets/textures/icons/logo-citm.png");
-	texStudioPlaceholder_ = Engine::GetInstance().render->CreateMenuTextTexture("HIDDEN DREAM STUDIO", { 255, 255, 255, 255 });
+	texStudioPlaceholder_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_HiddenLogo.png");
 }
 
 void Scene::UnloadIntro()
 {
 	if (texCitmLogo_) { Engine::GetInstance().textures->UnLoad(texCitmLogo_); texCitmLogo_ = nullptr; }
-	if (texStudioPlaceholder_) { SDL_DestroyTexture(texStudioPlaceholder_);            texStudioPlaceholder_ = nullptr; }
+	if (texStudioPlaceholder_) { Engine::GetInstance().textures->UnLoad(texStudioPlaceholder_); texStudioPlaceholder_ = nullptr; }
 }
 
 void Scene::UpdateIntro(float dt)
@@ -948,7 +1337,10 @@ void Scene::LoadIntroCinematic()
 	cinematicVideoStarted_ = false;
 	introLoadingDelayActive_ = false;
 	introLoadingDelay_ = 0.0f;
-	
+
+	// Load running kid sprite for loading animation
+	texLoadingKid_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Loading_Kid.png");
+
 	// Start in Pre-Video Loading
 	introCinState_ = IntroCinState::PRE_VIDEO_LOADING;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
@@ -957,6 +1349,10 @@ void Scene::LoadIntroCinematic()
 void Scene::UnloadIntroCinematic()
 {
 	Engine::GetInstance().cinematics->StopVideo();
+	if (texLoadingKid_) {
+		Engine::GetInstance().textures->UnLoad(texLoadingKid_);
+		texLoadingKid_ = nullptr;
+	}
 }
 
 void Scene::DrawLoadingText(bool pulsing, float timer)
@@ -972,7 +1368,40 @@ void Scene::DrawLoadingText(bool pulsing, float timer)
 	}
 
 	SDL_Color textColor = { 255, 255, 255, alpha };
-	render.DrawMenuTextCentered("Loading...", { winW - 250, winH - 80, 200, 40 }, textColor, 0.5f);
+
+	const int textY = winH - 80;
+	const int textH = 40;
+
+	SDL_Texture* tx = render.CreateMenuTextTexture("loading...", textColor);
+	if (tx) {
+		float tw = 0, th = 0;
+		SDL_GetTextureSize(tx, &tw, &th);
+		float textScaledW = tw * 0.5f;
+		float textScaledH = th * 0.5f;
+
+		// Align text right edge at winW - 50
+		const int targetRight = winW - 50;
+		int textX = targetRight - (int)textScaledW;
+		int textYPos = textY + (textH - (int)textScaledH) / 2;
+
+		// Draw text
+		render.DrawTexture(tx, textX, textYPos, nullptr, 0.0f, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+
+		// Draw running kid sprite to the left of "Loading..."
+		if (texLoadingKid_) {
+			const int kidSize = textH;  // square, same height as the text row
+			const int gap = 2; // closer gap as requested
+			int frame = (int)(timer / (1000.0f / LOADING_KID_FPS)) % LOADING_KID_FRAMES;
+			SDL_Rect src = { frame * LOADING_KID_FRAME_W, 0, LOADING_KID_FRAME_W, LOADING_KID_FRAME_H };
+			int kidX = textX - kidSize - gap;
+			int kidY = textY + (textH - kidSize) / 2;
+			SDL_SetTextureAlphaMod(texLoadingKid_, alpha);
+			render.DrawTexture(texLoadingKid_, kidX, kidY, &src, 0.0f, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_HORIZONTAL, (float)kidSize / (float)LOADING_KID_FRAME_W);
+			SDL_SetTextureAlphaMod(texLoadingKid_, 255);
+		}
+
+		SDL_DestroyTexture(tx);
+	}
 }
 
 void Scene::UpdateIntroCinematic(float dt)
@@ -1081,15 +1510,13 @@ void Scene::UpdateIntroCinematic(float dt)
 
 void Scene::LoadTutorialTextCard()
 {
-	LOG("Loading Tutorial Text Card for Level %d...", currentLevelIndex_ + 1);
+	LOG("Loading Tutorial Video Card for Level %d...", currentLevelIndex_ + 1);
 	tutorialTimer_ = 0.0f;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
-	texTutorialSeparator_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Separator.png");
 
-	fxTitleCardPt1_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/ui_titlecard_pt_1.wav");
-	fxTitleCardPt2_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/ui_titlecard_pt_2.wav");
-	pt1Played_ = false;
-	pt2Played_ = false;
+	// Construct dynamic video path for the level
+	std::string videoPath = "assets/video/UI_Level" + std::to_string(currentLevelIndex_ + 1) + "_Intro.mp4";
+	Engine::GetInstance().cinematics->PlayVideo(videoPath.c_str());
 
 	// FADE IN from black
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 1000.0f);
@@ -1097,11 +1524,8 @@ void Scene::LoadTutorialTextCard()
 
 void Scene::UnloadTutorialTextCard()
 {
-	LOG("Unloading Tutorial Text Card");
-	if (texTutorialSeparator_) {
-		Engine::GetInstance().textures->UnLoad(texTutorialSeparator_);
-		texTutorialSeparator_ = nullptr;
-	}
+	LOG("Unloading Tutorial Video Card");
+	Engine::GetInstance().cinematics->StopVideo();
 }
 
 void Scene::UpdateTutorialTextCard(float dt)
@@ -1109,80 +1533,34 @@ void Scene::UpdateTutorialTextCard(float dt)
 	tutorialTimer_ += dt;
 
 	auto& input = *Engine::GetInstance().input;
-	bool skipRequested = false;
+	auto& cin = *Engine::GetInstance().cinematics;
 
-	const float pt1Start = 500.0f;
-	const float pt1Duration = 4600.0f; 
-	const float pt2Start = pt1Start + pt1Duration;
-	const float pt2Duration = 6000.0f; 
-	const float autoFadeStart = pt2Start + pt2Duration + 1000.0f;
+	// Skip requested if user presses Space, Escape, or Gamepad South/Start
+	bool skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+	                     input.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+	                     input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+	                     input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
+	                     cin.HasSkipBeenRequested();
 
-	if (tutorialTimer_ > pt2Start + 2000.0f) {
-		bool explicitSkip = false;
-		for (int i = 0; i < 300; ++i) {
-			if (input.GetKey(i) == KEY_DOWN) { explicitSkip = true; break; }
-		}
-		if (!explicitSkip && input.IsAnyGamepadButtonPressed()) explicitSkip = true;
-
-		if (explicitSkip) {
-			skipRequested = true;
-		}
-	}
-	
-	if (tutorialTimer_ >= autoFadeStart && !waitingForFade_) {
-		skipRequested = true;
-	}
-
-	if (skipRequested && !waitingForFade_) {
+	// Transition if user skipped or the video has ended
+	if ((skipRequested || !cin.IsPlaying()) && !waitingForFade_) {
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::GAMEPLAY;
-		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1500.0f);
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1000.0f);
 	}
 
 	auto& render = *Engine::GetInstance().render;
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
+	// Draw black background manually under/around video
 	SDL_Rect bg = { 0, 0, winW, winH };
 	render.DrawRectangle(bg, 0, 0, 0, 255, true, false);
 
-	if (currentLevelIndex_ < 0 || (size_t)currentLevelIndex_ >= levels_.size()) return;
-	const auto& level = levels_[currentLevelIndex_];
-
-	SDL_Color white = { 255, 255, 255, 255 };
-	SDL_Color gold  = { 218, 165, 32, 255 };
-
-	if (tutorialTimer_ > pt1Start) {
-		if (!pt1Played_) {
-			Engine::GetInstance().audio->PlayFx(fxTitleCardPt1_);
-			pt1Played_ = true;
-		}
-		float elapsed = tutorialTimer_ - pt1Start;
-		float alpha = std::min(1.0f, elapsed / 800.0f);
-		SDL_Color subColor = { gold.r, gold.g, gold.b, (Uint8)(255 * alpha) };
-		render.DrawMenuTextCentered(level.number.c_str(), { 0, winH / 2 - 130, winW, 40 }, subColor, 1.0f);
-	}
-
-	if (tutorialTimer_ > pt1Start && texTutorialSeparator_) {
-		float elapsed = tutorialTimer_ - pt1Start;
-		float progress = std::min(1.0f, elapsed / 500.0f); 
-		int tw, th;
-		Engine::GetInstance().textures->GetSize(texTutorialSeparator_, tw, th);
-		SDL_Rect src = { (int)((float)tw * (1.0f - progress) / 2.0f), 0, (int)((float)tw * progress), th };
-		float drawW = (float)tw * progress * 0.8f;
-		float drawH = (float)th * 0.8f;
-		int dx = (winW - (int)drawW) / 2;
-		int dy = winH / 2 - 70;
-		render.DrawTexture(texTutorialSeparator_, dx, dy, &src, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.8f);
-	}
-
-	if (tutorialTimer_ > pt2Start) {
-		if (!pt2Played_) {
-			Engine::GetInstance().audio->PlayFx(fxTitleCardPt2_);
-			pt2Played_ = true;
-		}
-		SDL_Color mainColor = { white.r, white.g, white.b, 255 };
-		render.DrawMenuTextCentered(level.name.c_str(), { 0, winH / 2 - 10, winW, 60 }, mainColor, 2.0f);
+	// Render the "Press SPACE to Skip" overlay
+	if (!waitingForFade_ && cin.IsPlaying()) {
+		SDL_Color skipColor = { 255, 255, 255, 120 };
+		render.DrawMenuTextCentered("Press SPACE to Skip", { winW - 300, winH - 60, 280, 30 }, skipColor, 0.4f);
 	}
 }
 
@@ -1196,22 +1574,43 @@ void Scene::LoadLoading()
 	loadingTimer_ = 0.0f;
 	mapLoadingFinished_ = false;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
+	texLoadingKid_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Loading_Kid.png");
 }
 
-void Scene::UnloadLoading() {}
+void Scene::UnloadLoading()
+{
+	if (texLoadingKid_) {
+		Engine::GetInstance().textures->UnLoad(texLoadingKid_);
+		texLoadingKid_ = nullptr;
+	}
+}
 
 void Scene::UpdateLoading(float dt)
 {
 	loadingTimer_ += dt;
 
 	if (loadingTimer_ > 800.0f && !mapLoadingFinished_) {
-		int index = targetLevelIndex_;
-		if (index >= 0 && (size_t)index < levels_.size()) {
-			player.reset();
-			Engine::GetInstance().entityManager->CleanUp();
-			Engine::GetInstance().physics->FlushPendingDeletes();
-			Engine::GetInstance().map->CleanUp();
-			Engine::GetInstance().physics->FlushPendingDeletes();
+		if (loadingFromSaveSlot_) {
+			if (Engine::GetInstance().saveSystem->QuickLoadImmediate()) {
+				inGameIntroActive_ = false;
+				isAutoEntering_ = false;
+			}
+			loadingFromSaveSlot_ = false;
+			mapLoadingFinished_ = true;
+		}
+		else {
+			int index = targetLevelIndex_;
+			if (index >= 0 && (size_t)index < levels_.size()) {
+				bool savedHasBlanket = false, savedHasSlingshot = false, savedHasStuffedAnimal = false;
+				Player::EquippedItem eqItem = Player::EquippedItem::NONE;
+				int savedHealth = 0;
+				if (player) {
+					savedHasBlanket = player->HasBlanket();
+					savedHasSlingshot = player->HasSlingshot();
+					savedHasStuffedAnimal = player->HasStuffedAnimal();
+					eqItem = player->GetEquippedItem();
+					savedHealth = player->health;
+				}
 
 			if (puzzleManager2) {
 				puzzleManager2->Reset();
@@ -1219,56 +1618,118 @@ void Scene::UpdateLoading(float dt)
 
 			currentMapFile_ = levels_[index].file;
 			currentLevelIndex_ = index;
+				player.reset();
+				Engine::GetInstance().entityManager->CleanUp();
+				Engine::GetInstance().physics->FlushPendingDeletes();
+				Engine::GetInstance().map->CleanUp();
+				Engine::GetInstance().physics->FlushPendingDeletes();
 
-			Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
-			Engine::GetInstance().map->LoadEntities(player);
+				currentMapFile_ = levels_[index].file;
+				currentLevelIndex_ = index;
 
-			if (player == nullptr) {
-				player = std::dynamic_pointer_cast<Player>(
-					Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+				Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
+				Engine::GetInstance().map->LoadEntities(player);
 
-				// LEVEL 1: Start at bed
-				// LEVEL 2+: Start off-screen right
-				if (currentLevelIndex_ == 0)
-					player->position = Vector2D(96.0f, 672.0f);
-				else
-					player->position = Vector2D(1280.0f + 100.0f, 672.0f); 
+				if (player == nullptr) {
+					player = std::dynamic_pointer_cast<Player>(
+						Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+
+					// LEVEL 1: Start at bed
+					// LEVEL 2+: Start off-screen right
+					if (currentLevelIndex_ == 0)
+						player->position = Vector2D(96.0f, 672.0f);
+					else
+						player->position = Vector2D(1280.0f + 100.0f, 672.0f); 
 
 				player->Start();
 			}
 			healthSlotCount_ = currentLevelIndex_ + 3;
 			if (healthSlotCount_ > MAX_HEALTH_SLOTS) healthSlotCount_ = MAX_HEALTH_SLOTS;
 			if (player) {
+				player->SetHasBlanket(savedHasBlanket);
+				player->SetHasSlingshot(savedHasSlingshot);
+				player->SetHasStuffedAnimal(savedHasStuffedAnimal);
+				player->SetEquippedItem(eqItem);
 				player->maxHealth = healthSlotCount_;
-				player->health = healthSlotCount_;
+				// For level transitions (not first load), preserve health up to the new max
+				if (currentLevelIndex_ > 0 && savedHealth > 0) {
+					player->health = std::min(savedHealth, healthSlotCount_);
+				} else {
+					player->health = healthSlotCount_;
+				}
 			}
-			currentHealthUI_ = healthSlotCount_;
+			if (savedHasBlanket) capaCollected_ = true;
+			if (savedHasSlingshot) slingshotCollected_ = true;
+			if (savedHasStuffedAnimal) stuffedAnimalCollected_ = true;
+			currentHealthUI_ = player ? player->health : healthSlotCount_;
 			activeHealthAnim_ = 0;
 			isGameOver_ = false;
 			inGameIntroActive_ = false;
 
-			if (hasPendingLevelSpawn_ && player)
-			{
-				float spawnX = 0.0f, spawnY = 0.0f;
-				if (Engine::GetInstance().map->GetSpawnById(pendingLevelSpawnId_, spawnX, spawnY))
+				if (hasPendingLevelSpawn_ && player)
 				{
-					player->SetPosition(Vector2D(spawnX - player->texW / 2.0f, spawnY - player->texH / 2.0f));
-					player->position = Vector2D(spawnX, spawnY);
-					LOG("PORTAL: Level spawn applied at '%s' (%.1f, %.1f)", pendingLevelSpawnId_.c_str(), spawnX, spawnY);
+					float spawnX = 0.0f, spawnY = 0.0f;
+					if (Engine::GetInstance().map->GetSpawnById(pendingLevelSpawnId_, spawnX, spawnY))
+					{
+						player->SetPosition(Vector2D(spawnX - player->texW / 2.0f, spawnY - player->texH / 2.0f));
+						player->position = Vector2D(spawnX, spawnY);
+						LOG("PORTAL: Level spawn applied at '%s' (%.1f, %.1f)", pendingLevelSpawnId_.c_str(), spawnX, spawnY);
+					}
+					hasPendingLevelSpawn_ = false;
+					pendingLevelSpawnId_ = "";
 				}
-				hasPendingLevelSpawn_ = false;
-				pendingLevelSpawnId_ = "";
-			}
 
-			mapLoadingFinished_ = true;
-			LOG("SCENE: Map %s loaded", currentMapFile_.c_str());
-		} else {
-			mapLoadingFinished_ = true;
+				
+				isLvl3Map_ = (currentMapFile_ == "Map3.tmx");
+				isLvl3Puzzle_ = false;
+				isPuzzleMap3Lever_ = isLvl3Map_;
+				isPuzzleMap3Buttons_ = false;
+
+				if (isLvl3Map_) {
+					if (!puzzleManager3_) puzzleManager3_ = new PuzzleManager3();
+					puzzleManager3_->Init(Engine::GetInstance().render->renderer);
+
+					LeverData3 lever;
+					SDL_FRect blockedPortal = { 0, 0, 48, 96 };
+
+					for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects()) {
+						if (obj.name == "Lever") lever.worldRect = obj.rect;
+					}
+					for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+						if (portal.spawnId == "PuzzleMain") {
+							blockedPortal = { portal.x, portal.y, portal.w, portal.h };
+							break;
+						}
+					}
+					
+					SDL_FRect portalA = { 0,0,0,0 }, portalB = { 0,0,0,0 };
+					for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+						if (portal.spawnId == "A") portalA = { portal.x, portal.y, portal.w, portal.h };
+						if (portal.spawnId == "B") portalB = { portal.x, portal.y, portal.w, portal.h };
+					}
+					puzzleManager3_->LoadExtraPortals(portalA, portalB);
+					puzzleManager3_->LoadLever(lever, blockedPortal);
+					LOG("PUZZLE3: Init en LoadMap. Palanca (%.0f,%.0f) Portal (%.0f,%.0f)",
+						lever.worldRect.x, lever.worldRect.y, blockedPortal.x, blockedPortal.y);
+				}
+				else {
+					if (puzzleManager3_) { delete puzzleManager3_; puzzleManager3_ = nullptr; }
+				}
+
+				mapLoadingFinished_ = true;
+				LOG("SCENE: Map %s loaded", currentMapFile_.c_str());
+			} else {
+				mapLoadingFinished_ = true;
+			}
 		}
 	}
 
 	if (mapLoadingFinished_ && loadingTimer_ > 2000.0f) {
-		ChangeScene(SceneID::TUTORIAL_TEXT_CARD);
+		if (loadedFromSave_) {
+			ChangeScene(SceneID::GAMEPLAY);
+		} else {
+			ChangeScene(SceneID::TUTORIAL_TEXT_CARD);
+		}
 	}
 
 	DrawLoading();
@@ -1358,7 +1819,7 @@ void Scene::LoadGameplay()
 	// Silksong: actorSnapshotPaused → music starts silent, fades in during entry
 	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 1.0f);
 	Engine::GetInstance().audio->SetMusicVolume(0.0f);
-	Engine::GetInstance().audio->SetSFXVolume(1.0f); // Reset SFX volume after fade out
+	Engine::GetInstance().audio->SetSFXVolume(sfxVolume_); // Use user configured SFX volume
 
 	LoadPauseMenuButtons();
 
@@ -1494,12 +1955,10 @@ void Scene::LoadGameplay()
 	capaCollected_ = false;
 	capaFloatTimer_ = 0.0f;
 
-	// Read cape position from TMX Entities layer. If not found, use a fallback spawn position
+	// Read cape position from TMX Entities layer. If not found, mark as collected to avoid spawning hardcoded one
 	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
-		LOG("WARNING: No Cape entity found in TMX Entities layer, using default fallback position");
-		capaX_ = 450.0f;
-		capaY_ = 650.0f;
-		capaCollected_ = false;
+		LOG("WARNING: No Cape entity found in TMX Entities layer, will not spawn");
+		capaCollected_ = true;
 	}
 
 	capaBody_ = nullptr;
@@ -1555,12 +2014,10 @@ void Scene::LoadGameplay()
 	slingshotCollected_ = false;
 	slingshotFloatTimer_ = 0.0f;
 
-	// Read slingshot position from TMX. If not found, use a fallback spawn position
+	// Read slingshot position from TMX. If not found, mark as collected to avoid spawning hardcoded one
 	if (!Engine::GetInstance().map->GetSlingshotPosition(slingshotX_, slingshotY_)) {
-		LOG("WARNING: No Tirachinas entity found in TMX, using default fallback position");
-		slingshotX_ = 750.0f;
-		slingshotY_ = 650.0f;
-		slingshotCollected_ = false;
+		LOG("WARNING: No Tirachinas entity found in TMX, will not spawn");
+		slingshotCollected_ = true;
 	}
 
 	// Stuffed Animal (Oso) collectible
@@ -1568,12 +2025,10 @@ void Scene::LoadGameplay()
 	stuffedAnimalCollected_ = false;
 	stuffedAnimalFloatTimer_ = 0.0f;
 
-	// Read stuffed animal position from TMX. If not found, use default fallback next to player
+	// Read stuffed animal position from TMX. If not found, mark as collected to avoid spawning hardcoded one
 	if (!Engine::GetInstance().map->GetStuffedAnimalPosition(stuffedAnimalX_, stuffedAnimalY_)) {
-		LOG("WARNING: No Oso/Peluche/StuffedAnimal entity found in TMX, using default fallback position next to player");
-		stuffedAnimalX_ = 200.0f;
-		stuffedAnimalY_ = 672.0f;
-		stuffedAnimalCollected_ = false;
+		LOG("WARNING: No Oso/Peluche/StuffedAnimal entity found in TMX, will not spawn");
+		stuffedAnimalCollected_ = true;
 	}
 
 	// Load Minimap Ornate Frame Texture
@@ -1653,7 +2108,7 @@ void Scene::UpdateGameplay(float dt)
 			render.SetCameraSway(true);
 			render.SetCameraMovement(true); // CRITICAL: Unlock follow
 			render.SetCameraClamping(true);
-			Engine::GetInstance().audio->SetMusicVolume(1.0f);
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
 			if (player) player->wakeUpAnimStarted = true;
 			LOG("SCENE: Intro Cinematic Finished. CAMERA UNLOCKED.");
 		}
@@ -1662,7 +2117,7 @@ void Scene::UpdateGameplay(float dt)
 
 			Engine::GetInstance().render->cameraZoom = 0.45f + (1.0f - 0.45f) * smoothT;
 			Engine::GetInstance().render->blurIntensity = 2.5f * (1.0f - smoothT);
-			Engine::GetInstance().audio->SetMusicVolume(smoothT);
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_ * smoothT);
 
 			if (player) {
 				float pX = player->GetPosition().getX() + 64.0f;
@@ -1711,7 +2166,7 @@ void Scene::UpdateGameplay(float dt)
 			showInventory_ = false;
 			isPaused_ = false;
 			SetPauseMenuVisible(false);
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (!isPaused_ && !showMapViewer_) {
 			showInventory_ = true;
@@ -1732,7 +2187,7 @@ void Scene::UpdateGameplay(float dt)
 			else if (stuffed) inventorySel_ = 2;
 			else inventorySel_ = -1;
 
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 	}
 
@@ -1748,7 +2203,7 @@ void Scene::UpdateGameplay(float dt)
 			showInventory_ = false;
 			isPaused_ = false;
 			SetPauseMenuVisible(false);
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (showPauseOptions_) {
 			showPauseOptions_ = false;
@@ -1810,7 +2265,7 @@ void Scene::UpdateGameplay(float dt)
 				{
 					showMemoryViewer_ = false;
 					activeMemoryIndex_ = -1;
-					Engine::GetInstance().audio->PlayFx(menuClickFxId);
+					Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 				}
 				else
 				{
@@ -1819,18 +2274,18 @@ void Scene::UpdateGameplay(float dt)
 					if (mx < frameX + frameW * 0.3f)
 					{
 						activeMemoryPage_ = (activeMemoryPage_ - 1 + pageCount) % pageCount;
-						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+						Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 					}
 					else if (mx > frameX + frameW * 0.7f)
 					{
 						activeMemoryPage_ = (activeMemoryPage_ + 1) % pageCount;
-						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+						Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 					}
 					else
 					{
 						showMemoryViewer_ = false;
 						activeMemoryIndex_ = -1;
-						Engine::GetInstance().audio->PlayFx(menuClickFxId);
+						Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 					}
 				}
 			}
@@ -1843,7 +2298,7 @@ void Scene::UpdateGameplay(float dt)
 			{
 				showMemoryViewer_ = false;
 				activeMemoryIndex_ = -1;
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 
 			// Arrow keys or D-pad to change pages
@@ -1851,13 +2306,13 @@ void Scene::UpdateGameplay(float dt)
 				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_LEFT) == KEY_DOWN)
 			{
 				activeMemoryPage_ = (activeMemoryPage_ - 1 + pageCount) % pageCount;
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 			if (input.GetKey(SDL_SCANCODE_RIGHT) == KEY_DOWN ||
 				input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_RIGHT) == KEY_DOWN)
 			{
 				activeMemoryPage_ = (activeMemoryPage_ + 1) % pageCount;
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 		}
 
@@ -2079,7 +2534,7 @@ void Scene::UpdateGameplay(float dt)
 		int slDrawY = (int)(slingshotY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
 
 		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
-		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
+		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
 
 	// Draw stuffed animal collectible in-world
@@ -2093,9 +2548,54 @@ void Scene::UpdateGameplay(float dt)
 		int slDrawY = (int)(stuffedAnimalY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
 
 		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
-		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
+		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
 	}
-	if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
+if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
+
+if (isPuzzleMap_ && puzzleManager_ && player && !isPaused_ && !isGameOver_) {
+    SDL_FRect pRect = {
+        player->position.getX(),
+        player->position.getY(),
+        48.0f,
+        80.0f
+    };
+    float camX = Engine::GetInstance().render->camera.x;
+    float camY = Engine::GetInstance().render->camera.y;
+    float pScrX = player->position.getX() + camX + 24.0f;
+    float pScrY = player->position.getY() + camY + 40.0f;
+    puzzleManager_->Update(dt, pRect, pScrX, pScrY);
+
+    if (puzzleManager_->IsTimedOut() && !puzzleTimeoutPending_) {
+        puzzleTimeoutPending_ = true;
+        waitingForFade_ = true;
+        pendingSubMapLoad_ = true;
+        subMapTarget_ = currentMapFile_;
+        Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 600.0f);
+    }
+}
+
+if (puzzleManager3_ && player && !isPaused_ && !isGameOver_) {
+	SDL_FRect pRect = {
+		player->position.getX(),
+		player->position.getY(),
+		48.0f, 80.0f
+	};
+
+	if (isLvl3Map_) {
+		bool keyP = Engine::GetInstance().input->GetKey(SDL_SCANCODE_P) == KEY_DOWN;
+		puzzleManager3_->UpdateLever(dt, pRect, keyP);
+	}
+
+	if (isLvl3Puzzle_) {
+		// Mouse en world space
+		Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
+		float mwx = mousePos.getX() - Engine::GetInstance().render->camera.x;
+		float mwy = mousePos.getY() - Engine::GetInstance().render->camera.y;
+		bool click = Engine::GetInstance().input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN;
+		puzzleManager3_->UpdateButtons(dt, pRect, mwx, mwy, click);
+	}
+}
+// --- FIN PUZZLE3 UPDATE ---
 
 	if (!isPaused_ && !isGameOver_ && puzzleManager2) {
 		puzzleManager2->Update(dt, Engine::GetInstance().entityManager->entities);
@@ -2112,7 +2612,7 @@ void Scene::UpdateGameplay(float dt)
 		int drawY = (int)(capaY_ - (float)capaTexH * capaScale / 2.0f + floatOffset);
 
 		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
-		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, capaScale);
+		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, capaScale);
 	}
 }
 
@@ -2122,6 +2622,9 @@ void Scene::UpdateGameplay(float dt)
 
 void Scene::UpdateBossFight(float dt)
 {
+    if (videoSkipCooldown_ > 0.0f) {
+        videoSkipCooldown_ -= dt;
+    }
     // ── End-game final cinematic: fade to black, play video, go to main menu ──
     if (endGameFading_)
     {
@@ -2138,10 +2641,13 @@ void Scene::UpdateBossFight(float dt)
     if (endGameVideoActive_)
     {
         auto& input = *Engine::GetInstance().input;
-        bool skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
-                             input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
-                             input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
-                             Engine::GetInstance().cinematics->HasSkipBeenRequested();
+        bool skipRequested = false;
+        if (videoSkipCooldown_ <= 0.0f) {
+            skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
+                            Engine::GetInstance().cinematics->HasSkipBeenRequested();
+        }
 
         if (skipRequested || !Engine::GetInstance().cinematics->IsPlaying())
         {
@@ -2149,6 +2655,41 @@ void Scene::UpdateBossFight(float dt)
                 Engine::GetInstance().cinematics->StopVideo();
             }
             endGameVideoActive_ = false;
+            
+            // Queue next video: Credits
+            creditsVideoActive_ = true;
+            videoSkipCooldown_ = 1000.0f; // 1 second cooldown
+            Engine::GetInstance().cinematics->PlayVideo("assets/video/Credits_Videos.mp4");
+            Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
+        }
+        else 
+        {
+            // Draw "Press SPACE to Skip" overlay while playing
+            int winW = 0, winH = 0;
+            Engine::GetInstance().window->GetWindowSize(winW, winH);
+            SDL_Color skipColor = { 255, 255, 255, 120 };
+            Engine::GetInstance().render->DrawMenuTextCentered("Press SPACE to Skip", { winW - 300, winH - 60, 280, 30 }, skipColor, 0.4f);
+        }
+        return;
+    }
+
+    if (creditsVideoActive_)
+    {
+        auto& input = *Engine::GetInstance().input;
+        bool skipRequested = false;
+        if (videoSkipCooldown_ <= 0.0f) {
+            skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+                            input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
+                            Engine::GetInstance().cinematics->HasSkipBeenRequested();
+        }
+
+        if (skipRequested || !Engine::GetInstance().cinematics->IsPlaying())
+        {
+            if (skipRequested) {
+                Engine::GetInstance().cinematics->StopVideo();
+            }
+            creditsVideoActive_ = false;
             
             // Queue immediate scene change to MAIN MENU
             hasPendingSceneChange = true;
@@ -2306,6 +2847,18 @@ void Scene::UnloadGameplay()
 	if (puzzleManager2) {
 		puzzleManager2.reset();
 	}
+	if (puzzleManager_) {
+		delete puzzleManager_;
+		puzzleManager_ = nullptr;
+	}
+	isPuzzleMap_ = false;
+
+	if (puzzleManager3_) {
+		delete puzzleManager3_;
+		puzzleManager3_ = nullptr;
+	}
+	isPuzzleMap3Lever_ = false;
+	isPuzzleMap3Buttons_ = false;
 
 	Engine::GetInstance().uiManager->CleanUp();
 	player.reset();
@@ -2422,7 +2975,7 @@ bool Scene::RequestCheckpointActivation(const std::string& checkpointId, const V
 	if (checkpointId.empty() || IsCheckpointTransitionActive() || isGameOver_ || waitingForFade_)
 		return false;
 
-	Engine::GetInstance().audio->PlayFx(checkpointFxId);
+	Engine::GetInstance().audio->PlayFx(checkpointFxId, 0, true);
 
 	pendingCheckpointId_ = checkpointId;
 	pendingCheckpointSpawn_ = spawnPosition;
@@ -2640,9 +3193,26 @@ void Scene::PostUpdateGameplay()
 		DrawBottomFog(winW, winH);
 	}
 
+
+	if (isPuzzleMap_ && puzzleManager_) {
+		float camX = (float)Engine::GetInstance().render->camera.x;
+		float camY = (float)Engine::GetInstance().render->camera.y;
+		puzzleManager_->Render(Engine::GetInstance().render->renderer, camX, camY);
+	}
+
+	if ((isLvl3Map_ || isLvl3Puzzle_) && puzzleManager3_) {
+		float camX = (float)Engine::GetInstance().render->camera.x;
+		float camY = (float)Engine::GetInstance().render->camera.y;
+		int winW, winH;
+		SDL_GetRenderOutputSize(Engine::GetInstance().render->renderer, &winW, &winH);
+		puzzleManager3_->RenderLever(Engine::GetInstance().render->renderer, camX, camY);
+		puzzleManager3_->RenderButtons(Engine::GetInstance().render->renderer, camX, camY);
+		puzzleManager3_->RenderFlash(Engine::GetInstance().render->renderer, winW, winH);
+	}
+
 	// --- Draw Health HUD ---
 	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_
-		&& currentMapFile_ != "MapLvl2ZonaBoss.tmx") {
+		&& currentMapFile_ != "MapLvl2ZonaBoss.tmx" && currentMapFile_ != "MapLvl3ZonaBoss.tmx") {
 		SDL_Rect r;
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
@@ -2668,7 +3238,7 @@ void Scene::PostUpdateGameplay()
 			}
 		}
          if (texToDraw && frame) {
-             Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.25f);
+             Engine::GetInstance().render->DrawTexture(texToDraw, 40, 40, frame, 0.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.25f);
          }
 
          Player::EquippedItem eq = player->GetEquippedItem();
@@ -2805,7 +3375,7 @@ void Scene::PostUpdateGameplay()
 										{
 											// Draw the real tile texture scaled down, speed=0.0f to lock to HUD space!
 											float drawScale = 4.0f / (float)tileWidth;
-											render.DrawTexture(tileSet->texture, drawTileX, drawTileY, &tileRect, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
+											render.DrawTexture(tileSet->texture, drawTileX, drawTileY, &tileRect, 0.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
 										}
 									}
 								}
@@ -2875,7 +3445,7 @@ void Scene::PostUpdateGameplay()
 			{
 				SDL_Rect frameSec = { 0, 0, frameW, frameH };
 				float scaleFrame = 220.0f / (float)frameW;
-				render.DrawTexture(texMinimapFrame_, miniX, miniY, &frameSec, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, scaleFrame);
+				render.DrawTexture(texMinimapFrame_, miniX, miniY, &frameSec, 0.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, scaleFrame);
 			}
 		}
 	}
@@ -3127,6 +3697,14 @@ void Scene::PostUpdateGameplay()
 	else if (isPaused_ && !showInventory_) {
 		DrawPauseMenu();
 	}
+
+	// Make sure the game is hidden while videos are playing
+	if (endGameVideoActive_ || creditsVideoActive_ || bossDeathVideoActive_) {
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		SDL_Rect fullscreen = { 0, 0, winW, winH };
+		Engine::GetInstance().render->DrawRectangle(fullscreen, 0, 0, 0, 255, true, false);
+	}
 } 
 		// ── Inventory ─────────────────────────────────────────────────────────────────
 void Scene::DrawInventory(int winW, int winH)
@@ -3235,19 +3813,19 @@ void Scene::DrawInventory(int winW, int winH)
 		{
 			inventorySel_ = 0;
 			invRepeatTimer = 250.0f;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (pressUp && slingshot)
 		{
 			inventorySel_ = 1;
 			invRepeatTimer = 250.0f;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (pressRight && stuffed)
 		{
 			inventorySel_ = 2;
 			invRepeatTimer = 250.0f;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 
 		// Equip on A/SOUTH press
@@ -3256,17 +3834,17 @@ void Scene::DrawInventory(int winW, int winH)
 			if (inventorySel_ == 0 && blanket)
 			{
 				player->SetEquippedItem(Player::EquippedItem::BLANKET);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 			else if (inventorySel_ == 1 && slingshot)
 			{
 				player->SetEquippedItem(Player::EquippedItem::SLINGSHOT);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 			else if (inventorySel_ == 2 && stuffed)
 			{
 				player->SetEquippedItem(Player::EquippedItem::STUFFED_ANIMAL);
-				Engine::GetInstance().audio->PlayFx(menuClickFxId);
+				Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 			}
 		}
 	}
@@ -3277,17 +3855,17 @@ void Scene::DrawInventory(int winW, int winH)
 		if (hoverLeft && blanket)
 		{
 			player->SetEquippedItem(Player::EquippedItem::BLANKET);
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (hoverTop && slingshot)
 		{
 			player->SetEquippedItem(Player::EquippedItem::SLINGSHOT);
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (hoverRight && stuffed)
 		{
 			player->SetEquippedItem(Player::EquippedItem::STUFFED_ANIMAL);
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 	}
 
@@ -3405,21 +3983,21 @@ void Scene::DrawInventory(int winW, int winH)
 			showMemoryViewer_ = true;
 			activeMemoryIndex_ = 0;
 			activeMemoryPage_ = 0;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (hover2)
 		{
 			showMemoryViewer_ = true;
 			activeMemoryIndex_ = 1;
 			activeMemoryPage_ = 0;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 		else if (hover3)
 		{
 			showMemoryViewer_ = true;
 			activeMemoryIndex_ = 2;
 			activeMemoryPage_ = 0;
-			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 		}
 	}
 
@@ -3618,25 +4196,30 @@ void Scene::DrawMapViewer(int winW, int winH)
 	SDL_Rect fullBg = { 0, 0, winW, winH };
 	render.DrawRectangle(fullBg, 5, 8, 15, 240, true, false);
 
-	SDL_Rect titleBar = { 0, 0, winW, 36 };
+	// Title bar — tall enough so text isn't clipped
+	const int titleBarH = 60;
+	SDL_Rect titleBar = { 0, 0, winW, titleBarH };
 	render.DrawRectangle(titleBar, 10, 16, 30, 255, true, false);
-	SDL_Rect titleAccent = { 0, 34, winW, 2 };
+	SDL_Rect titleAccent = { 0, titleBarH - 2, winW, 2 };
 	render.DrawRectangle(titleAccent, 80, 140, 200, 255, true, false);
-	render.DrawMenuTextCentered("MAP", { 0, 2, winW, 30 }, { 180, 210, 240, 255 });
+	render.DrawMenuTextCentered("MAP", { 0, 10, winW, 40 }, { 180, 210, 240, 255 });
 
-	SDL_Rect hintBar = { 0, winH - 28, winW, 28 };
+	// Bottom hint bar — taller to avoid text clipping
+	const int hintBarH = 44;
+	SDL_Rect hintBar = { 0, winH - hintBarH, winW, hintBarH };
 	render.DrawRectangle(hintBar, 10, 16, 30, 220, true, false);
 	if (Engine::GetInstance().input->IsGamepadConnected())
 		render.DrawText("L-Stick: pan  |  R2: zoom in  |  L2: zoom out  |  West: buy map  |  Touchpad: back",
-			winW / 2 - 340, winH - 22, 0, 0, { 120, 160, 200, 200 });
+			winW / 2 - 340, winH - hintBarH + 12, 0, 0, { 120, 160, 200, 200 });
 	else
 		render.DrawText("Left click + drag: pan  |  +/-: zoom  |  M: buy map  |  ESC: back",
-			winW / 2 - 290, winH - 22, 0, 0, { 120, 160, 200, 200 });
+			winW / 2 - 290, winH - hintBarH + 12, 0, 0, { 120, 160, 200, 200 });
 
+	// Map viewport area — inset between the bars with a small margin
 	const int viewX = 10;
-	const int viewY = 42;
+	const int viewY = titleBarH + 4;
 	const int viewW = winW - 20;
-	const int viewH = winH - 42 - 30;
+	const int viewH = winH - viewY - hintBarH - 4;
 
 	SDL_Rect clipRect = { viewX * scale, viewY * scale, viewW * scale, viewH * scale };
 	SDL_SetRenderClipRect(render.renderer, &clipRect);
@@ -3897,7 +4480,8 @@ void Scene::LoadPauseMenuButtons()
 	texPauseButtonWhite_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_white.png");
 	texPauseButtonBlack_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Pause_Menu_button_black.png");
 	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
-	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_NEW_Sound_Menu_Base.png");
+	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
+	texSettingsPause_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
 
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
@@ -3933,6 +4517,17 @@ void Scene::LoadPauseMenuButtons()
 		btnMenu->SetHoverTexture(texButtonFragmented_);
 		btnCont->SetHoverTexture(texButtonFragmented_);
 	}
+
+	// Create Back button for the Options Panel
+	SDL_Rect backOptPos = { winW / 2 - btnW / 2, winH / 2 + 185, btnW, btnH }; // Lowered by 25 pixels
+	auto btnOptBack = Engine::GetInstance().uiManager->CreateUIElement(UIElementType::BUTTON, BTN_PAUSE_OPT_BACK, "back", backOptPos, this);
+	if (btnOptBack) {
+		btnOptBack->isVisible = false;
+		btnOptBack->state = UIElementState::DISABLED;
+		if (texPauseButtonWhite_) btnOptBack->SetTexture(texPauseButtonWhite_);
+		if (texButtonFragmented_) btnOptBack->SetHoverTexture(texButtonFragmented_);
+	}
+
 	const int panelW = 340;
 	const int panelX = winW / 2 - panelW / 2;
 	const int panelY = winH / 2 - 100;
@@ -4042,23 +4637,29 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 {
 	auto& render = *Engine::GetInstance().render;
 
-	// Panel image is 840x544, scale to fit nicely centered on screen
-	const float panelScale = (float)winW * 0.45f / 840.0f;
+	// Render texture using the original 840.0f width, but make it significantly taller (780.0f height)
+	const float panelScale = (float)winW * 0.50f / 840.0f;
 	const int panelImgW = (int)(840.0f * panelScale);
-	const int panelImgH = (int)(544.0f * panelScale);
+	const int panelImgH = (int)(780.0f * panelScale);
 	const int panelImgX = (winW - panelImgW) / 2;
 	const int panelImgY = (winH - panelImgH) / 2;
 
-	if (texSettingsBase_) {
-		render.DrawTextureAlpha(texSettingsBase_, panelImgX, panelImgY, panelImgW, panelImgH, 255);
+	// Shift the background texture up slightly so texts sit better in the white space
+	const int panelRenderY = panelImgY - (int)(100.0f * panelScale);
+
+	if (texSettingsPause_) {
+		SDL_FRect pRect = { (float)panelImgX, (float)panelRenderY, (float)panelImgW, (float)panelImgH };
+		SDL_RenderTexture(render.renderer, texSettingsPause_, nullptr, &pRect);
 	}
 
-	const int trackX = panelImgX + (int)(panelImgW * 0.45f);
-	const int trackW = (int)(panelImgW * 0.40f);
+	// Track area for sliders and controls — positioned to align with panel icons
+	const int trackX = panelImgX + (int)(panelImgW * 0.44f);
+	const int trackW = (int)(panelImgW * 0.42f);
 
-	const int row0Y = panelImgY + (int)(panelImgH * 0.34f); // MUSIC (Icon 1: Musical Note)
-	const int row1Y = panelImgY + (int)(panelImgH * 0.58f); // SOUNDS (Icon 2: Speaker)
-	const int row2Y = panelImgY + (int)(panelImgH * 0.82f); // DISPLAY (Icon 3: Monitor)
+	// 3 rows evenly distributed
+	const int row0Y = panelImgY + (int)(panelImgH * 0.33f); // MUSIC
+	const int row1Y = panelImgY + (int)(panelImgH * 0.49f); // SOUNDS
+	const int row2Y = panelImgY + (int)(panelImgH * 0.62f); // DISPLAY
 
 	// Handle input and close menu if Back clicked/button pressed
 	if (HandleVolumeSliderInput(trackX, trackW, row0Y, row1Y, row2Y)) {
@@ -4070,46 +4671,86 @@ void Scene::DrawPauseOptionsPanel(int winW, int winH)
 	SDL_Color labelColor = { 40, 55, 70, 255 };
 	SDL_Color valColor   = { 30, 45, 60, 255 };
 
-	// Row 0: MUSIC
+	// --- Row 0: MUSIC ---
 	render.DrawMenuTextCentered("MUSIC", { trackX, row0Y, trackW / 2, 20 }, labelColor);
 	char vol[8];
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(musicVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row0Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect mBarBg = { trackX, row0Y + 30, trackW, 8 };
+	SDL_Rect mBarBg = { trackX, row0Y + 25, trackW, 6 };
 	render.DrawRectangle(mBarBg, 10, 15, 25, 255, true, false);
 	int mFill = static_cast<int>(static_cast<float>(trackW) * musicVolume_);
-	SDL_Rect mBarFill = { trackX, row0Y + 30, mFill, 8 };
+	SDL_Rect mBarFill = { trackX, row0Y + 25, mFill, 6 };
 	render.DrawRectangle(mBarFill, 100, 180, 255, 255, true, false);
-	SDL_Rect mKnob = { trackX + mFill - 5, row0Y + 26, 10, 16 };
+	SDL_Rect mKnob = { trackX + mFill - 4, row0Y + 22, 8, 12 };
 	render.DrawRectangle(mKnob, 200, 220, 255, 255, true, false);
 
-	// Row 1: SOUNDS
+	// --- Row 1: SOUNDS ---
 	render.DrawMenuTextCentered("SOUNDS", { trackX, row1Y, trackW / 2, 20 }, labelColor);
 	snprintf(vol, sizeof(vol), "%d", static_cast<int>(sfxVolume_ * 100.0f));
 	render.DrawMenuTextCentered(vol, { trackX + trackW / 2, row1Y, trackW / 2, 20 }, valColor);
 
-	SDL_Rect sBarBg = { trackX, row1Y + 30, trackW, 8 };
+	SDL_Rect sBarBg = { trackX, row1Y + 25, trackW, 6 };
 	render.DrawRectangle(sBarBg, 10, 15, 25, 255, true, false);
 	int sFill = static_cast<int>(static_cast<float>(trackW) * sfxVolume_);
-	SDL_Rect sBarFill = { trackX, row1Y + 30, sFill, 8 };
+	SDL_Rect sBarFill = { trackX, row1Y + 25, sFill, 6 };
 	render.DrawRectangle(sBarFill, 100, 180, 255, 255, true, false);
-	SDL_Rect sKnob = { trackX + sFill - 5, row1Y + 26, 10, 16 };
+	SDL_Rect sKnob = { trackX + sFill - 4, row1Y + 22, 8, 12 };
 	render.DrawRectangle(sKnob, 200, 220, 255, 255, true, false);
 
-	// Back Button (Row 2, centered below Display settings area)
-	SDL_Rect backBtnBg = { trackX + trackW / 2 - 60, row2Y + 10, 120, 36 };
-	render.DrawRectangle(backBtnBg, 40, 50, 70, 255, true, false);
-	render.DrawMenuTextCentered("BACK", backBtnBg, { 200, 220, 255, 255 });
+	// --- Row 2: DISPLAY ---
+	render.DrawMenuTextCentered("DISPLAY", { trackX, row2Y, trackW, 20 }, labelColor);
 
-	// -- Gamepad selection indicator ----
+	const char* modeNames[] = { "WINDOWED", "FULLSCREEN", "BORDERLESS" };
+	int arrowW = 30;
+	SDL_Rect leftArrowArea  = { trackX + 10, row2Y + 24, arrowW, 26 };
+	SDL_Rect modeArea       = { trackX + 10 + arrowW, row2Y + 24, trackW - 20 - arrowW * 2, 26 };
+	SDL_Rect rightArrowArea = { trackX + trackW - 10 - arrowW, row2Y + 24, arrowW, 26 };
+
+	SDL_Color arrowColor = { 100, 180, 255, 255 };
+	render.DrawMenuTextCentered("<", leftArrowArea, arrowColor);
+	render.DrawMenuTextCentered(modeNames[windowModeIndex_], modeArea, valColor);
+	render.DrawMenuTextCentered(">", rightArrowArea, arrowColor);
+
+	// Handle display mode clicks
+	auto& input = *Engine::GetInstance().input;
+	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN) {
+		Vector2D mousePos = input.GetMousePosition();
+		int mx = (int)mousePos.getX();
+		int my = (int)mousePos.getY();
+
+		if (mx >= leftArrowArea.x && mx <= leftArrowArea.x + leftArrowArea.w &&
+			my >= leftArrowArea.y && my <= leftArrowArea.y + leftArrowArea.h) {
+			windowModeIndex_ = (windowModeIndex_ + 2) % 3;
+			WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+			Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+		if (mx >= rightArrowArea.x && mx <= rightArrowArea.x + rightArrowArea.w &&
+			my >= rightArrowArea.y && my <= rightArrowArea.y + rightArrowArea.h) {
+			windowModeIndex_ = (windowModeIndex_ + 1) % 3;
+			WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+			Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
+	}
+
+	// --- Gamepad selection indicator ---
 	if (Engine::GetInstance().input->IsGamepadConnected()) {
 		int selY = row0Y;
 		if (optionsSliderSel_ == 1) selY = row1Y;
-		else if (optionsSliderSel_ == 2) selY = row2Y + 10;
+		else if (optionsSliderSel_ == 2) selY = row2Y;
 
-		SDL_Rect selHighlight = { trackX - 10, selY - 4, trackW + 20, 50 };
-		if (optionsSliderSel_ == 2) selHighlight = { backBtnBg.x - 4, backBtnBg.y - 2, backBtnBg.w + 8, backBtnBg.h + 4 };
+		SDL_Rect selHighlight;
+		if (optionsSliderSel_ == 3) {
+			int winW = 0, winH = 0;
+			Engine::GetInstance().window->GetWindowSize(winW, winH);
+			int btnW = 315;
+			selHighlight = { winW / 2 - btnW / 2 - 4, winH / 2 + 160 - 2, btnW + 8, 130 + 4 }; // Approximate
+		}
+		else {
+			selHighlight = { trackX - 10, selY - 4, trackW + 20, 46 };
+		}
 		render.DrawRectangle(selHighlight, 60, 100, 180, 50, true, false);
 
 		render.DrawMenuTextCentered(">", { selHighlight.x, selHighlight.y + selHighlight.h / 2 - 10, 16, 20 }, { 100, 200, 255, 255 });
@@ -4121,7 +4762,7 @@ void Scene::HandlePauseMenuUIEvents(UIElement* uiElement)
 {
 	if (waitingForFade_) return;
 
-	Engine::GetInstance().audio->PlayFx(menuClickFxId);
+	Engine::GetInstance().audio->PlayFx(menuClickFxId, 0, true);
 
 	switch (uiElement->id)
 	{
@@ -4304,8 +4945,11 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 	auto& input = *Engine::GetInstance().input;
 	float dt = Engine::GetInstance().GetDt();
 
-	// Back Button hit box (relative to row2Y)
-	SDL_Rect backHit = { trackX + trackW / 2 - 60, row2Y + 10, 120, 36 };
+	// -- ESC key to go back --
+	if (input.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN) {
+		Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		return true;
+	}
 
 	// -- Mouse slider dragging / clicks ---------------------------------
 	if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN ||
@@ -4315,16 +4959,8 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 		int mouseX = (int)mousePos.getX();
 		int mouseY = (int)mousePos.getY();
 
-		// Check Back button click
-		if (input.GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN) {
-			if (mouseX >= backHit.x && mouseX <= backHit.x + backHit.w &&
-				mouseY >= backHit.y && mouseY <= backHit.y + backHit.h) {
-				return true; // Go back
-			}
-		}
-
 		// Music slider hit box
-		SDL_Rect mSliderHit = { trackX - 10, row0Y + 18, trackW + 20, 32 };
+		SDL_Rect mSliderHit = { trackX - 10, row0Y + 15, trackW + 20, 28 };
 		if (mouseX >= mSliderHit.x && mouseX <= mSliderHit.x + mSliderHit.w &&
 			mouseY >= mSliderHit.y && mouseY <= mSliderHit.y + mSliderHit.h) {
 
@@ -4335,7 +4971,7 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 		}
 
 		// SFX slider hit box
-		SDL_Rect sSliderHit = { trackX - 10, row1Y + 18, trackW + 20, 32 };
+		SDL_Rect sSliderHit = { trackX - 10, row1Y + 15, trackW + 20, 28 };
 		if (mouseX >= sSliderHit.x && mouseX <= sSliderHit.x + sSliderHit.w &&
 			mouseY >= sSliderHit.y && mouseY <= sSliderHit.y + sSliderHit.h) {
 
@@ -4360,11 +4996,12 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 	if (input.GetGamepadButton(SDL_GAMEPAD_BUTTON_DPAD_DOWN) == KEY_DOWN ||
 		(input.GetLeftStickY() > 0.5f && sliderRepeatTimer_ <= 0.0f))
 	{
-		optionsSliderSel_ = std::min(2, optionsSliderSel_ + 1);
+		optionsSliderSel_ = std::min(3, optionsSliderSel_ + 1);
 		sliderRepeatTimer_ = 250.0f;
 	}
 
-	if (optionsSliderSel_ == 2 && input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN) {
+	// Row 3 = BACK: confirm with South button
+	if (optionsSliderSel_ == 3 && input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN) {
 		return true;
 	}
 
@@ -4398,6 +5035,15 @@ bool Scene::HandleVolumeSliderInput(int trackX, int trackW, int row0Y, int row1Y
 		}
 		if (stepLeft || stepRight || continuousAdj != 0.0f)
 			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
+	}
+	else if (optionsSliderSel_ == 2) {
+		// Display mode switching via gamepad
+		if (stepLeft || stepRight) {
+			windowModeIndex_ = (windowModeIndex_ + (stepRight ? 1 : 2)) % 3;
+			WindowMode modes[] = { WindowMode::WINDOWED, WindowMode::FULLSCREEN, WindowMode::BORDERLESS };
+			Engine::GetInstance().window->SetWindowMode(modes[windowModeIndex_]);
+			Engine::GetInstance().audio->PlayFx(menuClickFxId);
+		}
 	}
 
 	if (sliderRepeatTimer_ > 0.0f)
@@ -4482,11 +5128,55 @@ void Scene::CheckPortalCollisions(float dt)
 {
 	if (!player || waitingForFade_ || isPaused_ || bossDeathVideoActive_ || bossDeathFading_ || endGameVideoActive_) return;
 
+	if (isPuzzleMap_ && puzzleManager_ && !puzzleManager_->IsPortalOpen()) {
+		SDL_FRect exitRect = puzzleManager_->GetExitPortalRect();
+		float px2 = player->position.getX() + 32.0f;
+		float py2 = player->position.getY() + 48.0f;
+		if (px2 >= exitRect.x && px2 <= exitRect.x + exitRect.w &&
+			py2 >= exitRect.y && py2 <= exitRect.y + exitRect.h) {
+			return;  
+		}
+	}
+
+	if (isLvl3Map_ && puzzleManager3_ && !puzzleManager3_->IsLeverActivated()) {
+		SDL_FRect blocked3 = puzzleManager3_->GetBlockedPortalRect();
+		float pcx3 = player->position.getX() + 32.0f;
+		float pcy3 = player->position.getY() + 48.0f;
+		if (pcx3 >= blocked3.x && pcx3 <= blocked3.x + blocked3.w &&
+			pcy3 >= blocked3.y && pcy3 <= blocked3.y + blocked3.h) {
+			return;
+		}
+	}
+
+	// Bloquear portales A y B hasta que se completen los botones
+	if (isPuzzleMap3Lever_ && puzzleManager3_ && !puzzleManager3_->AreBothButtonsDone()) {
+		SDL_FRect pA = puzzleManager3_->GetPortalARect();
+		SDL_FRect pB = puzzleManager3_->GetPortalBRect();
+		float pcx3 = player->position.getX() + 32.0f;
+		float pcy3 = player->position.getY() + 48.0f;
+		if ((pA.w > 0 && pcx3 >= pA.x && pcx3 <= pA.x + pA.w && pcy3 >= pA.y && pcy3 <= pA.y + pA.h) ||
+			(pB.w > 0 && pcx3 >= pB.x && pcx3 <= pB.x + pB.w && pcy3 >= pB.y && pcy3 <= pB.y + pB.h)) {
+			return;
+		}
+	}
+
 	if (portalCooldown_ > 0.0f) {
 		portalCooldown_ -= dt;
 		return;
 	}
 
+
+	SDL_FRect blockedExit = { 0,0,0,0 };
+	bool hasBlockedExit = false;
+	if (isPuzzleMap_ && puzzleManager_ && !puzzleManager_->IsPortalOpen()) {
+		blockedExit = puzzleManager_->GetExitPortalRect();
+		hasBlockedExit = true;
+	}
+
+	if (isPuzzleMap3Lever_ && puzzleManager3_ && !puzzleManager3_->IsLeverActivated()) {
+		blockedExit = puzzleManager3_->GetBlockedPortalRect();
+		hasBlockedExit = true;
+	}
 	auto portals = Engine::GetInstance().map->GetPortals();
 	if (portals.empty()) return;
 
@@ -4500,6 +5190,15 @@ void Scene::CheckPortalCollisions(float dt)
 		if (pcx >= portal.x && pcx <= portal.x + portal.w &&
 			pcy >= portal.y && pcy <= portal.y + portal.h)
 		{
+
+			if (hasBlockedExit) {
+				float pcx2 = player->position.getX() + 32.0f;
+				float pcy2 = player->position.getY() + 48.0f;
+				if (pcx2 >= blockedExit.x && pcx2 <= blockedExit.x + blockedExit.w &&
+					pcy2 >= blockedExit.y && pcy2 <= blockedExit.y + blockedExit.h) {
+					continue; 
+				}
+			}
 
 			bool isLevelPortal = portal.targetFile.size() < 4 ||
 				portal.targetFile.substr(portal.targetFile.size() - 4) != ".tmx";
@@ -4619,12 +5318,126 @@ void Scene::ExecuteSubMapLoad()
 	Engine::GetInstance().render->cameraZoom = 1.0f;
 	Engine::GetInstance().render->blurIntensity = 0.0f;
 
-    portalCooldown_ = 1500.0f;
+	portalCooldown_ = 1500.0f;
+
+	isPuzzleMap_ = (currentMapFile_ == "MapLvl1ZonaPuzzle.tmx");
+	if (isPuzzleMap_) {
+		if (!puzzleManager_) puzzleManager_ = new PuzzleManager();
+		puzzleManager_->Init(Engine::GetInstance().render->renderer);
+
+		std::vector<PuzzleFigure> figuresOnly;
+		SDL_FRect exitRect = { 0, 0, 48, 48 };
+
+		for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects()) {
+			PuzzleFigure f;
+			f.name = obj.name;
+			f.worldRect = obj.rect;
+			figuresOnly.push_back(f);
+		}
+
+		for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+			if (portal.spawnId == "spawn_return_puzzle_exit") {
+				exitRect = { portal.x, portal.y, portal.w, portal.h };
+				LOG("PUZZLE: Exit portal encontrado en (%.0f, %.0f) size %.0fx%.0f",
+					portal.x, portal.y, portal.w, portal.h);
+				break;
+			}
+		}
+
+		puzzleManager_->LoadFiguresFromObjects(figuresOnly, exitRect);
+		puzzleTimeoutPending_ = false;
+
+		LOG("PUZZLE: Loaded %d figures. Exit portal at (%.0f, %.0f)", (int)figuresOnly.size(), exitRect.x, exitRect.y);
+	}
+	else {
+		if (puzzleManager_) {
+			delete puzzleManager_;
+			puzzleManager_ = nullptr;
+		}
+	}
+
+	// --- PUZZLE3 INIT ---
+	isLvl3Map_ = (currentMapFile_ == "Map3.tmx");
+	isLvl3Puzzle_ = (currentMapFile_ == "MapLvl3ZonaPuzzle3.tmx");
+	LOG("PUZZLE3 DEBUG: currentMapFile_='%s', isLvl3Puzzle_=%d", currentMapFile_.c_str(), (int)isLvl3Puzzle_);
+
+	if (isLvl3Map_ || isLvl3Puzzle_) {
+		if (!puzzleManager3_) puzzleManager3_ = new PuzzleManager3();
+		puzzleManager3_->Init(Engine::GetInstance().render->renderer);
+
+		if (isLvl3Map_) {
+			// Cargar palanca y portal bloqueado desde PuzzleObjects del mapa
+			LeverData3 lever;
+			SDL_FRect blockedPortal = { 0, 0, 48, 96 };
+
+			for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects()) {
+				if (obj.name == "Lever") {
+					lever.worldRect = obj.rect;
+				}
+			}
+
+			// Portal bloqueado: leer desde layer Portals con spawnId = "spawn_puzzle3_entrance"
+			for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+				if (portal.spawnId == "PuzzleMain" && portal.target == "MapLvl3ZonaPuzzle3.tmx") {
+					blockedPortal = { portal.x, portal.y, portal.w, portal.h };
+					LOG("PUZZLE3: Portal bloqueado encontrado en (%.0f, %.0f)", portal.x, portal.y);
+					break;
+				}
+			}
+
+			puzzleManager3_->LoadLever(lever, blockedPortal);
+
+			SDL_FRect portalA = { 0,0,0,0 }, portalB = { 0,0,0,0 };
+			for (auto& portal : Engine::GetInstance().map->GetPortals()) {
+				if (portal.spawnId == "A") portalA = { portal.x, portal.y, portal.w, portal.h };
+				if (portal.spawnId == "B") portalB = { portal.x, portal.y, portal.w, portal.h };
+			}
+			puzzleManager3_->LoadExtraPortals(portalA, portalB);
+			LOG("PUZZLE3: Palanca cargada en (%.0f, %.0f)", lever.worldRect.x, lever.worldRect.y);
+		}
+
+		if (isLvl3Puzzle_) {
+			// Cargar botones desde PuzzleObjects
+			std::vector<ButtonData3> buttons;
+			for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects3()) {
+				std::string fullName = obj.name;
+				int clicks = 1;
+				size_t sep = fullName.find('|');
+				if (sep != std::string::npos) {
+					clicks = std::stoi(fullName.substr(sep + 1));
+					fullName = fullName.substr(0, sep);
+				}
+				if (fullName == "Button" || fullName == "button_2") {
+					ButtonData3 btn;
+					btn.worldRect = obj.rect;
+					btn.requiredClicks = clicks;
+					buttons.push_back(btn);
+					LOG("PUZZLE3: Boton '%s' cargado, requiredClicks=%d", fullName.c_str(), clicks);
+				}
+			}
+			puzzleManager3_->LoadButtons(buttons);
+
+		}
+	}
+	else {
+		if (puzzleManager3_) {
+			delete puzzleManager3_;
+			puzzleManager3_ = nullptr;
+		}
+		isLvl3Map_ = false;
+		isLvl3Puzzle_ = false;
+	}
+
+	isPuzzleMap3Lever_ = isLvl3Map_;
+	isPuzzleMap3Buttons_ = isLvl3Puzzle_;
 	LOG("PORTAL: Sub-map load complete. Final health=%d", player->health);
 }
 
 void Scene::TriggerEndGameCinematic()
 {
+    // Solo permitir que se active el final del juego en el nivel 4 (índice 3).
+    if (currentLevelIndex_ != 3) return;
+
     if (endGameTriggered_) return;  // already triggered once this session, ignore
     endGameTriggered_ = true;
     endGameFading_    = true;

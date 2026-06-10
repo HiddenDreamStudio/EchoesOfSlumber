@@ -85,6 +85,9 @@ bool EnemyPlush::Start() {
 	hitTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Jumping_Plush_Hit.png");
 	dieTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Jumpin_Plush_Die.png");
 
+	damageFxId = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/Jumping Plush/damage_jumping_plush.wav");
+	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/Jumping Plush/jump_jumping_plush.wav");
+
 	return true;
 }
 
@@ -398,6 +401,7 @@ void EnemyPlush::EnterState(State newState)
 		alertAnims_.ResetCurrent();
 		break;
 	case State::JUMPING:
+		Engine::GetInstance().audio->PlayFx(jumpFxId);
 		isJumping_ = true;
 		jumpAirTime_ = 0.0f;
 		jumpPhase_ = JumpPhase::START;
@@ -522,7 +526,7 @@ void EnemyPlush::Draw(float dt)
 			drawX += shake;
 		}
 
-		Engine::GetInstance().render->DrawTexture(activeTexture, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, scale);
+		Engine::GetInstance().render->DrawTexture(activeTexture, drawX, drawY, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, scale);
 	}
 }
 
@@ -618,6 +622,7 @@ void EnemyPlush::TakeDamage(int damage, bool applyKnockback)
 	if (currentState_ == State::DEATH) return;
 
 	health -= damage;
+	Engine::GetInstance().audio->PlayFx(damageFxId);
 	LOG("EnemyPlush took %d damage -> health: %d/%d", damage, health, maxHealth);
 
 	isHit_ = true;

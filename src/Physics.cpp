@@ -112,10 +112,12 @@ PhysBody *Physics::CreateCircle(int x, int y, int radious, bodyType type) {
 
   b2CreateCircleShape(b, &sdef, &circle);
 
-  PhysBody *pbody = new PhysBody();
-  pbody->body = b;
-  b2Body_SetUserData(b, ToUserData(pbody));
-  return pbody;
+    PhysBody* pbody = new PhysBody();
+    pbody->body = b;
+    b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
+
+    return pbody;
 }
 
 PhysBody *Physics::CreateCapsule(int x, int y, int width, int height,
@@ -149,6 +151,7 @@ PhysBody *Physics::CreateCapsule(int x, int y, int width, int height,
   PhysBody *pbody = new PhysBody();
   pbody->body = b;
   b2Body_SetUserData(b, ToUserData(pbody));
+  allBodies.push_back(pbody);
   return pbody;
 }
 
@@ -255,10 +258,13 @@ PhysBody *Physics::CreateConvexPolygon(int x, int y, int *points, int size,
     b2CreatePolygonShape(b, &sdef, &poly);
   }
 
-  PhysBody *pbody = new PhysBody();
-  pbody->body = b;
-  b2Body_SetUserData(b, ToUserData(pbody));
-  return pbody;
+    b2CreateCapsuleShape(b, &sdef, &capsule);
+
+    PhysBody* pbody = new PhysBody();
+    pbody->body = b;
+    b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
+    return pbody;
 }
 
 bool Physics::PostUpdate() {
@@ -283,6 +289,62 @@ bool Physics::PostUpdate() {
       dd.DrawStringFcn = &Physics::DrawStringStub;
       dd.DrawTransformFcn = &Physics::DrawTransformStub;
       b2World_Draw(world, &dd);
+    b2Polygon box = b2MakeBox(PIXEL_TO_METERS(width) * 0.5f, PIXEL_TO_METERS(height) * 0.5f);
+    b2ShapeDef sdef = b2DefaultShapeDef();
+    sdef.density = 1.0f;
+    sdef.isSensor = true;
+    sdef.enableContactEvents = true;
+    sdef.enableSensorEvents = true;
+
+    b2CreatePolygonShape(b, &sdef, &box);
+
+    PhysBody* pbody = new PhysBody();
+    pbody->body = b;
+    b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
+    return pbody;
+}
+
+PhysBody* Physics::CreateCircleSensor(int x, int y, int radious, bodyType type)
+{
+    b2BodyDef def = b2DefaultBodyDef();
+    def.type = ToB2Type(type);
+    def.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
+
+    b2BodyId b = b2CreateBody(world, &def);
+
+    b2Circle circle;
+    circle.center = { 0.0f, 0.0f };
+    circle.radius = PIXEL_TO_METERS(radious);
+    b2ShapeDef sdef = b2DefaultShapeDef();
+    sdef.density = 1.0f;
+    sdef.isSensor = true;
+    sdef.enableContactEvents = true;
+    sdef.enableSensorEvents = true;
+
+    b2CreateCircleShape(b, &sdef, &circle);
+
+    PhysBody* pbody = new PhysBody();
+    pbody->body = b;
+    b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
+    return pbody;
+}
+
+PhysBody* Physics::CreateChain(int x, int y, int* points, int size, bodyType type, float friction)
+{
+    b2BodyDef def = b2DefaultBodyDef();
+    def.type = ToB2Type(type);
+    def.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
+
+    b2BodyId b = b2CreateBody(world, &def);
+
+    const int count = size / 2;
+    std::vector<b2Vec2> verts(count);
+    for (int i = 0; i < count; ++i)
+    {
+        verts[i].x = PIXEL_TO_METERS(points[i * 2 + 0]);
+        verts[i].y = PIXEL_TO_METERS(points[i * 2 + 1]);
     }
   }
 
@@ -294,6 +356,11 @@ bool Physics::PostUpdate() {
   bodiesToDelete.clear();
 
   return ret;
+    PhysBody* pbody = new PhysBody();
+    pbody->body = b;
+    b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
+    return pbody;
 }
 
 bool Physics::CleanUp() {
@@ -354,8 +421,6 @@ void Physics::DeletePhysBody(PhysBody *physBody) {
   if (physBody == nullptr)
     return;
 
-  // Fix Double-Delete: Evitar encolar el cuerpo si ya está en la lista de
-  // pendientes de borrado
   if (IsPendingToDelete(physBody))
     return;
 
@@ -385,6 +450,131 @@ void Physics::FlushPendingDeletes() {
     delete physBody;
   }
   bodiesToDelete.clear();
+
+    b2Hull hull = b2ComputeHull(verts.data(), count);
+    if (hull.count > 0) {
+        b2Polygon poly = b2MakePolygon(&hull, 0.0f);
+        b2ShapeDef sdef = b2DefaultShapeDef();
+        sdef.density = 1.0f;
+        sdef.material.friction = friction;
+        sdef.enableContactEvents = true;
+        sdef.enableSensorEvents = true;
+        b2CreatePolygonShape(b, &sdef, &poly);
+    }
+
+    PhysBody* pbody = new PhysBody();
+    pbody->body = b;
+    b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
+    
+    return pbody;
+}
+
+void Physics::FlushPendingDeletes() {
+  for (PhysBody *physBody : bodiesToDelete) {
+    if (physBody && b2Body_IsValid(physBody->body)) {
+      b2DestroyBody(physBody->body);
+    }
+    delete physBody;
+  }
+  bodiesToDelete.clear();
+}
+
+void Physics::SetCollisionFilter(PhysBody* physBody, uint32_t categoryBits, uint32_t maskBits)
+{
+    if (!physBody || !b2Body_IsValid(physBody->body)) return;
+    int shapeCount = b2Body_GetShapeCount(physBody->body);
+    if (shapeCount > 0) {
+        std::vector<b2ShapeId> shapes(shapeCount);
+        b2Body_GetShapes(physBody->body, shapes.data(), shapeCount);
+        for (int i = 0; i < shapeCount; ++i) {
+            b2Filter filter = b2Shape_GetFilter(shapes[i]);
+            filter.categoryBits = categoryBits;
+            filter.maskBits = maskBits;
+            b2Shape_SetFilter(shapes[i], filter);
+        }
+    }
+}
+
+void Physics::UpdateEnemyFilters()
+{
+    for (PhysBody* pb : allBodies) {
+        if (pb && pb->ctype == ColliderType::ENEMY) {
+            SetCollisionFilter(pb, 0x0004, 0xFFFFFFFF);
+        }
+    }
+}
+
+void Physics::UpdateConvexPolygon(PhysBody* physBody, int* points, int size, float scale, float friction, bool isSensor)
+{
+    if (!physBody || !b2Body_IsValid(physBody->body)) return;
+
+    b2Filter oldFilter = b2DefaultFilter();
+
+    // Destroy all existing shapes on the body
+    int shapeCount = b2Body_GetShapeCount(physBody->body);
+    if (shapeCount > 0) {
+        std::vector<b2ShapeId> shapes(shapeCount);
+        b2Body_GetShapes(physBody->body, shapes.data(), shapeCount);
+        oldFilter = b2Shape_GetFilter(shapes[0]);
+        for (int i = 0; i < shapeCount; ++i) {
+            b2DestroyShape(shapes[i], true); // true = update mass
+        }
+    }
+
+    const int count = size / 2;
+    std::vector<b2Vec2> verts(count);
+    for (int i = 0; i < count; ++i)
+    {
+        verts[i].x = PIXEL_TO_METERS(points[i * 2 + 0] * scale);
+        verts[i].y = PIXEL_TO_METERS(points[i * 2 + 1] * scale);
+    }
+
+    b2Hull hull = b2ComputeHull(verts.data(), count);
+    if (hull.count > 0) {
+        b2Polygon poly = b2MakePolygon(&hull, 0.0f);
+        b2ShapeDef sdef = b2DefaultShapeDef();
+        sdef.density = 1.0f;
+        sdef.material.friction = friction;
+        sdef.enableContactEvents = true;
+        sdef.enableSensorEvents = true;
+        sdef.isSensor = isSensor;
+        sdef.filter = oldFilter;
+        b2CreatePolygonShape(physBody->body, &sdef, &poly);
+    }
+}
+
+bool Physics::PostUpdate()
+{
+    bool ret = true;
+
+    if (Engine::GetInstance().input.get()->GetKey(SDL_SCANCODE_F9) == KEY_DOWN)
+        debug = !debug;
+
+    if (debug)
+    {
+        if (B2_IS_NULL(world) == false)
+        {
+            b2DebugDraw dd = {};
+            dd.context = this;
+            dd.drawShapes = true;
+            dd.drawContacts = true;
+            dd.DrawSegmentFcn = &Physics::DrawSegmentCb;
+            dd.DrawPolygonFcn = &Physics::DrawPolygonCb;
+            dd.DrawSolidPolygonFcn = &Physics::DrawSolidPolygonCb;
+            dd.DrawCircleFcn = &Physics::DrawCircleCb;
+            dd.DrawSolidCircleFcn = &Physics::DrawSolidCircleCb;
+            dd.DrawSolidCapsuleFcn = &Physics::DrawSolidCapsuleStub; 
+            dd.DrawPointFcn = &Physics::DrawPointStub;
+            dd.DrawStringFcn = &Physics::DrawStringStub;
+            dd.DrawTransformFcn = &Physics::DrawTransformStub;
+            b2World_Draw(world, &dd);
+        }
+    }
+
+    FlushPendingDeletes();
+
+    return ret;
 }
 
 b2Vec2 Physics::GetLinearVelocity(const PhysBody *p) const {
@@ -401,6 +591,22 @@ float Physics::GetYVelocity(const PhysBody *p) const {
 
 void Physics::SetLinearVelocity(PhysBody *p, const b2Vec2 &v) const {
   b2Body_SetLinearVelocity(p->body, v);
+}
+
+void Physics::DeletePhysBody(PhysBody* physBody)
+{
+    if (B2_IS_NULL(world)) return;
+    
+    if (physBody && !B2_IS_NULL(physBody->body) && physBody->listener && physBody->listener->active)
+    {
+        b2Body_SetUserData(physBody->body, nullptr);
+        b2Body_Disable(physBody->body);
+    }
+    
+    if (physBody) {
+        bodiesToDelete.push_back(physBody);
+        allBodies.remove(physBody);
+    }
 }
 
 void Physics::SetLinearVelocity(PhysBody *p, float vx, float vy) const {

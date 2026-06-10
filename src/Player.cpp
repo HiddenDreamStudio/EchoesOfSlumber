@@ -78,6 +78,46 @@ bool Player::Start() {
 	texH = 128;
 	drawScale = 0.5f;
 
+	// Load combined cape and player hide animation
+	hideTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/Prota corregido/SS_capa-Pintado.png");
+	if (hideTexture_) {
+		int hideW = 0, hideH = 0;
+		Engine::GetInstance().textures->GetSize(hideTexture_, hideW, hideH);
+		int cols = 16;
+		int rows = 4;
+		int frameW = hideW / cols;
+		int frameH = hideH / rows;
+		int totalFrames = 28; // The spritesheet has 28 non-empty frames
+		int frameDurationMs = 50;
+
+		// Forward: crouching (putting on cape, frames 17 to 30)
+		for (int i = 17; i <= 30; ++i) {
+			// Cape frames are in rows 0 and 1
+			SDL_Rect rCape = { (i % cols) * frameW, (i / cols) * frameH, frameW, frameH };
+			hideCapeAnim_.AddFrame(rCape, frameDurationMs);
+
+			// Player frames are in rows 2 and 3 (offset by 32)
+			int playerIdx = i + 32;
+			SDL_Rect rPlayer = { (playerIdx % cols) * frameW, (playerIdx / cols) * frameH, frameW, frameH };
+			hideAnim_.AddFrame(rPlayer, frameDurationMs);
+		}
+		hideCapeAnim_.SetLoop(false);
+		hideAnim_.SetLoop(false);
+
+		// Reverse: standing up (taking off cape, frames 1 to 15)
+		// We play these forward because the artist drew the exit animation sequentially!
+		for (int i = 1; i <= 15; ++i) {
+			SDL_Rect rCape = { (i % cols) * frameW, (i / cols) * frameH, frameW, frameH };
+			hideExitCapeAnim_.AddFrame(rCape, frameDurationMs);
+
+			int playerIdx = i + 32;
+			SDL_Rect rPlayer = { (playerIdx % cols) * frameW, (playerIdx / cols) * frameH, frameW, frameH };
+			hideExitAnim_.AddFrame(rPlayer, frameDurationMs);
+		}
+		hideExitCapeAnim_.SetLoop(false);
+		hideExitAnim_.SetLoop(false);
+	}
+
 	// Load push animation spritesheet (256x256 tiles, 5 columns, 20 frames)
 	pushTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/spritesheetempujarcaja.png");
 	for (int i = 0; i < 20; ++i) {
@@ -167,8 +207,16 @@ bool Player::Start() {
 	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump2.wav");
 	landFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/land.wav");
 	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
-	slingshotFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/tirachinas.wav");
+	slingshotAimFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Tirachines/slingshot_aim.wav");
+	slingshotShootFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Tirachines/slingshot_shoot.wav");
+	slingshotThudFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Tirachines/slingshot_thud.wav");
 	capeFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/capa.wav");
+
+	bearAppearFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Os/bear_appear.wav");
+	bearDeathFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Os/bear_death.wav");
+	bearStepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Os/bear_steps_1.wav");
+	bearDamageFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Os/bear_damage_1.wav");
+	bearSlapFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Os/slap.wav");
 	// Comprobar en qué nivel estamos y cargar su sonido de pasos correspondiente
 	int nivelActual = Engine::GetInstance().scene->GetCurrentLevelIndex();
 
@@ -286,15 +334,15 @@ bool Player::Update(float dt)
 		if (canSwap) {
 			if (input.GetKey(SDL_SCANCODE_1) == KEY_DOWN && hasBlanket_) {
 				equippedItem_ = EquippedItem::BLANKET;
-				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 			}
 			if (input.GetKey(SDL_SCANCODE_2) == KEY_DOWN && hasSlingshot_) {
 				equippedItem_ = EquippedItem::SLINGSHOT;
-				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 			}
 			if (input.GetKey(SDL_SCANCODE_3) == KEY_DOWN && hasStuffedAnimal_) {
 				equippedItem_ = EquippedItem::STUFFED_ANIMAL;
-				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 			}
 		}
 
@@ -330,7 +378,7 @@ bool Player::Update(float dt)
 				bearSummonPosition_ = Vector2D((float)bodyX, (float)bodyY);
 				bearSummonFacingRight_ = facingRight;
 
-				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 				LOG("Player starting bear throw");
 			}
 			else if (isBearMode_ && !isBearTransforming_ && !isAttacking_) {
@@ -349,7 +397,7 @@ bool Player::Update(float dt)
 				// Restore facing direction to when the bear was summoned
 				facingRight = bearSummonFacingRight_;
 				
-				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				Engine::GetInstance().audio->PlayFx(bearDeathFxId);
 				LOG("Player exited bear mode, kid is sleeping at summon position");
 			}
 		}
@@ -363,6 +411,7 @@ bool Player::Update(float dt)
 					isThrowingBear_ = false;
 					isBearTransforming_ = true;
 					bearAppearAnims_.ResetCurrent();
+					Engine::GetInstance().audio->PlayFx(bearAppearFxId);
 
 					// Teleport bear to a far position in the direction the player is facing
 					float spawnOffset = 300.0f; // Distance from the player
@@ -426,7 +475,6 @@ bool Player::Update(float dt)
 				// Giant Bear mode controls (only move left/right and attack)
 				Move();
 				Attack(dt);
-				Teleport();
 				// Kid animation: wave once -> fall asleep -> sleep loop
 				throwBearAnims_.Update(dt);
 				if (throwBearAnims_.GetCurrentName() == "BearActiveIdle" && throwBearAnims_.HasFinishedOnce("BearActiveIdle")) {
@@ -449,7 +497,6 @@ bool Player::Update(float dt)
 					Jump();
 					if (!isPushing_) Attack(dt);
 					if (!isPushing_ && !isAttacking_) Slingshot(dt);
-					Teleport();
 				}
 			}
 		}
@@ -466,8 +513,14 @@ bool Player::Update(float dt)
 			stepTimer_ = STEP_COOLDOWN;
 		}
 	}
+	else if (velocity.x != 0.0f && isBearMode_ && !isJumping && !isDead_) {
+		stepTimer_ -= dt;
+		if (stepTimer_ <= 0.0f) {
+			Engine::GetInstance().audio->PlayFx(bearStepsFxId);
+			stepTimer_ = STEP_COOLDOWN * 1.5f;
+		}
+	}
 	else {
-
 		stepTimer_ = 0.0f;
 	}
 
@@ -484,11 +537,6 @@ bool Player::Update(float dt)
 	return true;
 }
 
-void Player::Teleport() {
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_T) == KEY_DOWN) {
-		pbody->SetPosition(96, 96);
-	}
-}
 
 void Player::GetPhysicsValues() {
 	velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
@@ -642,17 +690,21 @@ void Player::Hide(float dt)
 			isHiding_ = true;
 			velocity.x = 0.0f;
 			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
-			anims.SetCurrent("hide");
-			anims.ResetCurrent();
+			hideAnim_.Reset();
+			hideCapeAnim_.Reset();
 			Engine::GetInstance().audio->PlayFx(capeFxId);
+			UpdateHideCollision();
 			LOG("Player hiding");
 		}
 		else if (isHiding_)
 		{
 			isHiding_ = false;
 			isExitingHide_ = true;
-			hideCooldown_ = HIDE_COOLDOWN; // cooldown starts on exit
+			hideExitAnim_.Reset(); // start stand-up animation from frame 0 (= crouched pose)
+			hideExitCapeAnim_.Reset();
+			hideCooldown_ = HIDE_COOLDOWN;
 			Engine::GetInstance().audio->PlayFx(capeFxId);
+			UpdateHideCollision();
 			LOG("Player exiting hide — cooldown started (%.0f ms)", HIDE_COOLDOWN);
 		}
 	}
@@ -660,21 +712,13 @@ void Player::Hide(float dt)
 	if (isHiding_)
 	{
 		velocity.x = 0.0f;
-		if (!anims.HasFinishedOnce("hide"))
-			anims.Update(dt);
+		// hideAnim_ is advanced in Draw() to avoid double-update
 	}
 
 	if (isExitingHide_)
 	{
 		velocity.x = 0.0f;
-		anims.UpdateBackwards(dt);
-
-		if (anims.GetCurrentFrameIndex() == 0)
-		{
-			isExitingHide_ = false;
-			anims.SetCurrent("idle");
-			LOG("Player stopped hiding");
-		}
+		// hideAnim_ is advanced backwards in Draw() to avoid double-update
 	}
 }
 
@@ -710,6 +754,7 @@ void Player::Slingshot(float dt)
 			slingshotCharged_ = false;
 			slingshotAnim_.Reset();
 			slingshotHoldAnim_.Reset();
+			Engine::GetInstance().audio->PlayFx(slingshotAimFxId);
 			LOG("Slingshot aiming started");
 		}
 	}
@@ -778,6 +823,7 @@ void Player::Slingshot(float dt)
 			slingshotAnim_.Update(dt);
 			if (slingshotAnim_.HasFinishedOnce()) {
 				slingshotCharged_ = true;
+				Engine::GetInstance().audio->StopFx(); // Stop aim sound when animation ends
 			}
 		} else {
 			slingshotHoldAnim_.Update(dt);
@@ -804,7 +850,8 @@ void Player::Slingshot(float dt)
 			Uint8 dotAlpha = (Uint8)(120 - i * 16);
 			if (dotAlpha < 30) dotAlpha = 30;
 
-			render->DrawCircle((int)px, (int)py, 3, 200, 180, 140, dotAlpha, true);
+			SDL_Rect dotRect = { (int)px - 3, (int)py - 3, 6, 6 };
+			render->DrawRectangle(dotRect, 200, 180, 140, dotAlpha, true, true);
 		}
 
 
@@ -826,10 +873,13 @@ void Player::Slingshot(float dt)
 			isAiming_ = false;
 			isAimingWithGamepad_ = false;
 			slingshotCooldown_ = SLINGSHOT_COOLDOWN;
+			stepTimer_ = 1.0f; // Prevent footsteps from interrupting the shoot sound (sound is ~1s long)
 
 			// Spawn projectile
 			auto proj = std::dynamic_pointer_cast<SlingshotProjectile>(
 				Engine::GetInstance().entityManager->CreateEntity(EntityType::SLINGSHOT_PROJECTILE));
+			
+			proj->thudFxId = slingshotThudFxId;
 
 			// Spawn fully outside the player's collision body for all aim directions.
 			const float projectileSpawnClearance = 70.0f;
@@ -840,7 +890,7 @@ void Player::Slingshot(float dt)
 			proj->SetLaunch(dirX, dirY, launchSpeed);
 			proj->Start();
 
-			Engine::GetInstance().audio->PlayFx(slingshotFxId);
+			Engine::GetInstance().audio->PlayFx(slingshotShootFxId);
 
 			LOG("Slingshot fired! angle=%.1f speed=%.1f", aimAngle_ * RADTODEG, launchSpeed);
 		}
@@ -883,6 +933,7 @@ void Player::Draw(float dt) {
 
 	SDL_Texture* activeTex = texture;
 	const SDL_Rect* animFrame = nullptr;
+	const SDL_Rect* capeFrame = nullptr;
 	float currentDrawScale = drawScale;
 
 	bool drawingBear = isBearMode_ || isBearTransforming_;
@@ -979,8 +1030,31 @@ void Player::Draw(float dt) {
 	}
 	else if (isHiding_ || isHidingBehindRock_ || isExitingHide_)
 	{
-		// Hide animation is advanced inside Hide() — just grab the current frame
-		animFrame = &anims.GetCurrentFrame();
+		if (isExitingHide_)
+		{
+			if (!hideExitAnim_.HasFinishedOnce()) {
+				hideExitAnim_.Update(dt);
+				hideExitCapeAnim_.Update(dt);
+				animFrame = &hideExitAnim_.GetCurrentFrame();
+				capeFrame = &hideExitCapeAnim_.GetCurrentFrame();
+			}
+			else {
+				isExitingHide_ = false;
+				anims.SetCurrent("idle");
+			}
+		}
+		else
+		{
+			// Crouching: play hideAnim_ forward
+			if (!hideAnim_.HasFinishedOnce()) {
+				hideAnim_.Update(dt);
+				hideCapeAnim_.Update(dt);
+			}
+			animFrame = &hideAnim_.GetCurrentFrame();
+			capeFrame = &hideCapeAnim_.GetCurrentFrame();
+		}
+		activeTex = hideTexture_;
+		currentDrawScale = 0.75f; // Increased scale so it matches player size
 	}
 	else if (isPushing_ && velocity.x != 0.0f && !isJumping)
 	{
@@ -1038,6 +1112,12 @@ void Player::Draw(float dt) {
 	int drawX = static_cast<int>(position.getX() - (static_cast<float>(currentFrameW) * currentDrawScale) / 2.0f);
 	int drawY = static_cast<int>(position.getY() - (static_cast<float>(currentFrameH) * currentDrawScale) / 2.0f);
 
+	if (activeTex == hideTexture_) {
+		// Align feet to pos.Y + 64 (standard player feet baseline)
+		float currentBottom = (static_cast<float>(currentFrameH) * currentDrawScale) / 2.0f;
+		drawY -= static_cast<int>(currentBottom - 64.0f);
+	}
+
 	if (drawingBear) {
 		drawY -= bearOffsetDrawY;
 	}
@@ -1092,7 +1172,7 @@ void Player::Draw(float dt) {
             int wakeDrawY = yInt + 50 - wakeHeight + 15;
             
             render->ApplyAmbientTint(wakeUpTexture);
-            render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, wakeScale);
+            render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, wakeScale);
             render->ResetAmbientTint(wakeUpTexture);
             return;
         }
@@ -1107,7 +1187,7 @@ void Player::Draw(float dt) {
 		SDL_FlipMode kidFlip = bearSummonFacingRight_ ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
 		render->ApplyAmbientTint(throwBearTexture_);
-		render->DrawTexture(throwBearTexture_, kidDrawX, kidDrawY, &kidFrame, 1.0f, 0, INT_MAX, INT_MAX, kidFlip, kidScale);
+		render->DrawTexture(throwBearTexture_, kidDrawX, kidDrawY, &kidFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, kidFlip, kidScale);
 		render->ResetAmbientTint(throwBearTexture_);
 	}
 
@@ -1131,7 +1211,11 @@ void Player::Draw(float dt) {
 			SDL_SetTextureBlendMode(activeTex, SDL_BLENDMODE_BLEND);
 		}
 
-		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+
+		if (capeFrame) {
+			render->DrawTexture(activeTex, drawX, drawY, capeFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+		}
 
 		// Add subtle permanent white circular glow to the player
 		if (!isDead_ && !isWakingUp) {
@@ -1176,6 +1260,8 @@ void Player::Attack(float dt)
 		if (isBearMode_) {
 			attackTimer_ = 480.0f; // 6 frames * 80ms
 			bearAttackAnims_.ResetCurrent();
+			Engine::GetInstance().audio->PlayFx(bearSlapFxId);
+			stepTimer_ = 1.0f; // Prevent steps from interrupting slap
 		}
 		else {
 			attackTimer_ = ATTACK_DURATION;
@@ -1225,6 +1311,11 @@ void Player::Attack(float dt)
 
 void Player::TakeDamage(int damage)
 {
+	TakeDamage(damage, false);
+}
+
+void Player::TakeDamage(int damage, bool applyKnockback)
+{
 	// Cannot take damage while hiding, sleeping, waking up, throwing the bear, or transforming
 	if (isInvincible_ || isHiding_ || isHidingBehindRock_ || isKidSleeping_ || isWakingUp || isThrowingBear_ || isBearTransforming_) return;
 
@@ -1258,9 +1349,14 @@ void Player::TakeDamage(int damage)
 		if (enemyDirX < 0)      facingRight = true;
 		else if (enemyDirX > 0) facingRight = false;
 
-		float knockbackForce = 5.0f;
-		float dir = facingRight ? 1.0f : -1.0f;
-		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
+		if (applyKnockback) {
+			float knockbackForce = 16.0f;
+			float dir = facingRight ? 1.0f : -1.0f;
+			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -4.0f, true);
+			Engine::GetInstance().audio->PlayFx(bearDamageFxId);
+			knockbackX_ = dir * knockbackForce;
+			knockbackTimer_ = 200.0f;
+		}
 
 		if (bearHealth_ <= 0) {
 			bearHealth_ = 0;
@@ -1278,7 +1374,7 @@ void Player::TakeDamage(int damage)
 			// Restore facing direction to when the bear was summoned
 			facingRight = bearSummonFacingRight_;
 			
-			Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+			Engine::GetInstance().audio->PlayFx(bearDeathFxId);
 			LOG("Bear health depleted! Exiting bear mode, returning to kid.");
 		}
 		return;
@@ -1318,9 +1414,13 @@ void Player::TakeDamage(int damage)
 	chargeTimer_ = 0.0f;
 	slingshotCharged_ = false;
 
-	float knockbackForce = 5.0f;
-	float dir = facingRight ? 1.0f : -1.0f;
-	Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -2.0f, true);
+	if (applyKnockback) {
+		float knockbackForce = 16.0f;
+		float dir = facingRight ? 1.0f : -1.0f;
+		Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -4.0f, true);
+		knockbackX_ = dir * knockbackForce;
+		knockbackTimer_ = 200.0f;
+	}
 
 	if (health <= 0)
 	{
@@ -1330,7 +1430,7 @@ void Player::TakeDamage(int damage)
 		isHidingBehindRock_ = false;
 		anims.SetCurrent("death");
 		Engine::GetInstance().audio->PlayMusic(nullptr);
-		Engine::GetInstance().audio->PlayFx(gameOverFxId);
+		Engine::GetInstance().audio->PlayFx(gameOverFxId, 0, true);
 		LOG("Player is dead");
 	}
 	else
@@ -1582,17 +1682,28 @@ void Player::SetHidingBehindRock(bool hiding) {
 	if (hiding == isHidingBehindRock_) return;
 
 	isHidingBehindRock_ = hiding;
+	UpdateHideCollision();
 	
 	if (hiding) {
 		velocity.x = 0.0f;
 		Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
-		anims.SetCurrent("hide");
-		anims.ResetCurrent();
+		hideAnim_.Reset();
+		hideCapeAnim_.Reset();
 		LOG("Player hiding behind rock");
 	} else {
-		anims.SetCurrent("idle");
-		LOG("Player stopped hiding behind rock");
+		// Play stand-up animation instead of snapping to idle
+		isExitingHide_ = true;
+		hideExitAnim_.Reset();
+		hideExitCapeAnim_.Reset();
+		LOG("Player stopped hiding behind rock — playing stand-up anim");
 	}
+}
+
+void Player::UpdateHideCollision() {
+	bool hiding = isHiding_ || isHidingBehindRock_;
+	Engine::GetInstance().physics->UpdateEnemyFilters();
+	uint32_t mask = hiding ? (0xFFFFFFFF & ~0x0004) : 0xFFFFFFFF;
+	Engine::GetInstance().physics->SetCollisionFilter(pbody, 0x0002, mask);
 }
 
 void Player::SetPosition(Vector2D pos) {

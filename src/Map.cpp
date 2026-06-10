@@ -44,9 +44,9 @@ static SDL_FlipMode flipMode(bool h, bool v) {
   return SDL_FLIP_NONE;
 }
 
-Map::Map()
-    : Module(), mapLoaded(false), hasInitCamera(false), initCameraX(0.0f) {
-  name = "map";
+Map::Map() : Module(), mapLoaded(false), hasInitCamera(false), initCameraX(0.0f), initCameraY(0.0f)
+{
+    name = "map";
 }
 
 // Destructor
@@ -62,54 +62,145 @@ bool Map::Awake() {
 
 bool Map::Start() { return true; }
 
-bool Map::Update(float dt) {
-  ZoneScoped;
+bool Map::Update(float dt)
+{
+    ZoneScoped;
 
-  bool ret = true;
+    bool ret = true;
 
-  if (mapLoaded) {
-    if (Engine::GetInstance().scene->GetCurrentScene() != SceneID::GAMEPLAY) {
-      return true;
-    }
+    if (mapLoaded) {
 
-    Render *render = Engine::GetInstance().render.get();
-    int scale = Engine::GetInstance().window->GetScale();
-
-    if (!hasInitCamera) {
-      initCameraX = (float)render->camera.x;
-      hasInitCamera = true;
-    }
-
-    for (const auto &imgLayer : mapData.imageLayers) {
-      if (imgLayer->texture) {
-        // Parallax relative to initial camera position (X only, Y stays locked)
-        int imgDrawX = static_cast<int>(
-            imgLayer->offsetX + (float)(render->camera.x - initCameraX) *
-                                    (imgLayer->parallaxFactorX - 1.0f));
-        Engine::GetInstance().render->DrawTexture(
-            imgLayer->texture, imgDrawX, static_cast<int>(imgLayer->offsetY),
-            nullptr, 1.0f);
-      }
-    }
-    // Find player position for player-centric parallax
-    Vector2D playerPos(0.0f, 0.0f);
-    bool foundPlayer = false;
-    if (Engine::GetInstance().entityManager) {
-      for (const auto &entity : Engine::GetInstance().entityManager->entities) {
-        if (entity && entity->type == EntityType::PLAYER) {
-          playerPos = entity->position;
-          foundPlayer = true;
-          break;
+      if (Engine::GetInstance().scene->GetCurrentScene() != SceneID::GAMEPLAY) {
+            return true;
         }
-      }
+
+        Render* render = Engine::GetInstance().render.get();
+
+        if (!hasInitCamera && render->IsCameraInitialized()) {
+            initCameraX = (float)render->camera.x;
+            initCameraY = (float)render->camera.y;
+            hasInitCamera = true;
+            LOG("PARALLAX DEBUG: Pinned to camera position X: %f, Y: %f", initCameraX, initCameraY);
+        }
+
+        for (const auto& imgLayer : mapData.imageLayers) {
+            if (imgLayer->texture) {
+                // Pin parallax to start position: offset = x + initCam * (1 - speed)
+                float pinnedX = imgLayer->offsetX + initCameraX * (1.0f - imgLayer->parallaxFactorX);
+                
+                Engine::GetInstance().render->DrawTexture(
+                    imgLayer->texture,
+                    static_cast<int>(pinnedX),
+                    static_cast<int>(imgLayer->offsetY),
+                    nullptr,
+                    imgLayer->parallaxFactorX,
+                    1.0f // Force no Y parallax
+                );
+            }
+        }
+        
+        for (const auto& deco : mapData.decorationObjects) {
+            if (deco->texture && !deco->isFront) {
+                // Pin parallax to start position
+                float pinnedX = deco->x + initCameraX * (1.0f - deco->parallaxSpeed);
+
+                // TEMPORARILY DISABLE CULLING FOR DECORATIONS TO ENSURE VISIBILITY
+                // if (!render->IsOnScreenWorldRect(pinnedX, deco->y - deco->height, deco->width, deco->height, 2000))
+                //    continue;
+                
+                int tw = 0, th = 0;
+                Engine::GetInstance().textures->GetSize(deco->texture, tw, th);
+                float drawScaleX = (tw > 0) ? (deco->width / (float)tw) : 1.0f;
+                float drawScaleY = (th > 0) ? (deco->height / (float)th) : 1.0f;
+
+                render->DrawTexture(deco->texture, (int)pinnedX, (int)(deco->y - deco->height), nullptr, deco->parallaxSpeed, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV), drawScaleX, drawScaleY);
+            }
+        }
+
+        for (const auto& plant : mapData.animatedPlants) {
+            if (plant->isFront) continue;
+            plant->anim.Update(dt);
+
+            float pinnedX = plant->x + initCameraX * (1.0f - plant->parallaxSpeed);
+
+            if (!render->IsOnScreenWorldRect(pinnedX, plant->y, plant->w, plant->h, 1000))
+                continue;
+
+            const SDL_Rect& frame = plant->anim.GetCurrentFrame();
+            render->DrawTexture(plant->texture, (int)pinnedX, (int)plant->y, &frame, plant->parallaxSpeed, 1.0f);
+        }
+        
+        for (const auto& mapLayer : mapData.layers) {
+            auto* drawProp = mapLayer->properties.GetProperty("Draw");
+            if (drawProp == nullptr || drawProp->value == true) {
+                float px = mapLayer->parallaxFactorX;
+                float py = mapLayer->parallaxFactorY;
+
+                std::string lowerName = mapLayer->name;
+                for (char& c : lowerName) c = ::tolower(c);
+                if (px == 1.0f) {
+                    if (lowerName.find("background") != std::string::npos || lowerName.find("back") != std::string::npos || lowerName.find("fondo") != std::string::npos) px = 1.0f;
+                    else if (lowerName.find("middle") != std::string::npos || lowerName.find("medio") != std::string::npos) px = 1.0f;
+                    else if (lowerName.find("foreground") != std::string::npos || lowerName.find("front") != std::string::npos) px = 1.1f;
+                }
+
+                // Process the whole map for now to ensure visibility
+                for (int i = 0; i < mapData.width; i++) {
+                    for (int j = 0; j < mapData.height; j++) {
+                        unsigned int rawGid = mapLayer->Get(i, j);
+                        if (rawGid != 0) {
+                            const unsigned int FLIPPED_HORIZONTALLY_FLAG = 0x80000000;
+                            const unsigned int FLIPPED_VERTICALLY_FLAG = 0x40000000;
+                            const unsigned int FLIPPED_DIAGONALLY_FLAG = 0x20000000;
+
+                            int gid = rawGid & ~(FLIPPED_HORIZONTALLY_FLAG | FLIPPED_VERTICALLY_FLAG | FLIPPED_DIAGONALLY_FLAG);
+
+                            TileSet* tileSet = GetTilesetFromTileId(gid);
+                            if (tileSet != nullptr && tileSet->texture != nullptr) {
+                                SDL_Rect tileRect = tileSet->GetRect(gid);
+                                Vector2D mapCoord = MapToWorld(i, j);
+                                
+                                // Pin parallax to start position
+                                float pinnedX = mapCoord.getX() + initCameraX * (1.0f - px);
+
+                                SDL_FlipMode flip = SDL_FLIP_NONE;
+                                if (rawGid & FLIPPED_HORIZONTALLY_FLAG) flip = (SDL_FlipMode)(flip | SDL_FLIP_HORIZONTAL);
+                                if (rawGid & FLIPPED_VERTICALLY_FLAG) flip = (SDL_FlipMode)(flip | SDL_FLIP_VERTICAL);
+
+                                render->DrawTexture(tileSet->texture, (int)pinnedX, (int)mapCoord.getY(), &tileRect, px, 1.0f, 0.0, INT_MAX, INT_MAX, flip);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    for (const auto &deco : mapData.decorationObjects) {
-      if (deco->texture && !deco->isFront) {
-        int drawX = (int)deco->x;
-        if (foundPlayer) {
-          drawX = (int)(deco->x + (playerPos.getX() - deco->x) *
-                                      (deco->parallaxSpeed - 1.0f));
+    return ret;
+}
+
+// Called after Update, for foreground elements
+bool Map::PostUpdate()
+{
+    if (mapLoaded == false)
+        return true;
+
+    Render* render = Engine::GetInstance().render.get();
+
+    for (const auto& deco : mapData.decorationObjects) {
+        if (deco->texture && deco->isFront) {
+            // Pin parallax to start position
+            float pinnedX = deco->x + initCameraX * (1.0f - deco->parallaxSpeed);
+
+            if (!render->IsOnScreenWorldRect(pinnedX, deco->y - deco->height, deco->width, deco->height, 2000))
+                continue;
+
+            int tw = 0, th = 0;
+            Engine::GetInstance().textures->GetSize(deco->texture, tw, th);
+            float drawScaleX = (tw > 0) ? (deco->width / (float)tw) : 1.0f;
+            float drawScaleY = (th > 0) ? (deco->height / (float)th) : 1.0f;
+
+            render->DrawTexture(deco->texture, (int)pinnedX, (int)(deco->y - deco->height), nullptr, deco->parallaxSpeed, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV), drawScaleX, drawScaleY);
         }
 
         if (!render->IsOnScreenWorldRect((float)drawX, deco->y - deco->height,
@@ -128,17 +219,16 @@ bool Map::Update(float dt) {
       }
     }
 
-    for (const auto &plant : mapData.animatedPlants) {
-      if (plant->isFront)
-        continue;
-      plant->anim.Update(dt);
+    for (const auto& plant : mapData.animatedPlants) {
+        if (!plant->isFront) continue;
 
-      // Culling
-      if (!render->IsOnScreenWorldRect(plant->x, plant->y, plant->w, plant->h))
-        continue;
+        float pinnedX = plant->x + initCameraX * (1.0f - plant->parallaxSpeed);
 
-      const SDL_Rect &frame = plant->anim.GetCurrentFrame();
-      render->DrawTexture(plant->texture, (int)plant->x, (int)plant->y, &frame);
+        if (!render->IsOnScreenWorldRect(pinnedX, plant->y, plant->w, plant->h, 1000))
+            continue;
+
+        const SDL_Rect& frame = plant->anim.GetCurrentFrame();
+        render->DrawTexture(plant->texture, (int)pinnedX, (int)plant->y, &frame, plant->parallaxSpeed, 1.0f);
     }
 
     // Calculate camera bounds in tiles using the correctly zoomed world
@@ -319,10 +409,11 @@ bool Map::CleanUp() {
   }
   mapData.checkpoints.clear();
 
-  mapData.capeFound = false;
-  mapLoaded = false;
-  hasInitCamera = false;
-  initCameraX = 0.0f;
+    mapData.capeFound = false;
+    mapLoaded = false;
+    hasInitCamera = false;
+    initCameraX = 0.0f;
+    initCameraY = 0.0f;
 
   return true;
 }
@@ -725,17 +816,425 @@ void Map::LoadEntities(std::shared_ptr<Player> &player, bool portalTransition,
                   EntityType::ENEMY));
           enemy->position = Vector2D(x, y);
 
-          float patrolLeft = x - 200.0f;
-          float patrolRight = x + 200.0f;
-          pugi::xml_node props = objectNode.child("properties");
-          if (props) {
-            for (pugi::xml_node prop = props.child("property"); prop;
-                 prop = prop.next_sibling("property")) {
-              std::string propName = prop.attribute("name").as_string();
-              if (propName == "patrol_left")
-                patrolLeft = prop.attribute("value").as_float();
-              if (propName == "patrol_right")
-                patrolRight = prop.attribute("value").as_float();
+            for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
+
+                std::string entityType = objectNode.attribute("type").as_string();
+                if (entityType.empty()) entityType = objectNode.attribute("class").as_string();
+                if (entityType.empty()) {
+                    entityType = objectNode.attribute("class").as_string();
+                }
+                float x = objectNode.attribute("x").as_float();
+                float y = objectNode.attribute("y").as_float();
+
+                if (entityType == "Player") {
+                    if (player == nullptr) {
+                        player = std::dynamic_pointer_cast<Player>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+                        player->position = portalTransition
+                            ? Vector2D(spawnX, spawnY)
+                            : Vector2D(x + 32, y + 32);
+                        player->Start();
+                        LOG("Player spawned at: %f, %f", x, y);
+                    }
+                    else {
+                        if (portalTransition)
+                            player->SetPosition(Vector2D(spawnX, spawnY));
+                        else
+                            player->SetPosition(Vector2D(x, y));
+                    }
+
+                    // IMMEDIATELY CALCULATE AND PIN CAMERA POSITION FOR PARALLAX
+                    Render* render = Engine::GetInstance().render.get();
+                    float vW = render->GetWorldViewportWidth();
+                    float vH = render->GetWorldViewportHeight();
+                    initCameraX = -(player->position.getX() - vW / 2.0f);
+                    initCameraY = -(player->position.getY() - vH * 0.75f);
+                    hasInitCamera = true;
+                    LOG("PARALLAX PINNED in LoadEntities: %f, %f", initCameraX, initCameraY);
+                }
+                else if (entityType == "Enemy" || entityType == "SpiderCandy") {
+                    auto enemy = std::dynamic_pointer_cast<EnemyCarmel>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
+                    enemy->position = Vector2D(x, y);
+
+                    float patrolLeft = x - 200.0f;
+                    float patrolRight = x + 200.0f;
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string propName = prop.attribute("name").as_string();
+                            if (propName == "patrol_left")  patrolLeft = prop.attribute("value").as_float();
+                            if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
+                        }
+                    }
+                    enemy->SetPatrolPoints(patrolLeft, patrolRight);
+                    enemy->Start();
+                    LOG("Enemy (SpiderCandy) spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
+                }
+                else if (entityType == "BlockCrawler") {
+                    auto blockCrawler = std::dynamic_pointer_cast<BlockCrawler>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BLOCK_CRAWLER));
+                    blockCrawler->position = Vector2D(x, y);
+
+                    float patrolLeft = x - 200.0f;
+                    float patrolRight = x + 200.0f;
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string propName = prop.attribute("name").as_string();
+                            if (propName == "patrol_left")  patrolLeft = prop.attribute("value").as_float();
+                            if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
+                        }
+                    }
+                    blockCrawler->SetPatrolPoints(patrolLeft, patrolRight);
+                    blockCrawler->Start();
+                    LOG("BlockCrawler spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
+                }
+                else if (entityType == "EnemyB") {
+                    auto enemyB = std::dynamic_pointer_cast<EnemyB>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_B));
+                    enemyB->position = Vector2D(x, y);
+                    float patrolLeft = x - 200.0f;
+                    float patrolRight = x + 200.0f;
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string propName = prop.attribute("name").as_string();
+                            if (propName == "patrol_left")  patrolLeft = prop.attribute("value").as_float();
+                            if (propName == "patrol_right") patrolRight = prop.attribute("value").as_float();
+                        }
+                    }
+                    enemyB->SetPatrolPoints(patrolLeft, patrolRight);
+                    enemyB->Start();
+                    LOG("EnemyB spawned at: %f, %f (patrol: %.0f-%.0f)", x, y, patrolLeft, patrolRight);
+                }
+                else if (entityType == "EnemyC") {
+                    auto enemyC = std::dynamic_pointer_cast<EnemyC>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_C));
+                    enemyC->position = Vector2D(x, y);
+                    enemyC->Start();
+                    LOG("EnemyC spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "EnemyPlush") {
+                    auto enemyPlush = std::dynamic_pointer_cast<EnemyPlush>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_PLUSH));
+                    enemyPlush->position = Vector2D(x, y);
+                    enemyPlush->Start();
+                    LOG("EnemyPlush spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "EnemyStitchling") {
+                    auto stitchling = std::dynamic_pointer_cast<EnemyStitchling>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_STITCHLING));
+                    stitchling->position = Vector2D(x, y);
+                    stitchling->Start();
+                    LOG("EnemyStitchling spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "EnemyWindUpScurry" || entityType == "WindUpScurry") {
+                    auto scurry = std::dynamic_pointer_cast<EnemyWindUpScurry>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY_WINDUP_SCURRY));
+                    scurry->position = Vector2D(x, y);
+                    scurry->Start();
+                    LOG("EnemyWindUpScurry spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "Bouncer") {
+                    float w = objectNode.attribute("width").as_float(96.0f);
+                    float h = objectNode.attribute("height").as_float(96.0f);
+                    auto bouncer = std::dynamic_pointer_cast<Bouncer>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOUNCER));
+                    bouncer->position = Vector2D(x, y);
+                    bouncer->SetSpawnSize(w, h);
+                    bouncer->Start();
+                    LOG("Bouncer spawned at: %f, %f (size: %.0fx%.0f)", x, y, w, h);
+                }
+                else if (entityType == "Boss1") {
+                    auto boss = std::dynamic_pointer_cast<Boss1>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOSS_1));
+                    boss->position = Vector2D(x, y);
+
+                    float arenaMin = x - 400.0f;
+                    float arenaMax = x + 400.0f;
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (auto prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string pname = prop.attribute("name").as_string();
+                            if (pname == "arena_min_x") arenaMin = prop.attribute("value").as_float();
+                            if (pname == "arena_max_x") arenaMax = prop.attribute("value").as_float();
+                        }
+                    }
+                    boss->SetArenaLimits(arenaMin, arenaMax);
+                    boss->Start();
+                    LOG("Boss1 spawned at: %f, %f (arena: %.0f-%.0f)", x, y, arenaMin, arenaMax);
+                }
+                else if (entityType == "RopedRock") {
+                    auto rr = std::dynamic_pointer_cast<RopedRock>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::ROPE_ROCK));
+                    rr->position = Vector2D(x, y);
+
+                    pugi::xml_node rrProps = objectNode.child("properties");
+                    if (rrProps) {
+                        for (auto prop = rrProps.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string pname = prop.attribute("name").as_string();
+                            if (pname == "ropeLength")
+                                rr->SetRopeLength(prop.attribute("value").as_float());
+                        }
+                    }
+                    rr->Start();
+                }
+                else if (entityType == "Checkpoint") {
+                    float w = objectNode.attribute("width").as_float(64.0f);
+                    float h = objectNode.attribute("height").as_float(64.0f);
+                    std::string objectId = objectNode.attribute("id").as_string();
+                    std::string checkpointId = mapFileName + ":" + (objectId.empty()
+                        ? std::to_string((int)x) + "," + std::to_string((int)y)
+                        : objectId);
+                    auto checkpoint = std::dynamic_pointer_cast<Checkpoint>(Engine::GetInstance().entityManager->CreateEntity(EntityType::CHECKPOINT));
+                    checkpoint->Configure(checkpointId, w, h);
+                    checkpoint->position = Vector2D(x + w * 0.5f, y + h * 0.5f);
+                    checkpoint->Start();
+                    LOG("Checkpoint spawned at: %f, %f (%s)", x, y, checkpointId.c_str());
+                }
+                else if (entityType == "Box") {
+                    auto box = std::dynamic_pointer_cast<Box>(Engine::GetInstance().entityManager->CreateEntity(EntityType::BOX));
+                    box->position = Vector2D(x, y);
+                    box->Start();
+                    LOG("Box spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "DropDoll") {
+                    auto doll = std::dynamic_pointer_cast<DropDoll>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::DROP_DOLL));
+
+                    float objW = objectNode.attribute("width").as_float(80.0f);
+                    float objH = objectNode.attribute("height").as_float(56.0f);
+                    doll->position = Vector2D(x + objW * 0.5f, y + objH * 0.5f);
+
+                    float triggerW = objW;
+                    for (pugi::xml_node prop = objectNode.child("properties").child("property");
+                         prop; prop = prop.next_sibling("property"))
+                    {
+                        if (std::string(prop.attribute("name").as_string()) == "trigger_width")
+                            triggerW = prop.attribute("value").as_float(objW);
+                    }
+                    doll->SetTriggerWidth(triggerW);
+                    doll->Start();
+                    LOG("DropDoll spawned at (%.0f, %.0f), trigger width %.0f",
+                        doll->position.getX(), doll->position.getY(), triggerW);
+                }
+                else if (entityType == "HidingRock") {
+                    auto rock = std::dynamic_pointer_cast<HidingRock>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::HIDING_ROCK));
+                    rock->position = Vector2D(x, y);
+
+                    int rockType = 1;
+                    for (pugi::xml_node prop = objectNode.child("properties").child("property");
+                         prop; prop = prop.next_sibling("property"))
+                    {
+                        if (std::string(prop.attribute("name").as_string()) == "rock_type")
+                            rockType = prop.attribute("value").as_int(1);
+                    }
+                    rock->SetRockType(rockType);
+                    rock->Start();
+                    LOG("HidingRock spawned at (%.0f, %.0f), type %d", x, y, rockType);
+                }
+                else if (entityType == "Antagonist") {
+                    auto ant = std::dynamic_pointer_cast<Antagonist>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::ANTAGONIST));
+                    ant->position = Vector2D(x, y);
+                    for (pugi::xml_node prop = objectNode.child("properties").child("property");
+                         prop; prop = prop.next_sibling("property"))
+                    {
+                        std::string pname = prop.attribute("name").as_string();
+                        if      (pname == "appear_range") ant->SetAppearRange(prop.attribute("value").as_float(400.0f));
+                        else if (pname == "alpha")        ant->SetAlpha(prop.attribute("value").as_int(180));
+                        else if (pname == "scale")        ant->SetScale(prop.attribute("value").as_float(0.5f));
+                    }
+                    ant->Start();
+                    LOG("Antagonist spawned at (%.0f, %.0f)", ant->position.getX(), ant->position.getY());
+                }
+                else if (entityType == "Platform") {
+                    auto platform = std::dynamic_pointer_cast<Platform>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));
+
+                    float baseX = objectNode.attribute("x").as_float();
+                    float baseY = objectNode.attribute("y").as_float();
+
+                    platform->texW = objectNode.attribute("width").as_int(192);
+                    platform->texH = objectNode.attribute("height").as_int(64);
+
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string pname = prop.attribute("name").as_string();
+
+                            if (pname == "speed")
+                                platform->speed = prop.attribute("value").as_float();
+
+                            if (pname == "texture")
+                                platform->texturePath = prop.attribute("value").as_string();
+
+                            if (pname == "trigger")
+                                platform->triggerOnPlayer = prop.attribute("value").as_bool();
+
+                            if (pname == "require_lever")
+                                platform->requireLever = prop.attribute("value").as_bool();
+
+                            if (pname == "platform_name")
+                                platform->platformName = prop.attribute("value").as_string();
+
+                            if (pname == "path") {
+                                std::string pathStr = prop.attribute("value").as_string();
+                                std::stringstream ss(pathStr);
+                                std::string pair;
+                                while (std::getline(ss, pair, ';')) {
+                                    std::stringstream ssPair(pair);
+                                    std::string xStr, yStr;
+                                    if (std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
+                                        platform->AddWaypoint(Vector2D(std::stof(xStr), std::stof(yStr)));
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (!platform->waypoints.empty())
+                        platform->position = platform->waypoints[0];
+                    else
+                        platform->position = Vector2D(baseX, baseY);
+
+                    platform->Start();
+                    LOG("Platform spawned at: %f, %f", baseX, baseY);
+                    }
+                else if (entityType == "Lever") {
+                    auto lever = std::dynamic_pointer_cast<Lever>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::LEVER));
+                    lever->position = Vector2D(x, y);
+
+                    // Leemos el tamaño para la colisión y dibujo
+                    lever->texW = objectNode.attribute("width").as_int(64);
+                    lever->texH = objectNode.attribute("height").as_int(64);
+
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            std::string pname = prop.attribute("name").as_string();
+
+                            if (pname == "target_platform")
+                                lever->targetPlatformName = prop.attribute("value").as_string();
+
+                            if (pname == "locked_by_puzzle")
+                                lever->isLockedByPuzzle = prop.attribute("value").as_bool();
+                        }
+                    }
+                    lever->Start();
+                    LOG("Lever spawned at: %f, %f targeting %s", x, y, lever->targetPlatformName.c_str());
+                    }
+                else if (entityType == "MemoryFragment") {
+                    auto frag = std::dynamic_pointer_cast<MemoryFragment>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::MEMORY_FRAGMENT));
+                    frag->position = Vector2D(x, y);
+                    for (pugi::xml_node prop = objectNode.child("properties").child("property");
+                         prop; prop = prop.next_sibling("property"))
+                    {
+                        std::string pname = prop.attribute("name").as_string();
+                        if      (pname == "video_path")    frag->SetVideoPath(prop.attribute("value").as_string());
+                        else if (pname == "collect_range") frag->SetCollectRange(prop.attribute("value").as_float(100.0f));
+                        else if (pname == "scale")         frag->SetScale(prop.attribute("value").as_float(0.5f));
+                    }
+                    frag->Start();
+                    LOG("MemoryFragment spawned at (%.0f, %.0f)", frag->position.getX(), frag->position.getY());
+                }
+                // Parse MovingPlatform from Tiled polylines
+                else if (entityType == "MovingPlatform") {
+                    auto platform = std::dynamic_pointer_cast<Platform>(Engine::GetInstance().entityManager->CreateEntity(EntityType::PLATFORM));
+
+                    // Read the custom "speed" property if it exists
+                    pugi::xml_node props = objectNode.child("properties");
+                    if (props) {
+                        for (pugi::xml_node prop = props.child("property"); prop; prop = prop.next_sibling("property")) {
+                            if (std::string(prop.attribute("name").as_string()) == "speed") {
+                                platform->speed = prop.attribute("value").as_float();
+                            }
+                        }
+                    }
+
+                    float baseX = objectNode.attribute("x").as_float();
+                    float baseY = objectNode.attribute("y").as_float();
+
+                    // Extract the polyline points and add them as waypoints
+                    pugi::xml_node polyNode = objectNode.child("polyline");
+                    if (polyNode) {
+                        std::string pointsStr = polyNode.attribute("points").as_string();
+                        std::stringstream ss(pointsStr);
+                        std::string pointPair;
+
+                        while (std::getline(ss, pointPair, ' ')) {
+                            if (pointPair.empty()) continue;
+                            std::stringstream ssPair(pointPair);
+                            std::string xStr, yStr;
+
+                            if (std::getline(ssPair, xStr, ',') && std::getline(ssPair, yStr, ',')) {
+                                platform->AddWaypoint(Vector2D(baseX + std::stof(xStr), baseY + std::stof(yStr)));
+                            }
+                        }
+                    }
+
+                    // Set the initial position and start the platform
+                    if (!platform->waypoints.empty()) {
+                        platform->position = platform->waypoints[0];
+                    }
+                    else {
+                        platform->position = Vector2D(baseX, baseY);
+                    }
+
+                    platform->Start();
+                    LOG("MovingPlatform spawned at: %f, %f with speed %f", baseX, baseY, platform->speed);
+                }
+                else if (entityType == "Boss2") {
+                    auto boss = std::dynamic_pointer_cast<Boss2>(
+                        Engine::GetInstance().entityManager->CreateEntity(EntityType::BOSS_2));
+                    boss->position = Vector2D(x, y);
+
+                    for (pugi::xml_node prop = objectNode.child("properties").child("property");
+                         prop; prop = prop.next_sibling("property"))
+                    {
+                        if (std::string(prop.attribute("name").as_string()) == "trigger_radius")
+                            boss->SetTriggerRadius(prop.attribute("value").as_float(500.0f));
+                    }
+                    boss->Start();
+                    LOG("Boss2 spawned at (%.0f, %.0f)", x, y);
+                }
+                else if (entityType == "Cape") {
+                    mapData.capeFound = true;
+                    mapData.capeX = x;
+                    mapData.capeY = y;
+                    LOG("Cape position loaded from TMX at: %f, %f", x, y);
+                }
+                else if (entityType == "Door") {
+                    auto door = std::dynamic_pointer_cast<Door>(Engine::GetInstance().entityManager->CreateEntity(EntityType::DOOR));
+                    door->position = Vector2D(x, y);
+                    door->Start();
+                    LOG("Door spawned at: %f, %f", x, y);
+                }
+                else if (entityType == "Wall") {
+                    float w = objectNode.attribute("width").as_float(64.0f);
+                    float h = objectNode.attribute("height").as_float(64.0f);
+                    PhysBody* wall = Engine::GetInstance().physics.get()->CreateRectangle(
+                        (int)(x + w / 2), (int)(y + h / 2), (int)w, (int)h, bodyType::STATIC, 0.0f);
+                    wall->ctype = ColliderType::PLATFORM;
+                    colliderList.push_back(wall);
+                    LOG("Wall spawned at: %f, %f (%.0fx%.0f)", x, y, w, h);
+                }
+                else if (entityType == "Tirachinas") {
+                    mapData.slingshotFound = true;
+                    mapData.slingshotX = x;
+                    mapData.slingshotY = y;
+                    LOG("Slingshot position loaded from TMX at: %f, %f", x, y);
+                }
+                else if (entityType == "Oso" || entityType == "Peluche" || entityType == "StuffedAnimal") {
+                    mapData.stuffedAnimalFound = true;
+                    mapData.stuffedAnimalX = x;
+                    mapData.stuffedAnimalY = y;
+                    LOG("StuffedAnimal position loaded from TMX at: %f, %f", x, y);
+                }
+                else if (entityType == "Wall") {
+                    float w = objectNode.attribute("width").as_float(64.0f);
+                    float h = objectNode.attribute("height").as_float(64.0f);
+                    int cx = (int)(x + w * 0.5f);
+                    int cy = (int)(y + h * 0.5f);
+                    PhysBody* wall = Engine::GetInstance().physics->CreateRectangle(
+                        cx, cy, (int)w, (int)h, bodyType::STATIC, 0.0f);
+                    if (wall) wall->ctype = ColliderType::UNKNOWN;
+                    LOG("Invisible wall spawned at: %f, %f (%dx%d)", x, y, (int)w, (int)h);
+                }
             }
           }
           enemy->SetPatrolPoints(patrolLeft, patrolRight);
@@ -1338,14 +1837,32 @@ void Map::LoadImageLayers() {
     for (char &c : lowerName)
       c = ::tolower(c);
 
-    if (lowerName.find("background") != std::string::npos ||
-        lowerName.find("back") != std::string::npos ||
-        lowerName.find("fondo") != std::string::npos ||
-        lowerName.find("bakground") != std::string::npos) {
-      defaultParallax = 0.95f; // Default background image parallax
-    } else if (lowerName.find("foreground") != std::string::npos ||
-               lowerName.find("front") != std::string::npos) {
-      defaultParallax = 1.05f; // Default foreground image parallax
+        if (lowerName.find("background") != std::string::npos || 
+            lowerName.find("back") != std::string::npos || 
+            lowerName.find("fondo") != std::string::npos) 
+        {
+            defaultParallax = 0.8f; // "A bit of parallax" for background image
+        }
+        else if (lowerName.find("middle") != std::string::npos ||
+                 lowerName.find("medio") != std::string::npos)
+        {
+            defaultParallax = 1.0f; // Eliminate middleground effect
+        }
+        else if (lowerName.find("foreground") != std::string::npos || 
+                 lowerName.find("front") != std::string::npos) 
+        {
+            defaultParallax = 1.1f; // Foreground moves faster than camera
+        }
+
+        pugi::xml_attribute pxAttr = imgNode.attribute("parallaxx");
+        imgLayer->parallaxFactorX = pxAttr ? pxAttr.as_float() : defaultParallax;
+        imgLayer->parallaxFactorY = imgNode.attribute("parallaxy").as_float(1.0f);
+        imgLayer->source = imgNode.child("image").attribute("source").as_string();
+
+        std::string fullPath = mapPath + imgLayer->source;
+        imgLayer->texture = Engine::GetInstance().textures->Load(fullPath.c_str());
+
+        mapData.imageLayers.push_back(imgLayer);
     }
 
     // Check if parallaxx attribute is explicitly set in TMX, otherwise use
@@ -1374,12 +1891,125 @@ void Map::LoadDecorationObjects() {
        groupNode != NULL; groupNode = groupNode.next_sibling("objectgroup")) {
     std::string groupName = groupNode.attribute("name").as_string();
 
-    bool skip = false;
-    for (const auto &excluded : excludedNames) {
-      if (groupName == excluded) {
-        skip = true;
-        break;
-      }
+        // Determine parallax speed and front/back based on Tiled layer name
+        float layerParallax = 1.0f;
+        bool  layerIsFront  = false;
+
+        std::string lowerGroupName = groupName;
+        for (char& c : lowerGroupName) c = ::tolower(c);
+
+        if (lowerGroupName.find("background") != std::string::npos || 
+            lowerGroupName.find("back") != std::string::npos || 
+            lowerGroupName.find("fondo") != std::string::npos) 
+        {
+            layerParallax = 1.0f; // Eliminate background effect
+            layerIsFront  = false;
+        }
+        else if (lowerGroupName.find("middle") != std::string::npos ||
+                 lowerGroupName.find("medio") != std::string::npos)
+        {
+            layerParallax = 1.0f; // Eliminate middleground effect
+            layerIsFront  = false;
+        }
+        else if (lowerGroupName.find("foreground") != std::string::npos || 
+                 lowerGroupName.find("front") != std::string::npos) 
+        {
+            layerParallax = 1.1f; // Foreground moves faster than camera
+            layerIsFront  = true;
+        }
+        // Middleground and everything else stays at 1.0, isFront = false
+
+        // TMX parallaxx attribute overrides the default if present
+        float tmxParallaxx = groupNode.attribute("parallaxx").as_float(0.0f);
+        if (tmxParallaxx > 0.0f) {
+            layerParallax = tmxParallaxx;
+        }
+
+        std::vector<DecorationObject*> layerDecos;
+
+        for (pugi::xml_node objNode = groupNode.child("object");
+            objNode != NULL;
+            objNode = objNode.next_sibling("object"))
+        {
+            unsigned int rawGid = objNode.attribute("gid").as_uint(0);
+            if (rawGid == 0) continue;
+
+            const unsigned int FLIPPED_HORIZONTALLY_FLAG = 0x80000000;
+            const unsigned int FLIPPED_VERTICALLY_FLAG = 0x40000000;
+            const unsigned int FLIPPED_DIAGONALLY_FLAG = 0x20000000;
+
+            int gid = rawGid & ~(FLIPPED_HORIZONTALLY_FLAG | FLIPPED_VERTICALLY_FLAG | FLIPPED_DIAGONALLY_FLAG);
+
+            TileSet* ts = GetTilesetFromTileId(gid);
+            if (ts == nullptr) continue;
+
+            int relativeId = gid - ts->firstGid;
+
+            if (ts->tileTextures.find(relativeId) == ts->tileTextures.end())
+            {
+                for (pugi::xml_node tsNode = mapFileXML.child("map").child("tileset");
+                    tsNode != NULL;
+                    tsNode = tsNode.next_sibling("tileset"))
+                {
+                    if (tsNode.attribute("firstgid").as_int() != ts->firstGid) continue;
+
+                    std::string tsxSource = tsNode.attribute("source").as_string();
+                    if (tsxSource.empty()) break;
+
+                    std::string fullTsxPath = mapPath + tsxSource;
+                    std::string tsxFolder = fullTsxPath.substr(0, fullTsxPath.find_last_of("/\\") + 1);
+
+                    pugi::xml_document tsxDoc;
+                    if (!tsxDoc.load_file(fullTsxPath.c_str())) {
+                        LOG("WARNING: Could not load tsx file: %s", fullTsxPath.c_str());
+                        break;
+                    }
+
+                    for (pugi::xml_node tileNode = tsxDoc.child("tileset").child("tile");
+                        tileNode != NULL;
+                        tileNode = tileNode.next_sibling("tile"))
+                    {
+                        if (tileNode.attribute("id").as_int(-1) != relativeId) continue;
+
+                        std::string imgSrc = tileNode.child("image").attribute("source").as_string();
+                        if (!imgSrc.empty())
+                        {
+                            std::string fullPath = tsxFolder + imgSrc;
+                            SDL_Texture* tex = Engine::GetInstance().textures->Load(fullPath.c_str());
+                            ts->tileTextures[relativeId] = tex;
+                        }
+                        break;
+                    }
+                    break;
+                }
+            }
+
+            DecorationObject* deco = new DecorationObject();
+            deco->x = objNode.attribute("x").as_float();
+            deco->y = objNode.attribute("y").as_float();
+            deco->width = objNode.attribute("width").as_float();
+            deco->height = objNode.attribute("height").as_float();
+            deco->rotation = objNode.attribute("rotation").as_double(0.0);
+            deco->isFront = layerIsFront;
+            deco->gid = gid;
+            deco->flipH = (rawGid & FLIPPED_HORIZONTALLY_FLAG) != 0;
+            deco->flipV = (rawGid & FLIPPED_VERTICALLY_FLAG) != 0;
+            deco->parallaxSpeed = layerParallax;
+
+            auto it = ts->tileTextures.find(relativeId);
+            deco->texture = (it != ts->tileTextures.end()) ? it->second : nullptr;
+
+            layerDecos.push_back(deco);
+        }
+
+        std::sort(layerDecos.begin(), layerDecos.end(),
+            [](const DecorationObject* a, const DecorationObject* b) {
+                return a->y < b->y;
+            });
+
+        for (auto* deco : layerDecos) {
+            mapData.decorationObjects.push_back(deco);
+        }
     }
     if (skip)
       continue;
@@ -1467,9 +2097,41 @@ void Map::LoadDecorationObjects() {
                   Engine::GetInstance().textures->Load(fullPath.c_str());
               ts->tileTextures[relativeId] = tex;
             }
-            break;
-          }
-          break;
+
+            if (tsxSource.empty()) continue;
+
+            std::string fullTsxPath = mapPath + tsxSource;
+
+            AnimatedPlantObject* plant = new AnimatedPlantObject();
+            plant->x = objNode.attribute("x").as_float();
+            plant->y = objNode.attribute("y").as_float() - objNode.attribute("height").as_float();
+            plant->w = objNode.attribute("width").as_float();
+            plant->h = objNode.attribute("height").as_float();
+            plant->isFront = (layerName == "AnimatedPlants front");
+            plant->tsxPath = tsxSource;
+
+            // Determine parallax speed based on layer name
+            plant->parallaxSpeed = 1.0f;
+            std::string lowerLayerName = layerName;
+            for (char& c : lowerLayerName) c = ::tolower(c);
+            if (lowerLayerName.find("background") != std::string::npos || lowerLayerName.find("back") != std::string::npos || lowerLayerName.find("fondo") != std::string::npos) plant->parallaxSpeed = 1.0f;
+            else if (lowerLayerName.find("middle") != std::string::npos || lowerLayerName.find("medio") != std::string::npos) plant->parallaxSpeed = 1.0f;
+            else if (lowerLayerName.find("foreground") != std::string::npos || lowerLayerName.find("front") != std::string::npos) plant->parallaxSpeed = 1.1f;
+
+            std::unordered_map<int, std::string> aliases = { {0, "idle"} };
+            bool loaded = plant->anim.LoadFromTSX(fullTsxPath.c_str(), aliases);
+
+            if (!loaded) { delete plant; continue; }
+
+            plant->anim.SetCurrent("idle");
+            pugi::xml_document tsxDoc;
+            if (tsxDoc.load_file(fullTsxPath.c_str())) {
+                std::string imgSource = tsxDoc.child("tileset").child("image").attribute("source").as_string();
+                std::string tsxFolder = tsxSource.substr(0, tsxSource.find_last_of("/\\") + 1);
+                std::string pngPath = mapPath + tsxFolder + imgSource;
+                plant->texture = Engine::GetInstance().textures->Load(pngPath.c_str());
+            }
+            mapData.animatedPlants.push_back(plant);
         }
       }
 
@@ -1626,4 +2288,63 @@ bool Map::GetSpawnById(const std::string &id, float &outX, float &outY) const {
     }
   }
   return false;
+std::vector<Map::MapObject> Map::GetPuzzleObjects() const
+{
+    std::vector<Map::MapObject> result;
+
+    for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
+        groupNode; groupNode = groupNode.next_sibling("objectgroup"))
+    {
+        if (std::string(groupNode.attribute("name").as_string()) != "PuzzleObjects") continue;
+
+        for (pugi::xml_node obj = groupNode.child("object"); obj; obj = obj.next_sibling("object"))
+        {
+            Map::MapObject mo;
+            mo.name = obj.attribute("name").as_string();
+            mo.rect.x = obj.attribute("x").as_float();
+            mo.rect.y = obj.attribute("y").as_float();
+            mo.rect.w = obj.attribute("width").as_float(48.0f);
+            mo.rect.h = obj.attribute("height").as_float(48.0f);
+            result.push_back(mo);
+        }
+        break;
+    }
+
+    return result;
+}
+
+std::vector<Map::MapObject> Map::GetPuzzleObjects3() const
+{
+    std::vector<Map::MapObject> result;
+
+    for (pugi::xml_node groupNode = mapFileXML.child("map").child("objectgroup");
+        groupNode; groupNode = groupNode.next_sibling("objectgroup"))
+    {
+        if (std::string(groupNode.attribute("name").as_string()) != "PuzzleObjects3") continue;
+
+        for (pugi::xml_node obj = groupNode.child("object"); obj; obj = obj.next_sibling("object"))
+        {
+            Map::MapObject mo;
+            mo.name = obj.attribute("name").as_string();
+            mo.rect.x = obj.attribute("x").as_float();
+            mo.rect.y = obj.attribute("y").as_float();
+            mo.rect.w = obj.attribute("width").as_float(48.0f);
+            mo.rect.h = obj.attribute("height").as_float(48.0f);
+
+            for (pugi::xml_node prop = obj.child("properties").child("property");
+                prop; prop = prop.next_sibling("property"))
+            {
+                std::string propName = prop.attribute("name").as_string();
+                if (propName == "requiredClicks") {
+                    int clicks = prop.attribute("value").as_int(1);
+                    mo.name += "|" + std::to_string(clicks);
+                }
+            }
+
+            result.push_back(mo);
+        }
+        break;
+    }
+
+    return result;
 }
