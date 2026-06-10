@@ -527,7 +527,6 @@ body.loaded .scroll-cue {
 
 .feat-bg-asset {
     width: 100%; height: 100%; object-fit: cover;
-    opacity: 0.2;   /* Figma: 20% opacity for bg assets */
 }
 
 .feat-body { padding: 1.5rem 2rem; }
