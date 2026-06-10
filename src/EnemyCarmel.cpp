@@ -285,7 +285,7 @@ void EnemyCarmel::Draw(float dt)
 		int drawX = x - renderSize / 2;
 		// Anchor bottom to ground (big capsule bottom + 7px visual offset = y + 57)
 		int drawY = (y + 57) - renderSize;
-		Engine::GetInstance().render->DrawTexture(rollTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale_);
+		Engine::GetInstance().render->DrawTexture(rollTexture_, drawX, drawY, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale_);
 	}
 	else if (state_ == EnemyCarmelState::SCARED)
 	{
@@ -318,7 +318,7 @@ void EnemyCarmel::Draw(float dt)
 		int drawX = x - renderSize / 2;
 		// Anchor bottom to ground so it grows upwards, not sinking into floor
 		int drawY = (y + 57) - renderSize;
-		Engine::GetInstance().render->DrawTexture(blowupTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale_);
+		Engine::GetInstance().render->DrawTexture(blowupTexture_, drawX, drawY, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale_);
 	}
 	else
 	{
