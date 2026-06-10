@@ -320,7 +320,7 @@
     <property name="trigger" type="bool" value="true"/>
    </properties>
   </object>
-  <object id="78" type="Lever" x="3717" y="7350" width="128" height="128">
+  <object id="78" type="Lever" x="3028" y="7327" width="128" height="128">
    <properties>
     <property name="target_platform" value="Ascensor1"/>
    </properties>
