@@ -954,7 +954,10 @@ void Scene::LoadIntroCinematic()
 	cinematicVideoStarted_ = false;
 	introLoadingDelayActive_ = false;
 	introLoadingDelay_ = 0.0f;
-	
+
+	// Load running kid sprite for loading animation
+	texLoadingKid_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Loading_Kid.png");
+
 	// Start in Pre-Video Loading
 	introCinState_ = IntroCinState::PRE_VIDEO_LOADING;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
@@ -963,6 +966,10 @@ void Scene::LoadIntroCinematic()
 void Scene::UnloadIntroCinematic()
 {
 	Engine::GetInstance().cinematics->StopVideo();
+	if (texLoadingKid_) {
+		Engine::GetInstance().textures->UnLoad(texLoadingKid_);
+		texLoadingKid_ = nullptr;
+	}
 }
 
 void Scene::DrawLoadingText(bool pulsing, float timer)
@@ -978,7 +985,40 @@ void Scene::DrawLoadingText(bool pulsing, float timer)
 	}
 
 	SDL_Color textColor = { 255, 255, 255, alpha };
-	render.DrawMenuTextCentered("Loading...", { winW - 250, winH - 80, 200, 40 }, textColor, 0.5f);
+
+	const int textY = winH - 80;
+	const int textH = 40;
+
+	SDL_Texture* tx = render.CreateMenuTextTexture("Loading...", textColor);
+	if (tx) {
+		float tw = 0, th = 0;
+		SDL_GetTextureSize(tx, &tw, &th);
+		float textScaledW = tw * 0.5f;
+		float textScaledH = th * 0.5f;
+
+		// Align text right edge at winW - 50
+		const int targetRight = winW - 50;
+		int textX = targetRight - (int)textScaledW;
+		int textYPos = textY + (textH - (int)textScaledH) / 2;
+
+		// Draw text
+		render.DrawTexture(tx, textX, textYPos, nullptr, 0.0f, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+
+		// Draw running kid sprite to the left of "Loading..."
+		if (texLoadingKid_) {
+			const int kidSize = textH;  // square, same height as the text row
+			const int gap = 2; // closer gap as requested
+			int frame = (int)(timer / (1000.0f / LOADING_KID_FPS)) % LOADING_KID_FRAMES;
+			SDL_Rect src = { frame * LOADING_KID_FRAME_W, 0, LOADING_KID_FRAME_W, LOADING_KID_FRAME_H };
+			int kidX = textX - kidSize - gap;
+			int kidY = textY + (textH - kidSize) / 2;
+			SDL_SetTextureAlphaMod(texLoadingKid_, alpha);
+			render.DrawTexture(texLoadingKid_, kidX, kidY, &src, 0.0f, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_HORIZONTAL, (float)kidSize / (float)LOADING_KID_FRAME_W);
+			SDL_SetTextureAlphaMod(texLoadingKid_, 255);
+		}
+
+		SDL_DestroyTexture(tx);
+	}
 }
 
 void Scene::UpdateIntroCinematic(float dt)
@@ -1151,9 +1191,16 @@ void Scene::LoadLoading()
 	loadingTimer_ = 0.0f;
 	mapLoadingFinished_ = false;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
+	texLoadingKid_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Loading_Kid.png");
 }
 
-void Scene::UnloadLoading() {}
+void Scene::UnloadLoading()
+{
+	if (texLoadingKid_) {
+		Engine::GetInstance().textures->UnLoad(texLoadingKid_);
+		texLoadingKid_ = nullptr;
+	}
+}
 
 void Scene::UpdateLoading(float dt)
 {
@@ -2751,7 +2798,7 @@ void Scene::PostUpdateGameplay()
 
 	// --- Draw Health HUD ---
 	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_
-		&& currentMapFile_ != "MapLvl2ZonaBoss.tmx") {
+		&& currentMapFile_ != "MapLvl2ZonaBoss.tmx" && currentMapFile_ != "MapLvl3ZonaBoss.tmx") {
 		SDL_Rect r;
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
