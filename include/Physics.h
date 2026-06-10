@@ -96,6 +96,10 @@ public:
     bool IsDebug() const { return debug; }
     void PreSimulateScene(float totalSimulationTime);
 
+    // Dynamic collision filtering
+    void SetCollisionFilter(PhysBody* physBody, uint32_t categoryBits, uint32_t maskBits);
+    void UpdateEnemyFilters();
+
     // --- Velocity helpers (thin wrappers over Box2D 3.x C API)
     b2Vec2 GetLinearVelocity(const PhysBody* p) const;
     float  GetXVelocity(const PhysBody* p) const;
@@ -142,4 +146,5 @@ private:
 
     // List of physics bodies
     std::list<PhysBody*> bodiesToDelete;
+    std::list<PhysBody*> allBodies;
 };

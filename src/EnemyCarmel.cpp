@@ -116,10 +116,21 @@ void EnemyCarmel::UpdateFSM(float dt)
 	int bodyX, bodyY;
 	pbody->GetPosition(bodyX, bodyY);
 
-	Vector2D playerPos = Engine::GetInstance().scene->GetPlayerPosition();
-	float dx           = playerPos.getX() - (float)bodyX;
+	int px = 0, py = 0;
+	if (player != nullptr && player->pbody != nullptr) {
+		player->pbody->GetPosition(px, py);
+	}
+	Vector2D playerCenter((float)px, (float)py);
+
+	float dx           = playerCenter.getX() - (float)bodyX;
 	float distToPlayer = std::abs(dx);
-	float totalDist = playerPos.distanceEuclidean(Vector2D((float)bodyX, (float)bodyY));
+	float totalDist    = playerCenter.distanceEuclidean(Vector2D((float)bodyX, (float)bodyY));
+
+	if (player != nullptr && player->IsHiding()) {
+		totalDist = 10000.0f;
+		distToPlayer = 10000.0f;
+		dx = currentDirX_ * 1000.0f; // Keep rolling in the same direction without turning back
+	}
 
 	switch (state_)
 	{
@@ -137,6 +148,8 @@ void EnemyCarmel::UpdateFSM(float dt)
 
 	case EnemyCarmelState::SCARED:
 		velocity.x = 0.0f;
+		currentDirX_ = (dx > 0.0f) ? 1.0f : -1.0f;
+		facingRight_ = (currentDirX_ > 0.0f);
 		stateTimer_ -= dt;
 		if (stateTimer_ <= 0.0f) {
 			TransitionTo(EnemyCarmelState::BLOWUP);
@@ -145,6 +158,8 @@ void EnemyCarmel::UpdateFSM(float dt)
 
 	case EnemyCarmelState::BLOWUP:
 		velocity.x = 0.0f;
+		currentDirX_ = (dx > 0.0f) ? 1.0f : -1.0f;
+		facingRight_ = (currentDirX_ > 0.0f);
 		stateTimer_ -= dt;
 		if (stateTimer_ <= 0.0f) {
 			TransitionTo(EnemyCarmelState::CHASE);
@@ -152,30 +167,11 @@ void EnemyCarmel::UpdateFSM(float dt)
 		break;
 
 	case EnemyCarmelState::CHASE:
-		if (totalDist > LOSE_RADIUS)
-		{
-			stateTimer_ -= dt;
-			if (stateTimer_ <= 0.0f) {
-				TransitionTo(EnemyCarmelState::DEFLATE);
-			}
+		stateTimer_ -= dt;
+		if (stateTimer_ <= 0.0f) {
+			TransitionTo(EnemyCarmelState::DEFLATE);
 		}
 		else {
-			stateTimer_ = 2000.0f; // Reset lose timer as long as player is in range
-		}
-		
-		if (state_ == EnemyCarmelState::CHASE) {
-			float desiredDir = (dx > 0.0f) ? 1.0f : -1.0f;
-			
-			if (desiredDir != currentDirX_) {
-				turnDelayTimer_ -= dt;
-				if (turnDelayTimer_ <= 0.0f) {
-					currentDirX_ = desiredDir;
-					turnDelayTimer_ = TURN_DELAY;
-				}
-			} else {
-				turnDelayTimer_ = TURN_DELAY;
-			}
-
 			moveFxTimer_ -= dt;
 			if (moveFxTimer_ <= 0.0f) {
 				PlaySpiderFx(moveFxId_);
@@ -224,7 +220,7 @@ void EnemyCarmel::TransitionTo(EnemyCarmelState newState)
 		break;
 
 	case EnemyCarmelState::CHASE:
-		stateTimer_ = 2000.0f;
+		stateTimer_ = 10000.0f;
 		moveFxTimer_ = 0.0f; // Force immediate play
 		LOG("SpiderCandy: CHASE");
 		break;
@@ -364,6 +360,8 @@ void EnemyCarmel::PlaySpiderFx(int fxId)
 
 void EnemyCarmel::OnCollision(PhysBody* physA, PhysBody* physB)
 {
+	Enemy::OnCollision(physA, physB);
+
 	if (physB->ctype == ColliderType::PLAYER && state_ == EnemyCarmelState::CHASE) {
 		PlaySpiderFx(attackFxId_);
 	}
