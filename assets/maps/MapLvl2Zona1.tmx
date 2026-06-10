@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="170" height="104" tilewidth="64" tileheight="64" infinite="0" nextlayerid="24" nextobjectid="505">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="170" height="104" tilewidth="64" tileheight="64" infinite="0" nextlayerid="24" nextobjectid="505">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 2/TL_Nivell_2_01.png" width="640" height="640"/>
   <tile id="0">
@@ -18135,32 +18135,32 @@
   </object>
  </objectgroup>
  <objectgroup id="10" name="Foreground">
-  <object id="395" gid="1547" x="4238" y="1677.61" width="292.702" height="167.394"/>
-  <object id="396" gid="1549" x="4674.47" y="1685" width="258.527" height="506.612"/>
-  <object id="397" gid="1532" x="2789.33" y="1545" width="458.667" height="469"/>
+  <object id="395" gid="1547" x="4338.68" y="1677.61" width="192.026" height="109.818"/>
+  <object id="396" gid="1549" x="4686.59" y="1685" width="94.8906" height="185.949"/>
+  <object id="397" gid="1532" x="2910.84" y="1545" width="337.162" height="344.758"/>
   <object id="398" gid="1530" x="3880.31" y="2309.79" width="387.004" height="589.046" rotation="194.018"/>
   <object id="399" gid="1533" x="4356.02" y="2397.44" width="321.103" height="576.714" rotation="212.878"/>
   <object id="400" gid="1538" x="4484.4" y="2830.83" width="213" height="592.296" rotation="241.253"/>
   <object id="401" gid="1540" x="4525.8" y="3504.77" width="300.988" height="672.398" rotation="277.738"/>
-  <object id="404" gid="1542" x="2852" y="4561" width="385" height="353"/>
+  <object id="404" gid="1542" x="2979.27" y="4561" width="257.727" height="236.306"/>
   <object id="405" gid="1543" x="2122.95" y="3523.08" width="556.588" height="450.697" rotation="91.7538"/>
   <object id="406" gid="1551" x="2655.94" y="3819.44" width="237" height="393.812" rotation="6.0412"/>
   <object id="407" gid="1551" x="2913.1" y="3765.37" width="189" height="297.812" rotation="349.892"/>
-  <object id="408" gid="1535" x="4758.27" y="4560.27" width="676.518" height="621.116"/>
-  <object id="410" gid="1530" x="5937.54" y="4644" width="488.152" height="743"/>
-  <object id="411" gid="1532" x="6824.15" y="4557.19" width="491.845" height="502.925"/>
-  <object id="412" gid="1545" x="6334" y="3280" width="476" height="471"/>
+  <object id="408" gid="1535" x="5109.79" y="4560.27" width="325.003" height="298.387"/>
+  <object id="410" gid="1530" x="6298.15" y="4598.55" width="282.091" height="429.362"/>
+  <object id="411" gid="1532" x="6966.57" y="4557.19" width="349.421" height="357.292"/>
+  <object id="412" gid="1545" x="5578.74" y="3283.03" width="255.502" height="252.818"/>
   <object id="413" gid="1548" x="5900" y="745" width="769" height="553"/>
   <object id="414" gid="1550" x="8470.73" y="3084" width="278.274" height="324"/>
   <object id="415" gid="1550" x="8338.45" y="2427.58" width="278.765" height="324.572" rotation="181.113"/>
   <object id="416" gid="1552" x="9280.77" y="4053" width="372.235" height="335.21"/>
-  <object id="417" gid="1534" x="9270.87" y="6094" width="861.129" height="555"/>
-  <object id="418" gid="1535" x="8503.75" y="6097" width="650.251" height="597"/>
-  <object id="419" gid="1533" x="10532" y="6114" width="289" height="519.055"/>
-  <object id="420" gid="1542" x="4002.32" y="6225" width="188.683" height="173"/>
-  <object id="421" gid="1541" x="6100" y="5873" width="337" height="469.59"/>
-  <object id="422" gid="1544" x="2778.58" y="6659" width="416.422" height="281"/>
-  <object id="423" gid="1545" x="3348.29" y="6328" width="257.707" height="255"/>
+  <object id="417" gid="1534" x="9570.87" y="6094" width="561.129" height="361.649"/>
+  <object id="418" gid="1535" x="8777.7" y="6097" width="376.301" height="345.485"/>
+  <object id="419" gid="1533" x="10616.8" y="6114" width="204.152" height="366.664"/>
+  <object id="420" gid="1542" x="4058.51" y="6225" width="132.498" height="121.485"/>
+  <object id="421" gid="1541" x="5884.85" y="5788.15" width="191.545" height="266.908"/>
+  <object id="422" gid="1544" x="2967.19" y="6659" width="227.813" height="153.727"/>
+  <object id="423" gid="1545" x="3452.41" y="6328" width="153.583" height="151.97"/>
  </objectgroup>
  <objectgroup id="13" name="AnimatedPlants front" visible="0">
   <object id="342" gid="845" x="9257.67" y="6075" width="242" height="350"/>
