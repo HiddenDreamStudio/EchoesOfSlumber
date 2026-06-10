@@ -111,6 +111,46 @@ private:
     int   menuBtnX_ = 0;   // button X position
     int   menuBtnW_ = 0;   // button width
 
+    // ── Play sub-screen animation (New Game / Continue / Slots) ──────────────
+    enum class PlaySubState {
+        NONE,               // main menu buttons visible
+        FADE_OUT_BUTTONS,   // fading out Play/Options/Exit
+        FADE_IN_OPTS,       // fading in New Game / Continue / Back
+        OPTS_ACTIVE,        // sub-options fully interactive
+        FADE_OUT_OPTS_TO_SLOTS, // fading out opts to show slots
+        FADE_IN_SLOTS,      // fading in 3 save slot buttons + back
+        SLOTS_ACTIVE,       // save slots fully interactive
+        FADE_OUT_SLOTS,     // fading out slots back to sub-options
+        FADE_IN_OPTS_FROM_SLOTS, // fading opts back in after slots
+        FADE_OUT_OPTS,      // fading out sub-options to return to main
+        FADE_IN_BUTTONS     // fading main buttons back in
+    };
+    PlaySubState playSubState_ = PlaySubState::NONE;
+    float playSubAnimTimer_ = 0.0f;
+    float playSubAlpha_     = 0.0f;  // alpha for New Game / Continue / Back
+    float playSlotsAlpha_   = 0.0f;  // alpha for slot buttons
+    bool isSlotSelectionForNewGame_ = false;
+    bool loadingFromSaveSlot_ = false;
+    bool loadedFromSave_ = false;
+
+    static constexpr int BTN_PLAY_NEWGAME  = 20;
+    static constexpr int BTN_PLAY_CONTINUE = 21;
+    static constexpr int BTN_PLAY_BACK     = 22;
+    static constexpr int BTN_SLOT_1        = 23;
+    static constexpr int BTN_SLOT_2        = 24;
+    static constexpr int BTN_SLOT_3        = 25;
+    static constexpr int BTN_SLOTS_BACK    = 26;
+
+    std::shared_ptr<UIElement> btnNewGame_;
+    std::shared_ptr<UIElement> btnContinue_;
+    std::shared_ptr<UIElement> btnPlayBack_;
+    std::shared_ptr<UIElement> btnSlot1_;
+    std::shared_ptr<UIElement> btnSlot2_;
+    std::shared_ptr<UIElement> btnSlot3_;
+    std::shared_ptr<UIElement> btnSlotsBack_;
+
+    void DrawPlaySubScreen(int winW, int winH);
+
     void LoadMainMenu();
     void UnloadMainMenu();
     void UpdateMainMenu(float dt);
