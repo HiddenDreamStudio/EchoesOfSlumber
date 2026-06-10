@@ -1,4 +1,4 @@
-﻿#include "PuzzleManager3.h"
+#include "PuzzleManager3.h"
 #include "Engine.h"
 #include "Render.h"
 #include "Textures.h"
@@ -104,7 +104,7 @@ void PuzzleManager3::RenderLever(SDL_Renderer* renderer, float cameraX, float ca
             20
         };
         SDL_Color red = { 220, 80, 80, 255 };
-        render.DrawMenuTextCentered("Engine::GetInstance().i18n->GetString("locked").c_str()", textArea, red, 0.35f);
+        render.DrawMenuTextCentered("locked", textArea, red, 0.35f);
     }
     else {
         SDL_SetRenderDrawColor(renderer, 50, 200, 50, 60);
@@ -117,7 +117,7 @@ void PuzzleManager3::RenderLever(SDL_Renderer* renderer, float cameraX, float ca
             20
         };
         SDL_Color green = { 80, 220, 80, 255 };
-        render.DrawMenuTextCentered("Engine::GetInstance().i18n->GetString("open").c_str()", textArea, green, 0.35f);
+        render.DrawMenuTextCentered("open", textArea, green, 0.35f);
     }
 
     if (!lever_.activated && playerNearLever_) {
@@ -128,7 +128,7 @@ void PuzzleManager3::RenderLever(SDL_Renderer* renderer, float cameraX, float ca
             20
         };
         SDL_Color yellow = { 255, 220, 50, 255 };
-        render.DrawMenuTextCentered("Engine::GetInstance().i18n->GetString("press_p").c_str()", hintArea, yellow, 0.35f);
+        render.DrawMenuTextCentered("press_p", hintArea, yellow, 0.35f);
     }
 
     auto drawExtraPortal = [&](SDL_FRect rect, bool unlocked) {
@@ -144,7 +144,7 @@ void PuzzleManager3::RenderLever(SDL_Renderer* renderer, float cameraX, float ca
             SDL_RenderRect(renderer, &sr);
             SDL_Rect ta = { (int)psx, (int)(psy - 24), (int)rect.w, 20 };
             SDL_Color green = { 80, 220, 80, 255 };
-            render.DrawMenuTextCentered("Engine::GetInstance().i18n->GetString("open").c_str()", ta, green, 0.35f);
+            render.DrawMenuTextCentered("open", ta, green, 0.35f);
         }
         else {
             SDL_SetRenderDrawColor(renderer, 200, 50, 50, 120);
@@ -153,7 +153,7 @@ void PuzzleManager3::RenderLever(SDL_Renderer* renderer, float cameraX, float ca
             SDL_RenderRect(renderer, &sr);
             SDL_Rect ta = { (int)psx, (int)(psy - 24), (int)rect.w, 20 };
             SDL_Color red = { 220, 80, 80, 255 };
-            render.DrawMenuTextCentered("Engine::GetInstance().i18n->GetString("locked").c_str()", ta, red, 0.35f);
+            render.DrawMenuTextCentered("locked", ta, red, 0.35f);
         }
         };
 
@@ -292,7 +292,7 @@ void PuzzleManager3::RenderButtons(SDL_Renderer* renderer, float cameraX, float 
         float alpha = (openTextTimer_ < 1000.0f) ? (openTextTimer_ / 1000.0f) : 1.0f;
         SDL_Color green = { 50, 220, 80, (Uint8)(255 * alpha) };
         SDL_Rect area = { 0, winH / 2 - 30, winW, 60 };
-        render.DrawMenuTextCentered("Engine::GetInstance().i18n->GetString("open").c_str()", area, green, 1.5f);
+        render.DrawMenuTextCentered("open", area, green, 1.5f);
     }
 }
 
