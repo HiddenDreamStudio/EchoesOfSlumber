@@ -719,7 +719,7 @@ void Boss1::Draw(float dt)
         int sw = (int)(f.w * scaleX);
         int sh = (int)(f.h * scale);
         render.DrawTexture(tex, (int)undergroundX_ - sw / 2,
-                           (int)floorY_ - sh + GROUND_OFFSET, &f, 1.0f, 0, INT_MAX, INT_MAX, flip, scaleX, scale);
+                           (int)floorY_ - sh + GROUND_OFFSET, &f, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, scaleX, scale);
     };
     auto drawSurf = [&](SDL_Texture* tex, Animation& anim, float bottomY, float scale = 1.0f, float widthMul = 1.0f) {
         if (!tex) return;
@@ -731,7 +731,7 @@ void Boss1::Draw(float dt)
         int sw = (int)(f.w * scaleX);
         int sh = (int)(f.h * scale);
         render.DrawTexture(tex, (int)undergroundX_ - sw / 2,
-                           (int)bottomY - sh + GROUND_OFFSET, &f, 1.0f, 0, INT_MAX, INT_MAX, flip, scaleX, scale);
+                           (int)bottomY - sh + GROUND_OFFSET, &f, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, scaleX, scale);
     };
 
     // ── P2_INTRO ──────────────────────────────────────────────────────────────
