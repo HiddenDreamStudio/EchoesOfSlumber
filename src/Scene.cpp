@@ -246,8 +246,7 @@ void Scene::LoadMainMenu()
 	settingsAnimTimer_ = 0.0f;
 	settingsButtonsAlpha_ = 1.0f;
 	settingsOptionsAlpha_ = 0.0f;
-	musicVolume_ = 1.0f;
-	sfxVolume_ = 1.0f;
+
 	Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
 	Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
 
@@ -1308,9 +1307,9 @@ void Scene::UpdateLoading(float dt)
 					player->health = healthSlotCount_;
 				}
 			}
-			capaCollected_ = savedHasBlanket;
-			slingshotCollected_ = savedHasSlingshot;
-			stuffedAnimalCollected_ = savedHasStuffedAnimal;
+			if (savedHasBlanket) capaCollected_ = true;
+			if (savedHasSlingshot) slingshotCollected_ = true;
+			if (savedHasStuffedAnimal) stuffedAnimalCollected_ = true;
 			currentHealthUI_ = player ? player->health : healthSlotCount_;
 			activeHealthAnim_ = 0;
 			isGameOver_ = false;
