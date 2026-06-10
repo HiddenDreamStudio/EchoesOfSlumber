@@ -68,7 +68,7 @@ bool Checkpoint::Update(float dt) {
         // position.getY() + objectH_ * 0.5f is the bottom edge of the Tiled object
         int drawY = (int)(position.getY() + objectH_ * 0.5f - targetH);
 
-        Engine::GetInstance().render->DrawTexture(texture, drawX, drawY, &section, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
+        Engine::GetInstance().render->DrawTexture(texture, drawX, drawY, &section, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
     }
 
     auto& scene = Engine::GetInstance().scene;
