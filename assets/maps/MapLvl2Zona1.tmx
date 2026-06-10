@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="170" height="104" tilewidth="64" tileheight="64" infinite="0" nextlayerid="24" nextobjectid="505">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="170" height="104" tilewidth="64" tileheight="64" infinite="0" nextlayerid="24" nextobjectid="506">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 2/TL_Nivell_2_01.png" width="640" height="640"/>
   <tile id="0">
@@ -349,6 +349,7 @@
   <object id="502" name="EnemyPlush" type="EnemyPlush" x="4590.67" y="6437.33" width="32" height="32"/>
   <object id="503" name="EnemyPlush" type="EnemyPlush" x="1422.67" y="6054.67" width="32" height="32"/>
   <object id="504" name="EnemyPlush" type="EnemyPlush" x="4938" y="1574" width="32" height="32"/>
+  <object id="505" type="Tiraxines" x="7260.61" y="1206.06" width="64" height="64"/>
  </objectgroup>
  <objectgroup id="9" name="Middleground">
   <object id="432" gid="1496" x="3628" y="4585" width="637" height="890.177"/>
