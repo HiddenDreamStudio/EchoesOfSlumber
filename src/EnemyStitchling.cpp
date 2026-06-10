@@ -284,7 +284,7 @@ void EnemyStitchling::Draw(float dt) {
 }
 
 float EnemyStitchling::GetDistanceToPlayer() const {
-    if (!playerRef_ || !playerRef_->pbody || !pbody) return 9999.0f;
+    if (!playerRef_ || !playerRef_->pbody || !pbody || playerRef_->IsHiding()) return 9999.0f;
     int px, py;
     playerRef_->pbody->GetPosition(px, py);
     int sx, sy;
