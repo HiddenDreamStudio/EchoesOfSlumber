@@ -228,8 +228,9 @@ async function fetchLatestRelease() {
         console.warn('Could not fetch release info:', error.message);
         // Fallback values
         if (versionName) versionName.textContent = 'Gold Release';
-        if (versionDate) versionDate.textContent = 'Released: 2025';
-        if (fileSizeEl) fileSizeEl.textContent = '';
+        if (versionDate) versionDate.textContent = 'Released: 10 June 2026';
+        if (downloadBtn) downloadBtn.href = 'https://github.com/HiddenDreamStudio/EchoesOfSlumber/releases/download/gold-release/EchoesOfSlumber_GoldRelease.zip';
+        if (fileSizeEl) fileSizeEl.textContent = '(1805.1 MB)';
     }
 }
 
