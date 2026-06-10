@@ -13,6 +13,16 @@ struct ButtonData3 {
     int requiredClicks = 1;
     int currentClicks = 0;
     bool completed = false;
+    bool flipH = false;
+
+};
+
+struct ButtonData3P1 {
+    SDL_FRect worldRect;
+    std::string platformTarget;   
+    bool completed = false;
+    bool flipH = false;
+
 };
 
 class PuzzleManager3 {
@@ -46,6 +56,13 @@ public:
     SDL_FRect GetPortalARect() const { return blockedPortalA_; }
     SDL_FRect GetPortalBRect() const { return blockedPortalB_; }
 
+    void LoadPuzzle1Buttons(const std::vector<ButtonData3P1>& buttons);
+    void UpdatePuzzle1(float dt, SDL_FRect playerRect, bool ballHit, float ballX, float ballY);
+    void RenderPuzzle1(SDL_Renderer* renderer, float cameraX, float cameraY);
+    bool IsPuzzle1Complete() const { return puzzle1Complete_; }
+    bool IsPuzzle1TimedOut() const { return puzzle1TimedOut_; }
+    void ResetPuzzle1();
+
 private:
     SDL_Renderer* renderer_ = nullptr;
 
@@ -70,6 +87,13 @@ private:
 
     float openTextTimer_ = 0.0f;
     static constexpr float OPEN_TEXT_DURATION = 2000.0f;
+
+    std::vector<ButtonData3P1> puzzle1Buttons_;
+    float puzzle1Timer_ = 90.0f;
+    bool  puzzle1Started_ = false;
+    bool  puzzle1Complete_ = false;
+    bool  puzzle1TimedOut_ = false;
+    std::vector<std::string> puzzle1PlatformMapping_;
 
     SDL_Texture* texLeverNormal_ = nullptr;
     SDL_Texture* texLeverActive_ = nullptr;
