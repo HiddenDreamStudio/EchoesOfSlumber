@@ -1213,13 +1213,15 @@ void Scene::UpdateLoading(float dt)
 	if (loadingTimer_ > 800.0f && !mapLoadingFinished_) {
 		int index = targetLevelIndex_;
 		if (index >= 0 && (size_t)index < levels_.size()) {
-			bool hadBlanket = false, hadSlingshot = false, hadBear = false;
+			bool savedHasBlanket = false, savedHasSlingshot = false, savedHasStuffedAnimal = false;
 			Player::EquippedItem eqItem = Player::EquippedItem::NONE;
+			int savedHealth = 0;
 			if (player) {
-				hadBlanket = player->HasBlanket();
-				hadSlingshot = player->HasSlingshot();
-				hadBear = player->HasStuffedAnimal();
+				savedHasBlanket = player->HasBlanket();
+				savedHasSlingshot = player->HasSlingshot();
+				savedHasStuffedAnimal = player->HasStuffedAnimal();
 				eqItem = player->GetEquippedItem();
+				savedHealth = player->health;
 			}
 
 			player.reset();
@@ -1250,9 +1252,9 @@ void Scene::UpdateLoading(float dt)
 			healthSlotCount_ = currentLevelIndex_ + 3;
 			if (healthSlotCount_ > MAX_HEALTH_SLOTS) healthSlotCount_ = MAX_HEALTH_SLOTS;
 			if (player) {
-				player->SetHasBlanket(hadBlanket);
-				player->SetHasSlingshot(hadSlingshot);
-				player->SetHasStuffedAnimal(hadBear);
+				player->SetHasBlanket(savedHasBlanket);
+				player->SetHasSlingshot(savedHasSlingshot);
+				player->SetHasStuffedAnimal(savedHasStuffedAnimal);
 				player->SetEquippedItem(eqItem);
 				player->maxHealth = healthSlotCount_;
 				// For level transitions (not first load), preserve health up to the new max
@@ -1261,9 +1263,6 @@ void Scene::UpdateLoading(float dt)
 				} else {
 					player->health = healthSlotCount_;
 				}
-				// Restore collected items from previous level
-				player->SetHasBlanket(savedHasBlanket);
-				player->SetHasSlingshot(savedHasSlingshot);
 			}
 			capaCollected_ = savedHasBlanket;
 			slingshotCollected_ = savedHasSlingshot;
@@ -2786,14 +2785,14 @@ void Scene::PostUpdateGameplay()
 
 
 	if (isPuzzleMap_ && puzzleManager_) {
-		float camX = Engine::GetInstance().render->camera.x;
-		float camY = Engine::GetInstance().render->camera.y;
+		float camX = (float)Engine::GetInstance().render->camera.x;
+		float camY = (float)Engine::GetInstance().render->camera.y;
 		puzzleManager_->Render(Engine::GetInstance().render->renderer, camX, camY);
 	}
 
 	if ((isLvl3Map_ || isLvl3Puzzle_) && puzzleManager3_) {
-		float camX = Engine::GetInstance().render->camera.x;
-		float camY = Engine::GetInstance().render->camera.y;
+		float camX = (float)Engine::GetInstance().render->camera.x;
+		float camY = (float)Engine::GetInstance().render->camera.y;
 		int winW, winH;
 		SDL_GetRenderOutputSize(Engine::GetInstance().render->renderer, &winW, &winH);
 		puzzleManager3_->RenderLever(Engine::GetInstance().render->renderer, camX, camY);
