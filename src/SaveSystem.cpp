@@ -668,5 +668,5 @@ std::string SaveSystem::GetSlotInfoString(int slot) const
 		}
 	}
 
-	return "Slot " + std::to_string(slot + 1) + ": " + lvlName + " (" + std::to_string(health) + " HP)";
+	return lvlName;
 }
