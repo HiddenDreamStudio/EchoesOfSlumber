@@ -1,6 +1,8 @@
 #include "PuzzleManager3.h"
 #include "Engine.h"
 #include "Render.h"
+#include "Platform.h"
+#include "EntityManager.h"
 #include "Textures.h"
 #include "Log.h"
 #include <cmath>
@@ -93,10 +95,25 @@ void PuzzleManager3::RenderLever(SDL_Renderer* renderer, float cameraX, float ca
     SDL_FRect screenPortal = { portalSx, portalSy, blockedPortalRect_.w, blockedPortalRect_.h };
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    if (!lever_.activated) {
-        SDL_SetRenderDrawColor(renderer, 200, 50, 50, 100);
-        SDL_RenderFillRect(renderer, &screenPortal);
+    auto drawGradPortal = [&](SDL_FRect pr, bool unlocked) {
+        Uint8 cr = unlocked ? 0 : 180;
+        Uint8 cg = unlocked ? 200 : 0;
+        Uint8 cb = unlocked ? 80 : 0;
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        int steps = 18;
+        for (int i = 0; i < steps; i++) {
+            float t = (float)i / steps;
+            Uint8 alpha = (Uint8)((1.0f - t) * 60.0f);
+            SDL_SetRenderDrawColor(renderer, cr, cg, cb, alpha);
+            float stripW = pr.w / steps;
+            SDL_FRect strip = { pr.x + i * stripW, pr.y, stripW + 1, pr.h };
+            SDL_RenderFillRect(renderer, &strip);
+        }
+    };
 
+    drawGradPortal(screenPortal, lever_.activated);
+
+    if (!lever_.activated) {
         SDL_Rect textArea = {
             (int)portalSx,
             (int)(portalSy - 24),
@@ -107,9 +124,6 @@ void PuzzleManager3::RenderLever(SDL_Renderer* renderer, float cameraX, float ca
         render.DrawMenuTextCentered("locked", textArea, red, 0.35f);
     }
     else {
-        SDL_SetRenderDrawColor(renderer, 50, 200, 50, 60);
-        SDL_RenderFillRect(renderer, &screenPortal);
-
         SDL_Rect textArea = {
             (int)portalSx,
             (int)(portalSy - 24),
@@ -136,26 +150,18 @@ void PuzzleManager3::RenderLever(SDL_Renderer* renderer, float cameraX, float ca
         float psy = rect.y + cameraY;
         SDL_FRect sr = { psx, psy, rect.w, rect.h };
 
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        drawGradPortal(sr, unlocked);
+
+        SDL_Rect ta = { (int)psx, (int)(psy - 24), (int)rect.w, 20 };
         if (unlocked) {
-            SDL_SetRenderDrawColor(renderer, 0, 200, 80, 120);
-            SDL_RenderFillRect(renderer, &sr);
-            SDL_SetRenderDrawColor(renderer, 0, 255, 100, 255);
-            SDL_RenderRect(renderer, &sr);
-            SDL_Rect ta = { (int)psx, (int)(psy - 24), (int)rect.w, 20 };
             SDL_Color green = { 80, 220, 80, 255 };
             render.DrawMenuTextCentered("open", ta, green, 0.35f);
         }
         else {
-            SDL_SetRenderDrawColor(renderer, 200, 50, 50, 120);
-            SDL_RenderFillRect(renderer, &sr);
-            SDL_SetRenderDrawColor(renderer, 255, 50, 50, 255);
-            SDL_RenderRect(renderer, &sr);
-            SDL_Rect ta = { (int)psx, (int)(psy - 24), (int)rect.w, 20 };
             SDL_Color red = { 220, 80, 80, 255 };
             render.DrawMenuTextCentered("locked", ta, red, 0.35f);
         }
-        };
+    };
 
     if (blockedPortalA_.w > 0) drawExtraPortal(blockedPortalA_, bothButtonsDone_);
     if (blockedPortalB_.w > 0) drawExtraPortal(blockedPortalB_, bothButtonsDone_);
@@ -262,6 +268,8 @@ void PuzzleManager3::RenderButtons(SDL_Renderer* renderer, float cameraX, float 
         if (btnTex) {
             SDL_FRect dst = { sx, sy, btn.worldRect.w, btn.worldRect.h };
             SDL_RenderTexture(renderer, btnTex, nullptr, &dst);
+            SDL_RenderTextureRotated(renderer, btnTex, nullptr, &dst, 0.0,
+                nullptr, btn.flipH ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
         }
         else {
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -334,4 +342,135 @@ void PuzzleManager3::LoadExtraPortals(SDL_FRect portalA, SDL_FRect portalB) {
     blockedPortalB_ = portalB;
     portalAUnlocked_ = false;
     portalBUnlocked_ = false;
+}
+
+
+void PuzzleManager3::LoadPuzzle1Buttons(const std::vector<ButtonData3P1>& buttons) {
+    puzzle1Buttons_ = buttons;
+    puzzle1Timer_ = 90.0f;
+    puzzle1Started_ = false;
+    puzzle1Complete_ = false;
+    puzzle1TimedOut_ = false;
+
+    puzzle1PlatformMapping_.clear();
+    for (auto& b : puzzle1Buttons_)
+        puzzle1PlatformMapping_.push_back(b.platformTarget);
+
+    for (int i = (int)puzzle1PlatformMapping_.size() - 1; i > 0; i--) {
+        int j = rand() % (i + 1);
+        std::swap(puzzle1PlatformMapping_[i], puzzle1PlatformMapping_[j]);
+    }
+
+    LOG("PUZZLE1: %d botones cargados.", (int)puzzle1Buttons_.size());
+}
+
+void PuzzleManager3::UpdatePuzzle1(float dt, SDL_FRect playerRect, bool ballHit, float ballX, float ballY) {
+    if (puzzle1Complete_) return;
+
+    for (int i = 0; i < (int)puzzle1Buttons_.size(); i++) {
+        auto& btn = puzzle1Buttons_[i];
+        if (btn.completed) continue;
+
+        bool hit = ballHit &&
+            ballX >= btn.worldRect.x && ballX <= btn.worldRect.x + btn.worldRect.w &&
+            ballY >= btn.worldRect.y && ballY <= btn.worldRect.y + btn.worldRect.h;
+
+        if (hit) {
+            btn.completed = true;
+            puzzle1Started_ = true;
+
+            std::string targetName = puzzle1PlatformMapping_[i];
+            for (auto& e : Engine::GetInstance().entityManager->entities) {
+                if (e->type == EntityType::PLATFORM) {
+                    auto plat = std::dynamic_pointer_cast<Platform>(e);
+                    if (plat && plat->platformName == targetName) {
+                        plat->activatedByLever = true;
+                        LOG("PUZZLE1: Boton %d activa plataforma '%s'", i, targetName.c_str());
+                    }
+                }
+            }
+        }
+    }
+
+    if (puzzle1Started_ && !puzzle1Complete_) {
+        puzzle1Timer_ -= dt * 0.001f;
+
+        if (puzzle1Timer_ <= 0.0f) {
+            puzzle1TimedOut_ = true;
+            puzzle1Started_ = false;
+            puzzle1Timer_ = 90.0f;
+            // Resetear todas las plataformas
+            for (auto& e : Engine::GetInstance().entityManager->entities) {
+                if (e->type == EntityType::PLATFORM) {
+                    auto plat = std::dynamic_pointer_cast<Platform>(e);
+                    if (plat) plat->activatedByLever = false;
+                }
+            }
+            for (auto& btn : puzzle1Buttons_) btn.completed = false;
+            LOG("PUZZLE1: Tiempo agotado, reset.");
+            return;
+        }
+    }
+
+    bool allDone = !puzzle1Buttons_.empty();
+    for (auto& btn : puzzle1Buttons_)
+        if (!btn.completed) { allDone = false; break; }
+
+    if (allDone) {
+        puzzle1Complete_ = true;
+        LOG("PUZZLE1: Completado!");
+    }
+}
+
+void PuzzleManager3::RenderPuzzle1(SDL_Renderer* renderer, float cameraX, float cameraY) {
+    auto& render = *Engine::GetInstance().render;
+
+    for (int i = 0; i < (int)puzzle1Buttons_.size(); i++) {
+        const auto& btn = puzzle1Buttons_[i];
+        float sx = btn.worldRect.x + cameraX;
+        float sy = btn.worldRect.y + cameraY;
+
+        SDL_Texture* btnTex = btn.completed ? texButtonPressed_ : texButtonNormal_;
+        if (btnTex) {
+            SDL_FRect dst = { sx, sy, btn.worldRect.w, btn.worldRect.h };
+            SDL_RenderTexture(renderer, btnTex, nullptr, &dst);
+        }
+        else {
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer, btn.completed ? 50 : 100,
+                btn.completed ? 200 : 100, btn.completed ? 50 : 200, 180);
+            SDL_FRect r = { sx, sy, btn.worldRect.w, btn.worldRect.h };
+            SDL_RenderFillRect(renderer, &r);
+        }
+
+        if (i < (int)puzzle1PlatformMapping_.size()) {
+            SDL_Rect ta = { (int)sx, (int)(sy - 20), (int)btn.worldRect.w, 16 };
+            SDL_Color white = { 255, 255, 255, 255 };
+            render.DrawMenuTextCentered(puzzle1PlatformMapping_[i].c_str(), ta, white, 0.28f);
+        }
+    }
+
+    if (puzzle1Started_ && !puzzle1Complete_) {
+        int screenW, screenH;
+        SDL_GetRenderOutputSize(renderer, &screenW, &screenH);
+        float pct = puzzle1Timer_ / 90.0f;
+        if (pct < 0) pct = 0;
+        float red = 255.0f * (1.0f - pct);
+        float green = 255.0f * pct;
+
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
+        SDL_FRect bg = { 20, 20, (float)screenW - 40, 18 };
+        SDL_RenderFillRect(renderer, &bg);
+        SDL_SetRenderDrawColor(renderer, (Uint8)red, (Uint8)green, 0, 220);
+        SDL_FRect bar = { 22, 22, ((float)screenW - 44) * pct, 14 };
+        SDL_RenderFillRect(renderer, &bar);
+    }
+}
+
+void PuzzleManager3::ResetPuzzle1() {
+    puzzle1Timer_ = 90.0f;
+    puzzle1Started_ = false;
+    puzzle1Complete_ = false;
+    puzzle1TimedOut_ = false;
+    for (auto& btn : puzzle1Buttons_) btn.completed = false;
 }
