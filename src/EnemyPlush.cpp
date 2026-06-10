@@ -522,7 +522,7 @@ void EnemyPlush::Draw(float dt)
 			drawX += shake;
 		}
 
-		Engine::GetInstance().render->DrawTexture(activeTexture, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, scale);
+		Engine::GetInstance().render->DrawTexture(activeTexture, drawX, drawY, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, scale);
 	}
 }
 

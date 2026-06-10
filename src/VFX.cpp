@@ -46,7 +46,7 @@ bool VFX::Update(float dt) {
 
     Engine::GetInstance().render->DrawTexture(texture, 
         drawX, drawY, 
-        &rect, 1.0f, (double)angle, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
+        &rect, 1.0f, -1.0f, (double)angle, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
 
     return true;
 }
