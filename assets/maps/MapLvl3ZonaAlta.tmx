@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="184" height="80" tilewidth="64" tileheight="64" infinite="0" nextlayerid="16" nextobjectid="402">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="184" height="80" tilewidth="64" tileheight="64" infinite="0" nextlayerid="16" nextobjectid="402">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -665,13 +665,13 @@
   <object id="291" gid="153" x="7051" y="3286" width="530" height="588"/>
   <object id="293" gid="158" x="3681" y="3218" width="175" height="192.035"/>
   <object id="294" gid="157" x="5956.16" y="3269" width="83.8359" height="122"/>
-  <object id="295" gid="160" x="8505" y="3301" width="641.013" height="477.152"/>
+  <object id="295" gid="160" x="8712.62" y="3301" width="433.394" height="322.607"/>
   <object id="296" gid="159" x="10338" y="3312.18" width="438" height="540"/>
   <object id="297" gid="149" x="9847.7" y="1316" width="821.263" height="617"/>
   <object id="298" gid="152" x="10880.5" y="2145" width="503.53" height="798"/>
   <object id="300" gid="144" x="9239" y="4817" width="394" height="809"/>
   <object id="301" gid="150" x="8891" y="3829" width="1018" height="305"/>
   <object id="302" gid="147" x="8457.6" y="4892" width="183.424" height="236.701"/>
-  <object id="303" gid="151" x="9732.9" y="5142.58" width="594" height="853"/>
+  <object id="303" gid="151" x="10051.5" y="5142.58" width="275.36" height="395.424"/>
  </objectgroup>
 </map>
