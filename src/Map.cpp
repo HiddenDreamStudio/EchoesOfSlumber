@@ -137,9 +137,9 @@ bool Map::Update(float dt)
                 std::string lowerName = mapLayer->name;
                 for (char& c : lowerName) c = ::tolower(c);
                 if (px == 1.0f) {
-                    if (lowerName.find("background") != std::string::npos || lowerName.find("back") != std::string::npos || lowerName.find("fondo") != std::string::npos) px = 0.7f;
-                    else if (lowerName.find("middle") != std::string::npos || lowerName.find("medio") != std::string::npos) px = 0.9f;
-                    else if (lowerName.find("foreground") != std::string::npos || lowerName.find("front") != std::string::npos) px = 1.2f;
+                    if (lowerName.find("background") != std::string::npos || lowerName.find("back") != std::string::npos || lowerName.find("fondo") != std::string::npos) px = 1.0f;
+                    else if (lowerName.find("middle") != std::string::npos || lowerName.find("medio") != std::string::npos) px = 1.0f;
+                    else if (lowerName.find("foreground") != std::string::npos || lowerName.find("front") != std::string::npos) px = 1.1f;
                 }
 
                 // Process the whole map for now to ensure visibility
@@ -1202,17 +1202,17 @@ void Map::LoadImageLayers()
             lowerName.find("back") != std::string::npos || 
             lowerName.find("fondo") != std::string::npos) 
         {
-            defaultParallax = 0.85f; // Lessen background effect
+            defaultParallax = 0.8f; // "A bit of parallax" for background image
         }
         else if (lowerName.find("middle") != std::string::npos ||
                  lowerName.find("medio") != std::string::npos)
         {
-            defaultParallax = 0.95f; // Lessen middleground effect
+            defaultParallax = 1.0f; // Eliminate middleground effect
         }
         else if (lowerName.find("foreground") != std::string::npos || 
                  lowerName.find("front") != std::string::npos) 
         {
-            defaultParallax = 1.2f; // Foreground moves faster than camera
+            defaultParallax = 1.1f; // Foreground moves faster than camera
         }
 
         pugi::xml_attribute pxAttr = imgNode.attribute("parallaxx");
@@ -1255,19 +1255,19 @@ void Map::LoadDecorationObjects()
             lowerGroupName.find("back") != std::string::npos || 
             lowerGroupName.find("fondo") != std::string::npos) 
         {
-            layerParallax = 0.85f; // Lessen background effect
+            layerParallax = 1.0f; // Eliminate background effect
             layerIsFront  = false;
         }
         else if (lowerGroupName.find("middle") != std::string::npos ||
                  lowerGroupName.find("medio") != std::string::npos)
         {
-            layerParallax = 0.95f; // Lessen middleground effect
+            layerParallax = 1.0f; // Eliminate middleground effect
             layerIsFront  = false;
         }
         else if (lowerGroupName.find("foreground") != std::string::npos || 
                  lowerGroupName.find("front") != std::string::npos) 
         {
-            layerParallax = 1.2f; // Foreground moves faster than camera
+            layerParallax = 1.1f; // Foreground moves faster than camera
             layerIsFront  = true;
         }
         // Middleground and everything else stays at 1.0, isFront = false
@@ -1420,9 +1420,9 @@ void Map::LoadAnimatedPlants()
             plant->parallaxSpeed = 1.0f;
             std::string lowerLayerName = layerName;
             for (char& c : lowerLayerName) c = ::tolower(c);
-            if (lowerLayerName.find("background") != std::string::npos || lowerLayerName.find("back") != std::string::npos || lowerLayerName.find("fondo") != std::string::npos) plant->parallaxSpeed = 0.85f;
-            else if (lowerLayerName.find("middle") != std::string::npos || lowerLayerName.find("medio") != std::string::npos) plant->parallaxSpeed = 0.95f;
-            else if (lowerLayerName.find("foreground") != std::string::npos || lowerLayerName.find("front") != std::string::npos) plant->parallaxSpeed = 1.2f;
+            if (lowerLayerName.find("background") != std::string::npos || lowerLayerName.find("back") != std::string::npos || lowerLayerName.find("fondo") != std::string::npos) plant->parallaxSpeed = 1.0f;
+            else if (lowerLayerName.find("middle") != std::string::npos || lowerLayerName.find("medio") != std::string::npos) plant->parallaxSpeed = 1.0f;
+            else if (lowerLayerName.find("foreground") != std::string::npos || lowerLayerName.find("front") != std::string::npos) plant->parallaxSpeed = 1.1f;
 
             std::unordered_map<int, std::string> aliases = { {0, "idle"} };
             bool loaded = plant->anim.LoadFromTSX(fullTsxPath.c_str(), aliases);
