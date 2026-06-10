@@ -4970,6 +4970,9 @@ void Scene::ExecuteSubMapLoad()
 
 void Scene::TriggerEndGameCinematic()
 {
+    // Solo permitir que se active el final del juego en el nivel 4 (índice 3).
+    if (currentLevelIndex_ != 3) return;
+
     if (endGameTriggered_) return;  // already triggered once this session, ignore
     endGameTriggered_ = true;
     endGameFading_    = true;
