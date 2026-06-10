@@ -78,10 +78,10 @@ bool HidingRock::Update(float dt) {
 					// but player is drawn in Player.cpp. Player is likely drawn on top of entities if drawn later. 
 					// Tiled Map PostUpdate draws decorations. Since we draw the rock here in Update, if player draws in Update, it might be an issue.
 					// We'll see).
-					Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+					Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 				} else {
 					playerShared->SetHidingBehindRock(false);
-					Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+					Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 				}
 			}
 		}
