@@ -98,12 +98,12 @@ bool UIManager::PostUpdate()
 		// Scale is 1.25f on X (wider) and 1.0f on Y (height) per user request.
 		Engine::GetInstance().render->DrawTexture(customCursorTex, 
 			(int)mousePos.getX(), (int)mousePos.getY(), 
-			nullptr, 0.0f, 0.0f, -45.0, 2147483647, 2147483647, SDL_FLIP_NONE, 1.0f, 1.0f);
+			nullptr, 0.0f, 0.0f, -45.0, 2147483647, 2147483647, SDL_FLIP_NONE, 1.25f, 1.0f);
 	}
 
 	return true;
 }
-
+ 
 bool UIManager::CleanUp()
 {
 	for (const auto& uiElement : UIElementsList)
@@ -245,4 +245,9 @@ void UIManager::ApplyFocusToButtons()
 		}
 		idx++;
 	}
+}
+
+void UIManager::ResetFocus()
+{
+	gamepadFocusIndex = -1;
 }
