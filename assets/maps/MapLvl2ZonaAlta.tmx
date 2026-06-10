@@ -162,25 +162,6 @@
   <object id="25" name="EnemyStitchling" type="EnemyStitchling" x="5452" y="1878" width="32" height="32"/>
   <object id="26" name="EnemyPlush" type="EnemyPlush" x="4410" y="2330" width="32" height="32"/>
  </objectgroup>
- <objectgroup id="2" name="AssetsRef">
-  <object id="1" gid="103" x="1383.9" y="2527.19" width="581.426" height="571"/>
-  <object id="2" gid="106" x="4366.34" y="2486.19" width="603" height="555.016"/>
-  <object id="3" gid="104" x="2911.42" y="2629.19" width="609.916" height="760"/>
-  <object id="4" gid="111" x="2246.34" y="2637.19" width="470" height="836.047"/>
-  <object id="5" gid="103" x="7005.34" y="2171.19" width="948" height="931"/>
-  <object id="6" gid="146" x="2528.62" y="2487.21" width="325" height="593.413"/>
-  <object id="7" gid="150" x="3415.19" y="2439.21" width="926.432" height="613"/>
-  <object id="8" gid="147" x="46.7459" y="2443.21" width="454.873" height="269"/>
-  <object id="9" gid="160" x="6099.84" y="1769.21" width="260.778" height="177"/>
-  <object id="10" gid="163" x="6896.32" y="1710.76" width="363.448" height="180.818"/>
-  <object id="11" gid="165" x="7947.77" y="2032.85" width="389.485" height="756.277"/>
-  <object id="12" gid="134" x="1991.3" y="2465.15" width="234.662" height="326.988"/>
-  <object id="13" gid="129" x="3654.47" y="2446.11" width="300.962" height="251.134"/>
-  <object id="14" gid="131" x="5827.32" y="1804.84" width="258.844" height="603.287"/>
-  <object id="15" gid="131" x="7846.49" y="1904.04" width="150.722" height="351.287" rotation="343.483"/>
-  <object id="16" gid="132" x="6396.64" y="1799.03" width="324.453" height="496.674"/>
-  <object id="17" gid="134" x="5214.61" y="2423.21" width="225.668" height="314.455"/>
- </objectgroup>
  <layer id="1" name="Map" width="134" height="47">
   <properties>
    <property name="Draw" type="bool" value="true"/>
@@ -250,5 +231,24 @@
    </properties>
    <point/>
   </object>
+ </objectgroup>
+ <objectgroup id="2" name="AssetsRef">
+  <object id="1" gid="103" x="1383.9" y="2527.19" width="581.426" height="571"/>
+  <object id="2" gid="106" x="4366.34" y="2486.19" width="603" height="555.016"/>
+  <object id="3" gid="104" x="2911.42" y="2629.19" width="609.916" height="760"/>
+  <object id="4" gid="111" x="2246.34" y="2637.19" width="470" height="836.047"/>
+  <object id="5" gid="103" x="7005.34" y="2171.19" width="948" height="931"/>
+  <object id="6" gid="146" x="2528.62" y="2487.21" width="325" height="593.413"/>
+  <object id="7" gid="150" x="3415.19" y="2439.21" width="926.432" height="613"/>
+  <object id="8" gid="147" x="46.7459" y="2443.21" width="454.873" height="269"/>
+  <object id="9" gid="160" x="6099.84" y="1769.21" width="260.778" height="177"/>
+  <object id="10" gid="163" x="6896.32" y="1710.76" width="363.448" height="180.818"/>
+  <object id="11" gid="165" x="7947.77" y="2032.85" width="389.485" height="756.277"/>
+  <object id="12" gid="134" x="2056.65" y="2471.21" width="284.463" height="396.382"/>
+  <object id="13" gid="129" x="3620.48" y="2446.11" width="334.954" height="279.498"/>
+  <object id="14" gid="131" x="5827.32" y="1804.84" width="258.844" height="603.287"/>
+  <object id="15" gid="131" x="7846.49" y="1904.04" width="150.722" height="351.287" rotation="343.483"/>
+  <object id="16" gid="132" x="6506.39" y="1799.03" width="214.707" height="328.674"/>
+  <object id="17" gid="134" x="5175.47" y="2423.21" width="264.812" height="369"/>
  </objectgroup>
 </map>

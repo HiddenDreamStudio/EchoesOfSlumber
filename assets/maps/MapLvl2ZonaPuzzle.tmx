@@ -172,7 +172,7 @@
   <image source="../textures/fons_enviroment/Map2.3.png" width="1856" height="4032"/>
  </imagelayer>
  <objectgroup id="3" name="Background">
-  <object id="9" gid="892" x="1049.6" y="3008.76" width="343.435" height="557.421"/>
+  <object id="9" gid="892" x="970.606" y="3008.76" width="422.424" height="596.815"/>
   <object id="10" gid="895" x="1471.6" y="1268.19" width="530.126" height="660.576" rotation="342.147"/>
   <object id="11" gid="900" x="-347.683" y="1139.91" width="681" height="1369" rotation="60.3701"/>
   <object id="12" gid="908" x="268.758" y="2975.45" width="395.818" height="417.7"/>
@@ -287,7 +287,7 @@
   <object id="2" gid="879" x="40.0206" y="146.523" width="251.118" height="560.989" rotation="143.651"/>
   <object id="3" gid="879" x="1802.25" y="1403.17" width="251.118" height="560.989" rotation="326.924"/>
   <object id="4" gid="880" x="72.2936" y="1214.25" width="217.242" height="302.715" rotation="15.0839"/>
-  <object id="5" gid="869" x="609.879" y="2984.12" width="353.606" height="538.212"/>
-  <object id="6" gid="882" x="1287.89" y="4031.91" width="369.474" height="299.182"/>
+  <object id="5" gid="869" x="712.91" y="2993.21" width="356.636" height="542.824"/>
+  <object id="6" gid="882" x="1403.9" y="4031.91" width="253.464" height="205.243"/>
  </objectgroup>
 </map>
