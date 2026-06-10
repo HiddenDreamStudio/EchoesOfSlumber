@@ -263,6 +263,7 @@ void SaveSystem::CollectPlayerState()
 	gameState_.playerHealth = scene->player ? scene->player->health : 3;
 	gameState_.playerHasBlanket = scene->player ? scene->player->HasBlanket() : false;
 	gameState_.playerHasSlingshot = scene->player ? scene->player->HasSlingshot() : false;
+	gameState_.playerHasStuffedAnimal = scene->player ? scene->player->HasStuffedAnimal() : false;
 
 	if (pendingCheckpointPositionOverride_)
 	{
@@ -343,12 +344,14 @@ void SaveSystem::ApplyPlayerState()
 		scene->player->health = gameState_.playerHealth;
 		scene->player->SetHasBlanket(gameState_.playerHasBlanket);
 		scene->player->SetHasSlingshot(gameState_.playerHasSlingshot);
+		scene->player->SetHasStuffedAnimal(gameState_.playerHasStuffedAnimal);
 		scene->player->Revive();
 		scene->ResetHealthUI(scene->player->health);
 	}
 
 	scene->capaCollected_ = gameState_.playerHasBlanket;
 	scene->slingshotCollected_ = gameState_.playerHasSlingshot;
+	scene->stuffedAnimalCollected_ = gameState_.playerHasStuffedAnimal;
 
 	LOG("SaveSystem: Player position restored (%.1f, %.1f)", 
 		gameState_.playerPosX, gameState_.playerPosY);
@@ -493,6 +496,7 @@ bool SaveSystem::WriteXML(const std::string& filename)
 	stateNode.append_attribute("health") = gameState_.playerHealth;
 	stateNode.append_attribute("hasBlanket") = gameState_.playerHasBlanket;
 	stateNode.append_attribute("hasSlingshot") = gameState_.playerHasSlingshot;
+	stateNode.append_attribute("hasStuffedAnimal") = gameState_.playerHasStuffedAnimal;
 
 	// Entities node (placeholder for future)
 	pugi::xml_node entitiesNode = root.append_child("entities");
@@ -566,6 +570,7 @@ bool SaveSystem::ReadXML(const std::string& filename)
 			gameState_.playerHealth = stateNode.attribute("health").as_int(3);
 			gameState_.playerHasBlanket = stateNode.attribute("hasBlanket").as_bool(false);
 			gameState_.playerHasSlingshot = stateNode.attribute("hasSlingshot").as_bool(false);
+			gameState_.playerHasStuffedAnimal = stateNode.attribute("hasStuffedAnimal").as_bool(false);
 		}
 	}
 
