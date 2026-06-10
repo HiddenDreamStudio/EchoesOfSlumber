@@ -33,11 +33,12 @@ public:
 
     std::string platformName = "";
 
+    PhysBody* pbody = nullptr;
+
 private:
     int currentWaypoint = 0;
     int direction = 1;
     int bx = 0, by = 0;
 
     SDL_Texture* texture = nullptr;
-    PhysBody* pbody = nullptr;
 };
