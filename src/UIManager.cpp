@@ -6,7 +6,7 @@
 #include "Input.h"
 #include <vector>
 
-UIManager::UIManager() :Module()
+UIManager::UIManager() :Module(), texture(nullptr), customCursorTex(nullptr)
 {
 	name = "UIManager";
 }
@@ -15,6 +15,8 @@ UIManager::~UIManager() {}
 
 bool UIManager::Start()
 {
+	customCursorTex = Engine::GetInstance().textures->Load("assets/textures/UI/Minigame Drop Doll/UI_DropDoll_Game_Desplazable (1).png");
+	SDL_HideCursor();
 	return true;
 }
 
@@ -84,6 +86,21 @@ bool UIManager::PostUpdate()
 		}
 	}
 
+	// Draw the custom cursor on top of everything
+	if (customCursorTex && !Engine::GetInstance().input->IsGamepadConnected())
+	{
+		Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
+		int texW = 0, texH = 0;
+		Engine::GetInstance().textures->GetSize(customCursorTex, texW, texH);
+		
+		// The custom cursor is rotated 45 degrees to the left (-45.0).
+		// Use speedX=0.0f, speedY=0.0f so it sticks to the screen, not the world camera.
+		// Scale is 1.25f on X (wider) and 1.0f on Y (height) per user request.
+		Engine::GetInstance().render->DrawTexture(customCursorTex, 
+			(int)mousePos.getX(), (int)mousePos.getY(), 
+			nullptr, 0.0f, 0.0f, -45.0, 2147483647, 2147483647, SDL_FLIP_NONE, 1.0f, 1.0f);
+	}
+
 	return true;
 }
 
@@ -95,6 +112,10 @@ bool UIManager::CleanUp()
 	}
 	UIElementsList.clear();
 	gamepadFocusIndex = -1;
+
+	// Note: We no longer unload customCursorTex or call SDL_ShowCursor() here
+	// because Scene calls CleanUp() when transitioning between levels, and we
+	// want the custom cursor to persist throughout the entire game.
 
 	return true;
 }
