@@ -564,7 +564,7 @@ void Bouncer::Draw(float dt)
 	SDL_FlipMode flip = (moveDirX_ < 0.0f) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
 
 	Engine::GetInstance().render->DrawTexture(clip.texture, drawX, drawY, &frame,
-		1.0f, angle, INT_MAX, INT_MAX, flip, drawScale);
+		1.0f, -1.0f, angle, INT_MAX, INT_MAX, flip, drawScale);
 }
 
 bool Bouncer::CleanUp()
