@@ -25,4 +25,7 @@ private:
     SDL_Texture* texture = nullptr;
     int texW = 0, texH = 0;
     PhysBody* pbody = nullptr;
+
+    PhysBody* currentPlatform = nullptr;
+    int numPlayersTouching = 0;
 };
