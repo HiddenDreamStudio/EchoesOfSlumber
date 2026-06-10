@@ -185,7 +185,7 @@ bool Player::Start() {
 	yoyoTrapTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_dany_yoyo.png");
 	yoyoTrapAnims_.LoadFromTSX("assets/textures/animations/protagonistYoyo.xml", { {0, "yoyo"} });
 	yoyoTrapAnims_.SetCurrent("yoyo");
-	yoyoTrapAnims_.SetLoop("yoyo", true);
+	yoyoTrapAnims_.SetLoop("yoyo", false);
 
 	// Load Drop Doll minigame animation (player squirms while grabbed — 2048x2048 = 8x8 grid, 256x256 frames)
 	dollGrabbedTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_prota_dropdoll.png");
@@ -1317,7 +1317,7 @@ void Player::TakeDamage(int damage)
 void Player::TakeDamage(int damage, bool applyKnockback)
 {
 	// Cannot take damage while hiding, sleeping, waking up, throwing the bear, or transforming
-	if (isInvincible_ || isHiding_ || isHidingBehindRock_ || isKidSleeping_ || isWakingUp || isThrowingBear_ || isBearTransforming_) return;
+	if (isDead_ || isInvincible_ || isHiding_ || isHidingBehindRock_ || isKidSleeping_ || isWakingUp || isThrowingBear_ || isBearTransforming_) return;
 
 	Engine::GetInstance().scene->TriggerScreenDamage();
 
