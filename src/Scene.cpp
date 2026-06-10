@@ -1612,6 +1612,12 @@ void Scene::UpdateLoading(float dt)
 					savedHealth = player->health;
 				}
 
+			if (puzzleManager2) {
+				puzzleManager2->Reset();
+			}
+
+			currentMapFile_ = levels_[index].file;
+			currentLevelIndex_ = index;
 				player.reset();
 				Engine::GetInstance().entityManager->CleanUp();
 				Engine::GetInstance().physics->FlushPendingDeletes();
@@ -2029,6 +2035,9 @@ void Scene::LoadGameplay()
 	texMinimapFrame_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Minimap.png");
 	// Pre-simulate physics to settle all dynamic bodies
 	Engine::GetInstance().physics->PreSimulateScene(3.0f);
+
+	puzzleManager2 = std::make_shared<PuzzleManager2>();
+	puzzleManager2->Init(Engine::GetInstance().render->renderer);
 }
 
 void Scene::UpdateGameplay(float dt)
@@ -2588,6 +2597,10 @@ if (puzzleManager3_ && player && !isPaused_ && !isGameOver_) {
 }
 // --- FIN PUZZLE3 UPDATE ---
 
+	if (!isPaused_ && !isGameOver_ && puzzleManager2) {
+		puzzleManager2->Update(dt, Engine::GetInstance().entityManager->entities);
+	}
+
 	// Draw cape collectible in-world
 	if (!capaCollected_ && texCapaCollectible_)
 	{
@@ -2831,6 +2844,9 @@ void Scene::DrawBossHUD(int winW, int winH)
 
 void Scene::UnloadGameplay()
 {
+	if (puzzleManager2) {
+		puzzleManager2.reset();
+	}
 	if (puzzleManager_) {
 		delete puzzleManager_;
 		puzzleManager_ = nullptr;
@@ -2848,6 +2864,7 @@ void Scene::UnloadGameplay()
 	player.reset();
 	Engine::GetInstance().entityManager->CleanUp();
 	Engine::GetInstance().map->CleanUp();
+	Engine::GetInstance().physics->FlushPendingDeletes();
 	isPaused_ = false;
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
@@ -5228,6 +5245,10 @@ void Scene::ExecuteSubMapLoad()
     Engine::GetInstance().physics->FlushPendingDeletes();
     Engine::GetInstance().map->CleanUp();
     Engine::GetInstance().physics->FlushPendingDeletes();
+
+	if (puzzleManager2) {
+		puzzleManager2->Reset();
+	}
 
     currentMapFile_ = subMapTarget_;
     if (currentMapFile_.find("ZonaBoss") != std::string::npos)
