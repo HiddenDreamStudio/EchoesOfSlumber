@@ -29,7 +29,7 @@ bool SaveSystem::Awake()
 	{
 		if (!std::filesystem::create_directories(saveFolderPath_, ec) && ec)
 		{
-			LOG("SaveSystem: Failed to create save folder at %s (error: %s)", 
+			LOG("SaveSystem: Failed to create save folder at %s (error: %s)",
 				saveFolderPath_.c_str(), ec.message().c_str());
 			return false;
 		}
@@ -213,7 +213,7 @@ bool SaveSystem::SaveFileExists(const std::string& filename) const
 	bool exists = std::filesystem::exists(filename, ec);
 	if (ec)
 	{
-		LOG("SaveSystem: Error checking file existence for %s: %s", 
+		LOG("SaveSystem: Error checking file existence for %s: %s",
 			filename.c_str(), ec.message().c_str());
 		return false;
 	}
@@ -273,7 +273,7 @@ void SaveSystem::CollectPlayerState()
 		pendingCheckpointId_.clear();
 	}
 
-	LOG("SaveSystem: Player position saved (%.1f, %.1f)", 
+	LOG("SaveSystem: Player position saved (%.1f, %.1f)",
 		gameState_.playerPosX, gameState_.playerPosY);
 }
 
@@ -313,7 +313,7 @@ void SaveSystem::CollectSceneState()
 	}
 	gameState_.mapPurchasedStr = purchasedStr;
 
-	LOG("SaveSystem: Scene state saved (scene=%d, map=%s)", 
+	LOG("SaveSystem: Scene state saved (scene=%d, map=%s)",
 		gameState_.currentSceneId, gameState_.currentMapPath.c_str());
 }
 
@@ -350,7 +350,7 @@ void SaveSystem::ApplyPlayerState()
 	scene->capaCollected_ = gameState_.playerHasBlanket;
 	scene->slingshotCollected_ = gameState_.playerHasSlingshot;
 
-	LOG("SaveSystem: Player position restored (%.1f, %.1f)", 
+	LOG("SaveSystem: Player position restored (%.1f, %.1f)",
 		gameState_.playerPosX, gameState_.playerPosY);
 }
 
@@ -365,43 +365,45 @@ void SaveSystem::ApplySceneState()
 
 	if (!gameState_.currentMapPath.empty())
 	{
-		std::string currentMapPath = map->mapPath + map->mapFileName;
-		if (currentMapPath != gameState_.currentMapPath)
-		{
-			size_t slash = gameState_.currentMapPath.find_last_of("/\\");
-			std::string savedPath = (slash == std::string::npos) ? "" : gameState_.currentMapPath.substr(0, slash + 1);
-			std::string savedFile = (slash == std::string::npos) ? gameState_.currentMapPath : gameState_.currentMapPath.substr(slash + 1);
-			if (savedPath.empty()) savedPath = "assets/maps/";
+		size_t slash = gameState_.currentMapPath.find_last_of("/\\");
+		std::string savedPath = (slash == std::string::npos) ? "" : gameState_.currentMapPath.substr(0, slash + 1);
+		std::string savedFile = (slash == std::string::npos) ? gameState_.currentMapPath : gameState_.currentMapPath.substr(slash + 1);
+		if (savedPath.empty()) savedPath = "assets/maps/";
 
-			scene->player.reset();
-			Engine::GetInstance().entityManager->CleanUp();
-			Engine::GetInstance().physics->FlushPendingDeletes();
-			map->CleanUp();
-			Engine::GetInstance().physics->FlushPendingDeletes();
+		scene->player.reset();
+		Engine::GetInstance().entityManager->CleanUp();
+		Engine::GetInstance().physics->FlushPendingDeletes();
+		map->CleanUp();
+		Engine::GetInstance().physics->FlushPendingDeletes();
 
-			scene->currentMapFile_ = savedFile;
-			for (int i = 0; i < (int)scene->levels_.size(); ++i)
-			{
-				if (scene->levels_[i].file == savedFile)
-				{
-					scene->currentLevelIndex_ = i;
-					break;
-				}
-			}
-
-			map->Load(savedPath, savedFile);
-			map->LoadEntities(scene->player);
-
-			if (scene->player == nullptr)
-			{
-				scene->player = std::dynamic_pointer_cast<Player>(
-					Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-				scene->player->position = Vector2D(gameState_.playerPosX, gameState_.playerPosY);
-				scene->player->Start();
-			}
-
-			LOG("SaveSystem: Loaded saved map %s before applying player state", gameState_.currentMapPath.c_str());
+		// Prevent Box2D crashes by clearing leftover physical references
+		if (scene->puzzleManager2) {
+			scene->puzzleManager2->Reset();
 		}
+		scene->activeBoss_.reset();
+
+		scene->currentMapFile_ = savedFile;
+		for (int i = 0; i < (int)scene->levels_.size(); ++i)
+		{
+			if (scene->levels_[i].file == savedFile)
+			{
+				scene->currentLevelIndex_ = i;
+				break;
+			}
+		}
+
+		map->Load(savedPath, savedFile);
+		map->LoadEntities(scene->player);
+
+		if (scene->player == nullptr)
+		{
+			scene->player = std::dynamic_pointer_cast<Player>(
+				Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+			scene->player->position = Vector2D(gameState_.playerPosX, gameState_.playerPosY);
+			scene->player->Start();
+		}
+
+		LOG("SaveSystem: Loaded saved map %s before applying player state", gameState_.currentMapPath.c_str());
 	}
 
 	// Deserialize visited cells
@@ -516,7 +518,7 @@ bool SaveSystem::ReadXML(const std::string& filename)
 
 	if (!result)
 	{
-		LOG("SaveSystem: Failed to parse save file %s: %s", 
+		LOG("SaveSystem: Failed to parse save file %s: %s",
 			filename.c_str(), result.description());
 		return false;
 	}
