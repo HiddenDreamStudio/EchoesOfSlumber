@@ -218,23 +218,26 @@ void PuzzleManager::DrawBlockedPortal(SDL_Renderer* renderer, float cameraX, flo
 
     bool open = portalOpen_;
 
-    if (open) {
-        SDL_SetRenderDrawColor(renderer, 0, 200, 80, 120);
-    }
-    else {
-        SDL_SetRenderDrawColor(renderer, 180, 0, 0, 120);
-    }
     SDL_FRect r = { sx, sy, w, h };
-    SDL_RenderFillRect(renderer, &r);
+    Uint8 cr = open ? 0 : 180;
+    Uint8 cg = open ? 200 : 0;
+    Uint8 cb = open ? 80 : 0;
 
-    // Borde
-    if (open) {
-        SDL_SetRenderDrawColor(renderer, 0, 255, 100, 255);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    for (int i = 0; i < 18; i++) {
+        float t = (float)i / 18.0f;
+        Uint8 alpha = (Uint8)((1.0f - t) * (1.0f - t) * 60.0f);
+        SDL_SetRenderDrawColor(renderer, cr, cg, cb, alpha);
+        float sw = w / 2.0f * t, sh = h / 2.0f * t;
+        SDL_FRect l = { sx,         sy,         sw, h };
+        SDL_FRect r2 = { sx + w - sw, sy,         sw, h };
+        SDL_FRect tp = { sx,         sy,          w, sh };
+        SDL_FRect bo = { sx,         sy + h - sh, w, sh };
+        SDL_RenderFillRect(renderer, &l);
+        SDL_RenderFillRect(renderer, &r2);
+        SDL_RenderFillRect(renderer, &tp);
+        SDL_RenderFillRect(renderer, &bo);
     }
-    else {
-        SDL_SetRenderDrawColor(renderer, 255, 50, 50, 255);
-    }
-    SDL_RenderRect(renderer, &r);
 
     float dx = (playerWorldX_ + 24.0f) - (exitPortalRect_.x + w / 2.0f);
     float dy = (playerWorldY_ + 40.0f) - (exitPortalRect_.y + h / 2.0f);
