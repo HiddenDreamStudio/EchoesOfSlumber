@@ -419,4 +419,4 @@ discord_social_sdk
 vulkan
 Makefile
 /*.sln
-assets/saves/savedata.xml
+assets/saves/*.xml
