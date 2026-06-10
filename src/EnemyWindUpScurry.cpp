@@ -1,6 +1,7 @@
 #include "EnemyWindUpScurry.h"
 #include "Engine.h"
 #include "Textures.h"
+#include "Audio.h"
 #include "Physics.h"
 #include "Render.h"
 #include "Player.h"
@@ -71,6 +72,10 @@ bool EnemyWindUpScurry::Start() {
 
     // Start in idle state with a random direction
     ChooseNewPatrolDirection();
+
+    attackFxId = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/WindUpScurry/ataques.wav");
+    deadFxId   = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/WindUpScurry/dead.wav");
+
     EnterState(State::IDLE);
 
     return true;
@@ -308,6 +313,7 @@ void EnemyWindUpScurry::EnterState(State newState) {
         hitAnims_.ResetCurrent();
         break;
     case State::DEATH:
+        Engine::GetInstance().audio->PlayFx(deadFxId);
         dieAnims_.ResetCurrent();
         if (pbody) {
             Engine::GetInstance().physics->DeletePhysBody(pbody);
@@ -332,6 +338,7 @@ void EnemyWindUpScurry::OnCollision(PhysBody* physA, PhysBody* physB) {
         if (other->ctype == ColliderType::PLAYER) {
             if (currentState_ == State::WALK_FAST || currentState_ == State::IDLE) {
                 if (other->listener != nullptr) {
+                    Engine::GetInstance().audio->PlayFx(attackFxId);
                     other->listener->TakeDamage(1);
                 }
             }
