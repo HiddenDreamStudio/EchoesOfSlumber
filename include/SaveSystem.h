@@ -60,6 +60,13 @@ public:
 	bool HasCheckpointSave() const;
 	const std::string& GetActiveCheckpointId() const { return gameState_.activeCheckpointId; }
 
+	// Slot-based save system (3 slots: 0, 1, 2)
+	void SetActiveSlot(int slot);
+	int  GetActiveSlot() const { return activeSlotIndex_; }
+	std::string GetSlotFilename(int slot) const;
+	bool SlotHasValidSave(int slot) const;
+	std::string GetSlotInfoString(int slot) const;
+
 	// Check if save file exists
 	bool SaveFileExists(const std::string& filename) const;
 
@@ -98,4 +105,5 @@ private:
 	float pendingCheckpointPosX_ = 0.0f;
 	float pendingCheckpointPosY_ = 0.0f;
 	std::string pendingCheckpointId_;
+	int activeSlotIndex_ = -1;  // -1 = legacy quicksave, 0..2 = slot
 };
