@@ -641,9 +641,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
 
                 std::string entityType = objectNode.attribute("type").as_string();
                 if (entityType.empty()) entityType = objectNode.attribute("class").as_string();
-                if (entityType.empty()) {
-                    entityType = objectNode.attribute("class").as_string();
-                }
+                if (entityType.empty()) entityType = objectNode.attribute("name").as_string();
                 float x = objectNode.attribute("x").as_float();
                 float y = objectNode.attribute("y").as_float();
 
@@ -1034,7 +1032,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     colliderList.push_back(wall);
                     LOG("Wall spawned at: %f, %f (%.0fx%.0f)", x, y, w, h);
                 }
-                else if (entityType == "Tirachinas") {
+                else if (entityType == "Tirachinas" || entityType == "Tiraxines") {
                     mapData.slingshotFound = true;
                     mapData.slingshotX = x;
                     mapData.slingshotY = y;
@@ -1085,6 +1083,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
             for (pugi::xml_node objectNode = objectGroupNode.child("object"); objectNode != NULL; objectNode = objectNode.next_sibling("object")) {
                 std::string objClass = objectNode.attribute("class").as_string();
                 if (objClass.empty()) objClass = objectNode.attribute("type").as_string();
+                if (objClass.empty()) objClass = objectNode.attribute("name").as_string();
 
                 if (objClass == "Push_Rock") {
                     float x = objectNode.attribute("x").as_float();
@@ -1100,7 +1099,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                     rock->Start();
                     LOG("PushRock spawned at: %f, %f (size: %.0fx%.0f)", x, y, w, h);
                 }
-                else if (objClass == "Tirachinas") {
+                else if (objClass == "Tirachinas" || objClass == "Tiraxines") {
                     float x = objectNode.attribute("x").as_float();
                     float y = objectNode.attribute("y").as_float();
                     mapData.slingshotFound = true;
@@ -1123,7 +1122,7 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                 std::string objClass = objectNode.attribute("class").as_string();
                 if (objClass.empty()) objClass = objectNode.attribute("type").as_string();
 
-                if (objClass == "Tirachinas") {
+                if (objClass == "Tirachinas" || objClass == "Tiraxines") {
                     float x = objectNode.attribute("x").as_float();
                     float y = objectNode.attribute("y").as_float();
                     mapData.slingshotFound = true;

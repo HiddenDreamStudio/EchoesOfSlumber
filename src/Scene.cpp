@@ -2514,33 +2514,6 @@ void Scene::UpdateGameplay(float dt)
 		}
 	}
 
-	// Draw slingshot collectible in-world
-	if (!slingshotCollected_ && texSlingshotCollectible_)
-	{
-		int slTexW = 0, slTexH = 0;
-		Engine::GetInstance().textures->GetSize(texSlingshotCollectible_, slTexW, slTexH);
-		float slFloatOffset = 6.0f * sinf(slingshotFloatTimer_ * 0.003f);
-		float slScale = 0.05f;
-		int slDrawX = (int)(slingshotX_ - (float)slTexW * slScale / 2.0f);
-		int slDrawY = (int)(slingshotY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
-
-		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
-		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
-	}
-
-	// Draw stuffed animal collectible in-world
-	if (!stuffedAnimalCollected_ && texStuffedAnimalCollectible_)
-	{
-		int slTexW = 0, slTexH = 0;
-		Engine::GetInstance().textures->GetSize(texStuffedAnimalCollectible_, slTexW, slTexH);
-		float slFloatOffset = 6.0f * sinf(stuffedAnimalFloatTimer_ * 0.003f);
-		float slScale = 0.05f; 
-		int slDrawX = (int)(stuffedAnimalX_ - (float)slTexW * slScale / 2.0f);
-		int slDrawY = (int)(stuffedAnimalY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
-
-		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
-		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
-	}
 if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
 
 if (isPuzzleMap_ && puzzleManager_ && player && !isPaused_ && !isGameOver_) {
@@ -2588,19 +2561,6 @@ if (puzzleManager3_ && player && !isPaused_ && !isGameOver_) {
 }
 // --- FIN PUZZLE3 UPDATE ---
 
-	// Draw cape collectible in-world
-	if (!capaCollected_ && texCapaCollectible_)
-	{
-		int capaTexW = 0, capaTexH = 0;
-		Engine::GetInstance().textures->GetSize(texCapaCollectible_, capaTexW, capaTexH);
-		float floatOffset = 6.0f * sinf(capaFloatTimer_ * 0.003f);
-		float capaScale = 0.06f; // Perfect floating scale for the high-res blue blanket!
-		int drawX = (int)(capaX_ - (float)capaTexW * capaScale / 2.0f);
-		int drawY = (int)(capaY_ - (float)capaTexH * capaScale / 2.0f + floatOffset);
-
-		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
-		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, capaScale);
-	}
 }
 
 // ============================================================================
@@ -3121,6 +3081,48 @@ bool Scene::UpdateCheckpointTransition(float dt)
 
 void Scene::PostUpdateGameplay()
 {
+	// Draw slingshot collectible in-world
+	if (!slingshotCollected_ && texSlingshotCollectible_)
+	{
+		int slTexW = 0, slTexH = 0;
+		Engine::GetInstance().textures->GetSize(texSlingshotCollectible_, slTexW, slTexH);
+		float slFloatOffset = 6.0f * sinf(slingshotFloatTimer_ * 0.003f);
+		float slScale = 0.05f;
+		int slDrawX = (int)(slingshotX_ - (float)slTexW * slScale / 2.0f);
+		int slDrawY = (int)(slingshotY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
+
+		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
+		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
+	}
+
+	// Draw stuffed animal collectible in-world
+	if (!stuffedAnimalCollected_ && texStuffedAnimalCollectible_)
+	{
+		int slTexW = 0, slTexH = 0;
+		Engine::GetInstance().textures->GetSize(texStuffedAnimalCollectible_, slTexW, slTexH);
+		float slFloatOffset = 6.0f * sinf(stuffedAnimalFloatTimer_ * 0.003f);
+		float slScale = 0.05f; 
+		int slDrawX = (int)(stuffedAnimalX_ - (float)slTexW * slScale / 2.0f);
+		int slDrawY = (int)(stuffedAnimalY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
+
+		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
+		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
+	}
+
+	// Draw cape collectible in-world
+	if (!capaCollected_ && texCapaCollectible_)
+	{
+		int capaTexW = 0, capaTexH = 0;
+		Engine::GetInstance().textures->GetSize(texCapaCollectible_, capaTexW, capaTexH);
+		float floatOffset = 6.0f * sinf(capaFloatTimer_ * 0.003f);
+		float capaScale = 0.06f; // Perfect floating scale for the high-res blue blanket!
+		int drawX = (int)(capaX_ - (float)capaTexW * capaScale / 2.0f);
+		int drawY = (int)(capaY_ - (float)capaTexH * capaScale / 2.0f + floatOffset);
+
+		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
+		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, capaScale);
+	}
+	
 	// Quick save/load shortcuts (only when not paused)
 	if (!isPaused_ && !isGameOver_ && !IsCheckpointTransitionActive()) {
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F5) == KEY_DOWN)
