@@ -1612,6 +1612,12 @@ void Scene::UpdateLoading(float dt)
 					savedHealth = player->health;
 				}
 
+			if (puzzleManager2) {
+				puzzleManager2->Reset();
+			}
+
+			currentMapFile_ = levels_[index].file;
+			currentLevelIndex_ = index;
 				player.reset();
 				Engine::GetInstance().entityManager->CleanUp();
 				Engine::GetInstance().physics->FlushPendingDeletes();
@@ -2029,6 +2035,9 @@ void Scene::LoadGameplay()
 	texMinimapFrame_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Minimap.png");
 	// Pre-simulate physics to settle all dynamic bodies
 	Engine::GetInstance().physics->PreSimulateScene(3.0f);
+
+	puzzleManager2 = std::make_shared<PuzzleManager2>();
+	puzzleManager2->Init(Engine::GetInstance().render->renderer);
 }
 
 void Scene::UpdateGameplay(float dt)
@@ -2514,6 +2523,33 @@ void Scene::UpdateGameplay(float dt)
 		}
 	}
 
+	// Draw slingshot collectible in-world
+	if (!slingshotCollected_ && texSlingshotCollectible_)
+	{
+		int slTexW = 0, slTexH = 0;
+		Engine::GetInstance().textures->GetSize(texSlingshotCollectible_, slTexW, slTexH);
+		float slFloatOffset = 6.0f * sinf(slingshotFloatTimer_ * 0.003f);
+		float slScale = 0.05f;
+		int slDrawX = (int)(slingshotX_ - (float)slTexW * slScale / 2.0f);
+		int slDrawY = (int)(slingshotY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
+
+		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
+		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
+	}
+
+	// Draw stuffed animal collectible in-world
+	if (!stuffedAnimalCollected_ && texStuffedAnimalCollectible_)
+	{
+		int slTexW = 0, slTexH = 0;
+		Engine::GetInstance().textures->GetSize(texStuffedAnimalCollectible_, slTexW, slTexH);
+		float slFloatOffset = 6.0f * sinf(stuffedAnimalFloatTimer_ * 0.003f);
+		float slScale = 0.05f; 
+		int slDrawX = (int)(stuffedAnimalX_ - (float)slTexW * slScale / 2.0f);
+		int slDrawY = (int)(stuffedAnimalY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
+
+		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
+		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
+	}
 if (!isPaused_ && !isGameOver_) UpdateBossFight(dt);
 
 if (isPuzzleMap_ && puzzleManager_ && player && !isPaused_ && !isGameOver_) {
@@ -2561,6 +2597,23 @@ if (puzzleManager3_ && player && !isPaused_ && !isGameOver_) {
 }
 // --- FIN PUZZLE3 UPDATE ---
 
+	if (!isPaused_ && !isGameOver_ && puzzleManager2) {
+		puzzleManager2->Update(dt, Engine::GetInstance().entityManager->entities);
+	}
+
+	// Draw cape collectible in-world
+	if (!capaCollected_ && texCapaCollectible_)
+	{
+		int capaTexW = 0, capaTexH = 0;
+		Engine::GetInstance().textures->GetSize(texCapaCollectible_, capaTexW, capaTexH);
+		float floatOffset = 6.0f * sinf(capaFloatTimer_ * 0.003f);
+		float capaScale = 0.06f; // Perfect floating scale for the high-res blue blanket!
+		int drawX = (int)(capaX_ - (float)capaTexW * capaScale / 2.0f);
+		int drawY = (int)(capaY_ - (float)capaTexH * capaScale / 2.0f + floatOffset);
+
+		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
+		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, capaScale);
+	}
 }
 
 // ============================================================================
@@ -2791,6 +2844,9 @@ void Scene::DrawBossHUD(int winW, int winH)
 
 void Scene::UnloadGameplay()
 {
+	if (puzzleManager2) {
+		puzzleManager2.reset();
+	}
 	if (puzzleManager_) {
 		delete puzzleManager_;
 		puzzleManager_ = nullptr;
@@ -2808,6 +2864,7 @@ void Scene::UnloadGameplay()
 	player.reset();
 	Engine::GetInstance().entityManager->CleanUp();
 	Engine::GetInstance().map->CleanUp();
+	Engine::GetInstance().physics->FlushPendingDeletes();
 	isPaused_ = false;
 	showPauseOptions_ = false;
 	showMapViewer_ = false;
@@ -3081,48 +3138,6 @@ bool Scene::UpdateCheckpointTransition(float dt)
 
 void Scene::PostUpdateGameplay()
 {
-	// Draw slingshot collectible in-world
-	if (!slingshotCollected_ && texSlingshotCollectible_)
-	{
-		int slTexW = 0, slTexH = 0;
-		Engine::GetInstance().textures->GetSize(texSlingshotCollectible_, slTexW, slTexH);
-		float slFloatOffset = 6.0f * sinf(slingshotFloatTimer_ * 0.003f);
-		float slScale = 0.05f;
-		int slDrawX = (int)(slingshotX_ - (float)slTexW * slScale / 2.0f);
-		int slDrawY = (int)(slingshotY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
-
-		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
-		Engine::GetInstance().render->DrawTexture(texSlingshotCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
-	}
-
-	// Draw stuffed animal collectible in-world
-	if (!stuffedAnimalCollected_ && texStuffedAnimalCollectible_)
-	{
-		int slTexW = 0, slTexH = 0;
-		Engine::GetInstance().textures->GetSize(texStuffedAnimalCollectible_, slTexW, slTexH);
-		float slFloatOffset = 6.0f * sinf(stuffedAnimalFloatTimer_ * 0.003f);
-		float slScale = 0.05f; 
-		int slDrawX = (int)(stuffedAnimalX_ - (float)slTexW * slScale / 2.0f);
-		int slDrawY = (int)(stuffedAnimalY_ - (float)slTexH * slScale / 2.0f + slFloatOffset);
-
-		SDL_Rect slSection = { 0, 0, slTexW, slTexH };
-		Engine::GetInstance().render->DrawTexture(texStuffedAnimalCollectible_, slDrawX, slDrawY, &slSection, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, slScale);
-	}
-
-	// Draw cape collectible in-world
-	if (!capaCollected_ && texCapaCollectible_)
-	{
-		int capaTexW = 0, capaTexH = 0;
-		Engine::GetInstance().textures->GetSize(texCapaCollectible_, capaTexW, capaTexH);
-		float floatOffset = 6.0f * sinf(capaFloatTimer_ * 0.003f);
-		float capaScale = 0.06f; // Perfect floating scale for the high-res blue blanket!
-		int drawX = (int)(capaX_ - (float)capaTexW * capaScale / 2.0f);
-		int drawY = (int)(capaY_ - (float)capaTexH * capaScale / 2.0f + floatOffset);
-
-		SDL_Rect section = { 0, 0, capaTexW, capaTexH };
-		Engine::GetInstance().render->DrawTexture(texCapaCollectible_, drawX, drawY, &section, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, capaScale);
-	}
-	
 	// Quick save/load shortcuts (only when not paused)
 	if (!isPaused_ && !isGameOver_ && !IsCheckpointTransitionActive()) {
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_F5) == KEY_DOWN)
@@ -5231,6 +5246,10 @@ void Scene::ExecuteSubMapLoad()
     Engine::GetInstance().map->CleanUp();
     Engine::GetInstance().physics->FlushPendingDeletes();
 
+	if (puzzleManager2) {
+		puzzleManager2->Reset();
+	}
+
     currentMapFile_ = subMapTarget_;
     if (currentMapFile_.find("ZonaBoss") != std::string::npos)
     {
@@ -5340,9 +5359,11 @@ void Scene::ExecuteSubMapLoad()
 	// --- PUZZLE3 INIT ---
 	isLvl3Map_ = (currentMapFile_ == "Map3.tmx");
 	isLvl3Puzzle_ = (currentMapFile_ == "MapLvl3ZonaPuzzle3.tmx");
+	isLvl3Puzzle1_ = (currentMapFile_ == "MapLvl3ZonaPuzzle1.tmx");
+	isLvl3Puzzle2_ = (currentMapFile_ == "MapLvl3ZonaPuzzle2.tmx");
 	LOG("PUZZLE3 DEBUG: currentMapFile_='%s', isLvl3Puzzle_=%d", currentMapFile_.c_str(), (int)isLvl3Puzzle_);
 
-	if (isLvl3Map_ || isLvl3Puzzle_) {
+	if (isLvl3Map_ || isLvl3Puzzle_ || isLvl3Puzzle1_ || isLvl3Puzzle2_) {
 		if (!puzzleManager3_) puzzleManager3_ = new PuzzleManager3();
 		puzzleManager3_->Init(Engine::GetInstance().render->renderer);
 
@@ -5399,6 +5420,24 @@ void Scene::ExecuteSubMapLoad()
 			puzzleManager3_->LoadButtons(buttons);
 
 		}
+
+		if (isLvl3Puzzle1_) {
+			std::vector<ButtonData3P1> buttons;
+			for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects3()) {
+				std::string fullName = obj.name;
+				size_t sep = fullName.find('|');
+				if (sep != std::string::npos) fullName = fullName.substr(0, sep);
+				if (fullName == "Button") {
+					ButtonData3P1 btn;
+					btn.worldRect = obj.rect;
+					btn.platformTarget = obj.platformTarget;  // leer desde Tiled
+					btn.flipH = obj.flipH;
+					buttons.push_back(btn);
+					LOG("PUZZLE1: Boton cargado, target='%s'", btn.platformTarget.c_str());
+				}
+			}
+			puzzleManager3_->LoadPuzzle1Buttons(buttons);
+		}
 	}
 	else {
 		if (puzzleManager3_) {
@@ -5407,6 +5446,8 @@ void Scene::ExecuteSubMapLoad()
 		}
 		isLvl3Map_ = false;
 		isLvl3Puzzle_ = false;
+		isLvl3Puzzle1_ = false;
+		isLvl3Puzzle2_ = false;
 	}
 
 	isPuzzleMap3Lever_ = isLvl3Map_;
