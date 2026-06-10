@@ -22,13 +22,13 @@ In a dark, mysterious world woven from fragmented memories, the player explores 
 |------|------|--------|
 | Zakaria Hamdaoui | Lead Dev, Engine | Video Game Design and Dev. |
 | Bruno Gómez Stirparo | Producer, Engine | Video Game Design and Dev. |
-| Júlia Aunión Goy | Producer, UX | Video Game Design and Dev. |
+| Júlia Aunión Goy | Producer, UX | Design, Animation & Digital Art |
 | Marc Pladellorens Pérez | Gameplay Dev | Video Game Design and Dev. |
 | Monse Medina Chávez | Lead Game Design | Video Game Design and Dev. |
 | Aidan Albero García | Gameplay, Level Design | Video Game Design and Dev. |
 | Albert Frederic Bailen Ruesca | Gameplay, Level Design | Video Game Design and Dev. |
 | Bernat Loza Cardoner | Gameplay, Tech Artist | Video Game Design and Dev. |
-| Víctor Pérez Ortega | Tech Artist | Design, Animation & Digital Art |
+| Víctor Pérez Ortega | Gameplay, Tech Artist | Video Game Design and Dev. |
 | Dottir Cheong Parlon | Lead Art | Design, Animation & Digital Art |
 | Maria Guest Brillas | Character Art, UX | Design, Animation & Digital Art |
 | Nadia Power Vilaseca | Character Art, Narrative | Design, Animation & Digital Art |
