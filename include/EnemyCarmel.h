@@ -23,6 +23,20 @@ private:
 	void TransitionTo(EnemyCarmelState newState);
 	void Draw(float dt) override;
 	void UpdatePhysicsBody(bool big);
+	void PlaySpiderFx(int fxId);
+
+	void OnCollision(PhysBody* physA, PhysBody* physB) override;
+
+	int idleFxId_ = -1;
+	int moveFxId_ = -1;
+	int alertFxId_ = -1;
+	int deathFxId_ = -1;
+	int hitFxId_ = -1;
+	int attackFxId_ = -1;
+
+	float moveFxTimer_ = 0.0f;
+	float moveFxInterval_ = 3065.0f; // 3.065s
+	float idleFxTimer_ = 0.0f;
 
 	int lastFrameIndex_ = -1;
 	PhysBody* pbodySensor_ = nullptr;
