@@ -1,5 +1,7 @@
 #include "Audio.h"
 #include "Log.h"
+#include "Engine.h"
+#include "Scene.h"
 
 Audio::Audio() {
     name = "audio";
@@ -76,22 +78,22 @@ bool Audio::EnsureStreams() {
 	// Set music volume
     SDL_SetAudioStreamGain(music_stream_, music_volume_);
 
-    if (!sfx_stream_) {
-        sfx_stream_ = SDL_CreateAudioStream(nullptr, &device_spec_);
-        if (!sfx_stream_) {
-            LOG("Audio: SDL_CreateAudioStream (sfx) failed: %s", SDL_GetError());
-            return false;
-        }
-        if (!SDL_BindAudioStream(device_, sfx_stream_)) {
-            LOG("Audio: SDL_BindAudioStream (sfx) failed: %s", SDL_GetError());
-            SDL_DestroyAudioStream(sfx_stream_);
-            sfx_stream_ = nullptr;
-            return false;
+    for (int i = 0; i < NUM_SFX_CHANNELS; ++i) {
+        if (!sfx_channels_[i]) {
+            sfx_channels_[i] = SDL_CreateAudioStream(nullptr, &device_spec_);
+            if (!sfx_channels_[i]) {
+                LOG("Audio: SDL_CreateAudioStream (sfx %d) failed: %s", i, SDL_GetError());
+                return false;
+            }
+            if (!SDL_BindAudioStream(device_, sfx_channels_[i])) {
+                LOG("Audio: SDL_BindAudioStream (sfx %d) failed: %s", i, SDL_GetError());
+                SDL_DestroyAudioStream(sfx_channels_[i]);
+                sfx_channels_[i] = nullptr;
+                return false;
+            }
+            SDL_SetAudioStreamGain(sfx_channels_[i], sfx_volume_);
         }
     }
-
-	// Set SFX volume
-    SDL_SetAudioStreamGain(sfx_stream_, sfx_volume_);
 
     return true;
 }
@@ -126,7 +128,7 @@ bool Audio::CleanUp() {
     // If audio is inactive or already quit elsewhere, don't touch SDL objects.
     if (!active || !SDL_WasInit(SDL_INIT_AUDIO)) {
         music_stream_ = nullptr;
-        sfx_stream_ = nullptr;
+        for (int i = 0; i < NUM_SFX_CHANNELS; ++i) sfx_channels_[i] = nullptr;
         device_ = 0;
         sfx_.clear();
         FreeSound(music_data_);
@@ -145,9 +147,11 @@ bool Audio::CleanUp() {
     }
     FreeSound(music_data_);
 
-    if (sfx_stream_) {
-        SDL_DestroyAudioStream(sfx_stream_);
-        sfx_stream_ = nullptr;
+    for (int i = 0; i < NUM_SFX_CHANNELS; ++i) {
+        if (sfx_channels_[i]) {
+            SDL_DestroyAudioStream(sfx_channels_[i]);
+            sfx_channels_[i] = nullptr;
+        }
     }
     for (auto& s : sfx_) FreeSound(s);
     sfx_.clear();
@@ -213,30 +217,60 @@ int Audio::LoadFx(const char* path) {
     return static_cast<int>(sfx_.size()); // 1-based outward index
 }
 
-bool Audio::PlayFx(int id, int repeat) {
+bool Audio::PlayFx(int id, int repeat, bool isUI) {
     if (!active) return false;
+    
+    if (!isUI) {
+        auto& scene = Engine::GetInstance().scene;
+        if (scene) {
+            if (scene->GetCurrentScene() != SceneID::GAMEPLAY || scene->isPaused_ || scene->isGameOver_) {
+                return false;
+            }
+        }
+    }
+
     if (id <= 0 || id > static_cast<int>(sfx_.size())) return false;
     if (!EnsureStreams()) return false;
 
     const SoundData& s = sfx_[static_cast<size_t>(id - 1)];
 
+    SDL_AudioStream* channel = nullptr;
+    for (int i = 0; i < NUM_SFX_CHANNELS; ++i) {
+        if (SDL_GetAudioStreamAvailable(sfx_channels_[i]) == 0) {
+            channel = sfx_channels_[i];
+            break;
+        }
+    }
+    if (!channel) {
+        channel = sfx_channels_[0];
+        SDL_ClearAudioStream(channel);
+    }
+
     // Make sure the SFX stream input format matches this sound
-    if (!SDL_SetAudioStreamFormat(sfx_stream_, &s.spec, &device_spec_)) {
+    if (!SDL_SetAudioStreamFormat(channel, &s.spec, &device_spec_)) {
         LOG("Audio: SDL_SetAudioStreamFormat(sfx) failed: %s", SDL_GetError());
         return false;
     }
 
-    SDL_ClearAudioStream(sfx_stream_);
-
     // Queue sound 'repeat+1' times
     for (int i = 0; i <= repeat; ++i) {
-        if (!SDL_PutAudioStreamData(sfx_stream_, s.buf, s.len)) {
+        if (!SDL_PutAudioStreamData(channel, s.buf, s.len)) {
             LOG("Audio: SDL_PutAudioStreamData(sfx) failed: %s", SDL_GetError());
             return false;
         }
     }
 
     return true;
+}
+
+void Audio::StopFx() {
+    if (active) {
+        for (int i = 0; i < NUM_SFX_CHANNELS; ++i) {
+            if (sfx_channels_[i]) {
+                SDL_ClearAudioStream(sfx_channels_[i]);
+            }
+        }
+    }
 }
 
 void Audio::SetMusicVolume(float volume)
@@ -260,7 +294,9 @@ void Audio::SetSFXVolume(float volume)
 
     sfx_volume_ = volume;
 
-    if (sfx_stream_) {
-        SDL_SetAudioStreamGain(sfx_stream_, sfx_volume_);
+    for (int i = 0; i < NUM_SFX_CHANNELS; ++i) {
+        if (sfx_channels_[i]) {
+            SDL_SetAudioStreamGain(sfx_channels_[i], sfx_volume_);
+        }
     }
 }
