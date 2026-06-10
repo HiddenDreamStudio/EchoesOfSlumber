@@ -34,7 +34,7 @@ bool PushRock::Start() {
 
     pbody = Engine::GetInstance().physics->CreateRectangle(
         (int)position.getX(), (int)position.getY(),
-        collW, collH, bodyType::DYNAMIC, 0.95f);
+        collW, collH, bodyType::DYNAMIC, 2.0f);
 
     pbody->ctype = ColliderType::PUSH_ROCK;
     pbody->listener = this;
@@ -59,6 +59,18 @@ bool PushRock::Start() {
 
 bool PushRock::Update(float dt) {
     if (!active) return true;
+
+    if (currentPlatform && numPlayersTouching <= 0 && pbody && b2Body_IsValid(pbody->body)) {
+        if (b2Body_IsValid(currentPlatform->body)) {
+            b2Vec2 platVel = b2Body_GetLinearVelocity(currentPlatform->body);
+            b2Body_SetLinearVelocity(pbody->body, platVel);
+
+            b2Body_SetAwake(pbody->body, true);
+        }
+        else {
+            currentPlatform = nullptr;
+        }
+    }
 
     int x, y;
     pbody->GetPosition(x, y);
@@ -108,8 +120,10 @@ bool PushRock::CleanUp() {
 }
 
 void PushRock::OnCollision(PhysBody* physA, PhysBody* physB) {
-    // Landing on top acts as a platform
     if (physB->ctype == ColliderType::PLAYER) {
+        numPlayersTouching++; // Sumamos 1 si el jugador la toca
+
+        // Landing on top acts as a platform
         int rockX, rockY, playerX, playerY;
         physA->GetPosition(rockX, rockY);
         physB->GetPosition(playerX, playerY);
@@ -119,7 +133,19 @@ void PushRock::OnCollision(PhysBody* physA, PhysBody* physB) {
             // Player landed on top — handled by Player's OnCollision with PLATFORM-like behavior
         }
     }
+    else if (physB->ctype == ColliderType::PLATFORM) {
+        currentPlatform = physB;
+    }
 }
 
 void PushRock::OnCollisionEnd(PhysBody* physA, PhysBody* physB) {
+    if (physB->ctype == ColliderType::PLAYER) {
+        numPlayersTouching--;
+        if (numPlayersTouching < 0) numPlayersTouching = 0;
+    }
+    else if (physB->ctype == ColliderType::PLATFORM) {
+        if (currentPlatform == physB) {
+            currentPlatform = nullptr;
+        }
+    }
 }
