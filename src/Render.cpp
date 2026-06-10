@@ -321,22 +321,26 @@ void Render::SetBackgroundColor(SDL_Color color) { background = color; }
 void Render::SetViewPort(const SDL_Rect& rect) { SDL_SetRenderViewport(renderer, &rect); }
 void Render::ResetViewPort() { SDL_SetRenderViewport(renderer, &viewport); }
 
-bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* section, float speed, double angle, int pivotX, int pivotY, SDL_FlipMode flip, float drawScale, float drawScaleY) const
+bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* section, float speedX, float speedY, double angle, int pivotX, int pivotY, SDL_FlipMode flip, float drawScale, float drawScaleY) const
 {
 	bool ret = true;
 	int scale = Engine::GetInstance().window->GetScale();
 	float s = cameraZoom;
-	if (speed == 0.0f) s = 1.0f; // UI elements don't zoom
+
+	float sX = speedX;
+	float sY = (speedY < -0.99f && speedY > -1.01f) ? speedX : speedY; // Default to speedX if speedY is -1.0f
+
+	if (sX == 0.0f && sY == 0.0f) s = 1.0f; // UI elements don't zoom
 
 	// drawScaleY <= 0 means "use drawScale for the vertical axis too" (uniform scale, the common case)
 	float scaleY = (drawScaleY > 0.0f) ? drawScaleY : drawScale;
 
 	SDL_FRect rect;
-	float camX = (float)camera.x + (speed != 0.0f ? cameraShakeOffsetX_ : 0.0f);
-	float camY = (float)camera.y + (speed != 0.0f ? cameraShakeOffsetY_ : 0.0f);
+	float camX = (float)camera.x + (sX != 0.0f ? cameraShakeOffsetX_ : 0.0f);
+	float camY = (float)camera.y + (sY != 0.0f ? cameraShakeOffsetY_ : 0.0f);
 	// Apply world-space zoom centered at the dynamic zoomCenter
-	rect.x = (float)((zoomCenterX + s * (camX * speed + (float)x - zoomCenterX)) * scale);
-	rect.y = (float)((zoomCenterY + s * (camY * speed + (float)y - zoomCenterY)) * scale);
+	rect.x = (float)((zoomCenterX + s * (camX * sX + (float)x - zoomCenterX)) * scale);
+	rect.y = (float)((zoomCenterY + s * (camY * sY + (float)y - zoomCenterY)) * scale);
 
 	if (section != NULL) {
 		rect.w = (float)(section->w * scale * drawScale * s);
@@ -358,7 +362,8 @@ bool Render::DrawTexture(SDL_Texture* texture, int x, int y, const SDL_Rect* sec
 	SDL_FPoint pivot;
 	SDL_FPoint* p = NULL;
 	if (pivotX != INT_MAX && pivotY != INT_MAX) {
-		pivot = { (float)pivotX * s, (float)pivotY * s }; // Scale pivot for rotated textures
+		pivot.x = (float)pivotX * scale * drawScale * s;
+		pivot.y = (float)pivotY * scale * scaleY * s;
 		p = &pivot;
 	}
 
