@@ -285,7 +285,7 @@ void EnemyCarmel::Draw(float dt)
 		int drawX = x - renderSize / 2;
 		// Anchor bottom to ground (big capsule bottom + 7px visual offset = y + 57)
 		int drawY = (y + 57) - renderSize;
-		Engine::GetInstance().render->DrawTexture(rollTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale_);
+		Engine::GetInstance().render->DrawTexture(rollTexture_, drawX, drawY, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale_);
 	}
 	else if (state_ == EnemyCarmelState::SCARED)
 	{
@@ -294,7 +294,7 @@ void EnemyCarmel::Draw(float dt)
 		if (frameIndex != lastFrameIndex_) hull = &carmel_hull_scared[frameIndex % 11];
 
 		const SDL_Rect& frame = scaredAnims_.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(scaredTexture_, x - 32, y - 32, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(scaredTexture_, x - 32, y - 32, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
 	}
 	else if (state_ == EnemyCarmelState::BLOWUP)
 	{
@@ -318,7 +318,7 @@ void EnemyCarmel::Draw(float dt)
 		int drawX = x - renderSize / 2;
 		// Anchor bottom to ground so it grows upwards, not sinking into floor
 		int drawY = (y + 57) - renderSize;
-		Engine::GetInstance().render->DrawTexture(blowupTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale_);
+		Engine::GetInstance().render->DrawTexture(blowupTexture_, drawX, drawY, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale_);
 	}
 	else
 	{
@@ -328,7 +328,7 @@ void EnemyCarmel::Draw(float dt)
 		if (frameIndex != lastFrameIndex_) hull = &carmel_hull_idle[frameIndex % 6];
 
 		const SDL_Rect& frame = anims_.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(texture, x - 32, y - 32, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(texture, x - 32, y - 32, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
 	}
 
 	if (pbodySensor_ != nullptr) {

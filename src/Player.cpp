@@ -459,7 +459,6 @@ bool Player::Update(float dt)
 				// Giant Bear mode controls (only move left/right and attack)
 				Move();
 				Attack(dt);
-				Teleport();
 				// Kid animation: wave once -> fall asleep -> sleep loop
 				throwBearAnims_.Update(dt);
 				if (throwBearAnims_.GetCurrentName() == "BearActiveIdle" && throwBearAnims_.HasFinishedOnce("BearActiveIdle")) {
@@ -482,7 +481,6 @@ bool Player::Update(float dt)
 					Jump();
 					if (!isPushing_) Attack(dt);
 					if (!isPushing_ && !isAttacking_) Slingshot(dt);
-					Teleport();
 				}
 			}
 		}
@@ -523,11 +521,6 @@ bool Player::Update(float dt)
 	return true;
 }
 
-void Player::Teleport() {
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_T) == KEY_DOWN) {
-		pbody->SetPosition(96, 96);
-	}
-}
 
 void Player::GetPhysicsValues() {
 	velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
@@ -837,7 +830,8 @@ void Player::Slingshot(float dt)
 			Uint8 dotAlpha = (Uint8)(120 - i * 16);
 			if (dotAlpha < 30) dotAlpha = 30;
 
-			render->DrawCircle((int)px, (int)py, 3, 200, 180, 140, dotAlpha, true);
+			SDL_Rect dotRect = { (int)px - 3, (int)py - 3, 6, 6 };
+			render->DrawRectangle(dotRect, 200, 180, 140, dotAlpha, true, true);
 		}
 
 
@@ -1149,7 +1143,7 @@ void Player::Draw(float dt) {
             int wakeDrawY = yInt + 50 - wakeHeight + 15;
             
             render->ApplyAmbientTint(wakeUpTexture);
-            render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, wakeScale);
+            render->DrawTexture(wakeUpTexture, wakeDrawX, wakeDrawY, &wuFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, wakeScale);
             render->ResetAmbientTint(wakeUpTexture);
             return;
         }
@@ -1164,7 +1158,7 @@ void Player::Draw(float dt) {
 		SDL_FlipMode kidFlip = bearSummonFacingRight_ ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
 		render->ApplyAmbientTint(throwBearTexture_);
-		render->DrawTexture(throwBearTexture_, kidDrawX, kidDrawY, &kidFrame, 1.0f, 0, INT_MAX, INT_MAX, kidFlip, kidScale);
+		render->DrawTexture(throwBearTexture_, kidDrawX, kidDrawY, &kidFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, kidFlip, kidScale);
 		render->ResetAmbientTint(throwBearTexture_);
 	}
 
@@ -1188,7 +1182,7 @@ void Player::Draw(float dt) {
 			SDL_SetTextureBlendMode(activeTex, SDL_BLENDMODE_BLEND);
 		}
 
-		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
 
 		// Add subtle permanent white circular glow to the player
 		if (!isDead_ && !isWakingUp) {
