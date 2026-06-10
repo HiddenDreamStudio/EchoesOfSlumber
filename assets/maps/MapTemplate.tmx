@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="49" nextobjectid="1821">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="49" nextobjectid="1821">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -22735,17 +22735,17 @@
   </data>
  </layer>
  <objectgroup id="25" name="Foreground">
-  <object id="1410" gid="204" x="1002.7" y="6618.05" width="495" height="736"/>
+  <object id="1410" gid="204" x="1006.7" y="6662.05" width="495" height="736"/>
   <object id="1411" gid="204" x="6151.5" y="6470.05" width="495" height="736"/>
-  <object id="1412" gid="204" x="8837.5" y="8652.05" width="495" height="736"/>
+  <object id="1412" gid="204" x="9041.5" y="8696.05" width="495" height="736"/>
   <object id="1414" gid="208" x="9130.77" y="7559.14" width="707.861" height="563"/>
-  <object id="1415" gid="208" x="5248" y="8640" width="476.517" height="379"/>
+  <object id="1415" gid="208" x="5335" y="8832" width="476.517" height="379"/>
   <object id="1416" gid="197" x="3350.33" y="6017.35" width="233.688" height="214.939"/>
   <object id="1417" gid="197" x="4642.5" y="6929.05" width="161" height="181"/>
-  <object id="1418" gid="207" x="6544.68" y="8760.28" width="606.017" height="503.088"/>
+  <object id="1418" gid="207" x="6752.68" y="8756.28" width="606.017" height="503.088"/>
   <object id="1419" gid="207" x="8852.81" y="6635.09" width="575.909" height="714.84" rotation="183.326"/>
-  <object id="1420" gid="207" x="6480.2" y="6404.64" width="714.936" height="765.222" rotation="101.981"/>
-  <object id="1421" gid="1073742031" x="7997.51" y="7485.44" width="874.934" height="1086" rotation="87.4232"/>
+  <object id="1420" gid="207" x="6260.2" y="7368.64" width="714.936" height="765.222" rotation="101.981"/>
+  <object id="1421" gid="1073742031" x="8173.51" y="7617.44" width="874.934" height="1086" rotation="87.4232"/>
   <object id="1422" gid="1073742019" x="4676.58" y="8622.34" width="170.461" height="176.401"/>
   <object id="1423" gid="200" x="3337.5" y="4591.05" width="251" height="209"/>
   <object id="1439" gid="218" x="7713.78" y="8633.75" width="269.777" height="288.492"/>
@@ -22787,8 +22787,8 @@
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="1776" gid="204" x="5125.26" y="2755.73" width="495" height="736"/>
-  <object id="1777" gid="204" x="2874.06" y="3655.73" width="495" height="736"/>
+  <object id="1776" gid="204" x="5077.26" y="2779.73" width="495" height="736"/>
+  <object id="1777" gid="204" x="2882.06" y="3691.73" width="495" height="736"/>
   <object id="1778" gid="208" x="4156.55" y="5479.54" width="904" height="719"/>
   <object id="1779" gid="197" x="8901.69" y="7362.55" width="273.278" height="251.353"/>
   <object id="1781" gid="206" x="4846.51" y="8610.61" width="37.4183" height="120.57"/>
