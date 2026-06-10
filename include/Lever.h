@@ -23,16 +23,20 @@ public:
 
     // Puzzle lock
     bool isLockedByPuzzle = false;
+    bool isPressurePlate = false;
 
     // Visual size variables (Must be public for Map.cpp)
     int texW = 64;
     int texH = 64;
 
-private:
     SDL_Texture* texNormal = nullptr;
     SDL_Texture* texActive = nullptr;
+
     PhysBody* pbody = nullptr;
 
+private:
+
     bool playerInRange = false;
+    int objectsOnTop = 0;
     std::shared_ptr<Platform> targetPlatform = nullptr;
 };
