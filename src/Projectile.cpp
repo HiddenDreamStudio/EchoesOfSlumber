@@ -53,7 +53,7 @@ bool Projectile::Update(float dt)
 		pbody->GetPosition(x, y);
 		int drawSize = (int)(texW * DRAW_SCALE);
 		const SDL_Rect& frame = anims.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(texture, x - drawSize / 2, y - drawSize / 2, &frame, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, DRAW_SCALE);
+		Engine::GetInstance().render->DrawTexture(texture, x - drawSize / 2, y - drawSize / 2, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, DRAW_SCALE);
 		return true;
 	}
 
@@ -78,7 +78,7 @@ bool Projectile::Update(float dt)
 	position.setY((float)y);
 
 	int drawSize = (int)(texW * DRAW_SCALE);
-	Engine::GetInstance().render->DrawTexture(texture, x - drawSize / 2, y - drawSize / 2, &frame, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, DRAW_SCALE);
+	Engine::GetInstance().render->DrawTexture(texture, x - drawSize / 2, y - drawSize / 2, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, DRAW_SCALE);
 
 	return true;
 }
