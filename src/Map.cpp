@@ -41,7 +41,7 @@ static SDL_FlipMode flipMode(bool h, bool v) {
     return SDL_FLIP_NONE;
 }
 
-Map::Map() : Module(), mapLoaded(false), hasInitCamera(false), initCameraX(0.0f)
+Map::Map() : Module(), mapLoaded(false), hasInitCamera(false), initCameraX(0.0f), initCameraY(0.0f)
 {
     name = "map";
 }
@@ -72,60 +72,46 @@ bool Map::Update(float dt)
     bool ret = true;
 
     if (mapLoaded) {
-        if (Engine::GetInstance().scene->GetCurrentScene() != SceneID::GAMEPLAY) {
-            return true;
-        }
-
         Render* render = Engine::GetInstance().render.get();
-        int scale = Engine::GetInstance().window->GetScale();
 
-        if (!hasInitCamera) {
+        if (!hasInitCamera && render->IsCameraInitialized()) {
             initCameraX = (float)render->camera.x;
+            initCameraY = (float)render->camera.y;
             hasInitCamera = true;
+            LOG("PARALLAX DEBUG: Pinned to camera position X: %f, Y: %f", initCameraX, initCameraY);
         }
 
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
-                // Parallax relative to initial camera position (X only, Y stays locked)
-                int imgDrawX = static_cast<int>(imgLayer->offsetX + (float)(render->camera.x - initCameraX) * (imgLayer->parallaxFactorX - 1.0f));
+                // Pin parallax to start position: offset = x + initCam * (1 - speed)
+                float pinnedX = imgLayer->offsetX + initCameraX * (1.0f - imgLayer->parallaxFactorX);
+                
                 Engine::GetInstance().render->DrawTexture(
                     imgLayer->texture,
-                    imgDrawX,
+                    static_cast<int>(pinnedX),
                     static_cast<int>(imgLayer->offsetY),
                     nullptr,
-                    1.0f
+                    imgLayer->parallaxFactorX,
+                    1.0f // Force no Y parallax
                 );
             }
         }
-        // Find player position for player-centric parallax
-        Vector2D playerPos(0.0f, 0.0f);
-        bool foundPlayer = false;
-        if (Engine::GetInstance().entityManager) {
-            for (const auto& entity : Engine::GetInstance().entityManager->entities) {
-                if (entity && entity->type == EntityType::PLAYER) {
-                    playerPos = entity->position;
-                    foundPlayer = true;
-                    break;
-                }
-            }
-        }
-
+        
         for (const auto& deco : mapData.decorationObjects) {
             if (deco->texture && !deco->isFront) {
-                int drawX = (int)deco->x;
-                if (foundPlayer) {
-                    drawX = (int)(deco->x + (playerPos.getX() - deco->x) * (deco->parallaxSpeed - 1.0f));
-                }
+                // Pin parallax to start position
+                float pinnedX = deco->x + initCameraX * (1.0f - deco->parallaxSpeed);
 
-                if (!render->IsOnScreenWorldRect((float)drawX, deco->y - deco->height, deco->width, deco->height))
-                    continue;
+                // TEMPORARILY DISABLE CULLING FOR DECORATIONS TO ENSURE VISIBILITY
+                // if (!render->IsOnScreenWorldRect(pinnedX, deco->y - deco->height, deco->width, deco->height, 2000))
+                //    continue;
                 
                 int tw = 0, th = 0;
                 Engine::GetInstance().textures->GetSize(deco->texture, tw, th);
                 float drawScaleX = (tw > 0) ? (deco->width / (float)tw) : 1.0f;
                 float drawScaleY = (th > 0) ? (deco->height / (float)th) : 1.0f;
 
-                render->DrawTexture(deco->texture, drawX, (int)(deco->y - deco->height), nullptr, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV), drawScaleX, drawScaleY);
+                render->DrawTexture(deco->texture, (int)pinnedX, (int)(deco->y - deco->height), nullptr, deco->parallaxSpeed, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV), drawScaleX, drawScaleY);
             }
         }
 
@@ -133,37 +119,53 @@ bool Map::Update(float dt)
             if (plant->isFront) continue;
             plant->anim.Update(dt);
 
-            // Culling
-            if (!render->IsOnScreenWorldRect(plant->x, plant->y, plant->w, plant->h))
+            float pinnedX = plant->x + initCameraX * (1.0f - plant->parallaxSpeed);
+
+            if (!render->IsOnScreenWorldRect(pinnedX, plant->y, plant->w, plant->h, 1000))
                 continue;
 
             const SDL_Rect& frame = plant->anim.GetCurrentFrame();
-            render->DrawTexture(plant->texture, (int)plant->x, (int)plant->y, &frame);
+            render->DrawTexture(plant->texture, (int)pinnedX, (int)plant->y, &frame, plant->parallaxSpeed, 1.0f);
         }
         
-        // Calculate camera bounds in tiles using the correctly zoomed world viewport
-        float camX = -(float)render->camera.x;
-        float camY = -(float)render->camera.y;
-        float camW = render->GetWorldViewportWidth();
-        float camH = render->GetWorldViewportHeight();
-
-        int startX = std::max(0, static_cast<int>(camX / static_cast<float>(mapData.tileWidth)) - 35);
-        int startY = std::max(0, static_cast<int>(camY / static_cast<float>(mapData.tileHeight)) - 35);
-        int endX = std::min(mapData.width, static_cast<int>((camX + camW) / static_cast<float>(mapData.tileWidth)) + 35);
-        int endY = std::min(mapData.height, static_cast<int>((camY + camH) / static_cast<float>(mapData.tileHeight)) + 35);
-
         for (const auto& mapLayer : mapData.layers) {
-            if (mapLayer->properties.GetProperty("Draw") != NULL && mapLayer->properties.GetProperty("Draw")->value == true) {
-                for (int i = startX; i < endX; i++) {
-                    for (int j = startY; j < endY; j++) {
-                        int gid = mapLayer->Get(i, j);
-                        if (gid != 0) {
+            auto* drawProp = mapLayer->properties.GetProperty("Draw");
+            if (drawProp == nullptr || drawProp->value == true) {
+                float px = mapLayer->parallaxFactorX;
+                float py = mapLayer->parallaxFactorY;
+
+                std::string lowerName = mapLayer->name;
+                for (char& c : lowerName) c = ::tolower(c);
+                if (px == 1.0f) {
+                    if (lowerName.find("background") != std::string::npos || lowerName.find("back") != std::string::npos || lowerName.find("fondo") != std::string::npos) px = 0.7f;
+                    else if (lowerName.find("middle") != std::string::npos || lowerName.find("medio") != std::string::npos) px = 0.9f;
+                    else if (lowerName.find("foreground") != std::string::npos || lowerName.find("front") != std::string::npos) px = 1.2f;
+                }
+
+                // Process the whole map for now to ensure visibility
+                for (int i = 0; i < mapData.width; i++) {
+                    for (int j = 0; j < mapData.height; j++) {
+                        unsigned int rawGid = mapLayer->Get(i, j);
+                        if (rawGid != 0) {
+                            const unsigned int FLIPPED_HORIZONTALLY_FLAG = 0x80000000;
+                            const unsigned int FLIPPED_VERTICALLY_FLAG = 0x40000000;
+                            const unsigned int FLIPPED_DIAGONALLY_FLAG = 0x20000000;
+
+                            int gid = rawGid & ~(FLIPPED_HORIZONTALLY_FLAG | FLIPPED_VERTICALLY_FLAG | FLIPPED_DIAGONALLY_FLAG);
+
                             TileSet* tileSet = GetTilesetFromTileId(gid);
                             if (tileSet != nullptr && tileSet->texture != nullptr) {
                                 SDL_Rect tileRect = tileSet->GetRect(gid);
                                 Vector2D mapCoord = MapToWorld(i, j);
-                                // Stable rendering with DrawTexture
-                                render->DrawTexture(tileSet->texture, (int)mapCoord.getX(), (int)mapCoord.getY(), &tileRect, mapLayer->parallaxFactorX);
+                                
+                                // Pin parallax to start position
+                                float pinnedX = mapCoord.getX() + initCameraX * (1.0f - px);
+
+                                SDL_FlipMode flip = SDL_FLIP_NONE;
+                                if (rawGid & FLIPPED_HORIZONTALLY_FLAG) flip = (SDL_FlipMode)(flip | SDL_FLIP_HORIZONTAL);
+                                if (rawGid & FLIPPED_VERTICALLY_FLAG) flip = (SDL_FlipMode)(flip | SDL_FLIP_VERTICAL);
+
+                                render->DrawTexture(tileSet->texture, (int)pinnedX, (int)mapCoord.getY(), &tileRect, px, 1.0f, 0.0, INT_MAX, INT_MAX, flip);
                             }
                         }
                     }
@@ -181,33 +183,14 @@ bool Map::PostUpdate()
     if (mapLoaded == false)
         return true;
 
-    if (Engine::GetInstance().scene->GetCurrentScene() != SceneID::GAMEPLAY) {
-        return true;
-    }
-
     Render* render = Engine::GetInstance().render.get();
-
-    // Find player position for player-centric parallax
-    Vector2D playerPos(0.0f, 0.0f);
-    bool foundPlayer = false;
-    if (Engine::GetInstance().entityManager) {
-        for (const auto& entity : Engine::GetInstance().entityManager->entities) {
-            if (entity && entity->type == EntityType::PLAYER) {
-                playerPos = entity->position;
-                foundPlayer = true;
-                break;
-            }
-        }
-    }
 
     for (const auto& deco : mapData.decorationObjects) {
         if (deco->texture && deco->isFront) {
-            int drawX = (int)deco->x;
-            if (foundPlayer) {
-                drawX = (int)(deco->x + (playerPos.getX() - deco->x) * (deco->parallaxSpeed - 1.0f));
-            }
+            // Pin parallax to start position
+            float pinnedX = deco->x + initCameraX * (1.0f - deco->parallaxSpeed);
 
-            if (!render->IsOnScreenWorldRect((float)drawX, deco->y - deco->height, deco->width, deco->height))
+            if (!render->IsOnScreenWorldRect(pinnedX, deco->y - deco->height, deco->width, deco->height, 2000))
                 continue;
 
             int tw = 0, th = 0;
@@ -215,17 +198,20 @@ bool Map::PostUpdate()
             float drawScaleX = (tw > 0) ? (deco->width / (float)tw) : 1.0f;
             float drawScaleY = (th > 0) ? (deco->height / (float)th) : 1.0f;
 
-            render->DrawTexture(deco->texture, drawX, (int)(deco->y - deco->height), nullptr, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV), drawScaleX, drawScaleY);
+            render->DrawTexture(deco->texture, (int)pinnedX, (int)(deco->y - deco->height), nullptr, deco->parallaxSpeed, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV), drawScaleX, drawScaleY);
         }
     }
 
     for (const auto& plant : mapData.animatedPlants) {
         if (!plant->isFront) continue;
-        if (!render->IsOnScreenWorldRect(plant->x, plant->y, plant->w, plant->h))
+
+        float pinnedX = plant->x + initCameraX * (1.0f - plant->parallaxSpeed);
+
+        if (!render->IsOnScreenWorldRect(pinnedX, plant->y, plant->w, plant->h, 1000))
             continue;
 
         const SDL_Rect& frame = plant->anim.GetCurrentFrame();
-        render->DrawTexture(plant->texture, (int)plant->x, (int)plant->y, &frame);
+        render->DrawTexture(plant->texture, (int)pinnedX, (int)plant->y, &frame, plant->parallaxSpeed, 1.0f);
     }
 
     return true;
@@ -305,6 +291,7 @@ bool Map::CleanUp()
     mapLoaded = false;
     hasInitCamera = false;
     initCameraX = 0.0f;
+    initCameraY = 0.0f;
 
     return true;
 }
@@ -675,6 +662,15 @@ void Map::LoadEntities(std::shared_ptr<Player>& player, bool portalTransition, f
                         else
                             player->SetPosition(Vector2D(x, y));
                     }
+
+                    // IMMEDIATELY CALCULATE AND PIN CAMERA POSITION FOR PARALLAX
+                    Render* render = Engine::GetInstance().render.get();
+                    float vW = render->GetWorldViewportWidth();
+                    float vH = render->GetWorldViewportHeight();
+                    initCameraX = -(player->position.getX() - vW / 2.0f);
+                    initCameraY = -(player->position.getY() - vH * 0.75f);
+                    hasInitCamera = true;
+                    LOG("PARALLAX PINNED in LoadEntities: %f, %f", initCameraX, initCameraY);
                 }
                 else if (entityType == "Enemy" || entityType == "SpiderCandy") {
                     auto enemy = std::dynamic_pointer_cast<EnemyCarmel>(Engine::GetInstance().entityManager->CreateEntity(EntityType::ENEMY));
@@ -1204,22 +1200,23 @@ void Map::LoadImageLayers()
 
         if (lowerName.find("background") != std::string::npos || 
             lowerName.find("back") != std::string::npos || 
-            lowerName.find("fondo") != std::string::npos || 
-            lowerName.find("bakground") != std::string::npos) 
+            lowerName.find("fondo") != std::string::npos) 
         {
-            defaultParallax = 0.95f; // Default background image parallax
+            defaultParallax = 0.85f; // Lessen background effect
+        }
+        else if (lowerName.find("middle") != std::string::npos ||
+                 lowerName.find("medio") != std::string::npos)
+        {
+            defaultParallax = 0.95f; // Lessen middleground effect
         }
         else if (lowerName.find("foreground") != std::string::npos || 
                  lowerName.find("front") != std::string::npos) 
         {
-            defaultParallax = 1.05f; // Default foreground image parallax
+            defaultParallax = 1.2f; // Foreground moves faster than camera
         }
 
-        // Check if parallaxx attribute is explicitly set in TMX, otherwise use defaultParallax
-        // Apply a 0.25f damping factor to prevent aggressive layouts from detaching
         pugi::xml_attribute pxAttr = imgNode.attribute("parallaxx");
-        float rawParallax = pxAttr ? pxAttr.as_float() : defaultParallax;
-        imgLayer->parallaxFactorX = 1.0f + (rawParallax - 1.0f) * 0.25f;
+        imgLayer->parallaxFactorX = pxAttr ? pxAttr.as_float() : defaultParallax;
         imgLayer->parallaxFactorY = imgNode.attribute("parallaxy").as_float(1.0f);
         imgLayer->source = imgNode.child("image").attribute("source").as_string();
 
@@ -1248,7 +1245,6 @@ void Map::LoadDecorationObjects()
         if (skip) continue; 
 
         // Determine parallax speed and front/back based on Tiled layer name
-        // Hollow Knight-style depth: BG slower, Middleground 1:1, FG faster
         float layerParallax = 1.0f;
         bool  layerIsFront  = false;
 
@@ -1257,25 +1253,29 @@ void Map::LoadDecorationObjects()
 
         if (lowerGroupName.find("background") != std::string::npos || 
             lowerGroupName.find("back") != std::string::npos || 
-            lowerGroupName.find("fondo") != std::string::npos || 
-            lowerGroupName.find("bakground") != std::string::npos) 
+            lowerGroupName.find("fondo") != std::string::npos) 
         {
-            layerParallax = 0.98f; // Extremely subtle background decoration parallax
+            layerParallax = 0.85f; // Lessen background effect
+            layerIsFront  = false;
+        }
+        else if (lowerGroupName.find("middle") != std::string::npos ||
+                 lowerGroupName.find("medio") != std::string::npos)
+        {
+            layerParallax = 0.95f; // Lessen middleground effect
             layerIsFront  = false;
         }
         else if (lowerGroupName.find("foreground") != std::string::npos || 
                  lowerGroupName.find("front") != std::string::npos) 
         {
-            layerParallax = 1.02f; // Extremely subtle foreground decoration parallax
+            layerParallax = 1.2f; // Foreground moves faster than camera
             layerIsFront  = true;
         }
         // Middleground and everything else stays at 1.0, isFront = false
 
         // TMX parallaxx attribute overrides the default if present
-        // Apply a 0.25f damping factor to prevent aggressive layouts from detaching
         float tmxParallaxx = groupNode.attribute("parallaxx").as_float(0.0f);
         if (tmxParallaxx > 0.0f) {
-            layerParallax = 1.0f + (tmxParallaxx - 1.0f) * 0.25f;
+            layerParallax = tmxParallaxx;
         }
 
         std::vector<DecorationObject*> layerDecos;
@@ -1415,6 +1415,14 @@ void Map::LoadAnimatedPlants()
             plant->h = objNode.attribute("height").as_float();
             plant->isFront = (layerName == "AnimatedPlants front");
             plant->tsxPath = tsxSource;
+
+            // Determine parallax speed based on layer name
+            plant->parallaxSpeed = 1.0f;
+            std::string lowerLayerName = layerName;
+            for (char& c : lowerLayerName) c = ::tolower(c);
+            if (lowerLayerName.find("background") != std::string::npos || lowerLayerName.find("back") != std::string::npos || lowerLayerName.find("fondo") != std::string::npos) plant->parallaxSpeed = 0.85f;
+            else if (lowerLayerName.find("middle") != std::string::npos || lowerLayerName.find("medio") != std::string::npos) plant->parallaxSpeed = 0.95f;
+            else if (lowerLayerName.find("foreground") != std::string::npos || lowerLayerName.find("front") != std::string::npos) plant->parallaxSpeed = 1.2f;
 
             std::unordered_map<int, std::string> aliases = { {0, "idle"} };
             bool loaded = plant->anim.LoadFromTSX(fullTsxPath.c_str(), aliases);
