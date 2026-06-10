@@ -1087,15 +1087,13 @@ void Scene::UpdateIntroCinematic(float dt)
 
 void Scene::LoadTutorialTextCard()
 {
-	LOG("Loading Tutorial Text Card for Level %d...", currentLevelIndex_ + 1);
+	LOG("Loading Tutorial Video Card for Level %d...", currentLevelIndex_ + 1);
 	tutorialTimer_ = 0.0f;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
-	texTutorialSeparator_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Separator.png");
 
-	fxTitleCardPt1_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/ui_titlecard_pt_1.wav");
-	fxTitleCardPt2_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/ui_titlecard_pt_2.wav");
-	pt1Played_ = false;
-	pt2Played_ = false;
+	// Construct dynamic video path for the level
+	std::string videoPath = "assets/video/UI_Level" + std::to_string(currentLevelIndex_ + 1) + "_Intro.mp4";
+	Engine::GetInstance().cinematics->PlayVideo(videoPath.c_str());
 
 	// FADE IN from black
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 1000.0f);
@@ -1103,11 +1101,8 @@ void Scene::LoadTutorialTextCard()
 
 void Scene::UnloadTutorialTextCard()
 {
-	LOG("Unloading Tutorial Text Card");
-	if (texTutorialSeparator_) {
-		Engine::GetInstance().textures->UnLoad(texTutorialSeparator_);
-		texTutorialSeparator_ = nullptr;
-	}
+	LOG("Unloading Tutorial Video Card");
+	Engine::GetInstance().cinematics->StopVideo();
 }
 
 void Scene::UpdateTutorialTextCard(float dt)
@@ -1115,80 +1110,34 @@ void Scene::UpdateTutorialTextCard(float dt)
 	tutorialTimer_ += dt;
 
 	auto& input = *Engine::GetInstance().input;
-	bool skipRequested = false;
+	auto& cin = *Engine::GetInstance().cinematics;
 
-	const float pt1Start = 500.0f;
-	const float pt1Duration = 4600.0f; 
-	const float pt2Start = pt1Start + pt1Duration;
-	const float pt2Duration = 6000.0f; 
-	const float autoFadeStart = pt2Start + pt2Duration + 1000.0f;
+	// Skip requested if user presses Space, Escape, or Gamepad South/Start
+	bool skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+	                     input.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+	                     input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+	                     input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
+	                     cin.HasSkipBeenRequested();
 
-	if (tutorialTimer_ > pt2Start + 2000.0f) {
-		bool explicitSkip = false;
-		for (int i = 0; i < 300; ++i) {
-			if (input.GetKey(i) == KEY_DOWN) { explicitSkip = true; break; }
-		}
-		if (!explicitSkip && input.IsAnyGamepadButtonPressed()) explicitSkip = true;
-
-		if (explicitSkip) {
-			skipRequested = true;
-		}
-	}
-	
-	if (tutorialTimer_ >= autoFadeStart && !waitingForFade_) {
-		skipRequested = true;
-	}
-
-	if (skipRequested && !waitingForFade_) {
+	// Transition if user skipped or the video has ended
+	if ((skipRequested || !cin.IsPlaying()) && !waitingForFade_) {
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::GAMEPLAY;
-		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1500.0f);
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1000.0f);
 	}
 
 	auto& render = *Engine::GetInstance().render;
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
+	// Draw black background manually under/around video
 	SDL_Rect bg = { 0, 0, winW, winH };
 	render.DrawRectangle(bg, 0, 0, 0, 255, true, false);
 
-	if (currentLevelIndex_ < 0 || (size_t)currentLevelIndex_ >= levels_.size()) return;
-	const auto& level = levels_[currentLevelIndex_];
-
-	SDL_Color white = { 255, 255, 255, 255 };
-	SDL_Color gold  = { 218, 165, 32, 255 };
-
-	if (tutorialTimer_ > pt1Start) {
-		if (!pt1Played_) {
-			Engine::GetInstance().audio->PlayFx(fxTitleCardPt1_, 0, true);
-			pt1Played_ = true;
-		}
-		float elapsed = tutorialTimer_ - pt1Start;
-		float alpha = std::min(1.0f, elapsed / 800.0f);
-		SDL_Color subColor = { gold.r, gold.g, gold.b, (Uint8)(255 * alpha) };
-		render.DrawMenuTextCentered(level.number.c_str(), { 0, winH / 2 - 130, winW, 40 }, subColor, 1.0f);
-	}
-
-	if (tutorialTimer_ > pt1Start && texTutorialSeparator_) {
-		float elapsed = tutorialTimer_ - pt1Start;
-		float progress = std::min(1.0f, elapsed / 500.0f); 
-		int tw, th;
-		Engine::GetInstance().textures->GetSize(texTutorialSeparator_, tw, th);
-		SDL_Rect src = { (int)((float)tw * (1.0f - progress) / 2.0f), 0, (int)((float)tw * progress), th };
-		float drawW = (float)tw * progress * 0.8f;
-		float drawH = (float)th * 0.8f;
-		int dx = (winW - (int)drawW) / 2;
-		int dy = winH / 2 - 70;
-		render.DrawTexture(texTutorialSeparator_, dx, dy, &src, 0.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.8f);
-	}
-
-	if (tutorialTimer_ > pt2Start) {
-		if (!pt2Played_) {
-			Engine::GetInstance().audio->PlayFx(fxTitleCardPt2_, 0, true);
-			pt2Played_ = true;
-		}
-		SDL_Color mainColor = { white.r, white.g, white.b, 255 };
-		render.DrawMenuTextCentered(level.name.c_str(), { 0, winH / 2 - 10, winW, 60 }, mainColor, 2.0f);
+	// Render the "Press SPACE to Skip" overlay
+	if (!waitingForFade_ && cin.IsPlaying()) {
+		SDL_Color skipColor = { 255, 255, 255, 120 };
+		render.DrawMenuTextCentered("Press SPACE to Skip", { winW - 300, winH - 60, 280, 30 }, skipColor, 0.4f);
 	}
 }
 
