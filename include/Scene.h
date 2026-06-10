@@ -189,6 +189,13 @@ private:
     void UpdateTutorialTextCard(float dt);
     float tutorialTimer_ = 0.0f;
 
+    // ── Loading Kid Sprite ────────────────────────────────────────────────────
+    SDL_Texture* texLoadingKid_ = nullptr;
+    static constexpr int LOADING_KID_FRAME_W  = 256;  // pixels per frame
+    static constexpr int LOADING_KID_FRAME_H  = 256;
+    static constexpr int LOADING_KID_FRAMES   = 17;
+    static constexpr float LOADING_KID_FPS    = 12.0f; // ~83ms per frame
+
     // ── Loading Screen ────────────────────────────────────────────────────────
     void LoadLoading();
     void UnloadLoading();
