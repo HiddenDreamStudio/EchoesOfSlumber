@@ -96,5 +96,5 @@ void MemoryFragment::Draw()
     int drawX = (int)(position.getX() - frame.w * scale_ * 0.5f);
     int drawY = (int)(position.getY() - frame.h * scale_ * 0.5f);
 
-    render.DrawTexture(texture_, drawX, drawY, &frame, 1.0f, 0.0, INT_MAX, INT_MAX, SDL_FLIP_NONE, scale_);
+    render.DrawTexture(texture_, drawX, drawY, &frame, 1.0f, -1.0f, 0.0, INT_MAX, INT_MAX, SDL_FLIP_NONE, scale_);
 }
