@@ -5,6 +5,7 @@
 #include "Scene.h"
 #include "Input.h"
 #include "Textures.h"
+#include "Audio.h"
 #include "Log.h"
 #include <cstdlib>
 
@@ -55,6 +56,11 @@ bool DropDoll::Start()
     texDie_ = tex.Load((DIR + "SP_DropDoll_Die.png").c_str());
     for (int i = 0; i < 19; i++) animDie_.AddFrame({ i * 256, 0, 256, 256 }, 80);
     animDie_.SetLoop(false);
+
+    auto& audio = *Engine::GetInstance().audio;
+    fxCaida_   = audio.LoadFx("assets/audio/Enemies/Drop Doll/Dropdoll-Caida.wav");
+    fxAttach_  = audio.LoadFx("assets/audio/Enemies/Drop Doll/Dropdoll-Attach.wav");
+    fxMolesta_ = audio.LoadFx("assets/audio/Enemies/Drop Doll/Dropdoll-Molestando.wav");
 
     return true;
 }
@@ -133,6 +139,7 @@ bool DropDoll::Update(float dt)
             animAire_.Reset();
             fallElapsedTime_ = 0.0f;
             hasBeenFalling_  = false;
+            Engine::GetInstance().audio->PlayFx(fxCaida_);
             state_ = DropDollState::FALLING;
         }
         break;
@@ -240,7 +247,9 @@ bool DropDoll::Update(float dt)
             indicatorSpeed_ = 0.75f;
             failedAttempts_ = 0;
             attachTimer_    = 0.0f;
+            molesTimer_     = 0.0f;
             animEngancharLoop_.Reset();
+            Engine::GetInstance().audio->PlayFx(fxMolesta_);
             state_ = DropDollState::ATTACHED;
         }
         break;
@@ -260,6 +269,14 @@ bool DropDoll::Update(float dt)
             scn.player->pbody->GetPosition(px, py);
             position.setX((float)px);
             position.setY((float)py - DOLL_H);
+        }
+
+        // Loop molesta SFX
+        molesTimer_ += dt;
+        if (molesTimer_ >= MOLES_INTERVAL)
+        {
+            molesTimer_ = 0.0f;
+            Engine::GetInstance().audio->PlayFx(fxMolesta_);
         }
 
         // Move indicator
@@ -374,6 +391,7 @@ void DropDoll::OnCollision(PhysBody* physA, PhysBody* physB)
 
         // Freeze the player and play the latch-on animation before the minigame starts
         if (scn.player) scn.player->isDollGrabbed_ = true;
+        Engine::GetInstance().audio->PlayFx(fxAttach_);
         animEnganchar_.Reset();
         state_ = DropDollState::GRABBING;
     }
@@ -405,7 +423,7 @@ void DropDoll::Draw()
         if (f.w == 0 || f.h == 0) return;
         int sw = (int)(f.w * DRAW_SCALE);
         int sh = (int)(f.h * DRAW_SCALE);
-        render.DrawTexture(tex, centerX - sw / 2, centerY - sh / 2, &f, 1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, DRAW_SCALE);
+        render.DrawTexture(tex, centerX - sw / 2, centerY - sh / 2, &f, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, DRAW_SCALE);
     };
 
     switch (state_)

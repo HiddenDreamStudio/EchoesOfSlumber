@@ -5,6 +5,8 @@
 #include "Scene.h"
 #include "Log.h"
 #include "Physics.h"
+#include "Audio.h"
+#include "CarmelHulls.h"
 
 EnemyCarmel::EnemyCarmel()
 {
@@ -37,6 +39,23 @@ bool EnemyCarmel::Start()
 	blowupAnims_.SetLoop("blowup", false);
 	blowupTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Carmel_Blowup.png");
 
+	idleFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy idle.wav");
+	moveFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Move.wav");
+	alertFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Alert.wav");
+	deathFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy_death.wav");
+	hitFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy_daño.wav");
+	attackFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy_atack.wav");
+
+	idleFxTimer_ = 2000.0f + (rand() % 3000);
+	int bx = (int)position.getX() + 32;
+	int by = (int)position.getY() + 32;
+	
+	// Create the sensor body once. It will follow the main body and have its shape updated dynamically.
+	pbodySensor_ = Engine::GetInstance().physics->CreateConvexPolygon(bx, by, carmel_hull_idle[0].points, carmel_hull_idle[0].numPoints * 2, bodyType::KINEMATIC);
+	pbodySensor_->listener = this;
+	pbodySensor_->ctype = ColliderType::ENEMY;
+	Engine::GetInstance().physics->UpdateConvexPolygon(pbodySensor_, carmel_hull_idle[0].points, carmel_hull_idle[0].numPoints * 2, 1.0f, 0.6f, true);
+
 	UpdatePhysicsBody(false); // Start small
 	TransitionTo(EnemyCarmelState::IDLE);
 	return true;
@@ -44,6 +63,10 @@ bool EnemyCarmel::Start()
 
 bool EnemyCarmel::CleanUp()
 {
+	if (pbodySensor_ != nullptr) {
+		Engine::GetInstance().physics->DeletePhysBody(pbodySensor_);
+		pbodySensor_ = nullptr;
+	}
 	Engine::GetInstance().textures->UnLoad(rollTexture_);
 	Engine::GetInstance().textures->UnLoad(scaredTexture_);
 	Engine::GetInstance().textures->UnLoad(blowupTexture_);
@@ -102,6 +125,11 @@ void EnemyCarmel::UpdateFSM(float dt)
 	{
 	case EnemyCarmelState::IDLE:
 		velocity.x = 0.0f;
+		idleFxTimer_ -= dt;
+		if (idleFxTimer_ <= 0.0f) {
+			PlaySpiderFx(idleFxId_);
+			idleFxTimer_ = 2000.0f + (rand() % 3000);
+		}
 		if (totalDist < DETECTION_RADIUS) {
 			TransitionTo(EnemyCarmelState::SCARED);
 		}
@@ -148,6 +176,12 @@ void EnemyCarmel::UpdateFSM(float dt)
 				turnDelayTimer_ = TURN_DELAY;
 			}
 
+			moveFxTimer_ -= dt;
+			if (moveFxTimer_ <= 0.0f) {
+				PlaySpiderFx(moveFxId_);
+				moveFxTimer_ = moveFxInterval_;
+			}
+
 			velocity.x   = currentDirX_ * CHASE_SPEED;
 			facingRight_ = (currentDirX_ > 0.0f);
 		}
@@ -169,29 +203,35 @@ void EnemyCarmel::TransitionTo(EnemyCarmelState newState)
 	switch (newState)
 	{
 	case EnemyCarmelState::IDLE:
+		lastFrameIndex_ = -1;
 		UpdatePhysicsBody(false);
 		break;
 
 	case EnemyCarmelState::SCARED:
 		stateTimer_ = SCARED_DURATION;
 		scaredAnims_.ResetCurrent();
+		PlaySpiderFx(alertFxId_);
+		lastFrameIndex_ = -1;
 		LOG("SpiderCandy: SCARED");
 		break;
 		
 	case EnemyCarmelState::BLOWUP:
 		stateTimer_ = BLOWUP_DURATION;
 		blowupAnims_.ResetCurrent();
+		lastFrameIndex_ = -1;
 		UpdatePhysicsBody(true);
 		LOG("SpiderCandy: BLOWUP");
 		break;
 
 	case EnemyCarmelState::CHASE:
 		stateTimer_ = 2000.0f;
+		moveFxTimer_ = 0.0f; // Force immediate play
 		LOG("SpiderCandy: CHASE");
 		break;
 		
 	case EnemyCarmelState::DEATH:
 		LOG("SpiderCandy: DEATH");
+		PlaySpiderFx(deathFxId_);
 		Destroy();
 		break;
 
@@ -205,6 +245,7 @@ void EnemyCarmel::TakeDamage(int damage)
 	if (state_ == EnemyCarmelState::DEATH) return;
 
 	health -= damage;
+	PlaySpiderFx(hitFxId_);
 	LOG("SpiderCandy took %d damage -> health: %d/%d", damage, health, maxHealth);
 
 	int bodyX, bodyY;
@@ -228,34 +269,102 @@ void EnemyCarmel::Draw(float dt)
 	position.setY((float)y);
 
 	SDL_FlipMode flip = facingRight_ ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+	int frameIndex = 0;
+	FrameHull* hull = nullptr;
 
 	if (state_ == EnemyCarmelState::CHASE)
 	{
 		rollAnims_.Update(dt);
+		frameIndex = rollAnims_.GetCurrentFrameIndex();
+		if (frameIndex != lastFrameIndex_) hull = &carmel_hull_roll[frameIndex % 8];
+
 		const SDL_Rect& frame = rollAnims_.GetCurrentFrame();
-		int drawX = x - (int)(256.0f * ROLL_DRAW_SCALE) / 2;
-		int drawY = y - (int)(256.0f * ROLL_DRAW_SCALE) / 2;
-		Engine::GetInstance().render->DrawTexture(rollTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, ROLL_DRAW_SCALE);
+		// Full large scale for chase/roll
+		currentDrawScale_ = ROLL_DRAW_SCALE;
+		int renderSize = (int)(256.0f * currentDrawScale_);
+		int drawX = x - renderSize / 2;
+		// Anchor bottom to ground (big capsule bottom + 7px visual offset = y + 57)
+		int drawY = (y + 57) - renderSize;
+		Engine::GetInstance().render->DrawTexture(rollTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale_);
 	}
 	else if (state_ == EnemyCarmelState::SCARED)
 	{
 		scaredAnims_.Update(dt);
+		frameIndex = scaredAnims_.GetCurrentFrameIndex();
+		if (frameIndex != lastFrameIndex_) hull = &carmel_hull_scared[frameIndex % 11];
+
 		const SDL_Rect& frame = scaredAnims_.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(scaredTexture_, x - 32, y - 32, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(scaredTexture_, x - 32, y - 32, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
 	}
 	else if (state_ == EnemyCarmelState::BLOWUP)
 	{
 		blowupAnims_.Update(dt);
+		frameIndex = blowupAnims_.GetCurrentFrameIndex();
+		if (frameIndex != lastFrameIndex_) hull = &carmel_hull_blowup[frameIndex % 6];
+
 		const SDL_Rect& frame = blowupAnims_.GetCurrentFrame();
-		int drawX = x - (int)(256.0f * ROLL_DRAW_SCALE) / 2;
-		int drawY = y - (int)(256.0f * ROLL_DRAW_SCALE) / 2;
-		Engine::GetInstance().render->DrawTexture(blowupTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, ROLL_DRAW_SCALE);
+
+		// Smooth scale interpolation: ease-out from idle-equivalent to ROLL_DRAW_SCALE
+		// Map idle visual size (64px) to blowup frame size (256px): idle equivalent scale = 64/256 = 0.25
+		float startScale = 64.0f / 256.0f;  // 0.25 — same visual size as idle sprite
+		float t = 1.0f - (stateTimer_ / BLOWUP_DURATION); // 0→1 over the animation
+		if (t < 0.0f) t = 0.0f;
+		if (t > 1.0f) t = 1.0f;
+		// Ease-out cubic for a satisfying growth that starts fast, slows at the end
+		float eased = 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t);
+		currentDrawScale_ = startScale + (ROLL_DRAW_SCALE - startScale) * eased;
+
+		int renderSize = (int)(256.0f * currentDrawScale_);
+		int drawX = x - renderSize / 2;
+		// Anchor bottom to ground so it grows upwards, not sinking into floor
+		int drawY = (y + 57) - renderSize;
+		Engine::GetInstance().render->DrawTexture(blowupTexture_, drawX, drawY, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale_);
 	}
 	else
 	{
 		// IDLE
 		anims_.Update(dt);
+		frameIndex = anims_.GetCurrentFrameIndex();
+		if (frameIndex != lastFrameIndex_) hull = &carmel_hull_idle[frameIndex % 6];
+
 		const SDL_Rect& frame = anims_.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(texture, x - 32, y - 32, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(texture, x - 32, y - 32, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+	}
+
+	if (pbodySensor_ != nullptr) {
+		pbodySensor_->SetPosition(x, y);
+	}
+
+	if (hull != nullptr && pbodySensor_ != nullptr) {
+		Engine::GetInstance().physics->UpdateConvexPolygon(pbodySensor_, hull->points, hull->numPoints * 2, currentDrawScale_, 0.6f, true);
+		lastFrameIndex_ = frameIndex;
+	}
+}
+
+void EnemyCarmel::PlaySpiderFx(int fxId)
+{
+	if (fxId <= 0) return;
+	auto& scene = Engine::GetInstance().scene;
+	if (scene == nullptr || pbody == nullptr || scene->player == nullptr || scene->player->pbody == nullptr) return;
+
+	int bodyX, bodyY;
+	int playerX, playerY;
+	pbody->GetPosition(bodyX, bodyY);
+	scene->player->pbody->GetPosition(playerX, playerY);
+
+	float dx = (float)(playerX - bodyX);
+	float dy = (float)(playerY - bodyY);
+	float distSq = dx * dx + dy * dy;
+
+	if (distSq < 1000000.0f)
+	{
+		Engine::GetInstance().audio->PlayFx(fxId);
+	}
+}
+
+void EnemyCarmel::OnCollision(PhysBody* physA, PhysBody* physB)
+{
+	if (physB->ctype == ColliderType::PLAYER && state_ == EnemyCarmelState::CHASE) {
+		PlaySpiderFx(attackFxId_);
 	}
 }

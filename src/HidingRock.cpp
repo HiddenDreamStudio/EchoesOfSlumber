@@ -54,7 +54,7 @@ bool HidingRock::Update(float dt) {
 		SDL_Rect section = { 0, 0, texW_, texH_ };
 		int drawX = bx - (int)(texW_ * scale / 2.0f);
 		int drawY = by + 100 - (int)(texH_ * scale);
-		Engine::GetInstance().render->DrawTexture(texRock_, drawX, drawY, &section, 1.0f, 0.0, INT_MAX, INT_MAX, SDL_FLIP_NONE, scale);
+		Engine::GetInstance().render->DrawTexture(texRock_, drawX, drawY, &section, 1.0f, -1.0f, 0.0, INT_MAX, INT_MAX, SDL_FLIP_NONE, scale);
 	}
 
 	auto playerShared = Engine::GetInstance().scene->player;
@@ -78,10 +78,10 @@ bool HidingRock::Update(float dt) {
 					// but player is drawn in Player.cpp. Player is likely drawn on top of entities if drawn later. 
 					// Tiled Map PostUpdate draws decorations. Since we draw the rock here in Update, if player draws in Update, it might be an issue.
 					// We'll see).
-					Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+					Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 				} else {
 					playerShared->SetHidingBehindRock(false);
-					Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+					Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 				}
 			}
 		}
@@ -114,7 +114,7 @@ bool HidingRock::Update(float dt) {
 			SDL_Rect promptSec = { 0, 0, promptW_, promptH_ };
 			int promptX = boxX + padding;
 			int promptY = boxY + padding;
-			render->DrawTexture(texPrompt_, promptX, promptY, &promptSec, 1.0f, 0.0, INT_MAX, INT_MAX, SDL_FLIP_NONE, promptScale);
+			render->DrawTexture(texPrompt_, promptX, promptY, &promptSec, 1.0f, -1.0f, 0.0, INT_MAX, INT_MAX, SDL_FLIP_NONE, promptScale);
 		}
 	} else {
 		// If player moves out of range or is far, ensure they are not hiding behind this rock.
