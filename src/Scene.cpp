@@ -2751,7 +2751,7 @@ void Scene::PostUpdateGameplay()
 
 	// --- Draw Health HUD ---
 	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_
-		&& currentMapFile_ != "MapLvl2ZonaBoss.tmx") {
+		&& currentMapFile_ != "MapLvl2ZonaBoss.tmx" && currentMapFile_ != "MapLvl3ZonaBoss.tmx") {
 		SDL_Rect r;
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
