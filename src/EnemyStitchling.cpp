@@ -1,6 +1,7 @@
 #include "EnemyStitchling.h"
 #include "Engine.h"
 #include "Textures.h"
+#include "Audio.h"
 #include "Physics.h"
 #include "Render.h"
 #include "Player.h"
@@ -51,6 +52,9 @@ bool EnemyStitchling::Start() {
     idleAnims_.SetCurrent("idle");
     alertAnims_.SetCurrent("alert");
     dieAnims_.SetCurrent("die");
+
+    attackFxId    = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/Yoyo/attack_yoyo.wav");
+    disappearFxId = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/Yoyo/desaparecer.wav");
 
     EnterState(State::IDLE);
     return true;
@@ -143,6 +147,7 @@ void EnemyStitchling::UpdateFSM(float dt) {
             if (!disappearDone_) {
                 if (dieAnims_.HasFinishedOnce("die")) {
                     // Animation finished — yoyo has disappeared, now throw ropes and trap the player
+                    Engine::GetInstance().audio->PlayFx(disappearFxId);
                     disappearDone_ = true;
                     ApplyPlayerSlowdown();
 
@@ -196,6 +201,7 @@ void EnemyStitchling::EnterState(State newState) {
         alertAnims_.ResetCurrent();
         break;
     case State::TRAP_ACTIVE:
+        Engine::GetInstance().audio->PlayFx(attackFxId);
         dieAnims_.ResetCurrent();
         disappearDone_ = false;
         escapeMashes_ = 0;
@@ -284,7 +290,7 @@ void EnemyStitchling::Draw(float dt) {
 }
 
 float EnemyStitchling::GetDistanceToPlayer() const {
-    if (!playerRef_ || !playerRef_->pbody || !pbody) return 9999.0f;
+    if (!playerRef_ || !playerRef_->pbody || !pbody || playerRef_->IsHiding()) return 9999.0f;
     int px, py;
     playerRef_->pbody->GetPosition(px, py);
     int sx, sy;

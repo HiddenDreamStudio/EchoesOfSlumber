@@ -78,27 +78,43 @@ bool Player::Start() {
 	texH = 128;
 	drawScale = 0.5f;
 
-	// Load individual hide animation
-	hideTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS Individual/SS_Hide.png");
+	// Load combined cape and player hide animation
+	hideTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/Spritesheets Prota i Oso color/Prota corregido/SS_capa-Pintado.png");
 	if (hideTexture_) {
 		int hideW = 0, hideH = 0;
 		Engine::GetInstance().textures->GetSize(hideTexture_, hideW, hideH);
-		int cols = 4;
-		int rows = 3;
+		int cols = 16;
+		int rows = 4;
 		int frameW = hideW / cols;
 		int frameH = hideH / rows;
-		int totalFrames = 12;
-		// Forward: crouching (frames 0 → 11)
-		for (int i = 0; i < totalFrames; ++i) {
-			SDL_Rect r = { (i % cols) * frameW, (i / cols) * frameH, frameW, frameH };
-			hideAnim_.AddFrame(r, 80);
+		int totalFrames = 28; // The spritesheet has 28 non-empty frames
+		int frameDurationMs = 50;
+
+		// Forward: crouching (putting on cape, frames 17 to 30)
+		for (int i = 17; i <= 30; ++i) {
+			// Cape frames are in rows 0 and 1
+			SDL_Rect rCape = { (i % cols) * frameW, (i / cols) * frameH, frameW, frameH };
+			hideCapeAnim_.AddFrame(rCape, frameDurationMs);
+
+			// Player frames are in rows 2 and 3 (offset by 32)
+			int playerIdx = i + 32;
+			SDL_Rect rPlayer = { (playerIdx % cols) * frameW, (playerIdx / cols) * frameH, frameW, frameH };
+			hideAnim_.AddFrame(rPlayer, frameDurationMs);
 		}
+		hideCapeAnim_.SetLoop(false);
 		hideAnim_.SetLoop(false);
-		// Reverse: standing up (frames 11 → 0)
-		for (int i = totalFrames - 1; i >= 0; --i) {
-			SDL_Rect r = { (i % cols) * frameW, (i / cols) * frameH, frameW, frameH };
-			hideExitAnim_.AddFrame(r, 80);
+
+		// Reverse: standing up (taking off cape, frames 1 to 15)
+		// We play these forward because the artist drew the exit animation sequentially!
+		for (int i = 1; i <= 15; ++i) {
+			SDL_Rect rCape = { (i % cols) * frameW, (i / cols) * frameH, frameW, frameH };
+			hideExitCapeAnim_.AddFrame(rCape, frameDurationMs);
+
+			int playerIdx = i + 32;
+			SDL_Rect rPlayer = { (playerIdx % cols) * frameW, (playerIdx / cols) * frameH, frameW, frameH };
+			hideExitAnim_.AddFrame(rPlayer, frameDurationMs);
 		}
+		hideExitCapeAnim_.SetLoop(false);
 		hideExitAnim_.SetLoop(false);
 	}
 
@@ -649,7 +665,7 @@ void Player::Hide(float dt)
 	if (isWakingUp || isShowingDamageAnim_ || isDead_ || isYoyoTrapped_ || isDollGrabbed_) return;
 
 	auto& input = Engine::GetInstance().input;
-	bool hideDown = input->GetKey(SDL_SCANCODE_E) == KEY_DOWN ||
+	bool hideDown = input->GetKey(SDL_SCANCODE_H) == KEY_DOWN ||
 		input->GetGamepadButton(SDL_GAMEPAD_BUTTON_NORTH) == KEY_DOWN;
 
 	// Cannot hide without the blanket (cape collectible) or if it's not equipped
@@ -675,7 +691,9 @@ void Player::Hide(float dt)
 			velocity.x = 0.0f;
 			Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
 			hideAnim_.Reset();
+			hideCapeAnim_.Reset();
 			Engine::GetInstance().audio->PlayFx(capeFxId);
+			UpdateHideCollision();
 			LOG("Player hiding");
 		}
 		else if (isHiding_)
@@ -683,8 +701,10 @@ void Player::Hide(float dt)
 			isHiding_ = false;
 			isExitingHide_ = true;
 			hideExitAnim_.Reset(); // start stand-up animation from frame 0 (= crouched pose)
+			hideExitCapeAnim_.Reset();
 			hideCooldown_ = HIDE_COOLDOWN;
 			Engine::GetInstance().audio->PlayFx(capeFxId);
+			UpdateHideCollision();
 			LOG("Player exiting hide — cooldown started (%.0f ms)", HIDE_COOLDOWN);
 		}
 	}
@@ -913,6 +933,7 @@ void Player::Draw(float dt) {
 
 	SDL_Texture* activeTex = texture;
 	const SDL_Rect* animFrame = nullptr;
+	const SDL_Rect* capeFrame = nullptr;
 	float currentDrawScale = drawScale;
 
 	bool drawingBear = isBearMode_ || isBearTransforming_;
@@ -1011,27 +1032,29 @@ void Player::Draw(float dt) {
 	{
 		if (isExitingHide_)
 		{
-			// Stand-up: play hideExitAnim_ (= SS_Hide reversed) forward
-			hideExitAnim_.Update(dt);
-			animFrame = &hideExitAnim_.GetCurrentFrame();
-			LOG("ExitHide frame=%d w=%d h=%d", hideExitAnim_.GetCurrentFrameIndex(), animFrame->w, animFrame->h);
-			if (hideExitAnim_.HasFinishedOnce())
-			{
+			if (!hideExitAnim_.HasFinishedOnce()) {
+				hideExitAnim_.Update(dt);
+				hideExitCapeAnim_.Update(dt);
+				animFrame = &hideExitAnim_.GetCurrentFrame();
+				capeFrame = &hideExitCapeAnim_.GetCurrentFrame();
+			}
+			else {
 				isExitingHide_ = false;
 				anims.SetCurrent("idle");
-				LOG("ExitHide done -> idle");
 			}
 		}
 		else
 		{
 			// Crouching: play hideAnim_ forward
-			if (!hideAnim_.HasFinishedOnce())
+			if (!hideAnim_.HasFinishedOnce()) {
 				hideAnim_.Update(dt);
+				hideCapeAnim_.Update(dt);
+			}
 			animFrame = &hideAnim_.GetCurrentFrame();
+			capeFrame = &hideCapeAnim_.GetCurrentFrame();
 		}
 		activeTex = hideTexture_;
-		float fw = static_cast<float>(animFrame ? animFrame->w : 0);
-		currentDrawScale = (fw > 0.0f) ? (128.0f / fw) : 0.5f;
+		currentDrawScale = 0.75f; // Increased scale so it matches player size
 	}
 	else if (isPushing_ && velocity.x != 0.0f && !isJumping)
 	{
@@ -1088,6 +1111,12 @@ void Player::Draw(float dt) {
 	int currentFrameH = animFrame ? animFrame->h : texH;
 	int drawX = static_cast<int>(position.getX() - (static_cast<float>(currentFrameW) * currentDrawScale) / 2.0f);
 	int drawY = static_cast<int>(position.getY() - (static_cast<float>(currentFrameH) * currentDrawScale) / 2.0f);
+
+	if (activeTex == hideTexture_) {
+		// Align feet to pos.Y + 64 (standard player feet baseline)
+		float currentBottom = (static_cast<float>(currentFrameH) * currentDrawScale) / 2.0f;
+		drawY -= static_cast<int>(currentBottom - 64.0f);
+	}
 
 	if (drawingBear) {
 		drawY -= bearOffsetDrawY;
@@ -1183,6 +1212,10 @@ void Player::Draw(float dt) {
 		}
 
 		render->DrawTexture(activeTex, drawX, drawY, animFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+
+		if (capeFrame) {
+			render->DrawTexture(activeTex, drawX, drawY, capeFrame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, currentDrawScale);
+		}
 
 		// Add subtle permanent white circular glow to the player
 		if (!isDead_ && !isWakingUp) {
@@ -1649,18 +1682,28 @@ void Player::SetHidingBehindRock(bool hiding) {
 	if (hiding == isHidingBehindRock_) return;
 
 	isHidingBehindRock_ = hiding;
+	UpdateHideCollision();
 	
 	if (hiding) {
 		velocity.x = 0.0f;
 		Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
 		hideAnim_.Reset();
+		hideCapeAnim_.Reset();
 		LOG("Player hiding behind rock");
 	} else {
 		// Play stand-up animation instead of snapping to idle
 		isExitingHide_ = true;
 		hideExitAnim_.Reset();
+		hideExitCapeAnim_.Reset();
 		LOG("Player stopped hiding behind rock — playing stand-up anim");
 	}
+}
+
+void Player::UpdateHideCollision() {
+	bool hiding = isHiding_ || isHidingBehindRock_;
+	Engine::GetInstance().physics->UpdateEnemyFilters();
+	uint32_t mask = hiding ? (0xFFFFFFFF & ~0x0004) : 0xFFFFFFFF;
+	Engine::GetInstance().physics->SetCollisionFilter(pbody, 0x0002, mask);
 }
 
 void Player::SetPosition(Vector2D pos) {

@@ -1,9 +1,10 @@
 #pragma once
 
+#include <list>
+#include <memory>
+
 #include "Module.h"
 #include "UIElement.h"
-
-#include <list>
 
 class UIManager : public Module
 {
@@ -30,12 +31,13 @@ public:
 	std::shared_ptr<UIElement> CreateUIElement(UIElementType type, int id, const char* text, SDL_Rect bounds, Module* observer, SDL_Rect sliderBounds = { 0,0,0,0 });
 
 	// ── Gamepad navigation ───────────────────────────────────────────────────
-	void ResetFocus() { gamepadFocusIndex = -1; }
+	void ResetFocus();
 
 public:
 
 	std::list<std::shared_ptr<UIElement>> UIElementsList;
-	SDL_Texture* texture;
+	SDL_Texture* texture = nullptr;
+	SDL_Texture* customCursorTex = nullptr;
 
 private:
 	// ── Gamepad navigation state ─────────────────────────────────────────────
