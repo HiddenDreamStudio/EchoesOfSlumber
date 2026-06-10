@@ -191,8 +191,16 @@ bool Player::Start() {
 	jumpFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/jump2.wav");
 	landFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/land.wav");
 	gameOverFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/game-over.wav");
-	slingshotFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/tirachinas.wav");
+	slingshotAimFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Tirachines/slingshot_aim.wav");
+	slingshotShootFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Tirachines/slingshot_shoot.wav");
+	slingshotThudFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Tirachines/slingshot_thud.wav");
 	capeFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/capa.wav");
+
+	bearAppearFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Os/bear_appear.wav");
+	bearDeathFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Os/bear_death.wav");
+	bearStepsFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Os/bear_steps_1.wav");
+	bearDamageFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Os/bear_damage_1.wav");
+	bearSlapFxId = Engine::GetInstance().audio->LoadFx("assets/audio/fx/Os/slap.wav");
 	// Comprobar en qué nivel estamos y cargar su sonido de pasos correspondiente
 	int nivelActual = Engine::GetInstance().scene->GetCurrentLevelIndex();
 
@@ -310,15 +318,15 @@ bool Player::Update(float dt)
 		if (canSwap) {
 			if (input.GetKey(SDL_SCANCODE_1) == KEY_DOWN && hasBlanket_) {
 				equippedItem_ = EquippedItem::BLANKET;
-				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 			}
 			if (input.GetKey(SDL_SCANCODE_2) == KEY_DOWN && hasSlingshot_) {
 				equippedItem_ = EquippedItem::SLINGSHOT;
-				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 			}
 			if (input.GetKey(SDL_SCANCODE_3) == KEY_DOWN && hasStuffedAnimal_) {
 				equippedItem_ = EquippedItem::STUFFED_ANIMAL;
-				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 			}
 		}
 
@@ -354,7 +362,7 @@ bool Player::Update(float dt)
 				bearSummonPosition_ = Vector2D((float)bodyX, (float)bodyY);
 				bearSummonFacingRight_ = facingRight;
 
-				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId(), 0, true);
 				LOG("Player starting bear throw");
 			}
 			else if (isBearMode_ && !isBearTransforming_ && !isAttacking_) {
@@ -373,7 +381,7 @@ bool Player::Update(float dt)
 				// Restore facing direction to when the bear was summoned
 				facingRight = bearSummonFacingRight_;
 				
-				Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+				Engine::GetInstance().audio->PlayFx(bearDeathFxId);
 				LOG("Player exited bear mode, kid is sleeping at summon position");
 			}
 		}
@@ -387,6 +395,7 @@ bool Player::Update(float dt)
 					isThrowingBear_ = false;
 					isBearTransforming_ = true;
 					bearAppearAnims_.ResetCurrent();
+					Engine::GetInstance().audio->PlayFx(bearAppearFxId);
 
 					// Teleport bear to a far position in the direction the player is facing
 					float spawnOffset = 300.0f; // Distance from the player
@@ -490,8 +499,14 @@ bool Player::Update(float dt)
 			stepTimer_ = STEP_COOLDOWN;
 		}
 	}
+	else if (velocity.x != 0.0f && isBearMode_ && !isJumping && !isDead_) {
+		stepTimer_ -= dt;
+		if (stepTimer_ <= 0.0f) {
+			Engine::GetInstance().audio->PlayFx(bearStepsFxId);
+			stepTimer_ = STEP_COOLDOWN * 1.5f;
+		}
+	}
 	else {
-
 		stepTimer_ = 0.0f;
 	}
 
@@ -726,6 +741,7 @@ void Player::Slingshot(float dt)
 			slingshotCharged_ = false;
 			slingshotAnim_.Reset();
 			slingshotHoldAnim_.Reset();
+			Engine::GetInstance().audio->PlayFx(slingshotAimFxId);
 			LOG("Slingshot aiming started");
 		}
 	}
@@ -794,6 +810,7 @@ void Player::Slingshot(float dt)
 			slingshotAnim_.Update(dt);
 			if (slingshotAnim_.HasFinishedOnce()) {
 				slingshotCharged_ = true;
+				Engine::GetInstance().audio->StopFx(); // Stop aim sound when animation ends
 			}
 		} else {
 			slingshotHoldAnim_.Update(dt);
@@ -842,10 +859,13 @@ void Player::Slingshot(float dt)
 			isAiming_ = false;
 			isAimingWithGamepad_ = false;
 			slingshotCooldown_ = SLINGSHOT_COOLDOWN;
+			stepTimer_ = 1.0f; // Prevent footsteps from interrupting the shoot sound (sound is ~1s long)
 
 			// Spawn projectile
 			auto proj = std::dynamic_pointer_cast<SlingshotProjectile>(
 				Engine::GetInstance().entityManager->CreateEntity(EntityType::SLINGSHOT_PROJECTILE));
+			
+			proj->thudFxId = slingshotThudFxId;
 
 			// Spawn fully outside the player's collision body for all aim directions.
 			const float projectileSpawnClearance = 70.0f;
@@ -856,7 +876,7 @@ void Player::Slingshot(float dt)
 			proj->SetLaunch(dirX, dirY, launchSpeed);
 			proj->Start();
 
-			Engine::GetInstance().audio->PlayFx(slingshotFxId);
+			Engine::GetInstance().audio->PlayFx(slingshotShootFxId);
 
 			LOG("Slingshot fired! angle=%.1f speed=%.1f", aimAngle_ * RADTODEG, launchSpeed);
 		}
@@ -1213,6 +1233,8 @@ void Player::Attack(float dt)
 		if (isBearMode_) {
 			attackTimer_ = 480.0f; // 6 frames * 80ms
 			bearAttackAnims_.ResetCurrent();
+			Engine::GetInstance().audio->PlayFx(bearSlapFxId);
+			stepTimer_ = 1.0f; // Prevent steps from interrupting slap
 		}
 		else {
 			attackTimer_ = ATTACK_DURATION;
@@ -1304,6 +1326,7 @@ void Player::TakeDamage(int damage, bool applyKnockback)
 			float knockbackForce = 16.0f;
 			float dir = facingRight ? 1.0f : -1.0f;
 			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, dir * knockbackForce, -4.0f, true);
+			Engine::GetInstance().audio->PlayFx(bearDamageFxId);
 			knockbackX_ = dir * knockbackForce;
 			knockbackTimer_ = 200.0f;
 		}
@@ -1324,7 +1347,7 @@ void Player::TakeDamage(int damage, bool applyKnockback)
 			// Restore facing direction to when the bear was summoned
 			facingRight = bearSummonFacingRight_;
 			
-			Engine::GetInstance().audio->PlayFx(Engine::GetInstance().scene->GetMenuClickFxId());
+			Engine::GetInstance().audio->PlayFx(bearDeathFxId);
 			LOG("Bear health depleted! Exiting bear mode, returning to kid.");
 		}
 		return;
@@ -1380,7 +1403,7 @@ void Player::TakeDamage(int damage, bool applyKnockback)
 		isHidingBehindRock_ = false;
 		anims.SetCurrent("death");
 		Engine::GetInstance().audio->PlayMusic(nullptr);
-		Engine::GetInstance().audio->PlayFx(gameOverFxId);
+		Engine::GetInstance().audio->PlayFx(gameOverFxId, 0, true);
 		LOG("Player is dead");
 	}
 	else

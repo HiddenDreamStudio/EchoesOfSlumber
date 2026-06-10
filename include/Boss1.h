@@ -182,4 +182,12 @@ private:
     Animation animDive_;
     Animation animP2Move_;
     Animation animP2Spit_;  // Fase 2 escupir — fila 2, columnas 4-8 de texP2Move_
+
+    // Audio
+    int fxJump_         = -1;
+    int fxAterrizaje_   = -1;
+    int fxHit_          = -1;
+    int fxBocaAbierta_  = -1;
+    int fxDisparo_      = -1;
+    int fxImpactoSuelo_ = -1;
 };
