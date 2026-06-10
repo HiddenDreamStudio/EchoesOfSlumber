@@ -123,4 +123,8 @@ private:
 	// Aesthetic color variables
 	float tenseVisualOffset_ = 0.0f;
 	float dizzyVisualAngle_ = 0.0f;
+
+	// Audio Fx IDs
+	int damageFxId = -1;
+	int jumpFxId = -1;
 };
