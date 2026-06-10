@@ -349,9 +349,9 @@ void SaveSystem::ApplyPlayerState()
 		scene->ResetHealthUI(scene->player->health);
 	}
 
-	scene->capaCollected_ = gameState_.playerHasBlanket;
-	scene->slingshotCollected_ = gameState_.playerHasSlingshot;
-	scene->stuffedAnimalCollected_ = gameState_.playerHasStuffedAnimal;
+	if (gameState_.playerHasBlanket) scene->capaCollected_ = true;
+	if (gameState_.playerHasSlingshot) scene->slingshotCollected_ = true;
+	if (gameState_.playerHasStuffedAnimal) scene->stuffedAnimalCollected_ = true;
 
 	LOG("SaveSystem: Player position restored (%.1f, %.1f)", 
 		gameState_.playerPosX, gameState_.playerPosY);

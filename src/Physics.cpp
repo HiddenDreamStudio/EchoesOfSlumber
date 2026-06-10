@@ -93,6 +93,7 @@ PhysBody* Physics::CreateRectangle(int x, int y, int width, int height, bodyType
     PhysBody* pbody = new PhysBody();
     pbody->body = b;
     b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
 
     return pbody;
 }
@@ -118,6 +119,7 @@ PhysBody* Physics::CreateCircle(int x, int y, int radious, bodyType type)
     PhysBody* pbody = new PhysBody();
     pbody->body = b;
     b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
     return pbody;
 }
 
@@ -151,6 +153,7 @@ PhysBody* Physics::CreateCapsule(int x, int y, int width, int height, bodyType t
     PhysBody* pbody = new PhysBody();
     pbody->body = b;
     b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
     return pbody;
 }
 
@@ -174,6 +177,7 @@ PhysBody* Physics::CreateRectangleSensor(int x, int y, int width, int height, bo
     PhysBody* pbody = new PhysBody();
     pbody->body = b;
     b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
     return pbody;
 }
 
@@ -199,6 +203,7 @@ PhysBody* Physics::CreateCircleSensor(int x, int y, int radious, bodyType type)
     PhysBody* pbody = new PhysBody();
     pbody->body = b;
     b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
     return pbody;
 }
 
@@ -228,6 +233,7 @@ PhysBody* Physics::CreateChain(int x, int y, int* points, int size, bodyType typ
     PhysBody* pbody = new PhysBody();
     pbody->body = b;
     b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
     return pbody;
 }
 
@@ -261,18 +267,47 @@ PhysBody* Physics::CreateConvexPolygon(int x, int y, int* points, int size, body
     PhysBody* pbody = new PhysBody();
     pbody->body = b;
     b2Body_SetUserData(b, ToUserData(pbody));
+    allBodies.push_back(pbody);
     return pbody;
+}
+
+void Physics::SetCollisionFilter(PhysBody* physBody, uint32_t categoryBits, uint32_t maskBits)
+{
+    if (!physBody || !b2Body_IsValid(physBody->body)) return;
+    int shapeCount = b2Body_GetShapeCount(physBody->body);
+    if (shapeCount > 0) {
+        std::vector<b2ShapeId> shapes(shapeCount);
+        b2Body_GetShapes(physBody->body, shapes.data(), shapeCount);
+        for (int i = 0; i < shapeCount; ++i) {
+            b2Filter filter = b2Shape_GetFilter(shapes[i]);
+            filter.categoryBits = categoryBits;
+            filter.maskBits = maskBits;
+            b2Shape_SetFilter(shapes[i], filter);
+        }
+    }
+}
+
+void Physics::UpdateEnemyFilters()
+{
+    for (PhysBody* pb : allBodies) {
+        if (pb && pb->ctype == ColliderType::ENEMY) {
+            SetCollisionFilter(pb, 0x0004, 0xFFFFFFFF);
+        }
+    }
 }
 
 void Physics::UpdateConvexPolygon(PhysBody* physBody, int* points, int size, float scale, float friction, bool isSensor)
 {
     if (!physBody || !b2Body_IsValid(physBody->body)) return;
 
+    b2Filter oldFilter = b2DefaultFilter();
+
     // Destroy all existing shapes on the body
     int shapeCount = b2Body_GetShapeCount(physBody->body);
     if (shapeCount > 0) {
         std::vector<b2ShapeId> shapes(shapeCount);
         b2Body_GetShapes(physBody->body, shapes.data(), shapeCount);
+        oldFilter = b2Shape_GetFilter(shapes[0]);
         for (int i = 0; i < shapeCount; ++i) {
             b2DestroyShape(shapes[i], true); // true = update mass
         }
@@ -295,6 +330,7 @@ void Physics::UpdateConvexPolygon(PhysBody* physBody, int* points, int size, flo
         sdef.enableContactEvents = true;
         sdef.enableSensorEvents = true;
         sdef.isSensor = isSensor;
+        sdef.filter = oldFilter;
         b2CreatePolygonShape(physBody->body, &sdef, &poly);
     }
 }
@@ -388,7 +424,10 @@ void Physics::DeletePhysBody(PhysBody* physBody)
         b2Body_SetUserData(physBody->body, nullptr);
         b2Body_Disable(physBody->body);
     }
-    bodiesToDelete.push_back(physBody);
+    if (physBody) {
+        bodiesToDelete.push_back(physBody);
+        allBodies.remove(physBody);
+    }
 }
 
 bool Physics::IsPendingToDelete(PhysBody* physBody) {
