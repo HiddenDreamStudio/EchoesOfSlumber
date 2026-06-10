@@ -1679,8 +1679,14 @@ std::vector<Map::MapObject> Map::GetPuzzleObjects3() const
             {
                 std::string propName = prop.attribute("name").as_string();
                 if (propName == "requiredClicks") {
-                    int clicks = prop.attribute("value").as_int(1);
-                    mo.name += "|" + std::to_string(clicks);
+                    mo.requiredClicks = prop.attribute("value").as_int(1);
+                    mo.name += "|" + std::to_string(mo.requiredClicks);
+                }
+                if (propName == "platformTarget") {
+                    mo.platformTarget = prop.attribute("value").as_string();
+                }
+                if (propName == "flipH") {
+                    mo.flipH = prop.attribute("value").as_bool();
                 }
             }
 

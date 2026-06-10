@@ -230,6 +230,11 @@ private:
     void UnloadTutorialTextCard();
     void UpdateTutorialTextCard(float dt);
     float tutorialTimer_ = 0.0f;
+    SDL_Texture* texTutorialSeparator_ = nullptr;
+    int fxTitleCardPt1_ = -1;
+    int fxTitleCardPt2_ = -1;
+    bool pt1Played_ = false;
+    bool pt2Played_ = false;
 
     // ── Loading Kid Sprite ────────────────────────────────────────────────────
     SDL_Texture* texLoadingKid_ = nullptr;
@@ -265,7 +270,10 @@ private:
     bool isLvl3Puzzle_ = false;
     bool isPuzzleMap3Lever_ = false;  
     bool isPuzzleMap3Buttons_ = false;
-
+    bool isLvl3Puzzle1_ = false;  
+    bool isLvl3Puzzle2_ = false;
+    bool creditsVideoActive_ = false;
+    float videoSkipCooldown_ = 0.0f;
     // Automatic entry movement (Level 2+)
     bool  isAutoEntering_ = false;
     float autoEntryStartX_ = 0.0f;
@@ -383,8 +391,6 @@ private:
     // Boss death video — plays before the post-death map transition / music change
     bool        bossDeathVideoActive_  = false;
     bool        endGameVideoActive_    = false;
-    bool        creditsVideoActive_    = false;
-    float       videoSkipCooldown_     = 0.0f;
     bool        endGameFading_         = false;  // fade-out before final cinematic
     bool        endGameTriggered_      = false;  // true once end sequence fires; never reset
     bool        bossDeathFading_       = false;

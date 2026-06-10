@@ -319,7 +319,7 @@
     <property name="trigger" type="bool" value="true"/>
    </properties>
   </object>
-  <object id="78" type="Lever" x="3717" y="7350" width="128" height="128">
+  <object id="78" type="Lever" x="3028" y="7327" width="128" height="128">
    <properties>
     <property name="target_platform" value="Ascensor1"/>
    </properties>
@@ -502,25 +502,25 @@
 </data>
  </layer>
  <objectgroup id="6" name="Foreground">
-  <object id="1" gid="145" x="5215.98" y="9730" width="948.017" height="611"/>
-  <object id="2" gid="145" x="4735.65" y="2191.58" width="987.136" height="636.212"/>
-  <object id="3" gid="149" x="3878.37" y="5899.5" width="282.419" height="658.232"/>
-  <object id="4" gid="150" x="4714.06" y="5887.24" width="354.002" height="541.909"/>
-  <object id="5" gid="152" x="5732.61" y="5936.15" width="443.482" height="617.966"/>
+  <object id="1" gid="145" x="5629.74" y="9730" width="534.262" height="344.333"/>
+  <object id="2" gid="145" x="5108.03" y="2191.58" width="614.756" height="396.212"/>
+  <object id="3" gid="149" x="4032.92" y="5899.5" width="127.874" height="298.034"/>
+  <object id="4" gid="150" x="4908" y="5887.24" width="160.063" height="245.025"/>
+  <object id="5" gid="152" x="5897.89" y="5936.15" width="278.206" height="387.663"/>
   <object id="6" gid="150" x="3693.33" y="2173" width="329" height="503.635"/>
   <object id="7" gid="160" x="2504" y="2273" width="353" height="691.742"/>
-  <object id="8" gid="146" x="7023.54" y="4121" width="750.457" height="689"/>
-  <object id="9" gid="143" x="7761" y="2201" width="543" height="555.233"/>
-  <object id="10" gid="141" x="4292.59" y="4767.55" width="505" height="768.644" rotation="19.8309"/>
-  <object id="11" gid="153" x="6064" y="2201" width="385" height="353"/>
-  <object id="12" gid="154" x="7371.79" y="2944" width="495.214" height="401"/>
+  <object id="8" gid="146" x="6778.07" y="4127.06" width="565.624" height="519.303"/>
+  <object id="9" gid="143" x="8202.86" y="2199" width="359.142" height="367.233"/>
+  <object id="10" gid="141" x="4408.86" y="4809.48" width="381.4" height="580.517" rotation="19.8309"/>
+  <object id="11" gid="153" x="5874" y="2193" width="315" height="288.818"/>
+  <object id="12" gid="154" x="7499.03" y="2944" width="367.977" height="297.97"/>
   <object id="13" gid="159" x="5799.08" y="3833.97" width="385.195" height="277"/>
-  <object id="15" gid="158" x="3269.93" y="9730.51" width="458.131" height="262.001"/>
-  <object id="16" gid="156" x="1497.64" y="9728" width="235.752" height="233.275"/>
-  <object id="17" gid="155" x="1624.94" y="7509.97" width="426.433" height="287.756"/>
-  <object id="19" gid="142" x="3430.79" y="7496.26" width="440.301" height="279.831"/>
-  <object id="20" gid="151" x="2773.29" y="7502.54" width="394.568" height="881.452" rotation="60"/>
-  <object id="21" gid="144" x="1448" y="4638" width="505" height="907"/>
+  <object id="15" gid="158" x="3476.58" y="9730.51" width="251.48" height="143.819"/>
+  <object id="16" gid="156" x="1592.58" y="9728" width="140.815" height="139.336"/>
+  <object id="17" gid="155" x="1655.53" y="7488.76" width="201.899" height="136.241"/>
+  <object id="19" gid="142" x="3818.35" y="7490.2" width="349.708" height="222.255"/>
+  <object id="20" gid="151" x="2703.02" y="7503.93" width="322.98" height="721.528" rotation="60"/>
+  <object id="21" gid="144" x="1726.79" y="4550.12" width="380.758" height="683.856"/>
   <object id="22" gid="162" x="4476" y="3567.8" width="373" height="619.797"/>
  </objectgroup>
  <objectgroup id="13" name="Checkpoint">

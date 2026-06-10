@@ -5359,9 +5359,11 @@ void Scene::ExecuteSubMapLoad()
 	// --- PUZZLE3 INIT ---
 	isLvl3Map_ = (currentMapFile_ == "Map3.tmx");
 	isLvl3Puzzle_ = (currentMapFile_ == "MapLvl3ZonaPuzzle3.tmx");
+	isLvl3Puzzle1_ = (currentMapFile_ == "MapLvl3ZonaPuzzle1.tmx");
+	isLvl3Puzzle2_ = (currentMapFile_ == "MapLvl3ZonaPuzzle2.tmx");
 	LOG("PUZZLE3 DEBUG: currentMapFile_='%s', isLvl3Puzzle_=%d", currentMapFile_.c_str(), (int)isLvl3Puzzle_);
 
-	if (isLvl3Map_ || isLvl3Puzzle_) {
+	if (isLvl3Map_ || isLvl3Puzzle_ || isLvl3Puzzle1_ || isLvl3Puzzle2_) {
 		if (!puzzleManager3_) puzzleManager3_ = new PuzzleManager3();
 		puzzleManager3_->Init(Engine::GetInstance().render->renderer);
 
@@ -5418,6 +5420,24 @@ void Scene::ExecuteSubMapLoad()
 			puzzleManager3_->LoadButtons(buttons);
 
 		}
+
+		if (isLvl3Puzzle1_) {
+			std::vector<ButtonData3P1> buttons;
+			for (auto& obj : Engine::GetInstance().map->GetPuzzleObjects3()) {
+				std::string fullName = obj.name;
+				size_t sep = fullName.find('|');
+				if (sep != std::string::npos) fullName = fullName.substr(0, sep);
+				if (fullName == "Button") {
+					ButtonData3P1 btn;
+					btn.worldRect = obj.rect;
+					btn.platformTarget = obj.platformTarget;  // leer desde Tiled
+					btn.flipH = obj.flipH;
+					buttons.push_back(btn);
+					LOG("PUZZLE1: Boton cargado, target='%s'", btn.platformTarget.c_str());
+				}
+			}
+			puzzleManager3_->LoadPuzzle1Buttons(buttons);
+		}
 	}
 	else {
 		if (puzzleManager3_) {
@@ -5426,6 +5446,8 @@ void Scene::ExecuteSubMapLoad()
 		}
 		isLvl3Map_ = false;
 		isLvl3Puzzle_ = false;
+		isLvl3Puzzle1_ = false;
+		isLvl3Puzzle2_ = false;
 	}
 
 	isPuzzleMap3Lever_ = isLvl3Map_;
