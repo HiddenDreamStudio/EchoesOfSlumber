@@ -4,12 +4,12 @@
 #include <string>
 
 struct LeverData3 {
-    SDL_FRect worldRect;
+    SDL_FRect worldRect = { 0.0f, 0.0f, 0.0f, 0.0f };
     bool activated = false;
 };
 
 struct ButtonData3 {
-    SDL_FRect worldRect;
+    SDL_FRect worldRect = { 0.0f, 0.0f, 0.0f, 0.0f };
     int requiredClicks = 1;
     int currentClicks = 0;
     bool completed = false;
