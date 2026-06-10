@@ -1213,11 +1213,16 @@ void Scene::UpdateLoading(float dt)
 	if (loadingTimer_ > 800.0f && !mapLoadingFinished_) {
 		int index = targetLevelIndex_;
 		if (index >= 0 && (size_t)index < levels_.size()) {
-			// Save player progress before destroying old player
-			bool savedHasBlanket = capaCollected_;
-			bool savedHasSlingshot = slingshotCollected_;
-			bool savedHasStuffedAnimal = stuffedAnimalCollected_;
-			int savedHealth = player ? player->health : 3;
+			bool savedHasBlanket = false, savedHasSlingshot = false, savedHasStuffedAnimal = false;
+			Player::EquippedItem eqItem = Player::EquippedItem::NONE;
+			int savedHealth = 0;
+			if (player) {
+				savedHasBlanket = player->HasBlanket();
+				savedHasSlingshot = player->HasSlingshot();
+				savedHasStuffedAnimal = player->HasStuffedAnimal();
+				eqItem = player->GetEquippedItem();
+				savedHealth = player->health;
+			}
 
 			player.reset();
 			Engine::GetInstance().entityManager->CleanUp();
@@ -1247,6 +1252,10 @@ void Scene::UpdateLoading(float dt)
 			healthSlotCount_ = currentLevelIndex_ + 3;
 			if (healthSlotCount_ > MAX_HEALTH_SLOTS) healthSlotCount_ = MAX_HEALTH_SLOTS;
 			if (player) {
+				player->SetHasBlanket(savedHasBlanket);
+				player->SetHasSlingshot(savedHasSlingshot);
+				player->SetHasStuffedAnimal(savedHasStuffedAnimal);
+				player->SetEquippedItem(eqItem);
 				player->maxHealth = healthSlotCount_;
 				// For level transitions (not first load), preserve health up to the new max
 				if (currentLevelIndex_ > 0 && savedHealth > 0) {
@@ -1254,9 +1263,6 @@ void Scene::UpdateLoading(float dt)
 				} else {
 					player->health = healthSlotCount_;
 				}
-				// Restore collected items from previous level
-				player->SetHasBlanket(savedHasBlanket);
-				player->SetHasSlingshot(savedHasSlingshot);
 			}
 			capaCollected_ = savedHasBlanket;
 			slingshotCollected_ = savedHasSlingshot;
@@ -1414,7 +1420,7 @@ void Scene::LoadGameplay()
 	// Silksong: actorSnapshotPaused → music starts silent, fades in during entry
 	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 1.0f);
 	Engine::GetInstance().audio->SetMusicVolume(0.0f);
-	Engine::GetInstance().audio->SetSFXVolume(1.0f); // Reset SFX volume after fade out
+	Engine::GetInstance().audio->SetSFXVolume(sfxVolume_); // Use user configured SFX volume
 
 	LoadPauseMenuButtons();
 
@@ -1550,12 +1556,10 @@ void Scene::LoadGameplay()
 	capaCollected_ = false;
 	capaFloatTimer_ = 0.0f;
 
-	// Read cape position from TMX Entities layer. If not found, use a fallback spawn position
+	// Read cape position from TMX Entities layer. If not found, mark as collected to avoid spawning hardcoded one
 	if (!Engine::GetInstance().map->GetCapePosition(capaX_, capaY_)) {
-		LOG("WARNING: No Cape entity found in TMX Entities layer, using default fallback position");
-		capaX_ = 450.0f;
-		capaY_ = 650.0f;
-		capaCollected_ = false;
+		LOG("WARNING: No Cape entity found in TMX Entities layer, will not spawn");
+		capaCollected_ = true;
 	}
 
 	capaBody_ = nullptr;
@@ -1611,12 +1615,10 @@ void Scene::LoadGameplay()
 	slingshotCollected_ = false;
 	slingshotFloatTimer_ = 0.0f;
 
-	// Read slingshot position from TMX. If not found, use a fallback spawn position
+	// Read slingshot position from TMX. If not found, mark as collected to avoid spawning hardcoded one
 	if (!Engine::GetInstance().map->GetSlingshotPosition(slingshotX_, slingshotY_)) {
-		LOG("WARNING: No Tirachinas entity found in TMX, using default fallback position");
-		slingshotX_ = 750.0f;
-		slingshotY_ = 650.0f;
-		slingshotCollected_ = false;
+		LOG("WARNING: No Tirachinas entity found in TMX, will not spawn");
+		slingshotCollected_ = true;
 	}
 
 	// Stuffed Animal (Oso) collectible
@@ -1624,12 +1626,10 @@ void Scene::LoadGameplay()
 	stuffedAnimalCollected_ = false;
 	stuffedAnimalFloatTimer_ = 0.0f;
 
-	// Read stuffed animal position from TMX. If not found, use default fallback next to player
+	// Read stuffed animal position from TMX. If not found, mark as collected to avoid spawning hardcoded one
 	if (!Engine::GetInstance().map->GetStuffedAnimalPosition(stuffedAnimalX_, stuffedAnimalY_)) {
-		LOG("WARNING: No Oso/Peluche/StuffedAnimal entity found in TMX, using default fallback position next to player");
-		stuffedAnimalX_ = 200.0f;
-		stuffedAnimalY_ = 672.0f;
-		stuffedAnimalCollected_ = false;
+		LOG("WARNING: No Oso/Peluche/StuffedAnimal entity found in TMX, will not spawn");
+		stuffedAnimalCollected_ = true;
 	}
 
 	// Load Minimap Ornate Frame Texture
@@ -1706,7 +1706,7 @@ void Scene::UpdateGameplay(float dt)
 			render.SetCameraSway(true);
 			render.SetCameraMovement(true); // CRITICAL: Unlock follow
 			render.SetCameraClamping(true);
-			Engine::GetInstance().audio->SetMusicVolume(1.0f);
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
 			if (player) player->wakeUpAnimStarted = true;
 			LOG("SCENE: Intro Cinematic Finished. CAMERA UNLOCKED.");
 		}
@@ -1715,7 +1715,7 @@ void Scene::UpdateGameplay(float dt)
 
 			Engine::GetInstance().render->cameraZoom = 0.45f + (1.0f - 0.45f) * smoothT;
 			Engine::GetInstance().render->blurIntensity = 2.5f * (1.0f - smoothT);
-			Engine::GetInstance().audio->SetMusicVolume(smoothT);
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_ * smoothT);
 
 			if (player) {
 				float pX = player->GetPosition().getX() + 64.0f;
@@ -2785,14 +2785,14 @@ void Scene::PostUpdateGameplay()
 
 
 	if (isPuzzleMap_ && puzzleManager_) {
-		float camX = Engine::GetInstance().render->camera.x;
-		float camY = Engine::GetInstance().render->camera.y;
+		float camX = (float)Engine::GetInstance().render->camera.x;
+		float camY = (float)Engine::GetInstance().render->camera.y;
 		puzzleManager_->Render(Engine::GetInstance().render->renderer, camX, camY);
 	}
 
 	if ((isLvl3Map_ || isLvl3Puzzle_) && puzzleManager3_) {
-		float camX = Engine::GetInstance().render->camera.x;
-		float camY = Engine::GetInstance().render->camera.y;
+		float camX = (float)Engine::GetInstance().render->camera.x;
+		float camY = (float)Engine::GetInstance().render->camera.y;
 		int winW, winH;
 		SDL_GetRenderOutputSize(Engine::GetInstance().render->renderer, &winW, &winH);
 		puzzleManager3_->RenderLever(Engine::GetInstance().render->renderer, camX, camY);
