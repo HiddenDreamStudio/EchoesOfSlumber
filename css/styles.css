@@ -132,9 +132,9 @@ body {
 .citm-logo {
     max-width: 85vw;
     height: auto;
-    max-height: 140px;
+    max-height: 380px;
     filter: brightness(0) invert(1);
-    filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.1));
+    filter: drop-shadow(0 0 50px rgba(255, 255, 255, 0.15));
 }
 
 .studio-logo-container {
@@ -147,9 +147,9 @@ body {
 .studio-icon {
     max-width: 80vw;
     height: auto;
-    max-height: 130px;
+    max-height: 350px;
     filter: brightness(0) invert(1);
-    filter: drop-shadow(0 0 30px rgba(72, 124, 183, 0.25));
+    filter: drop-shadow(0 0 50px rgba(72, 124, 183, 0.3));
 }
 
 .studio-text {
@@ -176,6 +176,25 @@ body {
 }
 #splash-screen:hover .skip-prompt {
     opacity: 1;
+}
+
+/* Splash responsive overrides */
+@media (max-width: 768px) {
+    .citm-logo {
+        max-height: 280px;
+    }
+    .studio-icon {
+        max-height: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .citm-logo {
+        max-height: 220px;
+    }
+    .studio-icon {
+        max-height: 140px;
+    }
 }
 
 /* =============================================
@@ -840,12 +859,6 @@ body.loaded .scroll-cue {
     .footer-logo:nth-child(1) { height: 40px; }
     .footer-logo:nth-child(2) { height: 55px; max-width: 70vw; }
     .footer-logo:nth-child(3) { height: 40px; }
-    .citm-logo {
-        max-height: 100px;
-    }
-    .studio-icon {
-        max-height: 90px;
-    }
 }
 
 @media (max-width: 480px) {
@@ -856,12 +869,6 @@ body.loaded .scroll-cue {
     .footer-logo:nth-child(1) { height: 32px; }
     .footer-logo:nth-child(2) { height: 45px; max-width: 80vw; }
     .footer-logo:nth-child(3) { height: 32px; }
-    .citm-logo {
-        max-height: 80px;
-    }
-    .studio-icon {
-        max-height: 80px;
-    }
     .footer-silhouettes-container {
         height: max(131px, calc(100vw * 364 / 1440));
     }
