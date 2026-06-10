@@ -693,6 +693,7 @@ void Player::Hide(float dt)
 			hideAnim_.Reset();
 			hideCapeAnim_.Reset();
 			Engine::GetInstance().audio->PlayFx(capeFxId);
+			UpdateHideCollision();
 			LOG("Player hiding");
 		}
 		else if (isHiding_)
@@ -703,6 +704,7 @@ void Player::Hide(float dt)
 			hideExitCapeAnim_.Reset();
 			hideCooldown_ = HIDE_COOLDOWN;
 			Engine::GetInstance().audio->PlayFx(capeFxId);
+			UpdateHideCollision();
 			LOG("Player exiting hide — cooldown started (%.0f ms)", HIDE_COOLDOWN);
 		}
 	}
@@ -1680,6 +1682,7 @@ void Player::SetHidingBehindRock(bool hiding) {
 	if (hiding == isHidingBehindRock_) return;
 
 	isHidingBehindRock_ = hiding;
+	UpdateHideCollision();
 	
 	if (hiding) {
 		velocity.x = 0.0f;
@@ -1694,6 +1697,13 @@ void Player::SetHidingBehindRock(bool hiding) {
 		hideExitCapeAnim_.Reset();
 		LOG("Player stopped hiding behind rock — playing stand-up anim");
 	}
+}
+
+void Player::UpdateHideCollision() {
+	bool hiding = isHiding_ || isHidingBehindRock_;
+	Engine::GetInstance().physics->UpdateEnemyFilters();
+	uint32_t mask = hiding ? (0xFFFFFFFF & ~0x0004) : 0xFFFFFFFF;
+	Engine::GetInstance().physics->SetCollisionFilter(pbody, 0x0002, mask);
 }
 
 void Player::SetPosition(Vector2D pos) {

@@ -178,6 +178,7 @@ private:
 
 public:
 	void SetHidingBehindRock(bool hiding);
+	void UpdateHideCollision();
 private:
 
 	// Blanket (cape) collectible flag

@@ -113,6 +113,10 @@ bool UIManager::CleanUp()
 	UIElementsList.clear();
 	gamepadFocusIndex = -1;
 
+	// Note: We no longer unload customCursorTex or call SDL_ShowCursor() here
+	// because Scene calls CleanUp() when transitioning between levels, and we
+	// want the custom cursor to persist throughout the entire game.
+
 	return true;
 }
 

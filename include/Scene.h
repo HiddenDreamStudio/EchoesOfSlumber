@@ -111,6 +111,46 @@ private:
     int   menuBtnX_ = 0;   // button X position
     int   menuBtnW_ = 0;   // button width
 
+    // ── Play sub-screen animation (New Game / Continue / Slots) ──────────────
+    enum class PlaySubState {
+        NONE,               // main menu buttons visible
+        FADE_OUT_BUTTONS,   // fading out Play/Options/Exit
+        FADE_IN_OPTS,       // fading in New Game / Continue / Back
+        OPTS_ACTIVE,        // sub-options fully interactive
+        FADE_OUT_OPTS_TO_SLOTS, // fading out opts to show slots
+        FADE_IN_SLOTS,      // fading in 3 save slot buttons + back
+        SLOTS_ACTIVE,       // save slots fully interactive
+        FADE_OUT_SLOTS,     // fading out slots back to sub-options
+        FADE_IN_OPTS_FROM_SLOTS, // fading opts back in after slots
+        FADE_OUT_OPTS,      // fading out sub-options to return to main
+        FADE_IN_BUTTONS     // fading main buttons back in
+    };
+    PlaySubState playSubState_ = PlaySubState::NONE;
+    float playSubAnimTimer_ = 0.0f;
+    float playSubAlpha_     = 0.0f;  // alpha for New Game / Continue / Back
+    float playSlotsAlpha_   = 0.0f;  // alpha for slot buttons
+    bool isSlotSelectionForNewGame_ = false;
+    bool loadingFromSaveSlot_ = false;
+    bool loadedFromSave_ = false;
+
+    static constexpr int BTN_PLAY_NEWGAME  = 20;
+    static constexpr int BTN_PLAY_CONTINUE = 21;
+    static constexpr int BTN_PLAY_BACK     = 22;
+    static constexpr int BTN_SLOT_1        = 23;
+    static constexpr int BTN_SLOT_2        = 24;
+    static constexpr int BTN_SLOT_3        = 25;
+    static constexpr int BTN_SLOTS_BACK    = 26;
+
+    std::shared_ptr<UIElement> btnNewGame_;
+    std::shared_ptr<UIElement> btnContinue_;
+    std::shared_ptr<UIElement> btnPlayBack_;
+    std::shared_ptr<UIElement> btnSlot1_;
+    std::shared_ptr<UIElement> btnSlot2_;
+    std::shared_ptr<UIElement> btnSlot3_;
+    std::shared_ptr<UIElement> btnSlotsBack_;
+
+    void DrawPlaySubScreen(int winW, int winH);
+
     void LoadMainMenu();
     void UnloadMainMenu();
     void UpdateMainMenu(float dt);
@@ -510,17 +550,17 @@ private:
 
     struct MenuFragment {
         SDL_Texture* tex = nullptr;
-        float x, y;            // base position (randomized)
-        float w, h;            // drawn size
-        float floatSpeed;       // oscillation speed (rad/s)
-        float floatAmplitude;   // oscillation range (px)
-        float floatPhase;       // initial phase offset
-        float driftX;           // horizontal micro-drift speed
-        float driftPhase;       // horizontal drift phase
-        float rotation;         // current rotation angle
-        float rotSpeed;         // degrees per second
-        bool  inFront;          // drawn in front of the character?
-        Uint8 alpha;            // alpha
+        float x = 0.0f, y = 0.0f;            // base position (randomized)
+        float w = 0.0f, h = 0.0f;            // drawn size
+        float floatSpeed = 0.0f;       // oscillation speed (rad/s)
+        float floatAmplitude = 0.0f;   // oscillation range (px)
+        float floatPhase = 0.0f;       // initial phase offset
+        float driftX = 0.0f;           // horizontal micro-drift speed
+        float driftPhase = 0.0f;       // horizontal drift phase
+        float rotation = 0.0f;         // current rotation angle
+        float rotSpeed = 0.0f;         // degrees per second
+        bool  inFront = false;          // drawn in front of the character?
+        Uint8 alpha = 255;            // alpha
     };
 
     MenuFragment fragments_[NUM_FRAGMENTS];

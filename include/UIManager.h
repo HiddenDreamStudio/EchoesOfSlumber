@@ -36,8 +36,8 @@ public:
 public:
 
 	std::list<std::shared_ptr<UIElement>> UIElementsList;
-	SDL_Texture* texture;
-	SDL_Texture* customCursorTex;
+	SDL_Texture* texture = nullptr;
+	SDL_Texture* customCursorTex = nullptr;
 
 private:
 	// ── Gamepad navigation state ─────────────────────────────────────────────
