@@ -1,4 +1,4 @@
-#include "Physics.h"
+﻿#include "Physics.h"
 #include "Engine.h"
 #include "Input.h"
 #include "Log.h"
@@ -258,111 +258,13 @@ PhysBody *Physics::CreateConvexPolygon(int x, int y, int *points, int size,
     b2CreatePolygonShape(b, &sdef, &poly);
   }
 
-    b2CreateCapsuleShape(b, &sdef, &capsule);
-
     PhysBody* pbody = new PhysBody();
     pbody->body = b;
     b2Body_SetUserData(b, ToUserData(pbody));
     allBodies.push_back(pbody);
+
     return pbody;
 }
-
-bool Physics::PostUpdate() {
-  bool ret = true;
-
-  if (Engine::GetInstance().input.get()->GetKey(SDL_SCANCODE_F9) == KEY_DOWN)
-    debug = !debug;
-
-  if (debug) {
-    if (B2_IS_NULL(world) == false) {
-      b2DebugDraw dd = {};
-      dd.context = this;
-      dd.drawShapes = true;
-      dd.drawContacts = true;
-      dd.DrawSegmentFcn = &Physics::DrawSegmentCb;
-      dd.DrawPolygonFcn = &Physics::DrawPolygonCb;
-      dd.DrawSolidPolygonFcn = &Physics::DrawSolidPolygonCb;
-      dd.DrawCircleFcn = &Physics::DrawCircleCb;
-      dd.DrawSolidCircleFcn = &Physics::DrawSolidCircleCb;
-      dd.DrawSolidCapsuleFcn = &Physics::DrawSolidCapsuleStub;
-      dd.DrawPointFcn = &Physics::DrawPointStub;
-      dd.DrawStringFcn = &Physics::DrawStringStub;
-      dd.DrawTransformFcn = &Physics::DrawTransformStub;
-      b2World_Draw(world, &dd);
-    b2Polygon box = b2MakeBox(PIXEL_TO_METERS(width) * 0.5f, PIXEL_TO_METERS(height) * 0.5f);
-    b2ShapeDef sdef = b2DefaultShapeDef();
-    sdef.density = 1.0f;
-    sdef.isSensor = true;
-    sdef.enableContactEvents = true;
-    sdef.enableSensorEvents = true;
-
-    b2CreatePolygonShape(b, &sdef, &box);
-
-    PhysBody* pbody = new PhysBody();
-    pbody->body = b;
-    b2Body_SetUserData(b, ToUserData(pbody));
-    allBodies.push_back(pbody);
-    return pbody;
-}
-
-PhysBody* Physics::CreateCircleSensor(int x, int y, int radious, bodyType type)
-{
-    b2BodyDef def = b2DefaultBodyDef();
-    def.type = ToB2Type(type);
-    def.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
-
-    b2BodyId b = b2CreateBody(world, &def);
-
-    b2Circle circle;
-    circle.center = { 0.0f, 0.0f };
-    circle.radius = PIXEL_TO_METERS(radious);
-    b2ShapeDef sdef = b2DefaultShapeDef();
-    sdef.density = 1.0f;
-    sdef.isSensor = true;
-    sdef.enableContactEvents = true;
-    sdef.enableSensorEvents = true;
-
-    b2CreateCircleShape(b, &sdef, &circle);
-
-    PhysBody* pbody = new PhysBody();
-    pbody->body = b;
-    b2Body_SetUserData(b, ToUserData(pbody));
-    allBodies.push_back(pbody);
-    return pbody;
-}
-
-PhysBody* Physics::CreateChain(int x, int y, int* points, int size, bodyType type, float friction)
-{
-    b2BodyDef def = b2DefaultBodyDef();
-    def.type = ToB2Type(type);
-    def.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
-
-    b2BodyId b = b2CreateBody(world, &def);
-
-    const int count = size / 2;
-    std::vector<b2Vec2> verts(count);
-    for (int i = 0; i < count; ++i)
-    {
-        verts[i].x = PIXEL_TO_METERS(points[i * 2 + 0]);
-        verts[i].y = PIXEL_TO_METERS(points[i * 2 + 1]);
-    }
-  }
-
-  for (PhysBody *physBody : bodiesToDelete) {
-    if (physBody && b2Body_IsValid(physBody->body))
-      b2DestroyBody(physBody->body);
-    delete physBody;
-  }
-  bodiesToDelete.clear();
-
-  return ret;
-    PhysBody* pbody = new PhysBody();
-    pbody->body = b;
-    b2Body_SetUserData(b, ToUserData(pbody));
-    allBodies.push_back(pbody);
-    return pbody;
-}
-
 bool Physics::CleanUp() {
   LOG("Destroying physics world");
   if (!B2_IS_NULL(world)) {
@@ -414,24 +316,6 @@ void Physics::EndContact(b2ShapeId shapeA, b2ShapeId shapeB) {
     physB->listener->OnCollisionEnd(physB, physA);
 }
 
-void Physics::DeletePhysBody(PhysBody *physBody) {
-  if (B2_IS_NULL(world))
-    return;
-
-  if (physBody == nullptr)
-    return;
-
-  if (IsPendingToDelete(physBody))
-    return;
-
-  if (!B2_IS_NULL(physBody->body) && physBody->listener &&
-      physBody->listener->active) {
-    b2Body_SetUserData(physBody->body, nullptr);
-    b2Body_Disable(physBody->body);
-  }
-  bodiesToDelete.push_back(physBody);
-}
-
 bool Physics::IsPendingToDelete(PhysBody *physBody) {
   bool pendingToDelete = false;
   for (PhysBody *_physBody : bodiesToDelete) {
@@ -441,33 +325,6 @@ bool Physics::IsPendingToDelete(PhysBody *physBody) {
     }
   }
   return pendingToDelete;
-}
-
-void Physics::FlushPendingDeletes() {
-  for (PhysBody *physBody : bodiesToDelete) {
-    if (physBody && b2Body_IsValid(physBody->body))
-      b2DestroyBody(physBody->body);
-    delete physBody;
-  }
-  bodiesToDelete.clear();
-
-    b2Hull hull = b2ComputeHull(verts.data(), count);
-    if (hull.count > 0) {
-        b2Polygon poly = b2MakePolygon(&hull, 0.0f);
-        b2ShapeDef sdef = b2DefaultShapeDef();
-        sdef.density = 1.0f;
-        sdef.material.friction = friction;
-        sdef.enableContactEvents = true;
-        sdef.enableSensorEvents = true;
-        b2CreatePolygonShape(b, &sdef, &poly);
-    }
-
-    PhysBody* pbody = new PhysBody();
-    pbody->body = b;
-    b2Body_SetUserData(b, ToUserData(pbody));
-    allBodies.push_back(pbody);
-    
-    return pbody;
 }
 
 void Physics::FlushPendingDeletes() {
