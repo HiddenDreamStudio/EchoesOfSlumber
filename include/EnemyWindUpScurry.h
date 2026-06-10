@@ -90,4 +90,8 @@ private:
 	SDL_Texture* dieTexture_ = nullptr;
 
 	bool facingRight_ = false;
+
+	// Audio Fx IDs
+	int attackFxId = -1;
+	int deadFxId = -1;
 };
