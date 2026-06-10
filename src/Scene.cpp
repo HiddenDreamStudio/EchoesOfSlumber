@@ -269,6 +269,7 @@ void Scene::LoadMainMenu()
 	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
 	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
 	texSettingsPause_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
+	texMenuHiddenLogo_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_HiddenLogo.png");
 
 	const char* fragPaths[NUM_FRAGMENTS] = {
 		"assets/textures/Menu/UI_Fragment1.png",
@@ -340,6 +341,7 @@ void Scene::UnloadMainMenu()
 {
 		Engine::GetInstance().uiManager->CleanUp();
 	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_);                       texMenuLogo_ = nullptr; }
+	if (texMenuHiddenLogo_) { Engine::GetInstance().textures->UnLoad(texMenuHiddenLogo_); texMenuHiddenLogo_ = nullptr; }
 	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_);  texMenuChild_ = nullptr; }
 	if (texMenuButton_) { Engine::GetInstance().textures->UnLoad(texMenuButton_); texMenuButton_ = nullptr; }
 	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
@@ -598,6 +600,52 @@ void Scene::PostUpdateMainMenu()
 		render.DrawTextureAlphaF(texMenuLogo_, renderLogoX, renderLogoY, (float)logoW, (float)logoH, 255);
 	}
 
+	// Render studio logo bottom-left and version text bottom-right
+	Uint8 bottomAlpha = 0;
+	if (menuAnimState_ == MenuAnimState::IDLE) {
+		bottomAlpha = 255;
+	} else if (menuAnimState_ == MenuAnimState::FADE_FRAGS_BTNS) {
+		float f = menuAnimTimer_ / 2000.0f;
+		if (f > 1.0f) f = 1.0f;
+		bottomAlpha = (Uint8)(255 * f);
+	}
+	bottomAlpha = (Uint8)((float)bottomAlpha * settingsButtonsAlpha_);
+
+	if (bottomAlpha > 0) {
+		// 1. Bottom-left: UI_HiddenLogo.png
+		if (texMenuHiddenLogo_) {
+			float hW = 0, hH = 0;
+			SDL_GetTextureSize(texMenuHiddenLogo_, &hW, &hH);
+			float targetH = 100.0f;
+			float scale = targetH / hH;
+			float targetW = hW * scale;
+
+			float centerBaselineY = (float)winH - 20.0f - 50.0f;
+			float logoY = centerBaselineY - targetH / 2.0f;
+			float logoX = 20.0f;
+
+			render.DrawTextureAlphaF(texMenuHiddenLogo_, logoX, logoY, targetW, targetH, bottomAlpha);
+		}
+
+		// 2. Bottom-right: "v1.0.0"
+		SDL_Color versionColor = { 255, 255, 255, bottomAlpha };
+		SDL_Texture* txVersion = render.CreateMenuTextTexture("v1.0.0", versionColor);
+		if (txVersion) {
+			float vW = 0, vH = 0;
+			SDL_GetTextureSize(txVersion, &vW, &vH);
+			float textScale = 0.4f;
+			float drawW = vW * textScale;
+			float drawH = vH * textScale;
+
+			float centerBaselineY = (float)winH - 20.0f - 50.0f;
+			float versionY = centerBaselineY - drawH / 2.0f;
+			float versionX = (float)winW - drawW - 20.0f;
+
+			render.DrawTextureAlphaF(txVersion, versionX, versionY, drawW, drawH, bottomAlpha);
+			SDL_DestroyTexture(txVersion);
+		}
+	}
+
 	if (showSettings_ || settingsOptionsAlpha_ > 0.0f)
 		DrawSettingsInPlace(winW, winH);
 }
@@ -845,13 +893,13 @@ void Scene::LoadIntro()
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
 
 	texCitmLogo_ = Engine::GetInstance().textures->Load("assets/textures/icons/logo-citm.png");
-	texStudioPlaceholder_ = Engine::GetInstance().render->CreateMenuTextTexture("HIDDEN DREAM STUDIO", { 255, 255, 255, 255 });
+	texStudioPlaceholder_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_HiddenLogo.png");
 }
 
 void Scene::UnloadIntro()
 {
 	if (texCitmLogo_) { Engine::GetInstance().textures->UnLoad(texCitmLogo_); texCitmLogo_ = nullptr; }
-	if (texStudioPlaceholder_) { SDL_DestroyTexture(texStudioPlaceholder_);            texStudioPlaceholder_ = nullptr; }
+	if (texStudioPlaceholder_) { Engine::GetInstance().textures->UnLoad(texStudioPlaceholder_); texStudioPlaceholder_ = nullptr; }
 }
 
 void Scene::UpdateIntro(float dt)
@@ -953,7 +1001,10 @@ void Scene::LoadIntroCinematic()
 	cinematicVideoStarted_ = false;
 	introLoadingDelayActive_ = false;
 	introLoadingDelay_ = 0.0f;
-	
+
+	// Load running kid sprite for loading animation
+	texLoadingKid_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Loading_Kid.png");
+
 	// Start in Pre-Video Loading
 	introCinState_ = IntroCinState::PRE_VIDEO_LOADING;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
@@ -962,6 +1013,10 @@ void Scene::LoadIntroCinematic()
 void Scene::UnloadIntroCinematic()
 {
 	Engine::GetInstance().cinematics->StopVideo();
+	if (texLoadingKid_) {
+		Engine::GetInstance().textures->UnLoad(texLoadingKid_);
+		texLoadingKid_ = nullptr;
+	}
 }
 
 void Scene::DrawLoadingText(bool pulsing, float timer)
@@ -977,7 +1032,40 @@ void Scene::DrawLoadingText(bool pulsing, float timer)
 	}
 
 	SDL_Color textColor = { 255, 255, 255, alpha };
-	render.DrawMenuTextCentered("Loading...", { winW - 250, winH - 80, 200, 40 }, textColor, 0.5f);
+
+	const int textY = winH - 80;
+	const int textH = 40;
+
+	SDL_Texture* tx = render.CreateMenuTextTexture("loading...", textColor);
+	if (tx) {
+		float tw = 0, th = 0;
+		SDL_GetTextureSize(tx, &tw, &th);
+		float textScaledW = tw * 0.5f;
+		float textScaledH = th * 0.5f;
+
+		// Align text right edge at winW - 50
+		const int targetRight = winW - 50;
+		int textX = targetRight - (int)textScaledW;
+		int textYPos = textY + (textH - (int)textScaledH) / 2;
+
+		// Draw text
+		render.DrawTexture(tx, textX, textYPos, nullptr, 0.0f, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+
+		// Draw running kid sprite to the left of "Loading..."
+		if (texLoadingKid_) {
+			const int kidSize = textH;  // square, same height as the text row
+			const int gap = 2; // closer gap as requested
+			int frame = (int)(timer / (1000.0f / LOADING_KID_FPS)) % LOADING_KID_FRAMES;
+			SDL_Rect src = { frame * LOADING_KID_FRAME_W, 0, LOADING_KID_FRAME_W, LOADING_KID_FRAME_H };
+			int kidX = textX - kidSize - gap;
+			int kidY = textY + (textH - kidSize) / 2;
+			SDL_SetTextureAlphaMod(texLoadingKid_, alpha);
+			render.DrawTexture(texLoadingKid_, kidX, kidY, &src, 0.0f, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_HORIZONTAL, (float)kidSize / (float)LOADING_KID_FRAME_W);
+			SDL_SetTextureAlphaMod(texLoadingKid_, 255);
+		}
+
+		SDL_DestroyTexture(tx);
+	}
 }
 
 void Scene::UpdateIntroCinematic(float dt)
@@ -1086,15 +1174,13 @@ void Scene::UpdateIntroCinematic(float dt)
 
 void Scene::LoadTutorialTextCard()
 {
-	LOG("Loading Tutorial Text Card for Level %d...", currentLevelIndex_ + 1);
+	LOG("Loading Tutorial Video Card for Level %d...", currentLevelIndex_ + 1);
 	tutorialTimer_ = 0.0f;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
-	texTutorialSeparator_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Separator.png");
 
-	fxTitleCardPt1_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/ui_titlecard_pt_1.wav");
-	fxTitleCardPt2_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/ui_titlecard_pt_2.wav");
-	pt1Played_ = false;
-	pt2Played_ = false;
+	// Construct dynamic video path for the level
+	std::string videoPath = "assets/video/UI_Level" + std::to_string(currentLevelIndex_ + 1) + "_Intro.mp4";
+	Engine::GetInstance().cinematics->PlayVideo(videoPath.c_str());
 
 	// FADE IN from black
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 1000.0f);
@@ -1102,11 +1188,8 @@ void Scene::LoadTutorialTextCard()
 
 void Scene::UnloadTutorialTextCard()
 {
-	LOG("Unloading Tutorial Text Card");
-	if (texTutorialSeparator_) {
-		Engine::GetInstance().textures->UnLoad(texTutorialSeparator_);
-		texTutorialSeparator_ = nullptr;
-	}
+	LOG("Unloading Tutorial Video Card");
+	Engine::GetInstance().cinematics->StopVideo();
 }
 
 void Scene::UpdateTutorialTextCard(float dt)
@@ -1114,80 +1197,34 @@ void Scene::UpdateTutorialTextCard(float dt)
 	tutorialTimer_ += dt;
 
 	auto& input = *Engine::GetInstance().input;
-	bool skipRequested = false;
+	auto& cin = *Engine::GetInstance().cinematics;
 
-	const float pt1Start = 500.0f;
-	const float pt1Duration = 4600.0f; 
-	const float pt2Start = pt1Start + pt1Duration;
-	const float pt2Duration = 6000.0f; 
-	const float autoFadeStart = pt2Start + pt2Duration + 1000.0f;
+	// Skip requested if user presses Space, Escape, or Gamepad South/Start
+	bool skipRequested = input.GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN ||
+	                     input.GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN ||
+	                     input.GetGamepadButton(SDL_GAMEPAD_BUTTON_SOUTH) == KEY_DOWN ||
+	                     input.GetGamepadButton(SDL_GAMEPAD_BUTTON_START) == KEY_DOWN ||
+	                     cin.HasSkipBeenRequested();
 
-	if (tutorialTimer_ > pt2Start + 2000.0f) {
-		bool explicitSkip = false;
-		for (int i = 0; i < 300; ++i) {
-			if (input.GetKey(i) == KEY_DOWN) { explicitSkip = true; break; }
-		}
-		if (!explicitSkip && input.IsAnyGamepadButtonPressed()) explicitSkip = true;
-
-		if (explicitSkip) {
-			skipRequested = true;
-		}
-	}
-	
-	if (tutorialTimer_ >= autoFadeStart && !waitingForFade_) {
-		skipRequested = true;
-	}
-
-	if (skipRequested && !waitingForFade_) {
+	// Transition if user skipped or the video has ended
+	if ((skipRequested || !cin.IsPlaying()) && !waitingForFade_) {
 		waitingForFade_ = true;
 		fadeTargetScene_ = SceneID::GAMEPLAY;
-		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1500.0f);
+		Engine::GetInstance().render->StartFade(FadeDirection::FADE_OUT, 1000.0f);
 	}
 
 	auto& render = *Engine::GetInstance().render;
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
+	// Draw black background manually under/around video
 	SDL_Rect bg = { 0, 0, winW, winH };
 	render.DrawRectangle(bg, 0, 0, 0, 255, true, false);
 
-	if (currentLevelIndex_ < 0 || (size_t)currentLevelIndex_ >= levels_.size()) return;
-	const auto& level = levels_[currentLevelIndex_];
-
-	SDL_Color white = { 255, 255, 255, 255 };
-	SDL_Color gold  = { 218, 165, 32, 255 };
-
-	if (tutorialTimer_ > pt1Start) {
-		if (!pt1Played_) {
-			Engine::GetInstance().audio->PlayFx(fxTitleCardPt1_, 0, true);
-			pt1Played_ = true;
-		}
-		float elapsed = tutorialTimer_ - pt1Start;
-		float alpha = std::min(1.0f, elapsed / 800.0f);
-		SDL_Color subColor = { gold.r, gold.g, gold.b, (Uint8)(255 * alpha) };
-		render.DrawMenuTextCentered(level.number.c_str(), { 0, winH / 2 - 130, winW, 40 }, subColor, 1.0f);
-	}
-
-	if (tutorialTimer_ > pt1Start && texTutorialSeparator_) {
-		float elapsed = tutorialTimer_ - pt1Start;
-		float progress = std::min(1.0f, elapsed / 500.0f); 
-		int tw, th;
-		Engine::GetInstance().textures->GetSize(texTutorialSeparator_, tw, th);
-		SDL_Rect src = { (int)((float)tw * (1.0f - progress) / 2.0f), 0, (int)((float)tw * progress), th };
-		float drawW = (float)tw * progress * 0.8f;
-		float drawH = (float)th * 0.8f;
-		int dx = (winW - (int)drawW) / 2;
-		int dy = winH / 2 - 70;
-		render.DrawTexture(texTutorialSeparator_, dx, dy, &src, 0.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.8f);
-	}
-
-	if (tutorialTimer_ > pt2Start) {
-		if (!pt2Played_) {
-			Engine::GetInstance().audio->PlayFx(fxTitleCardPt2_, 0, true);
-			pt2Played_ = true;
-		}
-		SDL_Color mainColor = { white.r, white.g, white.b, 255 };
-		render.DrawMenuTextCentered(level.name.c_str(), { 0, winH / 2 - 10, winW, 60 }, mainColor, 2.0f);
+	// Render the "Press SPACE to Skip" overlay
+	if (!waitingForFade_ && cin.IsPlaying()) {
+		SDL_Color skipColor = { 255, 255, 255, 120 };
+		render.DrawMenuTextCentered("Press SPACE to Skip", { winW - 300, winH - 60, 280, 30 }, skipColor, 0.4f);
 	}
 }
 
@@ -1201,9 +1238,16 @@ void Scene::LoadLoading()
 	loadingTimer_ = 0.0f;
 	mapLoadingFinished_ = false;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
+	texLoadingKid_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Loading_Kid.png");
 }
 
-void Scene::UnloadLoading() {}
+void Scene::UnloadLoading()
+{
+	if (texLoadingKid_) {
+		Engine::GetInstance().textures->UnLoad(texLoadingKid_);
+		texLoadingKid_ = nullptr;
+	}
+}
 
 void Scene::UpdateLoading(float dt)
 {
@@ -2801,7 +2845,7 @@ void Scene::PostUpdateGameplay()
 
 	// --- Draw Health HUD ---
 	if (player && !player->isWakingUp && !isPaused_ && !showInventory_ && !showMapViewer_
-		&& currentMapFile_ != "MapLvl2ZonaBoss.tmx") {
+		&& currentMapFile_ != "MapLvl2ZonaBoss.tmx" && currentMapFile_ != "MapLvl3ZonaBoss.tmx") {
 		SDL_Rect r;
 		const SDL_Rect* frame = nullptr;
 		SDL_Texture* texToDraw = nullptr;
@@ -5020,6 +5064,9 @@ void Scene::ExecuteSubMapLoad()
 
 void Scene::TriggerEndGameCinematic()
 {
+    // Solo permitir que se active el final del juego en el nivel 4 (índice 3).
+    if (currentLevelIndex_ != 3) return;
+
     if (endGameTriggered_) return;  // already triggered once this session, ignore
     endGameTriggered_ = true;
     endGameFading_    = true;
