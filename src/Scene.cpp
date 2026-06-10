@@ -270,6 +270,7 @@ void Scene::LoadMainMenu()
 	texButtonFragmented_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Button_white_fragmented.png");
 	texSettingsBase_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
 	texSettingsPause_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Settings_Main_Menu_FIXED.png");
+	texMenuHiddenLogo_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_HiddenLogo.png");
 
 	const char* fragPaths[NUM_FRAGMENTS] = {
 		"assets/textures/Menu/UI_Fragment1.png",
@@ -341,6 +342,7 @@ void Scene::UnloadMainMenu()
 {
 		Engine::GetInstance().uiManager->CleanUp();
 	if (texMenuLogo_) { SDL_DestroyTexture(texMenuLogo_);                       texMenuLogo_ = nullptr; }
+	if (texMenuHiddenLogo_) { Engine::GetInstance().textures->UnLoad(texMenuHiddenLogo_); texMenuHiddenLogo_ = nullptr; }
 	if (texMenuChild_) { Engine::GetInstance().textures->UnLoad(texMenuChild_);  texMenuChild_ = nullptr; }
 	if (texMenuButton_) { Engine::GetInstance().textures->UnLoad(texMenuButton_); texMenuButton_ = nullptr; }
 	if (texButtonFragmented_) { Engine::GetInstance().textures->UnLoad(texButtonFragmented_); texButtonFragmented_ = nullptr; }
@@ -599,6 +601,52 @@ void Scene::PostUpdateMainMenu()
 		render.DrawTextureAlphaF(texMenuLogo_, renderLogoX, renderLogoY, (float)logoW, (float)logoH, 255);
 	}
 
+	// Render studio logo bottom-left and version text bottom-right
+	Uint8 bottomAlpha = 0;
+	if (menuAnimState_ == MenuAnimState::IDLE) {
+		bottomAlpha = 255;
+	} else if (menuAnimState_ == MenuAnimState::FADE_FRAGS_BTNS) {
+		float f = menuAnimTimer_ / 2000.0f;
+		if (f > 1.0f) f = 1.0f;
+		bottomAlpha = (Uint8)(255 * f);
+	}
+	bottomAlpha = (Uint8)((float)bottomAlpha * settingsButtonsAlpha_);
+
+	if (bottomAlpha > 0) {
+		// 1. Bottom-left: UI_HiddenLogo.png
+		if (texMenuHiddenLogo_) {
+			float hW = 0, hH = 0;
+			SDL_GetTextureSize(texMenuHiddenLogo_, &hW, &hH);
+			float targetH = 100.0f;
+			float scale = targetH / hH;
+			float targetW = hW * scale;
+
+			float centerBaselineY = (float)winH - 20.0f - 50.0f;
+			float logoY = centerBaselineY - targetH / 2.0f;
+			float logoX = 20.0f;
+
+			render.DrawTextureAlphaF(texMenuHiddenLogo_, logoX, logoY, targetW, targetH, bottomAlpha);
+		}
+
+		// 2. Bottom-right: "v1.0.0"
+		SDL_Color versionColor = { 255, 255, 255, bottomAlpha };
+		SDL_Texture* txVersion = render.CreateMenuTextTexture("v1.0.0", versionColor);
+		if (txVersion) {
+			float vW = 0, vH = 0;
+			SDL_GetTextureSize(txVersion, &vW, &vH);
+			float textScale = 0.4f;
+			float drawW = vW * textScale;
+			float drawH = vH * textScale;
+
+			float centerBaselineY = (float)winH - 20.0f - 50.0f;
+			float versionY = centerBaselineY - drawH / 2.0f;
+			float versionX = (float)winW - drawW - 20.0f;
+
+			render.DrawTextureAlphaF(txVersion, versionX, versionY, drawW, drawH, bottomAlpha);
+			SDL_DestroyTexture(txVersion);
+		}
+	}
+
 	if (showSettings_ || settingsOptionsAlpha_ > 0.0f)
 		DrawSettingsInPlace(winW, winH);
 }
@@ -846,13 +894,13 @@ void Scene::LoadIntro()
 	Engine::GetInstance().render->StartFade(FadeDirection::FADE_IN, 800.0f);
 
 	texCitmLogo_ = Engine::GetInstance().textures->Load("assets/textures/icons/logo-citm.png");
-	texStudioPlaceholder_ = Engine::GetInstance().render->CreateMenuTextTexture("HIDDEN DREAM STUDIO", { 255, 255, 255, 255 });
+	texStudioPlaceholder_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_HiddenLogo.png");
 }
 
 void Scene::UnloadIntro()
 {
 	if (texCitmLogo_) { Engine::GetInstance().textures->UnLoad(texCitmLogo_); texCitmLogo_ = nullptr; }
-	if (texStudioPlaceholder_) { SDL_DestroyTexture(texStudioPlaceholder_);            texStudioPlaceholder_ = nullptr; }
+	if (texStudioPlaceholder_) { Engine::GetInstance().textures->UnLoad(texStudioPlaceholder_); texStudioPlaceholder_ = nullptr; }
 }
 
 void Scene::UpdateIntro(float dt)
@@ -989,7 +1037,7 @@ void Scene::DrawLoadingText(bool pulsing, float timer)
 	const int textY = winH - 80;
 	const int textH = 40;
 
-	SDL_Texture* tx = render.CreateMenuTextTexture("Loading...", textColor);
+	SDL_Texture* tx = render.CreateMenuTextTexture("loading...", textColor);
 	if (tx) {
 		float tw = 0, th = 0;
 		SDL_GetTextureSize(tx, &tw, &th);
