@@ -294,7 +294,7 @@ void EnemyCarmel::Draw(float dt)
 		if (frameIndex != lastFrameIndex_) hull = &carmel_hull_scared[frameIndex % 11];
 
 		const SDL_Rect& frame = scaredAnims_.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(scaredTexture_, x - 32, y - 32, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(scaredTexture_, x - 32, y - 32, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
 	}
 	else if (state_ == EnemyCarmelState::BLOWUP)
 	{
@@ -328,7 +328,7 @@ void EnemyCarmel::Draw(float dt)
 		if (frameIndex != lastFrameIndex_) hull = &carmel_hull_idle[frameIndex % 6];
 
 		const SDL_Rect& frame = anims_.GetCurrentFrame();
-		Engine::GetInstance().render->DrawTexture(texture, x - 32, y - 32, &frame, 1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
+		Engine::GetInstance().render->DrawTexture(texture, x - 32, y - 32, &frame, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, 1.0f);
 	}
 
 	if (pbodySensor_ != nullptr) {

@@ -443,7 +443,7 @@ void EnemyWindUpScurry::Draw(float dt) {
 
         SDL_FlipMode flip = facingRight_ ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
 
-        Engine::GetInstance().render->DrawTexture(currentTexture, px, py, &frameRect, 1.0f, 0, INT_MAX, INT_MAX, flip, scale);
+        Engine::GetInstance().render->DrawTexture(currentTexture, px, py, &frameRect, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, flip, scale);
     }
 }
 
