@@ -490,6 +490,7 @@ private:
 
     // ── Main menu textures ────────────────────────────────────────────────────
     SDL_Texture* texMenuLogo_ = nullptr;
+    SDL_Texture* texMenuHiddenLogo_ = nullptr;
     SDL_Texture* texMenuChild_ = nullptr;
     SDL_Texture* texMenuButton_ = nullptr;
     SDL_Texture* texSettingsBase_ = nullptr;
