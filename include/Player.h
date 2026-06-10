@@ -74,7 +74,6 @@ private:
 	void Attack(float dt);
 	void Hide(float dt);
 	void Slingshot(float dt);
-	void Teleport();
 	void ApplyPhysics();
 	void Draw(float dt);
 
