@@ -253,6 +253,10 @@ public:
     struct MapObject {
         std::string name;
         SDL_FRect rect;
+        std::string platformTarget;
+        int requiredClicks = 1;
+        bool flipH = false;
+
     };
     std::vector<MapObject> GetPuzzleObjects() const;
     std::vector<MapObject> GetPuzzleObjects3() const;
