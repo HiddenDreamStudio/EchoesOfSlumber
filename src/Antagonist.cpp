@@ -118,6 +118,6 @@ void Antagonist::Draw()
 
     SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
     SDL_SetTextureAlphaMod(tex, alpha_);
-    render.DrawTexture(tex, drawX, drawY, &frame, 1.0f, 0.0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
+    render.DrawTexture(tex, drawX, drawY, &frame, 1.0f, -1.0f, 0.0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
     SDL_SetTextureAlphaMod(tex, 255);
 }
