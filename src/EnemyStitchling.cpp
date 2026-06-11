@@ -147,7 +147,7 @@ void EnemyStitchling::UpdateFSM(float dt) {
             if (!disappearDone_) {
                 if (dieAnims_.HasFinishedOnce("die")) {
                     // Animation finished — yoyo has disappeared, now throw ropes and trap the player
-                    Engine::GetInstance().audio->PlayFx(disappearFxId);
+                    Engine::GetInstance().audio->PlayFxSpatial(disappearFxId, position);
                     disappearDone_ = true;
                     ApplyPlayerSlowdown();
 
@@ -201,7 +201,7 @@ void EnemyStitchling::EnterState(State newState) {
         alertAnims_.ResetCurrent();
         break;
     case State::TRAP_ACTIVE:
-        Engine::GetInstance().audio->PlayFx(attackFxId);
+        Engine::GetInstance().audio->PlayFxSpatial(attackFxId, position);
         dieAnims_.ResetCurrent();
         disappearDone_ = false;
         escapeMashes_ = 0;
