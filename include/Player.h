@@ -66,6 +66,7 @@ public:
 	bool HasStuffedAnimal() const { return hasStuffedAnimal_; }
 	void SetHasStuffedAnimal(bool v) { hasStuffedAnimal_ = v; }
 	bool IsBearMode() const { return isBearMode_; }
+	bool IsBearModeActive() const { return isBearMode_ || isBearTransforming_ || isThrowingBear_ || isKidSleeping_; }
 
 private:
 

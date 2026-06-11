@@ -39,7 +39,7 @@ bool HidingRock::Update(float dt) {
 	auto playerShared = Engine::GetInstance().scene->player;
 	if (!playerShared) return true;
 
-	if (playerInRange_) {
+	if (playerInRange_ && !playerShared->IsBearModeActive()) {
 		auto& input = Engine::GetInstance().input;
 		bool interactDown = input->GetKey(SDL_SCANCODE_E) == KEY_DOWN || input->GetGamepadButton(SDL_GAMEPAD_BUTTON_WEST) == KEY_DOWN;
 		
@@ -76,7 +76,7 @@ bool HidingRock::Update(float dt) {
 bool HidingRock::PostUpdate() {
 	auto playerShared = Engine::GetInstance().scene->player;
 
-	if (playerShared && playerInRange_ && texPrompt_ && !playerShared->IsHidingBehindRock()) {
+	if (playerShared && playerInRange_ && texPrompt_ && !playerShared->IsHidingBehindRock() && !playerShared->IsBearModeActive()) {
 		int bx, by;
 		pbody_->GetPosition(bx, by);
 		
