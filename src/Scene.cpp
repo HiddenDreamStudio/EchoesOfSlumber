@@ -3083,7 +3083,22 @@ void Scene::ResolveCheckpointTransition()
 	}
 	else if (checkpointTransitionMode_ == CheckpointTransitionMode::RESPAWN)
 	{
-		if (Engine::GetInstance().saveSystem->HasCheckpointSave() && Engine::GetInstance().saveSystem->QuickLoadImmediate())
+		bool useCheckpoint = false;
+		if (Engine::GetInstance().saveSystem->HasCheckpointSave()) {
+			pugi::xml_document doc;
+			if (doc.load_file("assets/saves/savedata.xml")) {
+				pugi::xml_node root = doc.child("savegame");
+				pugi::xml_node sceneNode = root ? root.child("scene") : pugi::xml_node();
+				std::string cpMap = sceneNode ? sceneNode.attribute("currentMapPath").as_string("") : "";
+				
+				if (cpMap.length() >= currentMapFile_.length() && 
+					cpMap.compare(cpMap.length() - currentMapFile_.length(), currentMapFile_.length(), currentMapFile_) == 0) {
+					useCheckpoint = true;
+				}
+			}
+		}
+
+		if (useCheckpoint && Engine::GetInstance().saveSystem->QuickLoadImmediate())
 		{
 			isGameOver_ = false;
 			gameOverFadeTimer_ = 0.0f;
@@ -3112,8 +3127,8 @@ void Scene::ResolveCheckpointTransition()
 		}
 		else
 		{
-			// No checkpoint save available - Reload current map cleanly in-place
-			LOG("No checkpoint found, performing clean level restart");
+			// No checkpoint save available in THIS map - Reload current map cleanly in-place
+			LOG("No checkpoint found for current map, performing clean level restart");
 
 			bool savedHasBlanket = false, savedHasSlingshot = false, savedHasStuffedAnimal = false;
 			Player::EquippedItem eqItem = Player::EquippedItem::NONE;
@@ -3132,20 +3147,37 @@ void Scene::ResolveCheckpointTransition()
 
 			if (puzzleManager2) puzzleManager2->Reset();
 
-			std::string mapFile = levels_[currentLevelIndex_].file;
-			Engine::GetInstance().map->Load("assets/maps/", mapFile);
-			Engine::GetInstance().map->LoadEntities(player);
+			Engine::GetInstance().map->Load("assets/maps/", currentMapFile_);
+
+			float portalSpawnX = 0.0f, portalSpawnY = 0.0f;
+			bool portalSpawnFound = false;
+
+			if (!subMapSpawnId_.empty() && Engine::GetInstance().map->GetSpawnById(subMapSpawnId_, portalSpawnX, portalSpawnY)) {
+				portalSpawnFound = true;
+			} else if (!pendingLevelSpawnId_.empty() && Engine::GetInstance().map->GetSpawnById(pendingLevelSpawnId_, portalSpawnX, portalSpawnY)) {
+				portalSpawnFound = true;
+			}
+
+			Engine::GetInstance().map->LoadEntities(player, portalSpawnFound, portalSpawnX, portalSpawnY);
 
 			if (player == nullptr) {
 				player = std::dynamic_pointer_cast<Player>(
 					Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
-
-				if (currentLevelIndex_ == 0)
+				
+				if (portalSpawnFound) {
+					player->position = Vector2D(portalSpawnX, portalSpawnY);
+				} else if (currentLevelIndex_ == 0) {
 					player->position = Vector2D(96.0f, 672.0f);
-				else
+				} else {
 					player->position = Vector2D(1280.0f + 100.0f, 672.0f); 
+				}
 
 				player->Start();
+			}
+
+			if (portalSpawnFound) {
+				player->SetPosition(Vector2D(portalSpawnX - player->texW / 2.0f, portalSpawnY - player->texH / 2.0f));
+				player->position = Vector2D(portalSpawnX, portalSpawnY);
 			}
 
 			if (player) {
