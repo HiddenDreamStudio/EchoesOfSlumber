@@ -4,6 +4,7 @@
 #include "Textures.h"
 #include "Audio.h"
 #include "Input.h"
+#include "Scene.h"
 #include <vector>
 
 UIManager::UIManager() :Module(), texture(nullptr), customCursorTex(nullptr)
@@ -87,7 +88,8 @@ bool UIManager::PostUpdate()
 	}
 
 	// Draw the custom cursor on top of everything
-	if (customCursorTex && !Engine::GetInstance().input->IsGamepadConnected())
+	bool showCursor = Engine::GetInstance().scene && Engine::GetInstance().scene->ShouldShowCursor();
+	if (showCursor && customCursorTex && !Engine::GetInstance().input->IsGamepadConnected())
 	{
 		Vector2D mousePos = Engine::GetInstance().input->GetMousePosition();
 		int texW = 0, texH = 0;
