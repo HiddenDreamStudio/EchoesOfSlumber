@@ -354,7 +354,7 @@ void EnemyCarmel::PlaySpiderFx(int fxId)
 
 	if (distSq < 1000000.0f)
 	{
-		Engine::GetInstance().audio->PlayFx(fxId);
+		Engine::GetInstance().audio->PlayFxSpatial(fxId, position);
 	}
 }
 
