@@ -51,9 +51,7 @@ bool Checkpoint::Start() {
     return true;
 }
 
-bool Checkpoint::Update(float dt) {
-    if (!active) return true;
-
+void Checkpoint::DrawBehindMap() {
     SDL_Texture* texture = activated ? textureOn_ : textureOff_;
 
     if (texture && texW > 0 && texH > 0) {
@@ -70,6 +68,10 @@ bool Checkpoint::Update(float dt) {
 
         Engine::GetInstance().render->DrawTexture(texture, drawX, drawY, &section, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
     }
+}
+
+bool Checkpoint::Update(float dt) {
+    if (!active) return true;
 
     auto& scene = Engine::GetInstance().scene;
     const bool playerCanInteract = scene && scene->player &&
@@ -78,28 +80,10 @@ bool Checkpoint::Update(float dt) {
         !scene->player->isYoyoTrapped_;
 
     if (playerInRange_ && playerCanInteract && !scene->isPaused_ && !scene->isGameOver_ && !scene->IsCheckpointTransitionActive()) {
-        const bool keyDown = Engine::GetInstance().input->GetKey(SDL_SCANCODE_E) == KEY_DOWN;
-
-        if (keyDown) {
+        if (!activated) {
             scene->RequestCheckpointActivation(checkpointId_, GetSpawnPosition());
+            activated = true;
         }
-
-        auto& render = *Engine::GetInstance().render;
-        const char* prompt = activated ? "Press E to save" : "Press E to activate";
-        const int panelW = activated ? 190 : 240;
-        const int panelH = 34;
-        int screenX = (int)(render.camera.x + position.getX() - panelW * 0.5f);
-        
-        // Adjust prompt Y coordinate to appear above the drawn texture
-        float targetH = std::max(objectH_, 52.0f) * 3.5f;
-        int topOfTextureY = (int)(position.getY() + objectH_ * 0.5f - targetH);
-        int screenY = (int)(render.camera.y + topOfTextureY - 46.0f);
-
-        SDL_Rect panel = { screenX, screenY, panelW, panelH };
-        render.DrawRectangle(panel, 0, 0, 0, 190, true, false);
-        SDL_Rect border = { screenX - 2, screenY - 2, panelW + 4, panelH + 4 };
-        render.DrawRectangle(border, 255, 255, 255, 210, false, false);
-        render.DrawMenuTextCentered(prompt, panel, { 255, 255, 255, 255 }, 0.32f);
     }
 
     return true;
