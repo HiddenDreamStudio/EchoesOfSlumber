@@ -101,6 +101,7 @@ bool Boss1::Start()
     fxBocaAbierta_  = audio.LoadFx("assets/audio/Enemies/Drowning Plush/Drowningplush_abriendo boca.wav");
     fxDisparo_      = audio.LoadFx("assets/audio/Enemies/Drowning Plush/Drowningplush_Escupitajo.wav");
     fxImpactoSuelo_ = audio.LoadFx("assets/audio/Enemies/Drowning Plush/Drowningplush_Escupitajo Suelo.wav");
+    fxDive_         = audio.LoadFx("assets/audio/Enemies/Drowning Plush/Drowingplush_sumergirse.wav");
 
     return true;
 }
@@ -261,10 +262,10 @@ void Boss1::TransitionTo(Boss1State newState)
     auto& audio = *Engine::GetInstance().audio;
     switch (newState)
     {
-    case Boss1State::DIVE:       animDive_.Reset();    break;
-    case Boss1State::DEATH:      animDive_.Reset();    deathTeleportTimer_ = 0.0f; deathSequenceDone_ = false; break;
+    case Boss1State::DIVE:       animDive_.Reset();    audio.PlayFxSpatial(fxDive_, position); break;
+    case Boss1State::DEATH:      animDive_.Reset();    audio.PlayFxSpatial(fxDive_, position); deathTeleportTimer_ = 0.0f; deathSequenceDone_ = false; break;
     case Boss1State::STUNNED:    animHit_.Reset();     break;
-    case Boss1State::JUMP:       animAttack_.Reset();  audio.PlayFxSpatial(fxJump_, position);        break;
+    case Boss1State::JUMP:       animAttack_.Reset();  audio.PlayFxSpatial(fxDive_, position); audio.PlayFxSpatial(fxJump_, position); break;
     case Boss1State::VULNERABLE: animCansado_.Reset(); audio.PlayFxSpatial(fxAterrizaje_, position);  break;
     case Boss1State::P2_SPIT:    animP2Spit_.Reset();  audio.PlayFxSpatial(fxBocaAbierta_, position); break;
     default: break;
