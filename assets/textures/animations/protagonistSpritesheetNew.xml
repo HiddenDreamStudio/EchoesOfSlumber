@@ -31,20 +31,20 @@
  </tile>
  <tile id="35" type="TurnAround">
   <animation>
-   <frame tileid="35" duration="30"/>
-   <frame tileid="36" duration="30"/>
-   <frame tileid="37" duration="30"/>
-   <frame tileid="38" duration="30"/>
-   <frame tileid="39" duration="30"/>
-   <frame tileid="40" duration="30"/>
-   <frame tileid="41" duration="30"/>
-   <frame tileid="42" duration="30"/>
-   <frame tileid="43" duration="30"/>
-   <frame tileid="44" duration="30"/>
-   <frame tileid="45" duration="30"/>
-   <frame tileid="46" duration="30"/>
-   <frame tileid="47" duration="30"/>
-   <frame tileid="48" duration="30"/>
+   <frame tileid="35" duration="10"/>
+   <frame tileid="36" duration="10"/>
+   <frame tileid="37" duration="10"/>
+   <frame tileid="38" duration="10"/>
+   <frame tileid="39" duration="10"/>
+   <frame tileid="40" duration="10"/>
+   <frame tileid="41" duration="10"/>
+   <frame tileid="42" duration="10"/>
+   <frame tileid="43" duration="10"/>
+   <frame tileid="44" duration="10"/>
+   <frame tileid="45" duration="10"/>
+   <frame tileid="46" duration="10"/>
+   <frame tileid="47" duration="10"/>
+   <frame tileid="48" duration="10"/>
   </animation>
  </tile>
  <tile id="70" type="Run">
