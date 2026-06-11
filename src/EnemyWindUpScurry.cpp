@@ -313,7 +313,7 @@ void EnemyWindUpScurry::EnterState(State newState) {
         hitAnims_.ResetCurrent();
         break;
     case State::DEATH:
-        Engine::GetInstance().audio->PlayFx(deadFxId);
+        Engine::GetInstance().audio->PlayFxSpatial(deadFxId, position);
         dieAnims_.ResetCurrent();
         if (pbody) {
             Engine::GetInstance().physics->DeletePhysBody(pbody);
@@ -338,7 +338,7 @@ void EnemyWindUpScurry::OnCollision(PhysBody* physA, PhysBody* physB) {
         if (other->ctype == ColliderType::PLAYER) {
             if (currentState_ == State::WALK_FAST || currentState_ == State::IDLE) {
                 if (other->listener != nullptr) {
-                    Engine::GetInstance().audio->PlayFx(attackFxId);
+                    Engine::GetInstance().audio->PlayFxSpatial(attackFxId, position);
                     other->listener->TakeDamage(1);
                 }
             }
