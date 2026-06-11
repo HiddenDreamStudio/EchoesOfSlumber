@@ -213,12 +213,6 @@
   <image source="../textures/fons_enviroment/Map4/Map4_fondo_delante_2.png" width="11072" height="11392"/>
  </imagelayer>
  <objectgroup id="5" name="Portals">
-  <object id="16" type="Portal" x="2938.33" y="643.212" width="576.667" height="190.909">
-   <properties>
-    <property name="spawnId" value="E"/>
-    <property name="target" value="MapLvl4ZonaAlta.tmx"/>
-   </properties>
-  </object>
   <object id="17" type="Portal" x="3653.67" y="675.212" width="431.334" height="641.576">
    <properties>
     <property name="spawnId" value="D"/>
