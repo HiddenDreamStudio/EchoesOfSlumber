@@ -214,7 +214,7 @@ void Boss2::SpawnShockwave()
     shockwaveIdleFrame_  = 0;
     shockwaveFrameTimer_ = 0.0f;
     shockwaveOutro_      = false;
-    Engine::GetInstance().audio->PlayFx(fxShockwave_);
+    Engine::GetInstance().audio->PlayFxSpatial(fxShockwave_, position);
 }
 
 void Boss2::UpdateShockwave(float dt)
@@ -312,7 +312,7 @@ void Boss2::SpawnTallWave()
     tallWaveIdleFrame_  = 0;
     tallWaveFrameTimer_ = 0.0f;
     tallWaveOutro_      = false;
-    Engine::GetInstance().audio->PlayFx(fxShockwave_);
+    Engine::GetInstance().audio->PlayFxSpatial(fxShockwave_, position);
 }
 
 void Boss2::UpdateTallWave(float dt)
@@ -443,12 +443,12 @@ void Boss2::TransitionTo(Boss2State newState)
     auto& audio = *Engine::GetInstance().audio;
     switch (newState)
     {
-    case Boss2State::INTRO:         audio.PlayFx(fxIntro_);     break;
-    case Boss2State::PUNCH:         audio.PlayFx(fxPunch_);     break;
-    case Boss2State::GROUND_SLAM:   audio.PlayFx(fxPunch_);     break;
-    case Boss2State::EXPOSE_BUTTON: audio.PlayFx(fxExposeBtn_); break;
-    case Boss2State::STUNNED:       audio.PlayFx(fxStunned_);   break;
-    case Boss2State::DEATH:         audio.PlayFx(fxDeath_);     break;
+    case Boss2State::INTRO:         audio.PlayFxSpatial(fxIntro_, position);     break;
+    case Boss2State::PUNCH:         audio.PlayFxSpatial(fxPunch_, position);     break;
+    case Boss2State::GROUND_SLAM:   audio.PlayFxSpatial(fxPunch_, position);     break;
+    case Boss2State::EXPOSE_BUTTON: audio.PlayFxSpatial(fxExposeBtn_, position); break;
+    case Boss2State::STUNNED:       audio.PlayFxSpatial(fxStunned_, position);   break;
+    case Boss2State::DEATH:         audio.PlayFxSpatial(fxDeath_, position);     break;
     default: break;
     }
 }
@@ -459,7 +459,7 @@ void Boss2::TakeDamage(int damage)
 {
     if (state_ != Boss2State::EXPOSE_BUTTON) return;
 
-    Engine::GetInstance().audio->PlayFx(fxHit_);
+    Engine::GetInstance().audio->PlayFxSpatial(fxHit_, position);
 
     health -= damage;
     if (health < 0) health = 0;

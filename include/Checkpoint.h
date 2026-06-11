@@ -15,6 +15,7 @@ public:
     bool Start() override;
     bool Update(float dt) override;
     bool CleanUp() override;
+    void DrawBehindMap();
 
     void OnCollision(PhysBody* physA, PhysBody* physB) override;
     void OnCollisionEnd(PhysBody* physA, PhysBody* physB) override;

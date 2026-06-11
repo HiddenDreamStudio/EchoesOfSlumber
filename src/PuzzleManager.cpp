@@ -27,6 +27,8 @@ void PuzzleManager::LoadFiguresFromObjects(const std::vector<PuzzleFigure>& figu
     portalOpen_ = false;
     puzzleActive_ = true;
     blinking_ = false;
+    introTimer_ = 0.0f;
+    currentRadius_ = 2000.0f;
 }
 
 void PuzzleManager::Reset() {
@@ -40,6 +42,8 @@ void PuzzleManager::Reset() {
     vignetteAlpha_ = 210.0f;
     for (auto& f : figures_) f.collected = false;
     timedOut_ = false;
+    introTimer_ = 0.0f;
+    currentRadius_ = 2000.0f;
 }
 
 void PuzzleManager::Update(float dt, SDL_FRect playerRect, float playerScreenX, float playerScreenY) {
@@ -49,6 +53,19 @@ void PuzzleManager::Update(float dt, SDL_FRect playerRect, float playerScreenX, 
     playerWorldY_ = playerRect.y;
 
     if (!puzzleActive_ || portalOpen_) return;
+
+    introTimer_ += dt * 0.001f;
+    if (introTimer_ <= 1.0f) {
+        currentRadius_ = 2000.0f;
+    } else if (introTimer_ <= 3.0f) {
+        float t = (introTimer_ - 1.0f) / 2.0f; // 0 to 1 over 2 seconds
+        // Use ease-in-out or simple linear. Linear is fine.
+        // Easing: t = t * t * (3.0f - 2.0f * t) makes it smoother
+        t = t * t * (3.0f - 2.0f * t);
+        currentRadius_ = 2000.0f - t * (2000.0f - 220.0f);
+    } else {
+        currentRadius_ = 220.0f;
+    }
 
     for (auto& fig : figures_) {
         if (fig.collected) continue;
@@ -114,7 +131,7 @@ void PuzzleManager::DrawVignette(SDL_Renderer* renderer, float cx, float cy) {
     int screenW = 0, screenH = 0;
     SDL_GetCurrentRenderOutputSize(renderer, &screenW, &screenH);
 
-    float radius = 220.0f;  
+    float radius = currentRadius_;  
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
