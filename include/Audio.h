@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #include <vector>
 #include <string>
+#include "Vector2D.h"
 
 #define DEFAULT_MUSIC_FADE_TIME 2.0f
 
@@ -33,7 +34,8 @@ public:
 	int LoadFx(const char* path);
 
 	// Play a previously loaded WAV
-	bool PlayFx(int fx, int repeat = 0, bool isUI = false);
+	bool PlayFx(int fx, int repeat = 0, bool isUI = false, float volumeRatio = 1.0f);
+	bool PlayFxSpatial(int fx, Vector2D sourcePos, int repeat = 0);
 	void StopFx();
 
 	// Volume control
