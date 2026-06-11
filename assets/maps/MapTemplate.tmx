@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="49" nextobjectid="1825">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="49" nextobjectid="1835">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -573,6 +573,15 @@
   <object id="1584" gid="111" x="306.353" y="6299.95" width="310" height="127"/>
   <object id="1585" gid="110" x="9519.47" y="8290.9" width="177.096" height="186.101"/>
   <object id="1586" gid="161" x="3817.86" y="3610.09" width="104" height="186"/>
+  <object id="1825" gid="112" x="2769.35" y="7893.62" width="188.235" height="165.217"/>
+  <object id="1826" gid="1073741936" x="5824.88" y="8950.84" width="368" height="323"/>
+  <object id="1828" gid="1073741974" x="5579.68" y="6756.47" width="61.2319" height="90.7622"/>
+  <object id="1829" gid="180" x="6166.58" y="8930.07" width="240" height="153"/>
+  <object id="1830" gid="112" x="2248.62" y="7570.47" width="188.235" height="165.217"/>
+  <object id="1831" gid="1073741936" x="5304.15" y="8627.68" width="368" height="323"/>
+  <object id="1832" gid="114" x="2018.15" y="7270.68" width="165" height="130"/>
+  <object id="1833" gid="1073741974" x="5058.95" y="6433.31" width="61.2319" height="90.7622"/>
+  <object id="1834" gid="180" x="5645.85" y="8606.91" width="240" height="153"/>
  </objectgroup>
  <objectgroup id="28" name="Background">
   <object id="1454" gid="149" x="6117.87" y="8258.75" width="149.092" height="149.596"/>
@@ -648,7 +657,6 @@
   <object id="1528" gid="151" x="4120.39" y="4032.43" width="213.23" height="212.5"/>
   <object id="1529" gid="1073741985" x="4806.51" y="3224.14" width="104" height="186"/>
   <object id="1530" gid="1073741983" x="4504.51" y="3274.14" width="149" height="241.583"/>
-  <object id="1531" gid="1073741985" x="4563.15" y="7603.97" width="58.5455" height="134.485"/>
  </objectgroup>
  <layer id="36" name="Map" width="160" height="138">
   <properties>
@@ -22737,7 +22745,7 @@
    <tile gid="16"/>
   </data>
  </layer>
- <objectgroup id="25" name="Foreground" visible="0">
+ <objectgroup id="25" name="Foreground">
   <object id="1410" gid="204" x="1006.7" y="6662.05" width="495" height="736"/>
   <object id="1411" gid="204" x="6151.5" y="6470.05" width="495" height="736"/>
   <object id="1412" gid="204" x="9041.5" y="8696.05" width="495" height="736"/>
@@ -22760,12 +22768,8 @@
   <object id="1453" gid="217" x="3735.07" y="3630.31" width="127.929" height="99.3333"/>
   <object id="1746" gid="109" x="3779.01" y="1913.79" width="155" height="223"/>
   <object id="1747" gid="111" x="3163.19" y="3905.61" width="210.535" height="86.2513"/>
-  <object id="1748" gid="112" x="2253.93" y="7560.51" width="188.235" height="165.217"/>
-  <object id="1749" gid="1073741936" x="5309.46" y="8617.73" width="368" height="323"/>
   <object id="1750" gid="117" x="2987.46" y="3617.73" width="236" height="335"/>
   <object id="1752" gid="114" x="9265.45" y="7439.62" width="235.693" height="192.626"/>
-  <object id="1753" gid="114" x="2023.46" y="7260.73" width="165" height="130"/>
-  <object id="1754" gid="1073741974" x="5064.26" y="6423.36" width="61.2319" height="90.7622"/>
   <object id="1755" gid="1073741985" x="9195.46" y="8221.89" width="62.4339" height="111.661"/>
   <object id="1757" gid="1073741985" x="3033.46" y="3232.73" width="104" height="186"/>
   <object id="1758" gid="1073741985" x="4533.46" y="2326.73" width="104" height="186"/>
@@ -22781,7 +22785,6 @@
   <object id="1769" gid="162" x="6725.48" y="8605.15" width="33.5759" height="107.333"/>
   <object id="1770" gid="165" x="5507.71" y="6410.83" width="33.4387" height="56.4549"/>
   <object id="1771" gid="165" x="4645.28" y="1621.33" width="77" height="130"/>
-  <object id="1773" gid="180" x="5651.16" y="8596.96" width="240" height="153"/>
   <object id="1774" gid="184" x="7690.84" y="8591.09" width="26.9708" height="56.6937"/>
   <object id="1775" name="Enemy" type="SpiderCandy" x="3139.46" y="7505.73" width="108" height="100">
    <properties>

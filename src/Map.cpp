@@ -86,16 +86,17 @@ bool Map::Update(float dt)
 
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
-                // Pin parallax to start position: offset = x + initCam * (1 - speed)
+                // Pin parallax to start position
                 float pinnedX = imgLayer->offsetX + initCameraX * (1.0f - imgLayer->parallaxFactorX);
+                float pinnedY = imgLayer->offsetY + initCameraY * (1.0f - imgLayer->parallaxFactorY);
                 
                 Engine::GetInstance().render->DrawTexture(
                     imgLayer->texture,
                     static_cast<int>(pinnedX),
-                    static_cast<int>(imgLayer->offsetY),
+                    static_cast<int>(pinnedY),
                     nullptr,
                     imgLayer->parallaxFactorX,
-                    1.0f // Force no Y parallax
+                    imgLayer->parallaxFactorY
                 );
             }
         }
@@ -106,19 +107,20 @@ bool Map::Update(float dt)
 
         for (const auto& deco : mapData.decorationObjects) {
             if (deco->texture && !deco->isFront) {
-                // Pin parallax to start position
-                float pinnedX = deco->x + initCameraX * (1.0f - deco->parallaxSpeed);
+                float px = deco->parallaxSpeed;
+                float py = 1.0f;
+                if (px != 1.0f) py = 1.0f - (1.0f - px) * 0.5f;
 
-                // TEMPORARILY DISABLE CULLING FOR DECORATIONS TO ENSURE VISIBILITY
-                // if (!render->IsOnScreenWorldRect(pinnedX, deco->y - deco->height, deco->width, deco->height, 2000))
-                //    continue;
-                
+                // Pin parallax to start position
+                float pinnedX = deco->x + initCameraX * (1.0f - px);
+                float pinnedY = deco->y + initCameraY * (1.0f - py);
+
                 int tw = 0, th = 0;
                 Engine::GetInstance().textures->GetSize(deco->texture, tw, th);
                 float drawScaleX = (tw > 0) ? (deco->width / (float)tw) : 1.0f;
                 float drawScaleY = (th > 0) ? (deco->height / (float)th) : 1.0f;
 
-                render->DrawTexture(deco->texture, (int)pinnedX, (int)(deco->y - deco->height), nullptr, deco->parallaxSpeed, 1.0f, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV), drawScaleX, drawScaleY);
+                render->DrawTexture(deco->texture, (int)pinnedX, (int)(pinnedY - deco->height), nullptr, px, py, deco->rotation, 0, (int)deco->height, flipMode(deco->flipH, deco->flipV), drawScaleX, drawScaleY);
             }
         }
 
@@ -126,13 +128,18 @@ bool Map::Update(float dt)
             if (plant->isFront) continue;
             plant->anim.Update(dt);
 
-            float pinnedX = plant->x + initCameraX * (1.0f - plant->parallaxSpeed);
+            float px = plant->parallaxSpeed;
+            float py = 1.0f;
+            if (px != 1.0f) py = 1.0f - (1.0f - px) * 0.5f;
 
-            if (!render->IsOnScreenWorldRect(pinnedX, plant->y, plant->w, plant->h, 1000))
+            float pinnedX = plant->x + initCameraX * (1.0f - px);
+            float pinnedY = plant->y + initCameraY * (1.0f - py);
+
+            if (!render->IsOnScreenWorldRect(pinnedX, pinnedY, plant->w, plant->h, 1000))
                 continue;
 
             const SDL_Rect& frame = plant->anim.GetCurrentFrame();
-            render->DrawTexture(plant->texture, (int)pinnedX, (int)plant->y, &frame, plant->parallaxSpeed, 1.0f);
+            render->DrawTexture(plant->texture, (int)pinnedX, (int)pinnedY, &frame, px, py);
         }
         
         // Draw Checkpoints BEFORE map layers so they appear behind the floor
@@ -156,9 +163,14 @@ bool Map::Update(float dt)
                 std::string lowerName = mapLayer->name;
                 for (char& c : lowerName) c = ::tolower(c);
                 if (px == 1.0f) {
-                    if (lowerName.find("background") != std::string::npos || lowerName.find("back") != std::string::npos || lowerName.find("fondo") != std::string::npos) px = 1.0f;
+                    if (lowerName.find("background") != std::string::npos || lowerName.find("back") != std::string::npos || lowerName.find("fondo") != std::string::npos) px = 0.8f;
                     else if (lowerName.find("middle") != std::string::npos || lowerName.find("medio") != std::string::npos) px = 1.0f;
-                    else if (lowerName.find("foreground") != std::string::npos || lowerName.find("front") != std::string::npos) px = 1.1f;
+                    else if (lowerName.find("foreground") != std::string::npos || lowerName.find("front") != std::string::npos) px = 1.2f;
+                }
+                
+                if (py == 1.0f) {
+                    if (px < 1.0f) py = 1.0f - (1.0f - px) * 0.5f; // Subtle Y parallax for backgrounds
+                    else if (px > 1.0f) py = 1.0f + (px - 1.0f) * 0.5f; // Subtle Y parallax for foregrounds
                 }
 
                 // Process the whole map for now to ensure visibility
@@ -179,12 +191,13 @@ bool Map::Update(float dt)
                                 
                                 // Pin parallax to start position
                                 float pinnedX = mapCoord.getX() + initCameraX * (1.0f - px);
+                                float pinnedY = mapCoord.getY() + initCameraY * (1.0f - py);
 
                                 SDL_FlipMode flip = SDL_FLIP_NONE;
                                 if (rawGid & FLIPPED_HORIZONTALLY_FLAG) flip = (SDL_FlipMode)(flip | SDL_FLIP_HORIZONTAL);
                                 if (rawGid & FLIPPED_VERTICALLY_FLAG) flip = (SDL_FlipMode)(flip | SDL_FLIP_VERTICAL);
 
-                                render->DrawTexture(tileSet->texture, (int)pinnedX, (int)mapCoord.getY(), &tileRect, px, 1.0f, 0.0, INT_MAX, INT_MAX, flip);
+                                render->DrawTexture(tileSet->texture, (int)pinnedX, (int)pinnedY, &tileRect, px, py, 0.0, INT_MAX, INT_MAX, flip);
                             }
                         }
                     }
@@ -222,13 +235,15 @@ bool Map::PostUpdate() {
 
   for (const auto &deco : mapData.decorationObjects) {
     if (deco->texture && deco->isFront) {
-      int drawX = (int)deco->x;
-      if (foundPlayer) {
-        drawX = (int)(deco->x + (playerPos.getX() - deco->x) *
-                                    (deco->parallaxSpeed - 1.0f));
-      }
+      float px = deco->parallaxSpeed;
+      float py = 1.0f;
+      if (px != 1.0f) py = 1.0f + (px - 1.0f) * 0.5f;
 
-      if (!render->IsOnScreenWorldRect((float)drawX, deco->y - deco->height,
+      // Pin parallax to start position
+      float pinnedX = deco->x + initCameraX * (1.0f - px);
+      float pinnedY = deco->y + initCameraY * (1.0f - py);
+
+      if (!render->IsOnScreenWorldRect(pinnedX, pinnedY - deco->height,
                                        deco->width, deco->height))
         continue;
 
@@ -237,8 +252,8 @@ bool Map::PostUpdate() {
       float drawScaleX = (tw > 0) ? (deco->width / (float)tw) : 1.0f;
       float drawScaleY = (th > 0) ? (deco->height / (float)th) : 1.0f;
 
-      render->DrawTexture(deco->texture, drawX, (int)(deco->y - deco->height),
-                          nullptr, 1.0f, 1.0f, deco->rotation, 0, (int)deco->height,
+      render->DrawTexture(deco->texture, (int)pinnedX, (int)(pinnedY - deco->height),
+                          nullptr, px, py, deco->rotation, 0, (int)deco->height,
                           flipMode(deco->flipH, deco->flipV), drawScaleX,
                           drawScaleY);
     }
@@ -247,11 +262,19 @@ bool Map::PostUpdate() {
   for (const auto &plant : mapData.animatedPlants) {
     if (!plant->isFront)
       continue;
-    if (!render->IsOnScreenWorldRect(plant->x, plant->y, plant->w, plant->h))
+    
+    float px = plant->parallaxSpeed;
+    float py = 1.0f;
+    if (px != 1.0f) py = 1.0f + (px - 1.0f) * 0.5f;
+
+    float pinnedX = plant->x + initCameraX * (1.0f - px);
+    float pinnedY = plant->y + initCameraY * (1.0f - py);
+
+    if (!render->IsOnScreenWorldRect(pinnedX, pinnedY, plant->w, plant->h))
       continue;
 
     const SDL_Rect &frame = plant->anim.GetCurrentFrame();
-    render->DrawTexture(plant->texture, (int)plant->x, (int)plant->y, &frame);
+    render->DrawTexture(plant->texture, (int)pinnedX, (int)pinnedY, &frame, px, py);
   }
 
   return true;
@@ -1358,25 +1381,23 @@ void Map::LoadImageLayers() {
             lowerName.find("back") != std::string::npos || 
             lowerName.find("fondo") != std::string::npos) 
         {
-            defaultParallax = 0.8f; // "A bit of parallax" for background image
+            defaultParallax = 0.8f; // Fondo moves at 0.8
         }
         else if (lowerName.find("middle") != std::string::npos ||
                  lowerName.find("medio") != std::string::npos)
         {
-            defaultParallax = 1.0f; // Eliminate middleground effect
+            defaultParallax = 1.0f;
         }
         else if (lowerName.find("foreground") != std::string::npos || 
                  lowerName.find("front") != std::string::npos) 
         {
-            defaultParallax = 1.1f; // Foreground moves faster than camera
+            defaultParallax = 0.5f; // Foreground moves fast (at old fondo speed)
         }
 
     // Check if parallaxx attribute is explicitly set in TMX, otherwise use
-    // defaultParallax Apply a 0.25f damping factor to prevent aggressive
-    // layouts from detaching
+    // defaultParallax 
     pugi::xml_attribute pxAttr = imgNode.attribute("parallaxx");
-    float rawParallax = pxAttr ? pxAttr.as_float() : defaultParallax;
-    imgLayer->parallaxFactorX = 1.0f + (rawParallax - 1.0f) * 0.25f;
+    imgLayer->parallaxFactorX = pxAttr ? pxAttr.as_float() : defaultParallax;
     imgLayer->parallaxFactorY = imgNode.attribute("parallaxy").as_float(1.0f);
     imgLayer->source = imgNode.child("image").attribute("source").as_string();
 
@@ -1419,7 +1440,7 @@ void Map::LoadDecorationObjects() {
         lowerGroupName.find("back") != std::string::npos ||
         lowerGroupName.find("fondo") != std::string::npos ||
         lowerGroupName.find("bakground") != std::string::npos) {
-      layerParallax = 0.98f; // Extremely subtle background decoration parallax
+      layerParallax = 1.0f; // Background decorations now move 1:1 with world (static)
       layerIsFront = false;
     } else if (lowerGroupName.find("foreground") != std::string::npos ||
                lowerGroupName.find("front") != std::string::npos) {
@@ -1429,10 +1450,9 @@ void Map::LoadDecorationObjects() {
     // Middleground and everything else stays at 1.0, isFront = false
 
     // TMX parallaxx attribute overrides the default if present
-    // Apply a 0.25f damping factor to prevent aggressive layouts from detaching
     float tmxParallaxx = groupNode.attribute("parallaxx").as_float(0.0f);
     if (tmxParallaxx > 0.0f) {
-      layerParallax = 1.0f + (tmxParallaxx - 1.0f) * 0.25f;
+      layerParallax = tmxParallaxx;
     }
 
     std::vector<DecorationObject *> layerDecos;
