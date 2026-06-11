@@ -22,7 +22,7 @@ In a dark, mysterious world woven from fragmented memories, the player explores 
 |------|------|--------|
 | Zakaria Hamdaoui | Lead Dev, Engine | Video Game Design and Dev. |
 | Bruno Gómez Stirparo | Producer, Engine | Video Game Design and Dev. |
-| Júlia Aunión Goy | Producer, UX | Design, Animation & Digital Art |
+| Júlia Aunión Goy | Producer, Narrative, Sound and Music. Environments and UX | Design, Animation & Digital Art |
 | Marc Pladellorens Pérez | Gameplay Dev | Video Game Design and Dev. |
 | Monse Medina Chávez | Lead Game Design | Video Game Design and Dev. |
 | Aidan Albero García | Gameplay, Level Design | Video Game Design and Dev. |
@@ -30,14 +30,14 @@ In a dark, mysterious world woven from fragmented memories, the player explores 
 | Bernat Loza Cardoner | Gameplay, Tech Artist | Video Game Design and Dev. |
 | Víctor Pérez Ortega | Gameplay, Tech Artist | Video Game Design and Dev. |
 | Dottir Cheong Parlon | Lead Art | Design, Animation & Digital Art |
-| Maria Guest Brillas | Character Art, UX | Design, Animation & Digital Art |
-| Nadia Power Vilaseca | Character Art, Narrative | Design, Animation & Digital Art |
-| Nohuely Trinidad Peguero | Character Art | Design, Animation & Digital Art |
-| Mikel Sanahuja Guirao | Art, UX | Design, Animation & Digital Art |
-| Maryna Antoniuk | Level Concept | Design, Animation & Digital Art |
-| Nicolás Olmos Freijo | Level Concept | Design, Animation & Digital Art |
-| Lara Sequera Martin | Level Concept, Narrative | Design, Animation & Digital Art |
-| Armin De Biase Rodríguez | Level Concept, Level Design | Design, Animation & Digital Art |
+| Maria Guest Brillas | Character Design and VFX | Design, Animation & Digital Art |
+| Nadia Power Vilaseca | Character Design and Narrative | Design, Animation & Digital Art |
+| Nohuely Trinidad Peguero | Character Design and Environments | Design, Animation & Digital Art |
+| Mikel Sanahuja Guirao | UX | Design, Animation & Digital Art |
+| Maryna Antoniuk | Enviornments and Animation | Design, Animation & Digital Art |
+| Nicolás Olmos Freijo | Spritesheet coloring | Design, Animation & Digital Art |
+| Lara Sequera Martin | Enviornments, Narrative and Sound and Music | Design, Animation & Digital Art |
+| Armin De Biase Rodríguez | Environments, Animation and Level Design | Design, Animation & Digital Art |
 
 ## Tech Stack
 
