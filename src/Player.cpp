@@ -116,6 +116,21 @@ bool Player::Start() {
 		}
 		hideExitCapeAnim_.SetLoop(false);
 		hideExitAnim_.SetLoop(false);
+		
+		texHideRock_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/protagonistSpritesheet.png");
+		int hrFrameW = 128;
+		int hrFrameH = 128;
+		for (int i = 0; i < 12; i++) {
+			SDL_Rect r = { i * hrFrameW, 4 * hrFrameH, hrFrameW, hrFrameH };
+			rockHideAnim_.AddFrame(r, 60);
+		}
+		rockHideAnim_.SetLoop(false);
+
+		for (int i = 11; i >= 0; i--) {
+			SDL_Rect r = { i * hrFrameW, 4 * hrFrameH, hrFrameW, hrFrameH };
+			rockHideExitAnim_.AddFrame(r, 60);
+		}
+		rockHideExitAnim_.SetLoop(false);
 	}
 
 	// Load push animation spritesheet (256x256 tiles, 5 columns, 20 frames)
@@ -532,7 +547,9 @@ bool Player::Update(float dt)
 	if (isHiding_ || isHidingBehindRock_ || isExitingHide_) hideAlphaTime_ += dt;
 	else           hideAlphaTime_ = 0.0f;
 
-	Draw(dt);
+	if (!isHidingBehindRock_) {
+		Draw(dt);
+	}
 
 	return true;
 }
@@ -1032,16 +1049,43 @@ void Player::Draw(float dt) {
 	{
 		if (isExitingHide_)
 		{
-			if (!hideExitAnim_.HasFinishedOnce()) {
-				hideExitAnim_.Update(dt);
-				hideExitCapeAnim_.Update(dt);
+			if (isHidingBehindRock_) {
+				if (!rockHideExitAnim_.HasFinishedOnce()) {
+					rockHideExitAnim_.Update(dt);
+				} else {
+					isExitingHide_ = false;
+					isHidingBehindRock_ = false;
+					anims.SetCurrent("idle");
+				}
+				animFrame = &rockHideExitAnim_.GetCurrentFrame();
+				capeFrame = nullptr;
+				activeTex = texHideRock_;
+				currentDrawScale = 1.0f;
+			} else {
+				if (!hideExitAnim_.HasFinishedOnce()) {
+					hideExitAnim_.Update(dt);
+					hideExitCapeAnim_.Update(dt);
+				}
+				else {
+					isExitingHide_ = false;
+					isHiding_ = false;
+					anims.SetCurrent("idle");
+				}
 				animFrame = &hideExitAnim_.GetCurrentFrame();
 				capeFrame = &hideExitCapeAnim_.GetCurrentFrame();
+				activeTex = hideTexture_;
+				currentDrawScale = 0.75f;
 			}
-			else {
-				isExitingHide_ = false;
-				anims.SetCurrent("idle");
+		}
+		else if (isHidingBehindRock_)
+		{
+			if (!rockHideAnim_.HasFinishedOnce()) {
+				rockHideAnim_.Update(dt);
 			}
+			animFrame = &rockHideAnim_.GetCurrentFrame();
+			capeFrame = nullptr;
+			activeTex = texHideRock_;
+			currentDrawScale = 1.0f;
 		}
 		else
 		{
@@ -1052,9 +1096,9 @@ void Player::Draw(float dt) {
 			}
 			animFrame = &hideAnim_.GetCurrentFrame();
 			capeFrame = &hideCapeAnim_.GetCurrentFrame();
+			activeTex = hideTexture_;
+			currentDrawScale = 0.75f;
 		}
-		activeTex = hideTexture_;
-		currentDrawScale = 0.75f; // Increased scale so it matches player size
 	}
 	else if (isPushing_ && velocity.x != 0.0f && !isJumping)
 	{
@@ -1101,7 +1145,16 @@ void Player::Draw(float dt) {
 
 	if (!isDead_)
 	{
-		render->SetCameraTarget(position.getX(), position.getY());
+		float targetLookahead = 0.0f;
+		if (std::abs(velocity.x) > 0.1f) {
+			targetLookahead = facingRight ? -70.0f : 70.0f;
+		}
+		
+		// Remove double-smoothing to prevent the "sea-sick" rubber-banding effect.
+		// Render::FollowTarget already applies an exponential smoothing.
+		cameraLookaheadX_ = targetLookahead;
+
+		render->SetCameraTarget(position.getX() + cameraLookaheadX_, position.getY());
 		render->FollowTarget(dt);
 		render->ClampCameraToMapBounds(mapSize.getX(), mapSize.getY());
 	}
@@ -1112,7 +1165,7 @@ void Player::Draw(float dt) {
 	int drawX = static_cast<int>(position.getX() - (static_cast<float>(currentFrameW) * currentDrawScale) / 2.0f);
 	int drawY = static_cast<int>(position.getY() - (static_cast<float>(currentFrameH) * currentDrawScale) / 2.0f);
 
-	if (activeTex == hideTexture_) {
+	if (activeTex == hideTexture_ || activeTex == texHideRock_) {
 		// Align feet to pos.Y + 64 (standard player feet baseline)
 		float currentBottom = (static_cast<float>(currentFrameH) * currentDrawScale) / 2.0f;
 		drawY -= static_cast<int>(currentBottom - 64.0f);
@@ -1679,22 +1732,20 @@ Vector2D Player::GetPosition() {
 }
 
 void Player::SetHidingBehindRock(bool hiding) {
-	if (hiding == isHidingBehindRock_) return;
-
-	isHidingBehindRock_ = hiding;
-	UpdateHideCollision();
-	
 	if (hiding) {
+		if (isHidingBehindRock_) return;
+		isHidingBehindRock_ = true;
+		UpdateHideCollision();
 		velocity.x = 0.0f;
 		Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
-		hideAnim_.Reset();
-		hideCapeAnim_.Reset();
+		rockHideAnim_.Reset();
+		isExitingHide_ = false;
 		LOG("Player hiding behind rock");
 	} else {
-		// Play stand-up animation instead of snapping to idle
+		if (!isHidingBehindRock_ || isExitingHide_) return;
+		// Keep state but play exit animation
 		isExitingHide_ = true;
-		hideExitAnim_.Reset();
-		hideExitCapeAnim_.Reset();
+		rockHideExitAnim_.Reset();
 		LOG("Player stopped hiding behind rock — playing stand-up anim");
 	}
 }
@@ -1716,4 +1767,10 @@ bool Player::Destroy()
 	active = false;
 	pendingToDelete = true;
 	return true;
+}
+
+void Player::DrawBehindMap(float dt) {
+	if (isHidingBehindRock_) {
+		Draw(dt);
+	}
 }

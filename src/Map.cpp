@@ -1,4 +1,4 @@
-﻿#include "Map.h"
+#include "Map.h"
 #include "Antagonist.h"
 #include "BlockCrawler.h"
 #include "Boss1.h"
@@ -22,6 +22,7 @@
 #include "MemoryFragment.h"
 #include "Physics.h"
 #include "Platform.h"
+#include "Player.h"
 #include "PushRock.h"
 #include "Render.h"
 #include "RopedRock.h"
@@ -99,6 +100,10 @@ bool Map::Update(float dt)
             }
         }
         
+        if (Engine::GetInstance().scene->player) {
+            Engine::GetInstance().scene->player->DrawBehindMap(dt);
+        }
+
         for (const auto& deco : mapData.decorationObjects) {
             if (deco->texture && !deco->isFront) {
                 // Pin parallax to start position
@@ -130,6 +135,18 @@ bool Map::Update(float dt)
             render->DrawTexture(plant->texture, (int)pinnedX, (int)plant->y, &frame, plant->parallaxSpeed, 1.0f);
         }
         
+        // Draw Checkpoints BEFORE map layers so they appear behind the floor
+        if (Engine::GetInstance().entityManager) {
+            for (const auto& entity : Engine::GetInstance().entityManager->entities) {
+                if (entity && entity->type == EntityType::CHECKPOINT) {
+                    auto cp = std::dynamic_pointer_cast<Checkpoint>(entity);
+                    if (cp) {
+                        cp->DrawBehindMap();
+                    }
+                }
+            }
+        }
+
         for (const auto& mapLayer : mapData.layers) {
             auto* drawProp = mapLayer->properties.GetProperty("Draw");
             if (drawProp == nullptr || drawProp->value == true) {
