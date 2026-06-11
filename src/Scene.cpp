@@ -194,6 +194,14 @@ Vector2D Scene::GetPlayerPosition()
 	return Vector2D(0, 0);
 }
 
+bool Scene::ShouldShowCursor() const {
+    if (currentScene == SceneID::MAIN_MENU) return true;
+    if (currentScene == SceneID::GAMEPLAY) {
+        if (isPaused_ || showInventory_ || isGameOver_) return true;
+    }
+    return false;
+}
+
 void Scene::SetPlayerPosition(Vector2D pos)
 {
 	if (player) player->SetPosition(pos);
@@ -280,11 +288,10 @@ void Scene::LoadMainMenu()
 	texMenuHiddenLogo_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_HiddenLogo.png");
 
 	const char* fragPaths[NUM_FRAGMENTS] = {
-		"assets/textures/Menu/UI_Fragment1.png",
-		"assets/textures/Menu/UI_Fragment2.png",
-		"assets/textures/Menu/UI_Fragment3.png",
-		"assets/textures/Menu/UI_Fragment4.png",
-		"assets/textures/Menu/UI_Fragment5.png"
+		"assets/textures/Menu/UI_Memory_Fragment_3.1.png",
+		"assets/textures/Menu/UI_Memory_Fragment_1.2.png",
+		"assets/textures/Menu/UI_Memory_Fragment_2.1.png",
+		"assets/textures/Menu/UI_Memory_Fragment_2.2.png"
 	};
 	for (int i = 0; i < NUM_FRAGMENTS; i++)
 		fragments_[i].tex = Engine::GetInstance().textures->Load(fragPaths[i]);
@@ -1799,7 +1806,7 @@ void Scene::LoadGameplay()
 	else {
 		render->cameraZoom = 1.0f;
 		render->blurIntensity = 0.0f;
-		render->SetCameraSway(true);
+		render->SetCameraSway(false);
 		render->SetCameraClamping(true);
 		render->SetCameraMovement(true);
 	}
@@ -2042,6 +2049,12 @@ void Scene::LoadGameplay()
 
 void Scene::UpdateGameplay(float dt)
 {
+	// Check if wake-up animation finished so we can unlock the camera
+	if (player && !player->isWakingUp && !Engine::GetInstance().render->cameraMovementActive_) {
+		Engine::GetInstance().render->SetCameraMovement(true);
+		LOG("SCENE: Wake-up animation finished. CAMERA UNLOCKED.");
+	}
+
 	if (UpdateCheckpointTransition(dt))
 		return;
 
@@ -2105,12 +2118,19 @@ void Scene::UpdateGameplay(float dt)
 			auto& render = *Engine::GetInstance().render;
 			render.cameraZoom = 1.0f;
 			render.blurIntensity = 0.0f;
-			render.SetCameraSway(true);
-			render.SetCameraMovement(true); // CRITICAL: Unlock follow
+			render.SetCameraSway(false);
+			// Do NOT unlock camera movement yet, wait for player to finish waking up
 			render.SetCameraClamping(true);
 			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
-			if (player) player->wakeUpAnimStarted = true;
-			LOG("SCENE: Intro Cinematic Finished. CAMERA UNLOCKED.");
+			
+			if (player) {
+				player->wakeUpAnimStarted = true;
+				// Lock camera directly to player's final resting position
+				render.camera.x = (int)(-player->position.getX() + 640.0f);
+				render.camera.y = (int)(-player->position.getY() + 540.0f);
+				render.SetCameraTarget(player->position.getX(), player->position.getY());
+			}
+			LOG("SCENE: Intro Cinematic Finished. Wake up started.");
 		}
 		else {
 			float smoothT = progress * progress * (3.0f - 2.0f * progress);
@@ -2120,6 +2140,11 @@ void Scene::UpdateGameplay(float dt)
 			Engine::GetInstance().audio->SetMusicVolume(musicVolume_ * smoothT);
 
 			if (player) {
+				// Lock camera strictly to player during intro so it doesn't drift
+				Engine::GetInstance().render->camera.x = (int)(-player->position.getX() + 640.0f);
+				Engine::GetInstance().render->camera.y = (int)(-player->position.getY() + 540.0f);
+				Engine::GetInstance().render->SetCameraTarget(player->position.getX(), player->position.getY());
+
 				float pX = player->GetPosition().getX() + 64.0f;
 				float pY = player->GetPosition().getY() + 64.0f;
 				// Pivot zoom exactly on the player's current logical screen position
@@ -2561,8 +2586,8 @@ if (isPuzzleMap_ && puzzleManager_ && player && !isPaused_ && !isGameOver_) {
     };
     float camX = Engine::GetInstance().render->camera.x;
     float camY = Engine::GetInstance().render->camera.y;
-    float pScrX = player->position.getX() + camX + 24.0f;
-    float pScrY = player->position.getY() + camY + 40.0f;
+    float pScrX = player->position.getX() + camX;
+    float pScrY = player->position.getY() + camY;
     puzzleManager_->Update(dt, pRect, pScrX, pScrY);
 
     if (puzzleManager_->IsTimedOut() && !puzzleTimeoutPending_) {
@@ -3072,12 +3097,13 @@ void Scene::ResolveCheckpointTransition()
 
 			if (player)
 			{
-				player->StartWakeUp(2.0f);
+				player->Revive();
+				player->isWakingUp = false;
 				ResetHealthUI(player->health);
 				Engine::GetInstance().render->SetCameraPosition(player->position.getX(), player->position.getY());
 			}
 
-			Engine::GetInstance().render->SetCameraSway(true);
+			Engine::GetInstance().render->SetCameraSway(false);
 			Engine::GetInstance().render->SetCameraClamping(true);
 			Engine::GetInstance().render->SetCameraMovement(true);
 			Engine::GetInstance().render->cameraZoom = 1.0f;
@@ -3921,16 +3947,16 @@ void Scene::DrawInventory(int winW, int winH)
 
 	// Layout matching reference: tight puzzle cluster with overlapping pieces
 	// Fragment 1 (top-left): landscape, upper-left of cluster
-	float x1 = cX - w1 * 0.55f;
-	float y1 = cY - h1 * 0.95f;
+	float x1 = cX - w1 * 0.85f;
+	float y1 = cY - h1 * 0.85f;
 
 	// Fragment 2 (right): portrait, overlaps fragment 1 on the right side
-	float x2 = cX + w2 * 0.15f;
-	float y2 = cY - h2 * 0.75f;
+	float x2 = cX + w2 * 0.05f;
+	float y2 = cY - h2 * 0.65f;
 
 	// Fragment 3 (bottom): landscape, below and overlapping both
-	float x3 = cX - w3 * 0.45f;
-	float y3 = cY + h3 * 0.05f;
+	float x3 = cX - w3 * 0.73f;
+	float y3 = cY - h3 * 0.15f;
 
 	SDL_FRect rect1 = { x1, y1, w1, h1 };
 	SDL_FRect rect2 = { x2, y2, w2, h2 };
@@ -4003,58 +4029,70 @@ void Scene::DrawInventory(int winW, int winH)
 
 	// --- 1. RENDER FRAGMENTS ---
 	// Fragment 1 (Top-Left)
-	if (texMemoria1Base_ && texMemoria1N1_ && texMemoria1N2_)
+	if (texMemoria1Base_)
 	{
 		render.DrawTextureAlphaF(texMemoria1Base_, rect1.x, rect1.y, rect1.w, rect1.h, 255);
-		Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[0]) * 255.0f);
-		Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[0] * 255.0f);
-
-		if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria1N1_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN1);
-		if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria1N2_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN2);
+		if (texMemoria1N1_ && texMemoria1N2_) {
+			Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[0]) * 255.0f);
+			Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[0] * 255.0f);
+			if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria1N1_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN1);
+			if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria1N2_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN2);
+		} else if (hover1) {
+			SDL_Rect r1 = { (int)rect1.x, (int)rect1.y, (int)rect1.w, (int)rect1.h };
+			render.DrawRectangle(r1, 255, 255, 255, 60, false, false);
+		}
 	}
 
 	// Fragment 2 (Top-Right)
-	if (texMemoria2Base_ && texMemoria2N1_ && texMemoria2N2_)
+	if (texMemoria2Base_)
 	{
 		render.DrawTextureAlphaF(texMemoria2Base_, rect2.x, rect2.y, rect2.w, rect2.h, 255);
-		Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[1]) * 255.0f);
-		Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[1] * 255.0f);
-
-		if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria2N1_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN1);
-		if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria2N2_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN2);
+		if (texMemoria2N1_ && texMemoria2N2_) {
+			Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[1]) * 255.0f);
+			Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[1] * 255.0f);
+			if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria2N1_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN1);
+			if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria2N2_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN2);
+		} else if (hover2) {
+			SDL_Rect r2 = { (int)rect2.x, (int)rect2.y, (int)rect2.w, (int)rect2.h };
+			render.DrawRectangle(r2, 255, 255, 255, 60, false, false);
+		}
 	}
 
 	// Fragment 3 (Bottom)
-	if (texMemoria3Base_ && texMemoria3N1_ && texMemoria3N2_ && texMemoria3N3_)
+	if (texMemoria3Base_)
 	{
 		render.DrawTextureAlphaF(texMemoria3Base_, rect3.x, rect3.y, rect3.w, rect3.h, 255);
+		if (texMemoria3N1_ && texMemoria3N2_ && texMemoria3N3_) {
+			float t = memoryHoverTimers_[2];
+			float a1 = 255.0f, a2 = 0.0f, a3 = 0.0f;
+			if (t > 0.0f)
+			{
+				if (t <= 1.0f) {
+					a1 = (1.0f - t) * 255.0f;
+					a2 = t * 255.0f;
+					a3 = 0.0f;
+				}
+				else if (t <= 2.0f) {
+					float progress = t - 1.0f;
+					a1 = 0.0f;
+					a2 = (1.0f - progress) * 255.0f;
+					a3 = progress * 255.0f;
+				}
+				else if (t <= 3.0f) {
+					float progress = t - 2.0f;
+					a1 = progress * 255.0f;
+					a2 = 0.0f;
+					a3 = (1.0f - progress) * 255.0f;
+				}
+			}
 
-		float t = memoryHoverTimers_[2];
-		float a1 = 255.0f, a2 = 0.0f, a3 = 0.0f;
-		if (t > 0.0f)
-		{
-			if (t <= 1.0f) {
-				a1 = (1.0f - t) * 255.0f;
-				a2 = t * 255.0f;
-				a3 = 0.0f;
-			}
-			else if (t <= 2.0f) {
-				float progress = t - 1.0f;
-				a1 = 0.0f;
-				a2 = (1.0f - progress) * 255.0f;
-				a3 = progress * 255.0f;
-			}
-			else if (t <= 3.0f) {
-				float progress = t - 2.0f;
-				a1 = progress * 255.0f;
-				a2 = 0.0f;
-				a3 = (1.0f - progress) * 255.0f;
-			}
+			if (a1 > 0) render.DrawTextureAlphaF(texMemoria3N1_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a1);
+			if (a2 > 0) render.DrawTextureAlphaF(texMemoria3N2_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a2);
+			if (a3 > 0) render.DrawTextureAlphaF(texMemoria3N3_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a3);
+		} else if (hover3) {
+			SDL_Rect r3 = { (int)rect3.x, (int)rect3.y, (int)rect3.w, (int)rect3.h };
+			render.DrawRectangle(r3, 255, 255, 255, 60, false, false);
 		}
-
-		if (a1 > 0) render.DrawTextureAlphaF(texMemoria3N1_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a1);
-		if (a2 > 0) render.DrawTextureAlphaF(texMemoria3N2_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a2);
-		if (a3 > 0) render.DrawTextureAlphaF(texMemoria3N3_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a3);
 	}
 
 	// Outline/glow hover overlays for memory fragments
@@ -4882,6 +4920,11 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		SDL_GetTextureSize(f.tex, &tw, &th);
 
 		float sc = RandF(0.30f, 0.42f);
+		// UI_Memory_Fragment_2.1 (index 2) appears too large due to its aspect ratio or crop, so we scale it down specifically
+		if (i == 2) {
+			sc = RandF(0.12f, 0.18f); 
+		}
+		
 		f.w = (float)winW * sc;
 		f.h = f.w * (th / tw);
 
@@ -4891,15 +4934,16 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		// We push them towards the edges of the right half or the bottom
 		if (i % 2 == 0) {
 			// Prefer bottom area
-			f.x = RandF(halfW - 50.0f, (float)winW - f.w * 0.5f);
-			f.y = RandF(halfH, (float)winH - f.h - 10.0f);
+			f.x = RandF(halfW - 50.0f, (float)winW - f.w - 20.0f);
+			f.y = RandF(halfH, (float)winH - f.h - 20.0f);
 		}
 		else {
 			// Prefer side areas (far right or closer to center but not top-center)
 			if (i == 1) f.x = RandF(halfW - 30.0f, halfW + 100.0f);
-			else        f.x = RandF((float)winW - f.w - 20.0f, (float)winW - 10.0f);
+			else        f.x = RandF((float)winW - f.w - 150.0f, (float)winW - f.w - 20.0f);
 			
-			f.y = RandF(10.0f, halfH);
+			// Prevent going off top or bottom
+			f.y = RandF(20.0f, std::max(20.0f, halfH - f.h));
 		}
 
 		f.floatSpeed = RandF(0.4f, 0.9f);

@@ -43,6 +43,7 @@ public:
     int      GetCurrentLevelIndex() const { return currentLevelIndex_; }
     std::string GetTilePosDebug() const { return ""; }
     int GetMenuClickFxId() const { return menuClickFxId; }
+    bool ShouldShowCursor() const;
 
     std::shared_ptr<Player> player = nullptr;
     std::shared_ptr<PuzzleManager2> puzzleManager2 = nullptr;
@@ -554,7 +555,7 @@ private:
     SceneID fadeTargetScene_ = SceneID::MAIN_MENU;
 
     // ── Floating fragments decoration ─────────────────────────────────────────
-    static constexpr int NUM_FRAGMENTS = 5;
+    static constexpr int NUM_FRAGMENTS = 4;
 
     struct MenuFragment {
         SDL_Texture* tex = nullptr;
