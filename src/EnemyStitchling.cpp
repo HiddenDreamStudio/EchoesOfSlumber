@@ -22,12 +22,10 @@ bool EnemyStitchling::Awake() {
 }
 
 bool EnemyStitchling::Start() {
-    // Textures — new yoyo spritesheets
-    idleTexture_   = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_Yoyo_Idle.png");
-    alertTexture_  = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_Yoyo_Alerta.png");
-    dieTexture_    = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_Yoyo_Desaparecer.png");
+    idleTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_Yoyo_Idle.png");
+    alertTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_Yoyo_Alerta.png");
+    dieTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_Yoyo_Desaparecer.png");
 
-    // Create main body at spawn position
     int spawnX = (int)position.getX() + 16;
     int spawnY = (int)position.getY() + 16;
 
@@ -35,14 +33,12 @@ bool EnemyStitchling::Start() {
     pbody->listener = this;
     pbody->ctype = ColliderType::ENEMY;
 
-    // Create trap sensor (wide rectangle on the ground, slightly below the body)
     trapSensor_ = Engine::GetInstance().physics->CreateRectangleSensor(spawnX, spawnY + 16, 120, 24, bodyType::STATIC);
     trapSensor_->listener = this;
     trapSensor_->ctype = ColliderType::UNKNOWN;
 
     playerRef_ = Engine::GetInstance().scene->player.get();
 
-    // Load AnimationSets — new yoyo XMLs
     idleAnims_.LoadFromTSX("assets/textures/animations/yoyoIdle.xml", { {0, "idle"} });
     alertAnims_.LoadFromTSX("assets/textures/animations/yoyoAlerta.xml", { {0, "alert"} });
     dieAnims_.LoadFromTSX("assets/textures/animations/yoyoDesaparecer.xml", { {0, "die"} });
@@ -53,7 +49,7 @@ bool EnemyStitchling::Start() {
     alertAnims_.SetCurrent("alert");
     dieAnims_.SetCurrent("die");
 
-    attackFxId    = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/Yoyo/attack_yoyo.wav");
+    attackFxId = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/Yoyo/attack_yoyo.wav");
     disappearFxId = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/Yoyo/desaparecer.wav");
 
     EnterState(State::IDLE);
@@ -78,7 +74,17 @@ bool EnemyStitchling::Update(float dt) {
         facingRight_ = (px > position.getX());
     }
 
-    // Update active animations
+    // --- DEATH state: play die animation then delete ---
+    if (currentState_ == State::DEATH) {
+        dieAnims_.Update(dt);
+        Draw(dt);
+        if (dieAnims_.HasFinishedOnce("die")) {
+            active = false;
+            pendingToDelete = true;
+        }
+        return true;
+    }
+
     switch (currentState_) {
     case State::IDLE:
         idleAnims_.Update(dt);
@@ -87,7 +93,6 @@ bool EnemyStitchling::Update(float dt) {
         alertAnims_.Update(dt);
         break;
     case State::TRAP_ACTIVE:
-        // Play desaparecer animation until it finishes
         if (!disappearDone_) {
             dieAnims_.Update(dt);
         }
@@ -143,15 +148,12 @@ void EnemyStitchling::UpdateFSM(float dt) {
 
     case State::TRAP_ACTIVE:
         if (playerRef_) {
-            // Phase 1: desaparecer animation is playing — yoyo is visually disappearing
             if (!disappearDone_) {
                 if (dieAnims_.HasFinishedOnce("die")) {
-                    // Animation finished — yoyo has disappeared, now throw ropes and trap the player
                     Engine::GetInstance().audio->PlayFxSpatial(disappearFxId, position);
                     disappearDone_ = true;
                     ApplyPlayerSlowdown();
 
-                    // Destroy physics bodies since the yoyo is now gone
                     if (pbody) {
                         Engine::GetInstance().physics->DeletePhysBody(pbody);
                         pbody = nullptr;
@@ -162,20 +164,18 @@ void EnemyStitchling::UpdateFSM(float dt) {
                     }
                 }
             }
-            // Phase 2: yoyo gone, player is trapped by ropes — mash E to escape
             else {
                 if (playerWasSlowed_) {
                     if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_E) == KEY_DOWN) {
                         escapeMashes_++;
                         if (escapeMashes_ >= MASHES_TO_ESCAPE) {
-                            // Player escaped the ropes!
                             RemovePlayerSlowdown();
                             active = false;
                             pendingToDelete = true;
                         }
                     }
-                } else {
-                    // Player already freed (e.g. by external means) — just clean up
+                }
+                else {
                     active = false;
                     pendingToDelete = true;
                 }
@@ -206,6 +206,9 @@ void EnemyStitchling::EnterState(State newState) {
         disappearDone_ = false;
         escapeMashes_ = 0;
         break;
+    case State::DEATH:
+        dieAnims_.ResetCurrent();
+        break;
     default:
         break;
     }
@@ -230,7 +233,23 @@ void EnemyStitchling::RemovePlayerSlowdown() {
 }
 
 void EnemyStitchling::OnCollision(PhysBody* physA, PhysBody* physB) {
+    // Don't process collisions when dead
+    if (currentState_ == State::DEATH) return;
+
     LOG("EnemyStitchling::OnCollision triggered: physA ctype = %d, physB ctype = %d", (int)physA->ctype, (int)physB->ctype);
+
+    // Player attack hits the yoyo body directly
+    if (physA == pbody || physB == pbody) {
+        PhysBody* other = (physA == pbody) ? physB : physA;
+        if (other->ctype == ColliderType::ATTACK || other->ctype == ColliderType::SLINGSHOT_PROJ) {
+            TakeDamage(1);
+            if (other->ctype == ColliderType::SLINGSHOT_PROJ && other->listener)
+                other->listener->pendingToDelete = true;
+            return;
+        }
+    }
+
+    // Trap sensor: player steps on rope
     if (physA == trapSensor_ || physB == trapSensor_) {
         PhysBody* other = (physA == trapSensor_) ? physB : physA;
         LOG("Collision with trapSensor_! other ctype = %d, currentState_ = %d", (int)other->ctype, (int)currentState_);
@@ -242,15 +261,35 @@ void EnemyStitchling::OnCollision(PhysBody* physA, PhysBody* physB) {
 }
 
 void EnemyStitchling::OnCollisionEnd(PhysBody* physA, PhysBody* physB) {
-    // No longer release on collision end — the trap is permanent until the player escapes by mashing E
+    // No special logic needed
 }
 
 void EnemyStitchling::TakeDamage(int damage) {
-    // Yoyo cannot be damaged — it only disappears when the player steps on the rope
+    // Only damageable in IDLE or ALERT states (visible on the ground, not trapping player)
+    if (currentState_ == State::TRAP_ACTIVE || currentState_ == State::DEATH) return;
+
+    health -= damage;
+    LOG("EnemyStitchling took %d damage -> health: %d/%d", damage, health, maxHealth);
+
+    if (health <= 0) {
+        health = 0;
+        // Remove physics bodies immediately so nothing else interacts with them
+        if (pbody != nullptr) {
+            Engine::GetInstance().physics->DeletePhysBody(pbody);
+            pbody = nullptr;
+        }
+        if (trapSensor_ != nullptr) {
+            Engine::GetInstance().physics->DeletePhysBody(trapSensor_);
+            trapSensor_ = nullptr;
+        }
+        currentState_ = State::DEATH;
+        dieAnims_.ResetCurrent();
+        Engine::GetInstance().audio->PlayFxSpatial(disappearFxId, position);
+    }
 }
 
 void EnemyStitchling::Draw(float dt) {
-    // Don't draw anything once the yoyo has disappeared
+    // Don't draw anything once the yoyo has disappeared via trap
     if (disappearDone_) return;
 
     SDL_Texture* currentTexture = nullptr;
@@ -266,6 +305,7 @@ void EnemyStitchling::Draw(float dt) {
         frameRect = alertAnims_.GetCurrentFrame();
         break;
     case State::TRAP_ACTIVE:
+    case State::DEATH:
         currentTexture = dieTexture_;
         frameRect = dieAnims_.GetCurrentFrame();
         break;
@@ -279,7 +319,6 @@ void EnemyStitchling::Draw(float dt) {
         int drawW = (int)(frameRect.w * scale);
         int drawH = (int)(frameRect.h * scale);
 
-        // Center horizontally on the body, anchor bottom of drawn sprite to body bottom (body center + 16px radius)
         int px = (int)position.getX() - drawW / 2;
         int py = (int)position.getY() + 16 - drawH;
 

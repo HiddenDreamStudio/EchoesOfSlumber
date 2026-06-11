@@ -14,6 +14,7 @@ public:
 		IDLE,          // Yoyo sitting on the ground, waiting
 		ALERT,         // Player is near, yoyo vibrates
 		TRAP_ACTIVE,   // Player stepped on rope: yoyo disappears then throws ropes
+		REVERSING,     // Playing disappearing animation in reverse
 		DEATH          // Dead / cleaned up
 	};
 

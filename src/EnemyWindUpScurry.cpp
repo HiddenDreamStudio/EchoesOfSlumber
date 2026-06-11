@@ -12,8 +12,8 @@
 
 EnemyWindUpScurry::EnemyWindUpScurry() : Entity(EntityType::ENEMY_WINDUP_SCURRY) {
     name = "EnemyWindUpScurry";
-    health = 1;
-    maxHealth = 1;
+    health = 3;
+    maxHealth = 3;
 }
 
 EnemyWindUpScurry::~EnemyWindUpScurry() {}
@@ -24,14 +24,14 @@ bool EnemyWindUpScurry::Awake() {
 
 bool EnemyWindUpScurry::Start() {
     // Load textures
-    idleTexture_           = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Scurry_Idle.png");
-    alertaTexture_         = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Scurry_Alerta.png");
-    antesWalkFastTexture_  = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet _WindUpScurry_antesdewalkfast.png");
-    walkFastTexture_       = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_WindUpScurry_Walk_Fast.png");
-    cansadoTexture_        = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Scurry_Cansado.png");
-    idleCansadoTexture_    = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Idle_Cansado.png");
-    hitTexture_            = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_WindUpScurry_Hit.png");
-    dieTexture_            = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_WindUpScurry_Die.png");
+    idleTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Scurry_Idle.png");
+    alertaTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Scurry_Alerta.png");
+    antesWalkFastTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet _WindUpScurry_antesdewalkfast.png");
+    walkFastTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/SP_WindUpScurry_Walk_Fast.png");
+    cansadoTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Scurry_Cansado.png");
+    idleCansadoTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_Wind_Up_Idle_Cansado.png");
+    hitTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_WindUpScurry_Hit.png");
+    dieTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level2/spritesheet_WindUpScurry_Die.png");
 
     // Create physics body
     int spawnX = (int)position.getX() + 16;
@@ -74,7 +74,7 @@ bool EnemyWindUpScurry::Start() {
     ChooseNewPatrolDirection();
 
     attackFxId = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/WindUpScurry/ataques.wav");
-    deadFxId   = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/WindUpScurry/dead.wav");
+    deadFxId = Engine::GetInstance().audio->LoadFx("assets/audio/Enemies/WindUpScurry/dead.wav");
 
     EnterState(State::IDLE);
 
@@ -82,8 +82,11 @@ bool EnemyWindUpScurry::Start() {
 }
 
 bool EnemyWindUpScurry::Update(float dt) {
-    if (!playerRef_ && Engine::GetInstance().scene->player) {
-        playerRef_ = Engine::GetInstance().scene->player.get();
+    playerRef_ = Engine::GetInstance().scene->player.get();
+
+    // Tick attack cooldown — prevents spamming damage/audio every physics frame
+    if (attackCooldown_ > 0.0f) {
+        attackCooldown_ -= dt;
     }
 
     // Update position from physics
@@ -97,7 +100,8 @@ bool EnemyWindUpScurry::Update(float dt) {
     // Update facing direction based on movement
     if (currentState_ == State::IDLE) {
         facingRight_ = (patrolDirX_ > 0.0f);
-    } else if (currentState_ == State::WALK_FAST && playerRef_) {
+    }
+    else if (currentState_ == State::WALK_FAST && playerRef_) {
         int px, py;
         playerRef_->pbody->GetPosition(px, py);
         facingRight_ = (px > position.getX());
@@ -153,14 +157,14 @@ bool EnemyWindUpScurry::CleanUp() {
         pbody = nullptr;
     }
 
-    if (idleTexture_) Engine::GetInstance().textures->UnLoad(idleTexture_);
-    if (alertaTexture_) Engine::GetInstance().textures->UnLoad(alertaTexture_);
+    if (idleTexture_)          Engine::GetInstance().textures->UnLoad(idleTexture_);
+    if (alertaTexture_)        Engine::GetInstance().textures->UnLoad(alertaTexture_);
     if (antesWalkFastTexture_) Engine::GetInstance().textures->UnLoad(antesWalkFastTexture_);
-    if (walkFastTexture_) Engine::GetInstance().textures->UnLoad(walkFastTexture_);
-    if (cansadoTexture_) Engine::GetInstance().textures->UnLoad(cansadoTexture_);
-    if (idleCansadoTexture_) Engine::GetInstance().textures->UnLoad(idleCansadoTexture_);
-    if (hitTexture_) Engine::GetInstance().textures->UnLoad(hitTexture_);
-    if (dieTexture_) Engine::GetInstance().textures->UnLoad(dieTexture_);
+    if (walkFastTexture_)      Engine::GetInstance().textures->UnLoad(walkFastTexture_);
+    if (cansadoTexture_)       Engine::GetInstance().textures->UnLoad(cansadoTexture_);
+    if (idleCansadoTexture_)   Engine::GetInstance().textures->UnLoad(idleCansadoTexture_);
+    if (hitTexture_)           Engine::GetInstance().textures->UnLoad(hitTexture_);
+    if (dieTexture_)           Engine::GetInstance().textures->UnLoad(dieTexture_);
 
     idleTexture_ = nullptr;
     alertaTexture_ = nullptr;
@@ -225,19 +229,19 @@ void EnemyWindUpScurry::UpdateFSM(float dt) {
 
     case State::WALK_FAST:
     {
-        // Chase the player for ~12 seconds
+        // Chase the player
         if (playerRef_ && playerRef_->pbody) {
             int px, py;
             playerRef_->pbody->GetPosition(px, py);
             float dx = (float)px - position.getX();
             float dirX = (dx > 0.0f) ? 1.0f : -1.0f;
-            
+
             if (pbody) {
                 Engine::GetInstance().physics->SetXVelocity(pbody, dirX * CHASE_SPEED);
             }
         }
 
-        // After 12 seconds, enter fatigue
+        // After CHASE_DURATION ms, enter fatigue
         if (stateTimer_ >= CHASE_DURATION) {
             EnterState(State::CANSADO);
         }
@@ -262,7 +266,7 @@ void EnemyWindUpScurry::UpdateFSM(float dt) {
             Engine::GetInstance().physics->SetXVelocity(pbody, 0.0f);
         }
 
-        // After ~3 seconds, recover and go back to idle
+        // After FATIGUE_DURATION ms, recover and go back to idle
         if (stateTimer_ >= FATIGUE_DURATION) {
             EnterState(State::IDLE);
         }
@@ -274,7 +278,12 @@ void EnemyWindUpScurry::UpdateFSM(float dt) {
         }
 
         if (hitAnims_.HasFinishedOnce("hit")) {
-            EnterState(State::DEATH);
+            if (health <= 0) {
+                EnterState(State::DEATH);
+            }
+            else {
+                EnterState(State::IDLE_CANSADO);
+            }
         }
         break;
 
@@ -324,7 +333,6 @@ void EnemyWindUpScurry::EnterState(State newState) {
 }
 
 void EnemyWindUpScurry::ChooseNewPatrolDirection() {
-    // Randomly pick left or right
     patrolDirX_ = (rand() % 2 == 0) ? 1.0f : -1.0f;
 }
 
@@ -334,17 +342,20 @@ void EnemyWindUpScurry::OnCollision(PhysBody* physA, PhysBody* physB) {
     if (physA == pbody || physB == pbody) {
         PhysBody* other = (physA == pbody) ? physB : physA;
 
-        // Contact with player deals damage (during chase/patrol, player gets hurt)
+        // Contact with player deals damage — cooldown prevents spam every physics frame
         if (other->ctype == ColliderType::PLAYER) {
-            if (currentState_ == State::WALK_FAST || currentState_ == State::IDLE) {
+            if ((currentState_ == State::WALK_FAST || currentState_ == State::IDLE)
+                && attackCooldown_ <= 0.0f)
+            {
                 if (other->listener != nullptr) {
                     Engine::GetInstance().audio->PlayFxSpatial(attackFxId, position);
                     other->listener->TakeDamage(1);
+                    attackCooldown_ = ATTACK_COOLDOWN;
                 }
             }
         }
 
-        // Player attacks
+        // Player attacks this enemy
         if (other->ctype == ColliderType::ATTACK) {
             TakeDamage(1);
         }
@@ -355,7 +366,7 @@ void EnemyWindUpScurry::OnCollision(PhysBody* physA, PhysBody* physB) {
             }
         }
 
-        // Reverse direction on wall collision
+        // Reverse direction on wall collision while patrolling
         if (other->ctype == ColliderType::PLATFORM && currentState_ == State::IDLE) {
             patrolDirX_ = -patrolDirX_;
         }
@@ -374,14 +385,15 @@ void EnemyWindUpScurry::TakeDamage(int damage) {
         health -= damage;
         LOG("WindUpScurry took %d damage -> health: %d/%d", damage, health, maxHealth);
         EnterState(State::HIT);
-    } else {
-        LOG("WindUpScurry is immune right now! (state: %d)", (int)currentState_);
+    }
+    else {
+        LOG("WindUpScurry is immune right now! (state: %d) — must wait for IDLE_CANSADO", (int)currentState_);
     }
 }
 
 void EnemyWindUpScurry::Draw(float dt) {
     SDL_Texture* currentTexture = nullptr;
-    SDL_Rect frameRect = { 0, 0, 0, 0 };
+    SDL_Rect     frameRect = { 0, 0, 0, 0 };
 
     switch (currentState_) {
     case State::IDLE:
