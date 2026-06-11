@@ -54,10 +54,10 @@ bool Bouncer::Start()
 	LoadClip(BouncerAnim::HIT, "assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Bouncer_Hit.png", 10, 42, false);
 	LoadClip(BouncerAnim::DIE, "assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Bouncer_Die.png", 9, 80, false);
 
-	bouncerAttackFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/bouncer_atack.wav");
-	bouncerReboteFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/bouncer_rebote.wav");
-	bouncerHitFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/Hit.wav");
-	bouncerDieFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/Die.wav");
+	// bouncerAttackFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/bouncer_atack.wav"); // Removed by user
+	bouncerReboteFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/bouncer_jump.wav");
+	bouncerHitFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/bouncer_damage.wav");
+	bouncerDieFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/Bouncer/bouncer_death.wav");
 
 	const int centerX = (int)(position.getX() + spawnWidth_ * 0.5f);
 	const int centerY = (int)(position.getY() + spawnHeight_ * 0.5f);
@@ -183,6 +183,7 @@ bool Bouncer::Update(float dt)
 			playerListener_->TakeDamage(1);
 			contactDamageCooldown_ = CONTACT_DAMAGE_INTERVAL;
 			PlayBouncerFx(bouncerAttackFxId_);
+			// PlayBouncerFx(bouncerAttackFxId_);
 		}
 	}
 
@@ -331,7 +332,6 @@ void Bouncer::HandleSurfaceContacts()
 
 	if (groundHit)
 	{
-		PlayBouncerFx(bouncerReboteFxId_);
 		bounceCount_++;
 		highJumpQueued_ = bounceCount_ >= BOUNCES_BEFORE_HIGH_JUMP;
 		if (activeMovementTimer_ >= TIRED_AFTER_MOVEMENT)
@@ -350,13 +350,11 @@ void Bouncer::HandleSurfaceContacts()
 		velocity.x = moveDirX_ * BASE_HORIZONTAL_SPEED * NextVariation(0.18f);
 		if (velocity.y > -1.0f)
 			velocity.y -= 1.0f + 0.7f * NextVariation(0.2f);
-		PlayBouncerFx(bouncerReboteFxId_);
 	}
 
 	if (ceilingHit && velocity.y < 0.0f)
 	{
 		velocity.y = std::abs(velocity.y) * 0.55f;
-		PlayBouncerFx(bouncerReboteFxId_);
 	}
 }
 
