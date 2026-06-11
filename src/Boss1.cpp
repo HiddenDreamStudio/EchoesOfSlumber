@@ -180,7 +180,7 @@ void Boss1::SpawnSpit(float dirX)
     b2Body_SetLinearVelocity(p2SpitBody_->body, vel);
     p2SpitHitPlayer_ = false;
     p2SpitHitFloor_  = false;
-    Engine::GetInstance().audio->PlayFx(fxDisparo_);
+    Engine::GetInstance().audio->PlayFxSpatial(fxDisparo_, position);
 }
 
 void Boss1::DestroySpit()
@@ -203,7 +203,7 @@ void Boss1::SpawnPuddle(float x)
     p2PuddleBody_->ctype    = ColliderType::PUDDLE;
     p2PuddleTimer_   = P2_PUDDLE_DURATION;
     p2PlayerInPuddle_= false;
-    Engine::GetInstance().audio->PlayFx(fxImpactoSuelo_);
+    Engine::GetInstance().audio->PlayFxSpatial(fxImpactoSuelo_, position);
 }
 
 void Boss1::DestroyPuddle()
@@ -264,9 +264,9 @@ void Boss1::TransitionTo(Boss1State newState)
     case Boss1State::DIVE:       animDive_.Reset();    break;
     case Boss1State::DEATH:      animDive_.Reset();    deathTeleportTimer_ = 0.0f; deathSequenceDone_ = false; break;
     case Boss1State::STUNNED:    animHit_.Reset();     break;
-    case Boss1State::JUMP:       animAttack_.Reset();  audio.PlayFx(fxJump_);        break;
-    case Boss1State::VULNERABLE: animCansado_.Reset(); audio.PlayFx(fxAterrizaje_);  break;
-    case Boss1State::P2_SPIT:    animP2Spit_.Reset();  audio.PlayFx(fxBocaAbierta_); break;
+    case Boss1State::JUMP:       animAttack_.Reset();  audio.PlayFxSpatial(fxJump_, position);        break;
+    case Boss1State::VULNERABLE: animCansado_.Reset(); audio.PlayFxSpatial(fxAterrizaje_, position);  break;
+    case Boss1State::P2_SPIT:    animP2Spit_.Reset();  audio.PlayFxSpatial(fxBocaAbierta_, position); break;
     default: break;
     }
 }
@@ -291,7 +291,7 @@ void Boss1::TakeDamage(int damage)
     CheckPhaseTransition();
     bool justEnteredP2 = (phase_ == 2 && oldPhase == 1);
 
-    Engine::GetInstance().audio->PlayFx(fxHit_);
+    Engine::GetInstance().audio->PlayFxSpatial(fxHit_, position);
 
     if (health <= 0)
     {
