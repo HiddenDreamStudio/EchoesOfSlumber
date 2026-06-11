@@ -446,7 +446,7 @@ void Bouncer::PlayBouncerFx(int fxId)
 	// Only play if within ~1000 pixels
 	if (distSq < 1000000.0f)
 	{
-		Engine::GetInstance().audio->PlayFx(fxId);
+		Engine::GetInstance().audio->PlayFxSpatial(fxId, position);
 	}
 }
 

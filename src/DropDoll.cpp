@@ -139,7 +139,7 @@ bool DropDoll::Update(float dt)
             animAire_.Reset();
             fallElapsedTime_ = 0.0f;
             hasBeenFalling_  = false;
-            Engine::GetInstance().audio->PlayFx(fxCaida_);
+            Engine::GetInstance().audio->PlayFxSpatial(fxCaida_, position);
             state_ = DropDollState::FALLING;
         }
         break;
@@ -249,7 +249,7 @@ bool DropDoll::Update(float dt)
             attachTimer_    = 0.0f;
             molesTimer_     = 0.0f;
             animEngancharLoop_.Reset();
-            Engine::GetInstance().audio->PlayFx(fxMolesta_);
+            Engine::GetInstance().audio->PlayFxSpatial(fxMolesta_, position);
             state_ = DropDollState::ATTACHED;
         }
         break;
@@ -276,7 +276,7 @@ bool DropDoll::Update(float dt)
         if (molesTimer_ >= MOLES_INTERVAL)
         {
             molesTimer_ = 0.0f;
-            Engine::GetInstance().audio->PlayFx(fxMolesta_);
+            Engine::GetInstance().audio->PlayFxSpatial(fxMolesta_, position);
         }
 
         // Move indicator
@@ -391,7 +391,7 @@ void DropDoll::OnCollision(PhysBody* physA, PhysBody* physB)
 
         // Freeze the player and play the latch-on animation before the minigame starts
         if (scn.player) scn.player->isDollGrabbed_ = true;
-        Engine::GetInstance().audio->PlayFx(fxAttach_);
+        Engine::GetInstance().audio->PlayFxSpatial(fxAttach_, position);
         animEnganchar_.Reset();
         state_ = DropDollState::GRABBING;
     }
