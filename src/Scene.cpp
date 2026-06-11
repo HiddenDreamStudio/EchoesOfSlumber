@@ -3017,9 +3017,6 @@ bool Scene::RequestCheckpointRespawn()
 	if (IsCheckpointTransitionActive() || waitingForFade_)
 		return false;
 
-	if (!Engine::GetInstance().saveSystem->HasCheckpointSave())
-		return false;
-
 	checkpointTransitionMode_ = CheckpointTransitionMode::RESPAWN;
 	checkpointTransitionPhase_ = CheckpointTransitionPhase::FADE_OUT;
 	checkpointBlackHoldTimer_ = 0.0f;
@@ -3086,7 +3083,7 @@ void Scene::ResolveCheckpointTransition()
 	}
 	else if (checkpointTransitionMode_ == CheckpointTransitionMode::RESPAWN)
 	{
-		if (Engine::GetInstance().saveSystem->QuickLoadImmediate())
+		if (Engine::GetInstance().saveSystem->HasCheckpointSave() && Engine::GetInstance().saveSystem->QuickLoadImmediate())
 		{
 			isGameOver_ = false;
 			gameOverFadeTimer_ = 0.0f;
@@ -3112,6 +3109,79 @@ void Scene::ResolveCheckpointTransition()
 			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
 			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
 			LOG("Checkpoint respawn completed");
+		}
+		else
+		{
+			// No checkpoint save available - Reload current map cleanly in-place
+			LOG("No checkpoint found, performing clean level restart");
+
+			bool savedHasBlanket = false, savedHasSlingshot = false, savedHasStuffedAnimal = false;
+			Player::EquippedItem eqItem = Player::EquippedItem::NONE;
+			if (player) {
+				savedHasBlanket = player->HasBlanket();
+				savedHasSlingshot = player->HasSlingshot();
+				savedHasStuffedAnimal = player->HasStuffedAnimal();
+				eqItem = player->GetEquippedItem();
+			}
+
+			player.reset();
+			Engine::GetInstance().entityManager->CleanUp();
+			Engine::GetInstance().physics->FlushPendingDeletes();
+			Engine::GetInstance().map->CleanUp();
+			Engine::GetInstance().physics->FlushPendingDeletes();
+
+			if (puzzleManager2) puzzleManager2->Reset();
+
+			std::string mapFile = levels_[currentLevelIndex_].file;
+			Engine::GetInstance().map->Load("assets/maps/", mapFile);
+			Engine::GetInstance().map->LoadEntities(player);
+
+			if (player == nullptr) {
+				player = std::dynamic_pointer_cast<Player>(
+					Engine::GetInstance().entityManager->CreateEntity(EntityType::PLAYER));
+
+				if (currentLevelIndex_ == 0)
+					player->position = Vector2D(96.0f, 672.0f);
+				else
+					player->position = Vector2D(1280.0f + 100.0f, 672.0f); 
+
+				player->Start();
+			}
+
+			if (player) {
+				player->SetHasBlanket(savedHasBlanket);
+				player->SetHasSlingshot(savedHasSlingshot);
+				player->SetHasStuffedAnimal(savedHasStuffedAnimal);
+				player->SetEquippedItem(eqItem);
+				player->maxHealth = healthSlotCount_;
+				player->health = healthSlotCount_;
+				player->Revive();
+				player->isWakingUp = false;
+				player->wakeUpAnimStarted = true;
+				Engine::GetInstance().render->SetCameraPosition(player->position.getX(), player->position.getY());
+			}
+
+			capaCollected_ = savedHasBlanket;
+			slingshotCollected_ = savedHasSlingshot;
+			stuffedAnimalCollected_ = savedHasStuffedAnimal;
+			currentHealthUI_ = player ? player->health : healthSlotCount_;
+			activeHealthAnim_ = 0;
+
+			isGameOver_ = false;
+			gameOverFadeTimer_ = 0.0f;
+			inGameIntroActive_ = false;
+			isAutoEntering_ = false;
+			inGameIntroTimer_ = 0.0f;
+			autoEntryProgress_ = 0.0f;
+
+			Engine::GetInstance().render->SetCameraSway(false);
+			Engine::GetInstance().render->SetCameraClamping(true);
+			Engine::GetInstance().render->SetCameraMovement(true);
+			Engine::GetInstance().render->cameraZoom = 1.0f;
+			Engine::GetInstance().render->blurIntensity = 0.0f;
+			Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 1.0f);
+			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
+			Engine::GetInstance().audio->SetSFXVolume(sfxVolume_);
 		}
 	}
 }
