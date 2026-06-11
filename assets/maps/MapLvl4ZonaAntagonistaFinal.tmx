@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="29" height="31" tilewidth="64" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="5">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="29" height="31" tilewidth="64" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="6">
  <tileset firstgid="1" name="Tileset 3" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 4/TL_Nivell_4_01.png" width="640" height="640"/>
   <tile id="0">
@@ -165,7 +165,7 @@
 13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,30,5,5,
 28,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,30,5,5,5,
 5,5,2,2,3,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,30,5,5,5,5,5,
-5,5,5,5,5,2,2,2,3,0,0,0,21,22,22,10,5,5,5,5,5,5,5,5,5,5,5,5,5,
+5,5,5,5,5,2,2,2,3,0,0,0,0,22,22,10,5,5,5,5,5,5,5,5,5,5,5,5,5,
 5,5,5,5,5,5,5,5,23,0,0,0,0,0,0,22,22,22,22,10,5,5,5,5,5,5,5,5,5,
 5,5,5,5,5,5,8,23,0,0,0,0,0,0,0,0,0,0,0,22,22,22,10,5,5,5,5,5,5,
 5,5,5,5,5,5,13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,22,22,10,5,5,5,5,
@@ -199,7 +199,17 @@
   </object>
  </objectgroup>
  <objectgroup id="7" name="Entities">
-  <object id="4" name="Antagonist" type="Antagonist" x="1514.28" y="676.479" width="59.4458" height="55.0424"/>
+  <object id="4" name="Antagonist" type="Antagonist" x="1518.28" y="668.479" width="59.4458" height="55.0424"/>
+  <object id="5" type="Platform" x="716" y="1344" width="256" height="64">
+   <properties>
+    <property name="path" value="716,1344;716,779"/>
+    <property name="platform_name" value="Ascensor1"/>
+    <property name="require_lever" type="bool" value="true"/>
+    <property name="speed" type="float" value="4"/>
+    <property name="texture" value="assets/textures/TL_environment/plat_4tilesLvl2.png"/>
+    <property name="trigger" type="bool" value="true"/>
+   </properties>
+  </object>
  </objectgroup>
  <objectgroup id="3" name="Spawns">
   <object id="1" type="Spawn" x="1162.67" y="1853.33">
