@@ -48,6 +48,7 @@ public:
 
 	// Hiding state queried by enemies to disable detection
 	bool IsHiding() const { return isHiding_ || isHidingBehindRock_; }
+	bool IsHidingBehindRock() const { return isHidingBehindRock_; }
 
 	// Blanket (cape) collectible – must be collected before hiding is available
 	bool HasBlanket() const { return hasBlanket_; }
@@ -78,6 +79,7 @@ private:
 	void Draw(float dt);
 
 public:
+	void DrawBehindMap(float dt);
 
 	//Declare player parameters
 	float speed = 4.0f;
@@ -123,6 +125,7 @@ public:
 
 private:
 	b2Vec2 velocity = { 0.0f, 0.0f };
+	float cameraLookaheadX_ = 0.0f;
 	AnimationSet anims;
 	Animation wakeUpAnim;
 	SDL_Texture* wakeUpTexture = nullptr;
@@ -175,6 +178,10 @@ private:
 	Animation    hideExitAnim_; // player body standing up
 	Animation    hideCapeAnim_; // cape crouching
 	Animation    hideExitCapeAnim_; // cape standing up
+
+	Animation    rockHideAnim_;
+	Animation    rockHideExitAnim_;
+	SDL_Texture* texHideRock_ = nullptr;
 
 public:
 	void SetHidingBehindRock(bool hiding);
