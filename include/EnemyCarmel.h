@@ -27,12 +27,12 @@ private:
 
 	void OnCollision(PhysBody* physA, PhysBody* physB) override;
 
-	int idleFxId_ = -1;
-	int moveFxId_ = -1;
+	int walkFxId_ = -1;
+	int rollFxId_ = -1;
 	int alertFxId_ = -1;
+	int blowupFxId_ = -1;
 	int deathFxId_ = -1;
 	int hitFxId_ = -1;
-	int attackFxId_ = -1;
 
 	float moveFxTimer_ = 0.0f;
 	float moveFxInterval_ = 3065.0f; // 3.065s
