@@ -401,7 +401,7 @@ void EnemyPlush::EnterState(State newState)
 		alertAnims_.ResetCurrent();
 		break;
 	case State::JUMPING:
-		Engine::GetInstance().audio->PlayFx(jumpFxId);
+		Engine::GetInstance().audio->PlayFxSpatial(jumpFxId, position);
 		isJumping_ = true;
 		jumpAirTime_ = 0.0f;
 		jumpPhase_ = JumpPhase::START;
@@ -622,7 +622,7 @@ void EnemyPlush::TakeDamage(int damage, bool applyKnockback)
 	if (currentState_ == State::DEATH) return;
 
 	health -= damage;
-	Engine::GetInstance().audio->PlayFx(damageFxId);
+	Engine::GetInstance().audio->PlayFxSpatial(damageFxId, position);
 	LOG("EnemyPlush took %d damage -> health: %d/%d", damage, health, maxHealth);
 
 	isHit_ = true;

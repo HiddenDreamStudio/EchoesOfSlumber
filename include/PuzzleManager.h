@@ -50,6 +50,9 @@ private:
     float blinkTimer_ = 0.0f;
     bool blinking_ = false;
 
+    float introTimer_ = 0.0f;
+    float currentRadius_ = 2000.0f;
+
     float playerScrX_ = 0.0f;
     float playerScrY_ = 0.0f;
 
