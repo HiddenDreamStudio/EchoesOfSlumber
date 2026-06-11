@@ -217,7 +217,7 @@ int Audio::LoadFx(const char* path) {
     return static_cast<int>(sfx_.size()); // 1-based outward index
 }
 
-bool Audio::PlayFx(int id, int repeat, bool isUI) {
+bool Audio::PlayFx(int id, int repeat, bool isUI, float volumeRatio) {
     if (!active) return false;
     
     if (!isUI) {
@@ -252,6 +252,8 @@ bool Audio::PlayFx(int id, int repeat, bool isUI) {
         return false;
     }
 
+    SDL_SetAudioStreamGain(channel, sfx_volume_ * volumeRatio);
+
     // Queue sound 'repeat+1' times
     for (int i = 0; i <= repeat; ++i) {
         if (!SDL_PutAudioStreamData(channel, s.buf, s.len)) {
@@ -261,6 +263,33 @@ bool Audio::PlayFx(int id, int repeat, bool isUI) {
     }
 
     return true;
+}
+
+bool Audio::PlayFxSpatial(int id, Vector2D sourcePos, int repeat) {
+    if (!active) return false;
+    
+    auto& scene = Engine::GetInstance().scene;
+    if (!scene) return false;
+    
+    if (scene->GetCurrentScene() != SceneID::GAMEPLAY || scene->isPaused_ || scene->isGameOver_) {
+        return false;
+    }
+
+    Vector2D playerPos = scene->GetPlayerPosition();
+    float px = playerPos.getX() + 32.0f;
+    float py = playerPos.getY() + 32.0f;
+    Vector2D centerPlayer(px, py);
+
+    float dist = sourcePos.distanceEuclidean(centerPlayer);
+    
+    float maxDist = 1200.0f; 
+    if (dist > maxDist) return false;
+    
+    float volumeRatio = 1.0f - (dist / maxDist);
+    if (volumeRatio < 0.0f) volumeRatio = 0.0f;
+    if (volumeRatio > 1.0f) volumeRatio = 1.0f;
+
+    return PlayFx(id, repeat, false, volumeRatio);
 }
 
 void Audio::StopFx() {
