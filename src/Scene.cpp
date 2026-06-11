@@ -194,6 +194,14 @@ Vector2D Scene::GetPlayerPosition()
 	return Vector2D(0, 0);
 }
 
+bool Scene::ShouldShowCursor() const {
+    if (currentScene == SceneID::MAIN_MENU) return true;
+    if (currentScene == SceneID::GAMEPLAY) {
+        if (isPaused_ || showInventory_ || isGameOver_) return true;
+    }
+    return false;
+}
+
 void Scene::SetPlayerPosition(Vector2D pos)
 {
 	if (player) player->SetPosition(pos);
@@ -280,11 +288,10 @@ void Scene::LoadMainMenu()
 	texMenuHiddenLogo_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_HiddenLogo.png");
 
 	const char* fragPaths[NUM_FRAGMENTS] = {
-		"assets/textures/Menu/UI_Fragment1.png",
-		"assets/textures/Menu/UI_Fragment2.png",
-		"assets/textures/Menu/UI_Fragment3.png",
-		"assets/textures/Menu/UI_Fragment4.png",
-		"assets/textures/Menu/UI_Fragment5.png"
+		"assets/textures/Menu/UI_Memory_Fragment_3.1.png",
+		"assets/textures/Menu/UI_Memory_Fragment_1.2.png",
+		"assets/textures/Menu/UI_Memory_Fragment_2.1.png",
+		"assets/textures/Menu/UI_Memory_Fragment_2.2.png"
 	};
 	for (int i = 0; i < NUM_FRAGMENTS; i++)
 		fragments_[i].tex = Engine::GetInstance().textures->Load(fragPaths[i]);
@@ -1799,7 +1806,7 @@ void Scene::LoadGameplay()
 	else {
 		render->cameraZoom = 1.0f;
 		render->blurIntensity = 0.0f;
-		render->SetCameraSway(true);
+		render->SetCameraSway(false);
 		render->SetCameraClamping(true);
 		render->SetCameraMovement(true);
 	}
@@ -2042,6 +2049,12 @@ void Scene::LoadGameplay()
 
 void Scene::UpdateGameplay(float dt)
 {
+	// Check if wake-up animation finished so we can unlock the camera
+	if (player && !player->isWakingUp && !Engine::GetInstance().render->cameraMovementActive_) {
+		Engine::GetInstance().render->SetCameraMovement(true);
+		LOG("SCENE: Wake-up animation finished. CAMERA UNLOCKED.");
+	}
+
 	if (UpdateCheckpointTransition(dt))
 		return;
 
@@ -2105,12 +2118,19 @@ void Scene::UpdateGameplay(float dt)
 			auto& render = *Engine::GetInstance().render;
 			render.cameraZoom = 1.0f;
 			render.blurIntensity = 0.0f;
-			render.SetCameraSway(true);
-			render.SetCameraMovement(true); // CRITICAL: Unlock follow
+			render.SetCameraSway(false);
+			// Do NOT unlock camera movement yet, wait for player to finish waking up
 			render.SetCameraClamping(true);
 			Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
-			if (player) player->wakeUpAnimStarted = true;
-			LOG("SCENE: Intro Cinematic Finished. CAMERA UNLOCKED.");
+			
+			if (player) {
+				player->wakeUpAnimStarted = true;
+				// Lock camera directly to player's final resting position
+				render.camera.x = (int)(-player->position.getX() + 640.0f);
+				render.camera.y = (int)(-player->position.getY() + 540.0f);
+				render.SetCameraTarget(player->position.getX(), player->position.getY());
+			}
+			LOG("SCENE: Intro Cinematic Finished. Wake up started.");
 		}
 		else {
 			float smoothT = progress * progress * (3.0f - 2.0f * progress);
@@ -2120,6 +2140,11 @@ void Scene::UpdateGameplay(float dt)
 			Engine::GetInstance().audio->SetMusicVolume(musicVolume_ * smoothT);
 
 			if (player) {
+				// Lock camera strictly to player during intro so it doesn't drift
+				Engine::GetInstance().render->camera.x = (int)(-player->position.getX() + 640.0f);
+				Engine::GetInstance().render->camera.y = (int)(-player->position.getY() + 540.0f);
+				Engine::GetInstance().render->SetCameraTarget(player->position.getX(), player->position.getY());
+
 				float pX = player->GetPosition().getX() + 64.0f;
 				float pY = player->GetPosition().getY() + 64.0f;
 				// Pivot zoom exactly on the player's current logical screen position
@@ -2561,8 +2586,8 @@ if (isPuzzleMap_ && puzzleManager_ && player && !isPaused_ && !isGameOver_) {
     };
     float camX = Engine::GetInstance().render->camera.x;
     float camY = Engine::GetInstance().render->camera.y;
-    float pScrX = player->position.getX() + camX + 24.0f;
-    float pScrY = player->position.getY() + camY + 40.0f;
+    float pScrX = player->position.getX() + camX;
+    float pScrY = player->position.getY() + camY;
     puzzleManager_->Update(dt, pRect, pScrX, pScrY);
 
     if (puzzleManager_->IsTimedOut() && !puzzleTimeoutPending_) {
@@ -3072,12 +3097,13 @@ void Scene::ResolveCheckpointTransition()
 
 			if (player)
 			{
-				player->StartWakeUp(2.0f);
+				player->Revive();
+				player->isWakingUp = false;
 				ResetHealthUI(player->health);
 				Engine::GetInstance().render->SetCameraPosition(player->position.getX(), player->position.getY());
 			}
 
-			Engine::GetInstance().render->SetCameraSway(true);
+			Engine::GetInstance().render->SetCameraSway(false);
 			Engine::GetInstance().render->SetCameraClamping(true);
 			Engine::GetInstance().render->SetCameraMovement(true);
 			Engine::GetInstance().render->cameraZoom = 1.0f;
@@ -4882,6 +4908,11 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		SDL_GetTextureSize(f.tex, &tw, &th);
 
 		float sc = RandF(0.30f, 0.42f);
+		// UI_Memory_Fragment_2.1 (index 2) appears too large due to its aspect ratio or crop, so we scale it down specifically
+		if (i == 2) {
+			sc = RandF(0.12f, 0.18f); 
+		}
+		
 		f.w = (float)winW * sc;
 		f.h = f.w * (th / tw);
 
@@ -4891,15 +4922,16 @@ void Scene::InitFragments(int winW, int winH, int childX, int childW)
 		// We push them towards the edges of the right half or the bottom
 		if (i % 2 == 0) {
 			// Prefer bottom area
-			f.x = RandF(halfW - 50.0f, (float)winW - f.w * 0.5f);
-			f.y = RandF(halfH, (float)winH - f.h - 10.0f);
+			f.x = RandF(halfW - 50.0f, (float)winW - f.w - 20.0f);
+			f.y = RandF(halfH, (float)winH - f.h - 20.0f);
 		}
 		else {
 			// Prefer side areas (far right or closer to center but not top-center)
 			if (i == 1) f.x = RandF(halfW - 30.0f, halfW + 100.0f);
-			else        f.x = RandF((float)winW - f.w - 20.0f, (float)winW - 10.0f);
+			else        f.x = RandF((float)winW - f.w - 150.0f, (float)winW - f.w - 20.0f);
 			
-			f.y = RandF(10.0f, halfH);
+			// Prevent going off top or bottom
+			f.y = RandF(20.0f, std::max(20.0f, halfH - f.h));
 		}
 
 		f.floatSpeed = RandF(0.4f, 0.9f);
