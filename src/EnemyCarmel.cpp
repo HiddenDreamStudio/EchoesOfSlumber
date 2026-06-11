@@ -39,12 +39,12 @@ bool EnemyCarmel::Start()
 	blowupAnims_.SetLoop("blowup", false);
 	blowupTexture_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Enemics_Level1/spritesheet_Carmel_Blowup.png");
 
-	idleFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy idle.wav");
-	moveFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Move.wav");
-	alertFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Alert.wav");
-	deathFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy_death.wav");
-	hitFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy_daño.wav");
-	attackFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/Spider candy_atack.wav");
+	walkFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/spidercandy_walk.wav");
+	rollFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/spidercandy_rodar.wav");
+	alertFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/spidercandy_alerta.wav");
+	blowupFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/spidercandy_inflarse.wav");
+	deathFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/spidercandy_death.wav");
+	hitFxId_ = Engine::GetInstance().audio->LoadFx("assets/audio/fx/EnemiesLVL1/SpiderCandy/spidercandy_daño.wav");
 
 	idleFxTimer_ = 2000.0f + (rand() % 3000);
 	int bx = (int)position.getX() + 32;
@@ -138,7 +138,7 @@ void EnemyCarmel::UpdateFSM(float dt)
 		velocity.x = 0.0f;
 		idleFxTimer_ -= dt;
 		if (idleFxTimer_ <= 0.0f) {
-			PlaySpiderFx(idleFxId_);
+			PlaySpiderFx(walkFxId_);
 			idleFxTimer_ = 2000.0f + (rand() % 3000);
 		}
 		if (totalDist < DETECTION_RADIUS) {
@@ -174,7 +174,7 @@ void EnemyCarmel::UpdateFSM(float dt)
 		else {
 			moveFxTimer_ -= dt;
 			if (moveFxTimer_ <= 0.0f) {
-				PlaySpiderFx(moveFxId_);
+				PlaySpiderFx(rollFxId_);
 				moveFxTimer_ = moveFxInterval_;
 			}
 
@@ -216,6 +216,7 @@ void EnemyCarmel::TransitionTo(EnemyCarmelState newState)
 		blowupAnims_.ResetCurrent();
 		lastFrameIndex_ = -1;
 		UpdatePhysicsBody(true);
+		PlaySpiderFx(blowupFxId_);
 		LOG("SpiderCandy: BLOWUP");
 		break;
 
@@ -363,6 +364,6 @@ void EnemyCarmel::OnCollision(PhysBody* physA, PhysBody* physB)
 	Enemy::OnCollision(physA, physB);
 
 	if (physB->ctype == ColliderType::PLAYER && state_ == EnemyCarmelState::CHASE) {
-		PlaySpiderFx(attackFxId_);
+		// No special attack sound
 	}
 }
