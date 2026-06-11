@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="184" height="80" tilewidth="64" tileheight="64" infinite="0" nextlayerid="18" nextobjectid="404">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="184" height="80" tilewidth="64" tileheight="64" infinite="0" nextlayerid="18" nextobjectid="412">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -468,7 +468,7 @@
   <object id="338" gid="165" x="5123.88" y="1561.33" width="848" height="671"/>
   <object id="339" gid="171" x="8923.8" y="2855.94" width="521" height="604"/>
   <object id="340" gid="164" x="7513.09" y="2838.09" width="512" height="273"/>
-  <object id="341" gid="168" x="7930.7" y="2847.36" width="599" height="694.576"/>
+  <object id="341" gid="168" x="7933.73" y="2850.39" width="599" height="694.576"/>
   <object id="342" gid="174" x="8785.5" y="2801.12" width="80.2727" height="125.01"/>
   <object id="343" gid="169" x="8801.5" y="4448.36" width="281.727" height="440.156"/>
   <object id="344" gid="168" x="8988.5" y="3729.06" width="253.355" height="393.67"/>
@@ -485,9 +485,10 @@
   <object id="364" gid="176" x="10964.8" y="4538.6" width="766" height="597" rotation="317.064"/>
   <object id="365" gid="169" x="10168.1" y="4681.7" width="478.697" height="684.455"/>
   <object id="366" gid="164" x="10893.8" y="707.788" width="239.774" height="127.848"/>
+  <object id="408" gid="182" x="2206" y="2875" width="820" height="662"/>
  </objectgroup>
- <objectgroup id="9" name="Entities"/>
- <objectgroup id="14" name="Spawns">
+ <objectgroup id="9" name="Entities" visible="0"/>
+ <objectgroup id="14" name="Spawns" visible="0">
   <object id="393" type="Spawn" x="4782.67" y="4122.67">
    <properties>
     <property name="spawnId" value="G"/>
@@ -501,7 +502,7 @@
    <point/>
   </object>
  </objectgroup>
- <objectgroup id="13" name="Portals">
+ <objectgroup id="13" name="Portals" visible="0">
   <object id="394" type="Portal" x="4836.67" y="4181.3" width="452" height="202.728">
    <properties>
     <property name="spawnId" value="H"/>
@@ -544,6 +545,8 @@
   <object id="388" gid="191" x="8545" y="4385" width="117" height="181.949"/>
   <object id="389" gid="186" x="10634.8" y="3622.02" width="597" height="745.296" rotation="53.7801"/>
   <object id="390" gid="190" x="10698.2" y="4952.39" width="188.697" height="289.125"/>
+  <object id="410" gid="194" x="5590.8" y="3902.38" width="753" height="559" rotation="255.021"/>
+  <object id="411" gid="194" x="4350.77" y="3023.53" width="753" height="559" rotation="49.2191"/>
  </objectgroup>
  <layer id="1" name="Map" width="184" height="80">
   <properties>
@@ -632,29 +635,30 @@
 206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,206,199,199,199,199,199,199,199,199,199,199,199,199,199,199,199,199,199,199,199,206,206,206,206,206,206,206,206,206,206,206,222,196,196,196,196,224,206,206,206,206,206,206,206,206,206,206,206,206,206,199,199,199,199,199,199
 </data>
  </layer>
- <objectgroup id="11" name="Entities">
-  <object id="276" type="Platform" x="4357.76" y="4065.76" width="273.333" height="92">
-   <properties>
-    <property name="path" value="7140,4060;7140,2828"/>
-    <property name="speed" type="float" value="2"/>
-    <property name="texture" value="assets/textures/TL_environment/plat_4tilesLvl3.png"/>
-    <property name="trigger" type="bool" value="true"/>
-   </properties>
-  </object>
+ <objectgroup id="11" name="Entities" visible="0">
   <object id="400" name="Antagonist" type="Antagonist" x="2378.28" y="1634.48" width="59.4458" height="55.0424"/>
   <object id="401" name="Antagonist" type="Antagonist" x="7970.28" y="3116.48" width="59.4458" height="55.0424"/>
  </objectgroup>
- <objectgroup id="16" name="Entities">
-  <object id="402" type="Oso" x="9622.67" y="4370.67"/>
-  <object id="403" type="Oso" x="9769.33" y="4365.33"/>
+ <objectgroup id="16" name="Entities" visible="0">
+  <object id="404" type="Oso" x="9133.33" y="3959.33" width="112" height="107.333"/>
  </objectgroup>
- <objectgroup id="17" name="Items"/>
- <objectgroup id="15" name="Checkpoint">
+ <objectgroup id="17" name="Items" visible="0"/>
+ <objectgroup id="15" name="Checkpoint" visible="0">
   <object id="398" type="CheckPoint" x="4736.67" y="4102.33">
    <point/>
   </object>
   <object id="399" type="CheckPoint" x="9536.5" y="3082">
    <point/>
+  </object>
+  <object id="406" type="Platform" x="4352" y="4160" width="256" height="64">
+   <properties>
+    <property name="path" value="4352,4160;3584,4160"/>
+    <property name="platform_name" value="Ascensor1"/>
+    <property name="require_lever" type="bool" value="true"/>
+    <property name="speed" type="float" value="4"/>
+    <property name="texture" value="assets/textures/TL_environment/plat_4tilesLvl3.png"/>
+    <property name="trigger" type="bool" value="false"/>
+   </properties>
   </object>
  </objectgroup>
  <objectgroup id="5" name="Foreground">
@@ -667,16 +671,17 @@
   <object id="287" gid="150" x="2247" y="993" width="1018" height="305"/>
   <object id="288" gid="156" x="2368" y="3264" width="251.888" height="376.308"/>
   <object id="289" gid="148" x="2871.02" y="3281" width="329.982" height="181"/>
-  <object id="291" gid="153" x="7051" y="3286" width="530" height="588"/>
+  <object id="291" gid="153" x="7063.12" y="3240.55" width="530" height="588"/>
   <object id="293" gid="158" x="3681" y="3218" width="175" height="192.035"/>
   <object id="294" gid="157" x="5956.16" y="3269" width="83.8359" height="122"/>
-  <object id="295" gid="160" x="8712.62" y="3301" width="433.394" height="322.607"/>
+  <object id="295" gid="160" x="8700.5" y="3219.18" width="433.394" height="322.607"/>
   <object id="296" gid="159" x="10338" y="3312.18" width="438" height="540"/>
   <object id="297" gid="149" x="9847.7" y="1316" width="821.263" height="617"/>
   <object id="298" gid="152" x="10880.5" y="2145" width="503.53" height="798"/>
-  <object id="300" gid="144" x="9239" y="4817" width="394" height="809"/>
+  <object id="300" gid="144" x="3513" y="3151" width="278" height="570.817"/>
   <object id="301" gid="150" x="8891" y="3829" width="1018" height="305"/>
   <object id="302" gid="147" x="8457.6" y="4892" width="183.424" height="236.701"/>
   <object id="303" gid="151" x="10051.5" y="5142.58" width="275.36" height="395.424"/>
+  <object id="407" gid="144" x="7830.27" y="3225.8" width="394" height="809"/>
  </objectgroup>
 </map>
