@@ -14,6 +14,7 @@ public:
 	bool Awake() override;
 	bool Start() override;
 	bool Update(float dt) override;
+	bool PostUpdate() override;
 	bool CleanUp() override;
 
 	void OnCollision(PhysBody* physA, PhysBody* physB) override;
@@ -23,14 +24,10 @@ public:
 
 private:
 	int rockType_ = 1;
-	SDL_Texture* texRock_ = nullptr;
 	PhysBody* pbody_ = nullptr;
 
 	bool playerInRange_ = false;
 
-	int texW_ = 0;
-	int texH_ = 0;
-	
 	SDL_Texture* texPrompt_ = nullptr;
 	int promptW_ = 0;
 	int promptH_ = 0;
