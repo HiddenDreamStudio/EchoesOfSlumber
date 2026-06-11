@@ -190,4 +190,5 @@ private:
     int fxBocaAbierta_  = -1;
     int fxDisparo_      = -1;
     int fxImpactoSuelo_ = -1;
+    int fxDive_         = -1;
 };
