@@ -84,9 +84,16 @@ bool Map::Update(float dt)
             LOG("PARALLAX DEBUG: Pinned to camera position X: %f, Y: %f", initCameraX, initCameraY);
         }
 
+        if (!hasInitCamera) return true; // Don't draw parallax until camera is pinned
+
+        Vector2D playerPos(0.0f, 0.0f);
+        bool hasPlayer = (Engine::GetInstance().scene->player != nullptr);
+        if (hasPlayer) playerPos = Engine::GetInstance().scene->player->position;
+        const float renderRadiusSq = 1500.0f * 1500.0f; // Squared distance for performance
+
         for (const auto& imgLayer : mapData.imageLayers) {
             if (imgLayer->texture) {
-                // Pin parallax to start position
+                // Image layers are typically global backgrounds, always draw them
                 float pinnedX = imgLayer->offsetX + initCameraX * (1.0f - imgLayer->parallaxFactorX);
                 float pinnedY = imgLayer->offsetY + initCameraY * (1.0f - imgLayer->parallaxFactorY);
                 
@@ -108,8 +115,17 @@ bool Map::Update(float dt)
         for (const auto& deco : mapData.decorationObjects) {
             if (deco->texture && !deco->isFront) {
                 float px = deco->parallaxSpeed;
-                float py = 1.0f;
-                if (px != 1.0f) py = 1.0f - (1.0f - px) * 0.5f;
+
+                // Optimization: Distance check from player
+                // Always draw fondo (px=0) or objects within radius
+                if (hasPlayer && px > 0.0f) {
+                    float dx = deco->x - playerPos.getX();
+                    float dy = deco->y - playerPos.getY();
+                    if ((dx*dx + dy*dy) > renderRadiusSq) continue;
+                }
+
+                float py = 1.0f; // All backgrounds scroll 1:1 vertically with the camera
+                if (px > 1.0f) py = 1.0f + (px - 1.0f) * 0.5f; // Keep subtle FG vertical parallax
 
                 // Pin parallax to start position
                 float pinnedX = deco->x + initCameraX * (1.0f - px);
@@ -129,8 +145,16 @@ bool Map::Update(float dt)
             plant->anim.Update(dt);
 
             float px = plant->parallaxSpeed;
-            float py = 1.0f;
-            if (px != 1.0f) py = 1.0f - (1.0f - px) * 0.5f;
+
+            // Optimization: Distance check from player
+            if (hasPlayer && px > 0.0f) {
+                float dx = plant->x - playerPos.getX();
+                float dy = plant->y - playerPos.getY();
+                if ((dx*dx + dy*dy) > renderRadiusSq) continue;
+            }
+
+            float py = 1.0f; // Background plants scroll 1:1 vertically with the camera
+            if (px > 1.0f) py = 1.0f + (px - 1.0f) * 0.5f; // Keep subtle FG vertical parallax
 
             float pinnedX = plant->x + initCameraX * (1.0f - px);
             float pinnedY = plant->y + initCameraY * (1.0f - py);
@@ -163,19 +187,30 @@ bool Map::Update(float dt)
                 std::string lowerName = mapLayer->name;
                 for (char& c : lowerName) c = ::tolower(c);
                 if (px == 1.0f) {
-                    if (lowerName.find("background") != std::string::npos || lowerName.find("back") != std::string::npos || lowerName.find("fondo") != std::string::npos) px = 0.8f;
+                    if (lowerName.find("fondo") != std::string::npos) px = 0.0f;
+                    else if (lowerName.find("background") != std::string::npos || lowerName.find("back") != std::string::npos) px = 1.0f;
                     else if (lowerName.find("middle") != std::string::npos || lowerName.find("medio") != std::string::npos) px = 1.0f;
                     else if (lowerName.find("foreground") != std::string::npos || lowerName.find("front") != std::string::npos) px = 1.2f;
                 }
                 
                 if (py == 1.0f) {
-                    if (px < 1.0f) py = 1.0f - (1.0f - px) * 0.5f; // Subtle Y parallax for backgrounds
-                    else if (px > 1.0f) py = 1.0f + (px - 1.0f) * 0.5f; // Subtle Y parallax for foregrounds
+                    if (px > 1.0f) py = 1.0f + (px - 1.0f) * 0.5f; // Subtle Y parallax for foregrounds
+                    // Otherwise py stays 1.0f (scrolls with camera)
                 }
 
-                // Process the whole map for now to ensure visibility
-                for (int i = 0; i < mapData.width; i++) {
-                    for (int j = 0; j < mapData.height; j++) {
+                // Optimization: Pre-calculate tile bounds based on player radius
+                int minI = 0, maxI = mapData.width;
+                int minJ = 0, maxJ = mapData.height;
+
+                if (hasPlayer && px > 0.0f) {
+                    minI = std::max(0, (int)((playerPos.getX() - 1500.0f) / mapData.tileWidth));
+                    maxI = std::min(mapData.width, (int)((playerPos.getX() + 1500.0f) / mapData.tileWidth) + 1);
+                    minJ = std::max(0, (int)((playerPos.getY() - 1500.0f) / mapData.tileHeight));
+                    maxJ = std::min(mapData.height, (int)((playerPos.getY() + 1500.0f) / mapData.tileHeight) + 1);
+                }
+
+                for (int i = minI; i < maxI; i++) {
+                    for (int j = minJ; j < maxJ; j++) {
                         unsigned int rawGid = mapLayer->Get(i, j);
                         if (rawGid != 0) {
                             const unsigned int FLIPPED_HORIZONTALLY_FLAG = 0x80000000;
@@ -222,20 +257,25 @@ bool Map::PostUpdate() {
 
   // Find player position for player-centric parallax
   Vector2D playerPos(0.0f, 0.0f);
-  bool foundPlayer = false;
-  if (Engine::GetInstance().entityManager) {
-    for (const auto &entity : Engine::GetInstance().entityManager->entities) {
-      if (entity && entity->type == EntityType::PLAYER) {
-        playerPos = entity->position;
-        foundPlayer = true;
-        break;
-      }
-    }
+  bool hasPlayer = false;
+  if (Engine::GetInstance().scene->player) {
+    playerPos = Engine::GetInstance().scene->player->position;
+    hasPlayer = true;
   }
+  const float renderRadiusSq = 1500.0f * 1500.0f;
 
   for (const auto &deco : mapData.decorationObjects) {
     if (deco->texture && deco->isFront) {
       float px = deco->parallaxSpeed;
+
+      // Optimization: Distance check from player
+      if (hasPlayer && px > 0.0f) {
+        float dx = deco->x - playerPos.getX();
+        float dy = deco->y - playerPos.getY();
+        if ((dx * dx + dy * dy) > renderRadiusSq)
+          continue;
+      }
+
       float py = 1.0f;
       if (px != 1.0f) py = 1.0f + (px - 1.0f) * 0.5f;
 
@@ -262,8 +302,17 @@ bool Map::PostUpdate() {
   for (const auto &plant : mapData.animatedPlants) {
     if (!plant->isFront)
       continue;
-    
+
     float px = plant->parallaxSpeed;
+
+    // Optimization: Distance check from player
+    if (hasPlayer && px > 0.0f) {
+      float dx = plant->x - playerPos.getX();
+      float dy = plant->y - playerPos.getY();
+      if ((dx * dx + dy * dy) > renderRadiusSq)
+        continue;
+    }
+
     float py = 1.0f;
     if (px != 1.0f) py = 1.0f + (px - 1.0f) * 0.5f;
 
@@ -274,7 +323,7 @@ bool Map::PostUpdate() {
       continue;
 
     const SDL_Rect &frame = plant->anim.GetCurrentFrame();
-    render->DrawTexture(plant->texture, (int)pinnedX, (int)pinnedY, &frame, px, py);
+    render->DrawTexture(plant->texture, (int)pinnedX, (int)plant->y, &frame, px, py);
   }
 
   return true;
@@ -754,8 +803,9 @@ void Map::LoadEntities(std::shared_ptr<Player> &player, bool portalTransition,
           Render* render = Engine::GetInstance().render.get();
           float vW = render->GetWorldViewportWidth();
           float vH = render->GetWorldViewportHeight();
-          initCameraX = -(player->position.getX() - vW / 2.0f);
-          initCameraY = -(player->position.getY() - vH * 0.75f);
+          // Use exact math from Render::FollowTarget to avoid any pixel shift
+          initCameraX = (float)static_cast<int>(-(player->position.getX() - vW / 2.0f));
+          initCameraY = (float)static_cast<int>(-(player->position.getY() - vH * 0.75f));
           hasInitCamera = true;
           LOG("PARALLAX PINNED in LoadEntities: %f, %f", initCameraX, initCameraY);
         } else if (entityType == "Enemy" || entityType == "SpiderCandy") {
@@ -1379,16 +1429,19 @@ void Map::LoadImageLayers() {
     for (char &c : lowerName)
       c = ::tolower(c);
 
-        if (lowerName.find("background") != std::string::npos || 
-            lowerName.find("back") != std::string::npos || 
-            lowerName.find("fondo") != std::string::npos) 
+        if (lowerName.find("fondo") != std::string::npos) 
         {
-            defaultParallax = 0.8f; // Fondo moves at 0.8
+            defaultParallax = 0.0f; // Fondo is static on screen
+        }
+        else if (lowerName.find("background") != std::string::npos || 
+                 lowerName.find("back") != std::string::npos) 
+        {
+            defaultParallax = 1.0f; // Background is static in the world
         }
         else if (lowerName.find("middle") != std::string::npos ||
                  lowerName.find("medio") != std::string::npos)
         {
-            defaultParallax = 1.0f;
+            defaultParallax = 1.0f; // Middleground is static in the world
         }
         else if (lowerName.find("foreground") != std::string::npos || 
                  lowerName.find("front") != std::string::npos) 
@@ -1400,7 +1453,10 @@ void Map::LoadImageLayers() {
     // defaultParallax 
     pugi::xml_attribute pxAttr = imgNode.attribute("parallaxx");
     imgLayer->parallaxFactorX = pxAttr ? pxAttr.as_float() : defaultParallax;
+
+    // Set vertical parallax to 1.0f so background scrolls with the camera vertically
     imgLayer->parallaxFactorY = imgNode.attribute("parallaxy").as_float(1.0f);
+
     imgLayer->source = imgNode.child("image").attribute("source").as_string();
 
     std::string fullPath = mapPath + imgLayer->source;
@@ -1438,11 +1494,17 @@ void Map::LoadDecorationObjects() {
     for (char &c : lowerGroupName)
       c = ::tolower(c);
 
-    if (lowerGroupName.find("background") != std::string::npos ||
-        lowerGroupName.find("back") != std::string::npos ||
-        lowerGroupName.find("fondo") != std::string::npos ||
-        lowerGroupName.find("bakground") != std::string::npos) {
-      layerParallax = 1.0f; // Background decorations now move 1:1 with world (static)
+    if (lowerGroupName.find("fondo") != std::string::npos) {
+      layerParallax = 0.0f; // Fondo is static on screen
+      layerIsFront = false;
+    } else if (lowerGroupName.find("background") != std::string::npos ||
+               lowerGroupName.find("back") != std::string::npos ||
+               lowerGroupName.find("bakground") != std::string::npos) {
+      layerParallax = 1.0f; // Background is static in the world
+      layerIsFront = false;
+    } else if (lowerGroupName.find("middle") != std::string::npos ||
+               lowerGroupName.find("medio") != std::string::npos) {
+      layerParallax = 1.0f; // Middleground is static in the world
       layerIsFront = false;
     } else if (lowerGroupName.find("foreground") != std::string::npos ||
                lowerGroupName.find("front") != std::string::npos) {
