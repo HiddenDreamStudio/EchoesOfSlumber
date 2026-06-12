@@ -7,6 +7,7 @@
 #include "Cinematics.h"
 #include "Log.h"
 #include <cmath>
+#include "Player.h"
 
 MemoryFragment::MemoryFragment() : Entity(EntityType::MEMORY_FRAGMENT)
 {
@@ -53,6 +54,16 @@ bool MemoryFragment::Update(float dt)
         {
             fading_    = false;
             collected_ = true;
+
+            // Set fragment in Player
+            if (fragmentId_ >= 0 && fragmentId_ < 3) {
+                auto& scn = *Engine::GetInstance().scene;
+                if (scn.player) {
+                    scn.player->SetMemoryFragment(fragmentId_, true);
+                    scn.player->SetMemoryFragmentNew(fragmentId_, true);
+                }
+            }
+
             if (!videoPath_.empty())
             {
                 Engine::GetInstance().cinematics->PlayVideo(videoPath_.c_str());
