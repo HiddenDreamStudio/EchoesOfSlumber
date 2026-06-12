@@ -1623,13 +1623,9 @@ void Scene::UpdateLoading(float dt)
 		else {
 			int index = targetLevelIndex_;
 			if (index >= 0 && (size_t)index < levels_.size()) {
-				bool savedHasBlanket = false, savedHasSlingshot = false, savedHasStuffedAnimal = false;
 				Player::EquippedItem eqItem = Player::EquippedItem::NONE;
 				int savedHealth = 0;
 				if (player) {
-					savedHasBlanket = player->HasBlanket();
-					savedHasSlingshot = player->HasSlingshot();
-					savedHasStuffedAnimal = player->HasStuffedAnimal();
 					eqItem = player->GetEquippedItem();
 					savedHealth = player->health;
 				}
@@ -1665,12 +1661,11 @@ void Scene::UpdateLoading(float dt)
 
 				player->Start();
 			}
-			healthSlotCount_ = currentLevelIndex_ + 3;
-			if (healthSlotCount_ > MAX_HEALTH_SLOTS) healthSlotCount_ = MAX_HEALTH_SLOTS;
 			if (player) {
-				player->SetHasBlanket(savedHasBlanket);
-				player->SetHasSlingshot(savedHasSlingshot);
-				player->SetHasStuffedAnimal(savedHasStuffedAnimal);
+				player->SetHasBlanket(savedHasBlanket_);
+				player->SetHasSlingshot(savedHasSlingshot_);
+				player->SetHasStuffedAnimal(savedHasStuffedAnimal_);
+				for(int i = 0; i < 3; i++) player->SetMemoryFragment(i, savedFragments_[i]);
 				player->SetEquippedItem(eqItem);
 				player->maxHealth = healthSlotCount_;
 				// For level transitions (not first load), preserve health up to the new max
@@ -1680,9 +1675,9 @@ void Scene::UpdateLoading(float dt)
 					player->health = healthSlotCount_;
 				}
 			}
-			if (savedHasBlanket) capaCollected_ = true;
-			if (savedHasSlingshot) slingshotCollected_ = true;
-			if (savedHasStuffedAnimal) stuffedAnimalCollected_ = true;
+			if (savedHasBlanket_) capaCollected_ = true;
+			if (savedHasSlingshot_) slingshotCollected_ = true;
+			if (savedHasStuffedAnimal_) stuffedAnimalCollected_ = true;
 			currentHealthUI_ = player ? player->health : healthSlotCount_;
 			activeHealthAnim_ = 0;
 			isGameOver_ = false;
@@ -1849,7 +1844,24 @@ void Scene::LoadGameplay()
 
 	LoadPauseMenuButtons();
 
-	Engine::GetInstance().render->SetAmbientTint(140, 155, 190);
+	// Set ambient lighting tint based on the current level environment
+	switch (currentLevelIndex_) {
+		case 0: // LEVEL 1: Rock Bottom (Cave - dark blue-grey)
+			Engine::GetInstance().render->SetAmbientTint(100, 115, 160);
+			break;
+		case 1: // LEVEL 2: Shattered Ruins (Pink tint)
+			Engine::GetInstance().render->SetAmbientTint(113, 124, 170);
+			break;
+		case 2: // LEVEL 3: Forest Borderlines (Forest - dark green/teal)
+			Engine::GetInstance().render->SetAmbientTint(110, 140, 120);
+			break;
+		case 3: // LEVEL 4: Forgotten Playground (Playground - twilight/purple)
+			Engine::GetInstance().render->SetAmbientTint(130, 110, 150);
+			break;
+		default:
+			Engine::GetInstance().render->SetAmbientTint(255, 255, 255); // No tint
+			break;
+	}
 
 
 	auto setupAnimFromTSX = [](const char* tsxPath, Animation& anim, SDL_Texture*& tex) {
@@ -2006,14 +2018,17 @@ void Scene::LoadGameplay()
 
 	// Memories UI textures
 	texMemoria1Base_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_1_Base.png");
+	texMemoria1Collected_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Memory_Fragment_1.2.png");
 	texMemoria1N1_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_1_N1.png");
 	texMemoria1N2_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_1_N2.png");
 
 	texMemoria2Base_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_2_Base.png");
+	texMemoria2Collected_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Memory_Fragment_2.2.png");
 	texMemoria2N1_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_2_N1.png");
 	texMemoria2N2_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_2_N2.png");
 
 	texMemoria3Base_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_Base.png");
+	texMemoria3Collected_ = Engine::GetInstance().textures->Load("assets/textures/Menu/UI_Memory_Fragment_3.1.png");
 	texMemoria3N1_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_N1.png");
 	texMemoria3N2_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_N2.png");
 	texMemoria3N3_ = Engine::GetInstance().textures->Load("assets/textures/UI/UI_Memoria_3_N3.png");
@@ -2360,7 +2375,6 @@ void Scene::UpdateGameplay(float dt)
 			}
 		}
 
-		DrawInventory(winW, winH);
 		return;
 	}
 
@@ -2904,6 +2918,13 @@ void Scene::UnloadGameplay()
 	isPuzzleMap3Lever_ = false;
 	isPuzzleMap3Buttons_ = false;
 
+	if (player) {
+		savedHasBlanket_ = player->HasBlanket();
+		savedHasSlingshot_ = player->HasSlingshot();
+		savedHasStuffedAnimal_ = player->HasStuffedAnimal();
+		for(int i = 0; i < 3; i++) savedFragments_[i] = player->HasMemoryFragment(i);
+	}
+
 	Engine::GetInstance().uiManager->CleanUp();
 	player.reset();
 	Engine::GetInstance().entityManager->CleanUp();
@@ -2960,14 +2981,17 @@ void Scene::UnloadGameplay()
 
 	// Unload Memories UI textures
 	if (texMemoria1Base_) { Engine::GetInstance().textures->UnLoad(texMemoria1Base_); texMemoria1Base_ = nullptr; }
+	if (texMemoria1Collected_) { Engine::GetInstance().textures->UnLoad(texMemoria1Collected_); texMemoria1Collected_ = nullptr; }
 	if (texMemoria1N1_) { Engine::GetInstance().textures->UnLoad(texMemoria1N1_); texMemoria1N1_ = nullptr; }
 	if (texMemoria1N2_) { Engine::GetInstance().textures->UnLoad(texMemoria1N2_); texMemoria1N2_ = nullptr; }
 
 	if (texMemoria2Base_) { Engine::GetInstance().textures->UnLoad(texMemoria2Base_); texMemoria2Base_ = nullptr; }
+	if (texMemoria2Collected_) { Engine::GetInstance().textures->UnLoad(texMemoria2Collected_); texMemoria2Collected_ = nullptr; }
 	if (texMemoria2N1_) { Engine::GetInstance().textures->UnLoad(texMemoria2N1_); texMemoria2N1_ = nullptr; }
 	if (texMemoria2N2_) { Engine::GetInstance().textures->UnLoad(texMemoria2N2_); texMemoria2N2_ = nullptr; }
 
 	if (texMemoria3Base_) { Engine::GetInstance().textures->UnLoad(texMemoria3Base_); texMemoria3Base_ = nullptr; }
+	if (texMemoria3Collected_) { Engine::GetInstance().textures->UnLoad(texMemoria3Collected_); texMemoria3Collected_ = nullptr; }
 	if (texMemoria3N1_) { Engine::GetInstance().textures->UnLoad(texMemoria3N1_); texMemoria3N1_ = nullptr; }
 	if (texMemoria3N2_) { Engine::GetInstance().textures->UnLoad(texMemoria3N2_); texMemoria3N2_ = nullptr; }
 	if (texMemoria3N3_) { Engine::GetInstance().textures->UnLoad(texMemoria3N3_); texMemoria3N3_ = nullptr; }
@@ -3588,6 +3612,7 @@ void Scene::PostUpdateGameplay()
 
 				bool isEnemy = false;
 				bool isCheckpoint = false;
+				bool isMemoryFragment = false;
 
 				switch (entity->type)
 				{
@@ -3607,11 +3632,14 @@ void Scene::PostUpdateGameplay()
 				case EntityType::CHECKPOINT:
 					isCheckpoint = true;
 					break;
+				case EntityType::MEMORY_FRAGMENT:
+					isMemoryFragment = true;
+					break;
 				default:
 					break;
 				}
 
-				if (isEnemy || isCheckpoint)
+				if (isEnemy || isCheckpoint || isMemoryFragment)
 				{
 					Vector2D entityPos = entity->GetPosition();
 					float offsetWorldX = entityPos.getX() - pWorldX;
@@ -3653,6 +3681,14 @@ void Scene::PostUpdateGameplay()
 							SDL_Rect dotOutline = { drawX - 5, drawY - 5, 10, 10 };
 							render.DrawRectangle(dotOutline, 0, 0, 0, 200, false, false);
 						}
+						else if (isMemoryFragment)
+						{
+							SDL_Rect dot = { drawX - 3, drawY - 3, 6, 6 }; 
+							// Mysterious pale white/blue color with blinking effect
+							render.DrawRectangle(dot, 220, 240, 255, blinkAlpha, true, false);
+							SDL_Rect dotOutline = { drawX - 4, drawY - 4, 8, 8 };
+							render.DrawRectangle(dotOutline, 200, 230, 255, 200, false, false);
+						}
 					}
 				}
 			}
@@ -3676,7 +3712,7 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Boss health bar ---
-	{
+	if (!showMapViewer_ && !showInventory_ && !isPaused_ && !isGameOver_) {
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
 		DrawBossHUD(winW, winH);
@@ -3919,7 +3955,12 @@ void Scene::PostUpdateGameplay()
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
 		DrawMapViewer(winW, winH);
 	}
-	else if (isPaused_ && !showInventory_) {
+	else if (showInventory_) {
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		DrawInventory(winW, winH);
+	}
+	else if (isPaused_) {
 		DrawPauseMenu();
 	}
 
@@ -4151,7 +4192,7 @@ void Scene::DrawInventory(int winW, int winH)
 
 	// Fragment 2 (right): portrait, overlaps fragment 1 on the right side
 	float x2 = cX + w2 * 0.05f;
-	float y2 = cY - h2 * 0.65f;
+	float y2 = cY - h2 * 0.65f + 5.0f;
 
 	// Fragment 3 (bottom): landscape, below and overlapping both
 	float x3 = cX - w3 * 0.73f;
@@ -4200,6 +4241,20 @@ void Scene::DrawInventory(int winW, int winH)
 		}
 	}
 
+	for (int i = 0; i < 3; i++) {
+		if (player && player->IsMemoryFragmentNew(i)) {
+			memoryNewAnimTimer_[i] += 0.0005f * invDt; // Slow fade
+			if (memoryNewAnimTimer_[i] >= 1.0f) {
+				memoryNewAnimTimer_[i] = 1.0f;
+				player->SetMemoryFragmentNew(i, false);
+			}
+		} else if (player && player->HasMemoryFragment(i)) {
+			memoryNewAnimTimer_[i] = 1.0f;
+		} else {
+			memoryNewAnimTimer_[i] = 0.0f;
+		}
+	}
+
 	// Trigger full screen click handlers
 	if (input->GetMouseButtonDown(SDL_BUTTON_LEFT) == KEY_DOWN && !showMemoryViewer_)
 	{
@@ -4231,14 +4286,20 @@ void Scene::DrawInventory(int winW, int winH)
 	if (texMemoria1Base_)
 	{
 		render.DrawTextureAlphaF(texMemoria1Base_, rect1.x, rect1.y, rect1.w, rect1.h, 255);
-		if (texMemoria1N1_ && texMemoria1N2_) {
-			Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[0]) * 255.0f);
-			Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[0] * 255.0f);
-			if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria1N1_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN1);
-			if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria1N2_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN2);
-		} else if (hover1) {
-			SDL_Rect r1 = { (int)rect1.x, (int)rect1.y, (int)rect1.w, (int)rect1.h };
-			render.DrawRectangle(r1, 255, 255, 255, 60, false, false);
+		bool hasFrag = player && player->HasMemoryFragment(0);
+		if (hasFrag && texMemoria1Collected_) {
+			Uint8 alpha = (Uint8)(memoryNewAnimTimer_[0] * 255.0f);
+			if (alpha > 0) render.DrawTextureAlphaF(texMemoria1Collected_, rect1.x, rect1.y, rect1.w, rect1.h, alpha);
+		} else {
+			if (texMemoria1N1_ && texMemoria1N2_) {
+				Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[0]) * 255.0f);
+				Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[0] * 255.0f);
+				if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria1N1_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN1);
+				if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria1N2_, rect1.x, rect1.y, rect1.w, rect1.h, alphaN2);
+			} else if (hover1) {
+				SDL_Rect r1 = { (int)rect1.x, (int)rect1.y, (int)rect1.w, (int)rect1.h };
+				render.DrawRectangle(r1, 255, 255, 255, 60, false, false);
+			}
 		}
 	}
 
@@ -4246,14 +4307,20 @@ void Scene::DrawInventory(int winW, int winH)
 	if (texMemoria2Base_)
 	{
 		render.DrawTextureAlphaF(texMemoria2Base_, rect2.x, rect2.y, rect2.w, rect2.h, 255);
-		if (texMemoria2N1_ && texMemoria2N2_) {
-			Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[1]) * 255.0f);
-			Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[1] * 255.0f);
-			if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria2N1_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN1);
-			if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria2N2_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN2);
-		} else if (hover2) {
-			SDL_Rect r2 = { (int)rect2.x, (int)rect2.y, (int)rect2.w, (int)rect2.h };
-			render.DrawRectangle(r2, 255, 255, 255, 60, false, false);
+		bool hasFrag = player && player->HasMemoryFragment(1);
+		if (hasFrag && texMemoria2Collected_) {
+			Uint8 alpha = (Uint8)(memoryNewAnimTimer_[1] * 255.0f);
+			if (alpha > 0) render.DrawTextureAlphaF(texMemoria2Collected_, rect2.x, rect2.y, rect2.w, rect2.h, alpha);
+		} else {
+			if (texMemoria2N1_ && texMemoria2N2_) {
+				Uint8 alphaN1 = (Uint8)((1.0f - memoryHoverTimers_[1]) * 255.0f);
+				Uint8 alphaN2 = (Uint8)(memoryHoverTimers_[1] * 255.0f);
+				if (alphaN1 > 0) render.DrawTextureAlphaF(texMemoria2N1_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN1);
+				if (alphaN2 > 0) render.DrawTextureAlphaF(texMemoria2N2_, rect2.x, rect2.y, rect2.w, rect2.h, alphaN2);
+			} else if (hover2) {
+				SDL_Rect r2 = { (int)rect2.x, (int)rect2.y, (int)rect2.w, (int)rect2.h };
+				render.DrawRectangle(r2, 255, 255, 255, 60, false, false);
+			}
 		}
 	}
 
@@ -4261,36 +4328,42 @@ void Scene::DrawInventory(int winW, int winH)
 	if (texMemoria3Base_)
 	{
 		render.DrawTextureAlphaF(texMemoria3Base_, rect3.x, rect3.y, rect3.w, rect3.h, 255);
-		if (texMemoria3N1_ && texMemoria3N2_ && texMemoria3N3_) {
-			float t = memoryHoverTimers_[2];
-			float a1 = 255.0f, a2 = 0.0f, a3 = 0.0f;
-			if (t > 0.0f)
-			{
-				if (t <= 1.0f) {
-					a1 = (1.0f - t) * 255.0f;
-					a2 = t * 255.0f;
-					a3 = 0.0f;
+		bool hasFrag = player && player->HasMemoryFragment(2);
+		if (hasFrag && texMemoria3Collected_) {
+			Uint8 alpha = (Uint8)(memoryNewAnimTimer_[2] * 255.0f);
+			if (alpha > 0) render.DrawTextureAlphaF(texMemoria3Collected_, rect3.x, rect3.y, rect3.w, rect3.h, alpha);
+		} else {
+			if (texMemoria3N1_ && texMemoria3N2_ && texMemoria3N3_) {
+				float t = memoryHoverTimers_[2];
+				float a1 = 255.0f, a2 = 0.0f, a3 = 0.0f;
+				if (t > 0.0f)
+				{
+					if (t <= 1.0f) {
+						a1 = (1.0f - t) * 255.0f;
+						a2 = t * 255.0f;
+						a3 = 0.0f;
+					}
+					else if (t <= 2.0f) {
+						float progress = t - 1.0f;
+						a1 = 0.0f;
+						a2 = (1.0f - progress) * 255.0f;
+						a3 = progress * 255.0f;
+					}
+					else if (t <= 3.0f) {
+						float progress = t - 2.0f;
+						a1 = progress * 255.0f;
+						a2 = 0.0f;
+						a3 = (1.0f - progress) * 255.0f;
+					}
 				}
-				else if (t <= 2.0f) {
-					float progress = t - 1.0f;
-					a1 = 0.0f;
-					a2 = (1.0f - progress) * 255.0f;
-					a3 = progress * 255.0f;
-				}
-				else if (t <= 3.0f) {
-					float progress = t - 2.0f;
-					a1 = progress * 255.0f;
-					a2 = 0.0f;
-					a3 = (1.0f - progress) * 255.0f;
-				}
-			}
 
-			if (a1 > 0) render.DrawTextureAlphaF(texMemoria3N1_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a1);
-			if (a2 > 0) render.DrawTextureAlphaF(texMemoria3N2_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a2);
-			if (a3 > 0) render.DrawTextureAlphaF(texMemoria3N3_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a3);
-		} else if (hover3) {
-			SDL_Rect r3 = { (int)rect3.x, (int)rect3.y, (int)rect3.w, (int)rect3.h };
-			render.DrawRectangle(r3, 255, 255, 255, 60, false, false);
+				if (a1 > 0) render.DrawTextureAlphaF(texMemoria3N1_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a1);
+				if (a2 > 0) render.DrawTextureAlphaF(texMemoria3N2_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a2);
+				if (a3 > 0) render.DrawTextureAlphaF(texMemoria3N3_, rect3.x, rect3.y, rect3.w, rect3.h, (Uint8)a3);
+			} else if (hover3) {
+				SDL_Rect r3 = { (int)rect3.x, (int)rect3.y, (int)rect3.w, (int)rect3.h };
+				render.DrawRectangle(r3, 255, 255, 255, 60, false, false);
+			}
 		}
 	}
 
@@ -4396,18 +4469,21 @@ void Scene::DrawInventory(int winW, int winH)
 
 		// Small helper instructions text in footer
 		SDL_Rect hintArea = { (int)frameX, (int)(frameY + frameH - 35.0f * fScale), (int)frameW, 20 };
-		render.DrawMenuTextCentered("Click bordes o Flechas para cambiar de pagina  |  ESC / Click fuera para cerrar", hintArea, { 180, 200, 220, 180 }, 0.28f);
+		render.DrawMenuTextCentered("Click edges or Arrows to change page  |  ESC / Click outside to close", hintArea, { 180, 200, 220, 180 }, 0.28f);
 	}
 
 	// 5. Instructions Footer Overlay
-	SDL_Rect footer = { 0, winH - 45, winW, 30 };
-	if (Engine::GetInstance().input->IsGamepadConnected())
+	if (!showMemoryViewer_ || activeMemoryIndex_ == -1)
 	{
-		render.DrawMenuTextCentered("Clic en slots para Equipar  |  ARRIBA o 'I' para cerrar", footer, { 180, 210, 240, 200 }, 0.35f);
-	}
-	else
-	{
-		render.DrawMenuTextCentered("Clic en slots para Equipar (Teclas 1, 2, 3 en juego)  |  'I' para cerrar", footer, { 180, 210, 240, 200 }, 0.35f);
+		SDL_Rect footer = { 0, winH - 45, winW, 30 };
+		if (Engine::GetInstance().input->IsGamepadConnected())
+		{
+			render.DrawMenuTextCentered("Click slots to Equip  |  UP or 'I' to close", footer, { 180, 210, 240, 200 }, 0.35f);
+		}
+		else
+		{
+			render.DrawMenuTextCentered("Click slots to Equip (Keys 1, 2, 3 in game)  |  'I' to close", footer, { 180, 210, 240, 200 }, 0.35f);
+		}
 	}
 }
 
@@ -5481,6 +5557,13 @@ void Scene::ExecuteSubMapLoad()
 {
 
     int savedHealth = player ? player->health : 3;
+    bool savedBlanket = player ? player->HasBlanket() : false;
+    bool savedSlingshot = player ? player->HasSlingshot() : false;
+    bool savedStuffedAnimal = player ? player->HasStuffedAnimal() : false;
+    bool savedFragments[3] = {false, false, false};
+    if (player) {
+        for(int i = 0; i < 3; i++) savedFragments[i] = player->HasMemoryFragment(i);
+    }
 
     player.reset();
 
@@ -5523,8 +5606,14 @@ void Scene::ExecuteSubMapLoad()
         if (savedHealth > healthSlotCount_) {
             savedHealth = healthSlotCount_;
         }
+        player->health = savedHealth;
+        player->SetHasBlanket(savedBlanket);
+        player->SetHasSlingshot(savedSlingshot);
+        player->SetHasStuffedAnimal(savedStuffedAnimal);
+        for(int i = 0; i < 3; i++) {
+            player->SetMemoryFragment(i, savedFragments[i]);
+        }
     }
-    player->health = savedHealth;
 
     float spawnX = 0.0f, spawnY = 0.0f;
 	if (Engine::GetInstance().map->GetSpawnById(subMapSpawnId_, spawnX, spawnY))
