@@ -1067,6 +1067,8 @@ void Map::LoadEntities(std::shared_ptr<Player> &player, bool portalTransition,
               frag->SetCollectRange(prop.attribute("value").as_float(100.0f));
             else if (pname == "scale")
               frag->SetScale(prop.attribute("value").as_float(0.5f));
+            else if (pname == "fragment_id")
+              frag->SetFragmentId(prop.attribute("value").as_int(-1));
           }
           frag->Start();
           LOG("MemoryFragment spawned at (%.0f, %.0f)", frag->position.getX(),
