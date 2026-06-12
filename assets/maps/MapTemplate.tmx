@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="49" nextobjectid="2041">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="160" height="138" tilewidth="64" tileheight="64" infinite="0" nextlayerid="49" nextobjectid="2044">
  <tileset firstgid="1" name="MapMetadata" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="2" columns="2">
   <image source="MapMetadata.png" width="67" height="34"/>
  </tileset>
@@ -373,151 +373,6 @@
  <objectgroup id="31" name="Fondo piedras" locked="1" parallaxx="0.2"/>
  <objectgroup id="42" name="AnimatedPlants" locked="1"/>
  <objectgroup id="33" name="AnimatedPlants Front" locked="1"/>
- <objectgroup id="9" name="Entities">
-  <object id="1332" name="Player" type="Player" x="7891.41" y="8523.97" width="52.8407" height="52.8407"/>
-  <object id="1333" name="Cape" type="Cape" x="4008.66" y="615.32"/>
-  <object id="1334" name="Enemy" type="SpiderCandy" x="5882.4" y="8528.02" width="64.1457" height="59.3942">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="1336" name="Enemy" type="Bouncer" x="5777.81" y="6358.68" width="46.901" height="36.4786">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="1337" name="Enemy" type="Bouncer" x="1598.56" y="6397.31" width="52.9365" height="41.1728">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="1340" name="Enemy" type="Bouncer" x="4130.6" y="5228.05" width="108" height="84">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="1341" name="Enemy" type="SpiderCandy" x="3264.6" y="4376.05" width="108" height="100">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="1342" name="Enemy" type="SpiderCandy" x="3456.6" y="3488.05" width="108" height="100">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="1345" name="Enemy" type="SpiderCandy" x="3626.3" y="536.045" width="108" height="100">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="1806" name="Antagonist" type="Antagonist" x="643.277" y="6409.15" width="59.4458" height="55.0424"/>
-  <object id="1808" name="Antagonist" type="Antagonist" x="5043.55" y="2625.87" width="59.4458" height="55.0424"/>
-  <object id="1809" name="MemoryFragment" type="MemoryFragment" x="3784" y="2637" width="80" height="60">
-   <properties>
-    <property name="video_path" value="assets/video/Anchor_1.mp4"/>
-   </properties>
-  </object>
-  <object id="1811" name="HidingRock" type="HidingRock" x="6286.79" y="8529.7" width="64" height="64">
-   <properties>
-    <property name="rock_type" type="int" value="1"/>
-   </properties>
-  </object>
-  <object id="1817" name="HidingRock" type="HidingRock" x="840.727" y="6480.12" width="64" height="64">
-   <properties>
-    <property name="rock_type" type="int" value="1"/>
-   </properties>
-  </object>
-  <object id="1818" name="HidingRock" type="HidingRock" x="3964.97" y="3531.64" width="64" height="64">
-   <properties>
-    <property name="rock_type" type="int" value="1"/>
-   </properties>
-  </object>
-  <object id="1819" name="HidingRock" type="HidingRock" x="5155.88" y="3534.67" width="64" height="64">
-   <properties>
-    <property name="rock_type" type="int" value="1"/>
-   </properties>
-  </object>
-  <object id="1820" name="Enemy" type="SpiderCandy" x="9842" y="8482" width="108" height="100">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
-  <object id="1824" name="Enemy" type="Bouncer" x="3951.53" y="2579.41" width="52.9365" height="41.1728">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
- </objectgroup>
- <objectgroup id="48" name="Checkpoint">
-  <object id="1822" type="CheckPoint" x="5953.08" y="3336.67">
-   <point/>
-  </object>
-  <object id="1823" type="CheckPoint" x="385" y="5253">
-   <point/>
-  </object>
- </objectgroup>
- <objectgroup id="45" name="Portals" locked="1">
-  <object id="1403" type="Portal" x="2037" y="7913" width="212" height="468">
-   <properties>
-    <property name="spawnId" value="spawn_from_main"/>
-    <property name="target" value="MapLvl1ZonaBaja.tmx"/>
-   </properties>
-  </object>
-  <object id="1406" type="Portal" x="95.3333" y="4179.33" width="670.667" height="496">
-   <properties>
-    <property name="spawnId" value="spawn_from_main_puzzle"/>
-    <property name="target" value="MapLvl1ZonaPuzzle.tmx"/>
-   </properties>
-  </object>
-  <object id="1798" type="Portal" x="2842" y="2141" width="355" height="573">
-   <properties>
-    <property name="spawnId" value="Mapa2"/>
-    <property name="target" value="Map2"/>
-   </properties>
-  </object>
-  <object id="1821" type="Portal" x="1736.67" y="3012" width="402.667" height="648">
-   <properties>
-    <property name="spawnId" value="puzzle1"/>
-    <property name="target" value="MapLvl1ZonaPuzzle.tmx"/>
-   </properties>
-  </object>
- </objectgroup>
- <objectgroup id="46" name="Spawns" locked="1">
-  <object id="1405" type="Spawn" x="2179" y="7839">
-   <properties>
-    <property name="spawnId" value="spawn_return_room1"/>
-   </properties>
-   <point/>
-  </object>
-  <object id="1408" type="Spawn" x="408" y="4843">
-   <properties>
-    <property name="spawnId" value="spawn_return_puzzle"/>
-   </properties>
-   <point/>
-  </object>
-  <object id="1799" type="Spawn" x="2319.06" y="3574.42">
-   <properties>
-    <property name="spawnId" value="spawn_return_puzzle_exit"/>
-   </properties>
-   <point/>
-  </object>
-  <object id="1801" type="Spawn" x="3345" y="2553">
-   <properties>
-    <property name="spawnId" value="Mapa1"/>
-   </properties>
-   <point/>
-  </object>
- </objectgroup>
  <objectgroup id="28" name="Background">
   <object id="1454" gid="149" x="5905.87" y="8266.75" width="162.048" height="162.596"/>
   <object id="1455" gid="149" x="2960.25" y="7232.97" width="151.407" height="151.918"/>
@@ -549,7 +404,6 @@
   <object id="1481" gid="1073741977" x="6193.38" y="8596.66" width="248.447" height="255.627"/>
   <object id="1482" gid="155" x="8747" y="8601.07" width="163.476" height="134.854"/>
   <object id="1484" gid="155" x="3912.73" y="6429.53" width="162.845" height="134.333"/>
-  <object id="1485" gid="155" x="386.106" y="4893.17" width="145.575" height="120.087"/>
   <object id="1486" gid="155" x="596.608" y="6550.9" width="145.575" height="120.087"/>
   <object id="1487" gid="155" x="3356.51" y="1642.37" width="297" height="245"/>
   <object id="1489" gid="157" x="4991.54" y="2714.02" width="364" height="302"/>
@@ -22847,18 +22701,75 @@
    <tile gid="16"/>
   </data>
  </layer>
- <objectgroup id="48" name="Checkpoint" locked="1">
+ <objectgroup id="48" name="Checkpoint">
   <object id="1822" type="CheckPoint" x="5824.03" y="3277.17">
    <point/>
   </object>
-  <object id="1823" type="CheckPoint" x="385" y="5253">
+ </objectgroup>
+ <objectgroup id="48" name="Checkpoint">
+  <object id="1822" type="CheckPoint" x="5953.08" y="3336.67">
+   <point/>
+  </object>
+  <object id="1823" type="CheckPoint" x="384" y="5268">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="45" name="Portals" locked="1">
+  <object id="1403" type="Portal" x="2037" y="7913" width="212" height="468">
+   <properties>
+    <property name="spawnId" value="spawn_from_main"/>
+    <property name="target" value="MapLvl1ZonaBaja.tmx"/>
+   </properties>
+  </object>
+  <object id="1406" type="Portal" x="95.3333" y="4179.33" width="670.667" height="496">
+   <properties>
+    <property name="spawnId" value="spawn_from_main_puzzle"/>
+    <property name="target" value="MapLvl1ZonaPuzzle.tmx"/>
+   </properties>
+  </object>
+  <object id="1798" type="Portal" x="2842" y="2141" width="355" height="573">
+   <properties>
+    <property name="spawnId" value="Mapa2"/>
+    <property name="target" value="Map2"/>
+   </properties>
+  </object>
+  <object id="1821" type="Portal" x="1736.67" y="3012" width="402.667" height="648">
+   <properties>
+    <property name="spawnId" value="puzzle1"/>
+    <property name="target" value="MapLvl1ZonaPuzzle.tmx"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup id="46" name="Spawns" locked="1">
+  <object id="1405" type="Spawn" x="2179" y="7839">
+   <properties>
+    <property name="spawnId" value="spawn_return_room1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="1408" type="Spawn" x="408" y="4843">
+   <properties>
+    <property name="spawnId" value="spawn_return_puzzle"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="1799" type="Spawn" x="2319.06" y="3574.42">
+   <properties>
+    <property name="spawnId" value="spawn_return_puzzle_exit"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="1801" type="Spawn" x="3345" y="2553">
+   <properties>
+    <property name="spawnId" value="Mapa1"/>
+   </properties>
    <point/>
   </object>
  </objectgroup>
  <objectgroup id="9" name="Entities">
   <object id="1332" name="Player" type="Player" x="7891.41" y="8523.97" width="52.8407" height="52.8407"/>
   <object id="1333" name="Cape" type="Cape" x="4008.66" y="615.32"/>
-  <object id="1334" name="Enemy" type="SpiderCandy" x="6032.4" y="8476.02" width="64.1457" height="59.3942">
+  <object id="1334" name="Enemy" type="SpiderCandy" x="4747.4" y="8479.02" width="64.1457" height="59.3942">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
@@ -22870,7 +22781,7 @@
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="1337" name="Enemy" type="Bouncer" x="1598.56" y="6397.31" width="52.9365" height="41.1728">
+  <object id="1337" name="Enemy" type="Bouncer" x="1378.56" y="6494.64" width="52.9365" height="41.1728">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
     <property name="patrol_right" type="float" value="6400"/>
@@ -22900,19 +22811,19 @@
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="1806" name="Antagonist" type="Antagonist" x="526.944" y="6480.48" width="59.4458" height="55.0424"/>
+  <object id="1806" name="Antagonist" type="Antagonist" x="3975.28" y="6337.15" width="59.4458" height="55.0424"/>
   <object id="1808" name="Antagonist" type="Antagonist" x="5043.55" y="2625.87" width="59.4458" height="55.0424"/>
   <object id="1809" name="MemoryFragment" type="MemoryFragment" x="3784" y="2637" width="80" height="60">
    <properties>
     <property name="video_path" value="assets/video/Anchor_1.mp4"/>
    </properties>
   </object>
-  <object id="1811" name="HidingRock" type="HidingRock" x="6527.46" y="8525.03" width="64" height="64">
+  <object id="1811" name="HidingRock" type="HidingRock" x="4892.79" y="8523.7" width="64" height="64">
    <properties>
     <property name="rock_type" type="int" value="1"/>
    </properties>
   </object>
-  <object id="1817" name="HidingRock" type="HidingRock" x="815.394" y="6471.45" width="64" height="64">
+  <object id="1817" name="HidingRock" type="HidingRock" x="1684.73" y="6480.12" width="64" height="64">
    <properties>
     <property name="rock_type" type="int" value="1"/>
    </properties>
@@ -22940,6 +22851,67 @@
    </properties>
   </object>
  </objectgroup>
+ <objectgroup id="9" name="Entities">
+  <object id="1332" name="Player" type="Player" x="7891.41" y="8523.97" width="52.8407" height="52.8407"/>
+  <object id="1333" name="Cape" type="Cape" x="4008.66" y="615.32"/>
+  <object id="1334" name="Enemy" type="SpiderCandy" x="6011.4" y="8490.02" width="64.1457" height="59.3942">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="1337" name="Enemy" type="Bouncer" x="1027.89" y="6493.31" width="52.9365" height="41.1728">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="1345" name="Enemy" type="SpiderCandy" x="3626.3" y="536.045" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="1806" name="Antagonist" type="Antagonist" x="526.944" y="6480.48" width="59.4458" height="55.0424"/>
+  <object id="1808" name="Antagonist" type="Antagonist" x="5043.55" y="2625.87" width="59.4458" height="55.0424"/>
+  <object id="1809" name="MemoryFragment" type="MemoryFragment" x="3784" y="2637" width="80" height="60">
+   <properties>
+    <property name="video_path" value="assets/video/Anchor_1.mp4"/>
+   </properties>
+  </object>
+  <object id="1811" name="HidingRock" type="HidingRock" x="6415.46" y="8534.36" width="64" height="64">
+   <properties>
+    <property name="rock_type" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="1817" name="HidingRock" type="HidingRock" x="807.394" y="6480.78" width="64" height="64">
+   <properties>
+    <property name="rock_type" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="1818" name="HidingRock" type="HidingRock" x="3964.97" y="3531.64" width="64" height="64">
+   <properties>
+    <property name="rock_type" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="1819" name="HidingRock" type="HidingRock" x="5155.88" y="3534.67" width="64" height="64">
+   <properties>
+    <property name="rock_type" type="int" value="1"/>
+   </properties>
+  </object>
+  <object id="1820" name="Enemy" type="SpiderCandy" x="9842" y="8482" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+  <object id="2043" name="Enemy" type="SpiderCandy" x="3101" y="7528" width="108" height="100">
+   <properties>
+    <property name="patrol_left" type="float" value="6000"/>
+    <property name="patrol_right" type="float" value="6400"/>
+   </properties>
+  </object>
+ </objectgroup>
  <objectgroup id="25" name="Foreground">
   <object id="1411" gid="204" x="6151.5" y="6470.05" width="495" height="736"/>
   <object id="1412" gid="204" x="9041.5" y="8696.05" width="495" height="736"/>
@@ -22953,7 +22925,7 @@
   <object id="1421" gid="1073742031" x="8173.51" y="7617.44" width="874.934" height="1086" rotation="87.4232"/>
   <object id="1422" gid="1073742019" x="5026.04" y="8109.94" width="170.461" height="176.401" rotation="180"/>
   <object id="1423" gid="200" x="3337.5" y="4591.05" width="251" height="209"/>
-  <object id="1441" gid="218" x="1894.28" y="6752.62" width="241.44" height="242.105"/>
+  <object id="1441" gid="218" x="1943.61" y="6733.95" width="153.44" height="153.863"/>
   <object id="1447" gid="199" x="4218.2" y="3644.02" width="183.011" height="153.333"/>
   <object id="1448" gid="220" x="2262" y="3646.73" width="299" height="205"/>
   <object id="1449" gid="1073742026" x="4017.67" y="3373.64" width="240" height="342"/>
@@ -22981,12 +22953,6 @@
   <object id="1770" gid="165" x="5507.71" y="6410.83" width="33.4387" height="56.4549"/>
   <object id="1771" gid="165" x="4645.28" y="1621.33" width="77" height="130"/>
   <object id="1774" gid="184" x="7690.84" y="8591.09" width="26.9708" height="56.6937"/>
-  <object id="1775" name="Enemy" type="SpiderCandy" x="3139.46" y="7505.73" width="108" height="100">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
   <object id="1778" gid="208" x="4156.55" y="5479.54" width="904" height="719"/>
   <object id="1779" gid="197" x="8901.69" y="7362.55" width="273.278" height="251.353"/>
   <object id="1781" gid="206" x="4836.51" y="8593.61" width="72.7976" height="234.57"/>
