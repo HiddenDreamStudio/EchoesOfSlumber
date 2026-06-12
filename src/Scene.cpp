@@ -1351,6 +1351,9 @@ void Scene::LoadIntroCinematic()
 	// Start in Pre-Video Loading
 	introCinState_ = IntroCinState::PRE_VIDEO_LOADING;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
+
+	SDL_Color white = { 255, 255, 255, 255 };
+	texLoadingText_ = Engine::GetInstance().render->CreateMenuTextTexture("loading...", white);
 }
 
 void Scene::UnloadIntroCinematic()
@@ -1360,6 +1363,10 @@ void Scene::UnloadIntroCinematic()
 		Engine::GetInstance().textures->UnLoad(texLoadingKid_);
 		texLoadingKid_ = nullptr;
 	}
+	if (texLoadingText_) {
+		SDL_DestroyTexture(texLoadingText_);
+		texLoadingText_ = nullptr;
+	}
 }
 
 void Scene::DrawLoadingText(bool pulsing, float timer)
@@ -1368,21 +1375,22 @@ void Scene::DrawLoadingText(bool pulsing, float timer)
 	int winW = 0, winH = 0;
 	Engine::GetInstance().window->GetWindowSize(winW, winH);
 
+	// Compute animation time with SDL_GetTicks() so the kid animation never freezes 
+	// even if the game blocks on synchronous map loading.
+	float animTime = (float)SDL_GetTicks();
+
 	Uint8 alpha = 255;
 	if (pulsing) {
-		float pulse = 0.65f + 0.35f * sinf(timer * 0.004f);
+		float pulse = 0.65f + 0.35f * sinf(animTime * 0.004f);
 		alpha = (Uint8)(255 * pulse);
 	}
-
-	SDL_Color textColor = { 255, 255, 255, alpha };
 
 	const int textY = winH - 80;
 	const int textH = 40;
 
-	SDL_Texture* tx = render.CreateMenuTextTexture("loading...", textColor);
-	if (tx) {
+	if (texLoadingText_) {
 		float tw = 0, th = 0;
-		SDL_GetTextureSize(tx, &tw, &th);
+		SDL_GetTextureSize(texLoadingText_, &tw, &th);
 		float textScaledW = tw * 0.5f;
 		float textScaledH = th * 0.5f;
 
@@ -1392,13 +1400,15 @@ void Scene::DrawLoadingText(bool pulsing, float timer)
 		int textYPos = textY + (textH - (int)textScaledH) / 2;
 
 		// Draw text
-		render.DrawTexture(tx, textX, textYPos, nullptr, 0.0f, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+		SDL_SetTextureAlphaMod(texLoadingText_, alpha);
+		render.DrawTexture(texLoadingText_, textX, textYPos, nullptr, 0.0f, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, 0.5f);
+		SDL_SetTextureAlphaMod(texLoadingText_, 255);
 
 		// Draw running kid sprite to the left of "Loading..."
 		if (texLoadingKid_) {
 			const int kidSize = textH;  // square, same height as the text row
 			const int gap = 2; // closer gap as requested
-			int frame = (int)(timer / (1000.0f / LOADING_KID_FPS)) % LOADING_KID_FRAMES;
+			int frame = (int)(animTime / (1000.0f / LOADING_KID_FPS)) % LOADING_KID_FRAMES;
 			SDL_Rect src = { frame * LOADING_KID_FRAME_W, 0, LOADING_KID_FRAME_W, LOADING_KID_FRAME_H };
 			int kidX = textX - kidSize - gap;
 			int kidY = textY + (textH - kidSize) / 2;
@@ -1406,8 +1416,6 @@ void Scene::DrawLoadingText(bool pulsing, float timer)
 			render.DrawTexture(texLoadingKid_, kidX, kidY, &src, 0.0f, 0.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_HORIZONTAL, (float)kidSize / (float)LOADING_KID_FRAME_W);
 			SDL_SetTextureAlphaMod(texLoadingKid_, 255);
 		}
-
-		SDL_DestroyTexture(tx);
 	}
 }
 
@@ -1582,6 +1590,9 @@ void Scene::LoadLoading()
 	mapLoadingFinished_ = false;
 	Engine::GetInstance().audio->PlayMusic(nullptr);
 	texLoadingKid_ = Engine::GetInstance().textures->Load("assets/textures/spritesheets/SS_Loading_Kid.png");
+
+	SDL_Color white = { 255, 255, 255, 255 };
+	texLoadingText_ = Engine::GetInstance().render->CreateMenuTextTexture("loading...", white);
 }
 
 void Scene::UnloadLoading()
@@ -1589,6 +1600,10 @@ void Scene::UnloadLoading()
 	if (texLoadingKid_) {
 		Engine::GetInstance().textures->UnLoad(texLoadingKid_);
 		texLoadingKid_ = nullptr;
+	}
+	if (texLoadingText_) {
+		SDL_DestroyTexture(texLoadingText_);
+		texLoadingText_ = nullptr;
 	}
 }
 
@@ -1823,9 +1838,13 @@ void Scene::LoadGameplay()
 	LOG("SCENE: LoadGameplay - Player World: (%.2f, %.2f). Camera Start: (%d, %d). Zoom: %.2f. Pivot: (%.2f, %.2f)", 
 		player->position.getX(), player->position.getY(), render->camera.x, render->camera.y, render->cameraZoom, render->zoomCenterX, render->zoomCenterY);
 
-	// Silksong: actorSnapshotPaused → music starts silent, fades in during entry
+	// Silksong: actorSnapshotPaused → music starts silent, fades in during entry (only for Level 1 Intro)
 	Engine::GetInstance().audio->PlayMusic("assets/audio/music/Echoes_of_Slumber_In_Game.wav", 1.0f);
-	Engine::GetInstance().audio->SetMusicVolume(0.0f);
+	if (inGameIntroActive_) {
+		Engine::GetInstance().audio->SetMusicVolume(0.0f);
+	} else {
+		Engine::GetInstance().audio->SetMusicVolume(musicVolume_);
+	}
 	Engine::GetInstance().audio->SetSFXVolume(sfxVolume_); // Use user configured SFX volume
 
 	LoadPauseMenuButtons();
@@ -3558,11 +3577,89 @@ void Scene::PostUpdateGameplay()
 				}
 			}
 
-			// --- Draw Player Indicator (Blinking glowing yellow dot in the exact center) ---
+			// --- Compute shared blinking alpha for player and active elements ---
 			float gameTime = (float)SDL_GetTicks();
-			Uint8 pAlpha = (Uint8)(170 + 85.0f * sinf(gameTime * 0.007f));
+			Uint8 blinkAlpha = (Uint8)(170 + 85.0f * sinf(gameTime * 0.007f));
+
+			// --- Draw Entities on Radar (Checkpoints and Enemies) ---
+			for (const auto& entity : Engine::GetInstance().entityManager->entities)
+			{
+				if (!entity || !entity->active || entity->health <= 0) continue;
+
+				bool isEnemy = false;
+				bool isCheckpoint = false;
+
+				switch (entity->type)
+				{
+				case EntityType::ENEMY:
+				case EntityType::ENEMY_B:
+				case EntityType::ENEMY_C:
+				case EntityType::ENEMY_PLUSH:
+				case EntityType::ENEMY_STITCHLING:
+				case EntityType::ENEMY_WINDUP_SCURRY:
+				case EntityType::BOSS_1:
+				case EntityType::BOSS_2:
+				case EntityType::ANTAGONIST:
+				case EntityType::BOUNCER:
+				case EntityType::BLOCK_CRAWLER:
+					isEnemy = true;
+					break;
+				case EntityType::CHECKPOINT:
+					isCheckpoint = true;
+					break;
+				default:
+					break;
+				}
+
+				if (isEnemy || isCheckpoint)
+				{
+					Vector2D entityPos = entity->GetPosition();
+					float offsetWorldX = entityPos.getX() - pWorldX;
+					float offsetWorldY = entityPos.getY() - pWorldY;
+					float offsetMiniX = offsetWorldX * worldToMiniScale;
+					float offsetMiniY = offsetWorldY * worldToMiniScale;
+
+					int drawX = (int)(centerX + offsetMiniX);
+					int drawY = (int)(centerY + offsetMiniY);
+
+					if (drawX >= innerX + 4 && drawX <= innerX + innerW - 4 &&
+						drawY >= innerY + 4 && drawY <= innerY + innerH - 4)
+					{
+						if (isCheckpoint)
+						{
+							Checkpoint* cp = dynamic_cast<Checkpoint*>(entity.get());
+							bool activated = (cp && cp->IsActivated());
+
+							SDL_Rect dot = { drawX - 3, drawY - 3, 6, 6 };
+							SDL_Rect dotOutline = { drawX - 4, drawY - 4, 8, 8 };
+
+							if (activated)
+							{
+								// Blinking green when active
+								render.DrawRectangle(dot, 0, 255, 0, blinkAlpha, true, false);
+								render.DrawRectangle(dotOutline, 255, 255, 255, 200, false, false);
+							}
+							else
+							{
+								// Just hollow border when deactivated
+								render.DrawRectangle(dotOutline, 0, 255, 0, 200, false, false);
+							}
+						}
+						else if (isEnemy)
+						{
+							SDL_Rect dot = { drawX - 4, drawY - 4, 8, 8 }; // Slightly larger dot for enemies
+							// Distinctive red color with blinking effect for Enemies
+							render.DrawRectangle(dot, 255, 30, 30, blinkAlpha, true, false);
+							SDL_Rect dotOutline = { drawX - 5, drawY - 5, 10, 10 };
+							render.DrawRectangle(dotOutline, 0, 0, 0, 200, false, false);
+						}
+					}
+				}
+			}
+
+			// --- Draw Player Indicator (Blinking glowing yellow dot in the exact center) ---
 			SDL_Rect playerDot = { centerX - 3, centerY - 3, 6, 6 };
-			render.DrawRectangle(playerDot, 255, 235, 30, pAlpha, true, false);
+			render.DrawRectangle(playerDot, 255, 235, 30, blinkAlpha, true, false);
 			SDL_Rect playerBorder = { centerX - 4, centerY - 4, 8, 8 };
 			render.DrawRectangle(playerBorder, 255, 255, 255, 255, false, false);
 
