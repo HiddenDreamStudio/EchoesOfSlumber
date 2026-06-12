@@ -1849,7 +1849,24 @@ void Scene::LoadGameplay()
 
 	LoadPauseMenuButtons();
 
-	Engine::GetInstance().render->SetAmbientTint(140, 155, 190);
+	// Set ambient lighting tint based on the current level environment
+	switch (currentLevelIndex_) {
+		case 0: // LEVEL 1: Rock Bottom (Cave - dark blue-grey)
+			Engine::GetInstance().render->SetAmbientTint(100, 115, 160);
+			break;
+		case 1: // LEVEL 2: Shattered Ruins (Pink tint)
+			Engine::GetInstance().render->SetAmbientTint(113, 124, 170);
+			break;
+		case 2: // LEVEL 3: Forest Borderlines (Forest - dark green/teal)
+			Engine::GetInstance().render->SetAmbientTint(110, 140, 120);
+			break;
+		case 3: // LEVEL 4: Forgotten Playground (Playground - twilight/purple)
+			Engine::GetInstance().render->SetAmbientTint(130, 110, 150);
+			break;
+		default:
+			Engine::GetInstance().render->SetAmbientTint(255, 255, 255); // No tint
+			break;
+	}
 
 
 	auto setupAnimFromTSX = [](const char* tsxPath, Animation& anim, SDL_Texture*& tex) {
@@ -2360,7 +2377,6 @@ void Scene::UpdateGameplay(float dt)
 			}
 		}
 
-		DrawInventory(winW, winH);
 		return;
 	}
 
@@ -3919,7 +3935,12 @@ void Scene::PostUpdateGameplay()
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
 		DrawMapViewer(winW, winH);
 	}
-	else if (isPaused_ && !showInventory_) {
+	else if (showInventory_) {
+		int winW = 0, winH = 0;
+		Engine::GetInstance().window->GetWindowSize(winW, winH);
+		DrawInventory(winW, winH);
+	}
+	else if (isPaused_) {
 		DrawPauseMenu();
 	}
 
