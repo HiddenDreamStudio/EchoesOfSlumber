@@ -302,16 +302,27 @@ void Audio::StopFx() {
     }
 }
 
-void Audio::SetMusicVolume(float volume)
-{
-    // clamp
+void Audio::SetMusicVolume(float volume) {
     if (volume < 0.0f) volume = 0.0f;
-    else if (volume > 1.0f) volume = 1.0f;
-
+    if (volume > 1.0f) volume = 1.0f;
     music_volume_ = volume;
 
-    if (music_stream_) {
+    if (music_stream_ && !musicPaused_) {
         SDL_SetAudioStreamGain(music_stream_, music_volume_);
+    }
+}
+
+void Audio::PauseMusic() {
+    musicPaused_ = true;
+    if (device_ != 0) {
+        SDL_PauseAudioDevice(device_);
+    }
+}
+
+void Audio::ResumeMusic() {
+    musicPaused_ = false;
+    if (device_ != 0) {
+        SDL_ResumeAudioDevice(device_);
     }
 }
 
