@@ -1,43 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.11.0" name="back" tilewidth="5917" tileheight="1897" tilecount="13" columns="0">
+<tileset version="1.10" tiledversion="1.12.1" name="back" tilewidth="1479" tileheight="474" tilecount="15" columns="0">
  <grid orientation="orthogonal" width="1" height="1"/>
- <tile id="0">
-  <image source="Assets level 4/Background/Asset 7.png" width="3122" height="1420"/>
+ <tile id="13">
+  <image source="Assets level 4/AS_fondo_01.png" width="348" height="454"/>
  </tile>
- <tile id="1">
-  <image source="Assets level 4/Background/Asset 8.png" width="977" height="1873"/>
+ <tile id="14">
+  <image source="Assets level 4/AS_fondo_02.png" width="474" height="414"/>
  </tile>
- <tile id="2">
-  <image source="Assets level 4/Background/Asset 9.png" width="1822" height="1792"/>
+ <tile id="15">
+  <image source="Assets level 4/AS_fondo_03.png" width="385" height="453"/>
  </tile>
- <tile id="3">
-  <image source="Assets level 4/Background/Asset 10.png" width="2560" height="1741"/>
+ <tile id="16">
+  <image source="Assets level 4/AS_fondo_04.png" width="915" height="391"/>
  </tile>
- <tile id="4">
-  <image source="Assets level 4/Background/Asset 11.png" width="5917" height="1427"/>
+ <tile id="17">
+  <image source="Assets level 4/AS_fondo_05.png" width="1270" height="423"/>
  </tile>
- <tile id="5">
-  <image source="Assets level 4/Background/Asset 12.png" width="2950" height="1503"/>
+ <tile id="18">
+  <image source="Assets level 4/AS_fondo_06.png" width="627" height="417"/>
  </tile>
- <tile id="6">
-  <image source="Assets level 4/Background/Asset 13.png" width="1513" height="1851"/>
+ <tile id="19">
+  <image source="Assets level 4/AS_fondo_07.png" width="725" height="421"/>
  </tile>
- <tile id="7">
-  <image source="Assets level 4/Background/Asset 1.png" width="1392" height="1814"/>
+ <tile id="20">
+  <image source="Assets level 4/AS_fondo_08.png" width="781" height="355"/>
  </tile>
- <tile id="8">
-  <image source="Assets level 4/Background/Asset 2.png" width="1895" height="1657"/>
+ <tile id="21">
+  <image source="Assets level 4/AS_fondo_09.png" width="354" height="474"/>
  </tile>
- <tile id="9">
-  <image source="Assets level 4/Background/Asset 3.png" width="1541" height="1813"/>
+ <tile id="22">
+  <image source="Assets level 4/AS_fondo_10.png" width="640" height="435"/>
  </tile>
- <tile id="10">
-  <image source="Assets level 4/Background/Asset 4.png" width="2507" height="1667"/>
+ <tile id="23">
+  <image source="Assets level 4/AS_fondo_11.png" width="456" height="448"/>
  </tile>
- <tile id="11">
-  <image source="Assets level 4/Background/Asset 5.png" width="2900" height="1682"/>
+ <tile id="24">
+  <image source="Assets level 4/AS_fondo_12.png" width="244" height="468"/>
  </tile>
- <tile id="12">
-  <image source="Assets level 4/Background/Asset 6.png" width="1417" height="1897"/>
+ <tile id="25">
+  <image source="Assets level 4/AS_fondo_13.png" width="1479" height="357"/>
+ </tile>
+ <tile id="26">
+  <image source="Assets level 4/AS_fondo_14.png" width="95" height="116"/>
+ </tile>
+ <tile id="27">
+  <image source="Assets level 4/AS_fondo_15.png" width="185" height="94"/>
  </tile>
 </tileset>
