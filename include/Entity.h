@@ -110,6 +110,7 @@ public:
 	// Possible properties, it depends on how generic we
 	// want our Entity class, maybe it's not renderable...
 	Vector2D position;
+	virtual Vector2D GetPosition() { return position; }
 	bool renderable = true;
 
 	// Health system
