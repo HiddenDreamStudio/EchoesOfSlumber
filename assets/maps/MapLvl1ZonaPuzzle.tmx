@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="40" height="31" tilewidth="64" tileheight="64" infinite="0" nextlayerid="9" nextobjectid="186">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="40" height="31" tilewidth="64" tileheight="64" infinite="0" nextlayerid="9" nextobjectid="213">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -360,7 +360,14 @@
  <imagelayer id="4" name="Bakground" offsetx="-3" offsety="-2815">
   <image source="../textures/fons_enviroment/Level 1_Totjunt.png" width="11072" height="13056"/>
  </imagelayer>
- <objectgroup id="6" name="Background"/>
+ <objectgroup id="6" name="Background">
+  <object id="189" gid="160" x="90.2727" y="919.697" width="590.234" height="472.727"/>
+  <object id="190" gid="159" x="232.788" y="1940.39" width="492" height="602"/>
+  <object id="191" gid="181" x="833.515" y="1143.7" width="236" height="748"/>
+  <object id="192" gid="181" x="1609.27" y="1922.48" width="236" height="748"/>
+  <object id="193" gid="156" x="1120.76" y="1033.64" width="311" height="449.763"/>
+  <object id="194" gid="177" x="1399" y="610" width="241.503" height="139"/>
+ </objectgroup>
  <objectgroup id="7" name="Middleground">
   <object id="166" gid="1073741969" x="945.151" y="1041.07" width="116.902" height="117.297"/>
   <object id="167" gid="146" x="1970.59" y="199.682" width="113" height="167.496"/>
@@ -376,6 +383,22 @@
   <object id="177" gid="153" x="1178.83" y="472.368" width="156.689" height="130"/>
   <object id="178" gid="164" x="740.82" y="335.055" width="135" height="60"/>
   <object id="179" gid="170" x="2288.74" y="782.06" width="65.5372" height="55.4545"/>
+  <object id="195" gid="214" x="1008.33" y="482.242" width="250" height="315"/>
+  <object id="196" gid="214" x="641.667" y="1945.88" width="250" height="315"/>
+  <object id="197" gid="214" x="320.455" y="1376.18" width="250" height="315"/>
+  <object id="198" gid="216" x="987.333" y="1054.52" width="293" height="206"/>
+  <object id="199" gid="189" x="132.818" y="1221.73" width="299" height="297"/>
+  <object id="201" gid="224" x="861" y="1957" width="151" height="234"/>
+  <object id="202" gid="211" x="1562.55" y="974.152" width="91.0606" height="254.97"/>
+  <object id="203" gid="211" x="1666.59" y="402.818" width="91.0606" height="254.97"/>
+  <object id="204" gid="218" x="2155.67" y="292.333" width="134" height="110"/>
+  <object id="205" gid="2147483863" x="1753.33" y="413.667" width="273" height="326"/>
+  <object id="207" gid="205" x="1480" y="1731" width="72" height="122"/>
+  <object id="208" gid="205" x="1070" y="1813" width="72" height="122"/>
+  <object id="209" gid="205" x="1360" y="261" width="72" height="122"/>
+  <object id="210" gid="205" x="250" y="415" width="72" height="122"/>
+  <object id="211" gid="205" x="776" y="731" width="72" height="122"/>
+  <object id="212" gid="205" x="492" y="1641" width="72" height="122"/>
  </objectgroup>
  <layer id="1" name="Map" width="40" height="31">
   <properties>
