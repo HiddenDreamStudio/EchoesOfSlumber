@@ -17,6 +17,7 @@ public:
     void SetVideoPath(const std::string& path) { videoPath_ = path; }
     void SetCollectRange(float r)              { collectRange_ = r; }
     void SetScale(float s)                     { scale_ = s; }
+    void SetFragmentId(int id)                 { fragmentId_ = id; }
 
 private:
     void Draw();
@@ -30,6 +31,7 @@ private:
     std::string videoPath_    = "";
     float       collectRange_ = 100.0f;
     float       scale_        = 0.5f;   // 256 * 0.5 = 128px on screen
+    int         fragmentId_   = -1;
 
     // SS_Fragment_Collectible.png: 1536x1024 → 6 cols × 4 rows of 256×256 frames
     static constexpr int   COLS         = 6;
