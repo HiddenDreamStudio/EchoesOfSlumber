@@ -604,10 +604,10 @@ bool Render::DrawMenuText(const char* t, int x, int y, int w, int h, SDL_Color c
 
 bool Render::DrawMenuTextCentered(const char* t, SDL_Rect a, SDL_Color c) const
 {
-	return DrawMenuTextCentered(t, a, c, 1.0f);
+	return DrawMenuTextCentered(t, a, c, 1.0f, false);
 }
 
-bool Render::DrawMenuTextCentered(const char* t, SDL_Rect a, SDL_Color c, float ts) const
+bool Render::DrawMenuTextCentered(const char* t, SDL_Rect a, SDL_Color c, float ts, bool shrinkToFit) const
 {
 	if (!menuFont || !t) return false;
 	SDL_Surface* s = TTF_RenderText_Blended(menuFont, t, 0, c);
@@ -623,7 +623,17 @@ bool Render::DrawMenuTextCentered(const char* t, SDL_Rect a, SDL_Color c, float 
 	SDL_SetTextureBlendMode(tx, SDL_BLENDMODE_BLEND);
 	SDL_SetTextureAlphaMod(tx, c.a);
 
-	float tw = (float)s->w * ts, th = (float)s->h * ts, sc = (float)Engine::GetInstance().window->GetScale();
+	float tw = (float)s->w * ts;
+	float th = (float)s->h * ts;
+
+	float sc = (float)Engine::GetInstance().window->GetScale();
+
+	if (shrinkToFit && tw > (float)(a.w * sc) && a.w > 0) {
+		float ratio = (float)(a.w * sc) / tw;
+		tw *= ratio;
+		th *= ratio;
+	}
+
 	SDL_FRect d = { (a.x * sc) + (a.w * sc - tw) / 2.0f, (a.y * sc) + (a.h * sc - th) / 2.0f, tw, th };
 
 	bool ok = SDL_RenderTexture(renderer, tx, nullptr, &d);
