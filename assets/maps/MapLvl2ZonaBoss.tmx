@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="25" height="12" tilewidth="64" tileheight="64" infinite="0" nextlayerid="6" nextobjectid="3">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="25" height="12" tilewidth="64" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="10">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 2/TL_Nivell_2_01.png" width="640" height="640"/>
   <tile id="0">
@@ -153,9 +153,21 @@
    </objectgroup>
   </tile>
  </tileset>
+ <tileset firstgid="101" source="Assets level 2/Middle.tsx"/>
+ <tileset firstgid="124" source="Assets level 2/Fore.tsx"/>
  <imagelayer id="5" name="Background" offsetx="-1888" offsety="-192">
   <image source="../textures/fons_enviroment/Map2.5.png" width="3739" height="1034"/>
  </imagelayer>
+ <objectgroup id="6" name="Middleground">
+  <object id="4" gid="2147483750" x="2" y="605" width="448.109" height="265"/>
+  <object id="5" gid="105" x="860" y="607" width="695" height="459.867"/>
+ </objectgroup>
+ <objectgroup id="7" name="Background">
+  <object id="6" gid="132" x="-4" y="629" width="239" height="480.457"/>
+  <object id="7" gid="145" x="26" y="348.886" width="181.5" height="251.886"/>
+  <object id="8" gid="145" x="939.025" y="345" width="181.5" height="251.886"/>
+  <object id="9" gid="138" x="1329" y="600" width="150.841" height="109"/>
+ </objectgroup>
  <layer id="1" name="Map" width="25" height="12">
   <properties>
    <property name="Draw" type="bool" value="true"/>
