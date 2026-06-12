@@ -3712,7 +3712,7 @@ void Scene::PostUpdateGameplay()
 	}
 
 	// --- Boss health bar ---
-	{
+	if (!showMapViewer_ && !showInventory_ && !isPaused_ && !isGameOver_) {
 		int winW = 0, winH = 0;
 		Engine::GetInstance().window->GetWindowSize(winW, winH);
 		DrawBossHUD(winW, winH);
