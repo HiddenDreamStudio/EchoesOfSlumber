@@ -128,8 +128,14 @@ bool UIButton::Draw()
 		// Draw text centered on the LOGICAL area (to keep it stable)
 		// but matching the animation scale
 		SDL_Rect textBounds = renderBounds;
+
+		// Shrink bounds to avoid drawing over the button's broken edges (approx 28% each side)
+		int paddingX = (int)(renderBounds.w * 0.28f);
+		textBounds.x += paddingX;
+		textBounds.w -= paddingX * 2;
+
 		textBounds.y += (int)(5 * scaleAnim);
-		render.DrawMenuTextCentered(text.c_str(), textBounds, textColor);
+		render.DrawMenuTextCentered(text.c_str(), textBounds, textColor, 1.0f, true);
 	}
 	else {
 		// ── Renderizado por defecto con rectángulos (sin textura) ──────────────
