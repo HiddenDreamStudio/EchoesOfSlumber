@@ -248,6 +248,12 @@ private:
     // ── Loading Screen ────────────────────────────────────────────────────────
     void LoadLoading();
     void UnloadLoading();
+    
+    // Persistent state across map loads
+    bool savedHasBlanket_ = false;
+    bool savedHasSlingshot_ = false;
+    bool savedHasStuffedAnimal_ = false;
+    bool savedFragments_[3] = {false, false, false};
     void UpdateLoading(float dt);
     void DrawLoading();
     float loadingTimer_ = 0.0f;
@@ -508,14 +514,17 @@ private:
 
     // ── Memories UI ───────────────────────────────────────────────────────────
     SDL_Texture* texMemoria1Base_ = nullptr;
+    SDL_Texture* texMemoria1Collected_ = nullptr;
     SDL_Texture* texMemoria1N1_ = nullptr;
     SDL_Texture* texMemoria1N2_ = nullptr;
 
     SDL_Texture* texMemoria2Base_ = nullptr;
+    SDL_Texture* texMemoria2Collected_ = nullptr;
     SDL_Texture* texMemoria2N1_ = nullptr;
     SDL_Texture* texMemoria2N2_ = nullptr;
 
     SDL_Texture* texMemoria3Base_ = nullptr;
+    SDL_Texture* texMemoria3Collected_ = nullptr;
     SDL_Texture* texMemoria3N1_ = nullptr;
     SDL_Texture* texMemoria3N2_ = nullptr;
     SDL_Texture* texMemoria3N3_ = nullptr;
@@ -532,6 +541,7 @@ private:
 
     // Hover fade states
     float memoryHoverTimers_[3] = { 0.0f, 0.0f, 0.0f };
+    float memoryNewAnimTimer_[3] = { 0.0f, 0.0f, 0.0f };
 
     // Fullscreen state
     bool showMemoryViewer_ = false;

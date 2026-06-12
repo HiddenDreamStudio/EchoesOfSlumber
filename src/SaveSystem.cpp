@@ -268,6 +268,9 @@ void SaveSystem::CollectPlayerState()
 	gameState_.playerHasBlanket = scene->player ? scene->player->HasBlanket() : false;
 	gameState_.playerHasSlingshot = scene->player ? scene->player->HasSlingshot() : false;
 	gameState_.playerHasStuffedAnimal = scene->player ? scene->player->HasStuffedAnimal() : false;
+	for (int i = 0; i < 3; ++i) {
+		gameState_.hasMemoryFragment[i] = scene->player ? scene->player->HasMemoryFragment(i) : false;
+	}
 
 	if (pendingCheckpointPositionOverride_)
 	{
@@ -349,6 +352,10 @@ void SaveSystem::ApplyPlayerState()
 		scene->player->SetHasBlanket(gameState_.playerHasBlanket);
 		scene->player->SetHasSlingshot(gameState_.playerHasSlingshot);
 		scene->player->SetHasStuffedAnimal(gameState_.playerHasStuffedAnimal);
+		for (int i = 0; i < 3; ++i) {
+			scene->player->SetMemoryFragment(i, gameState_.hasMemoryFragment[i]);
+			scene->player->SetMemoryFragmentNew(i, false);
+		}
 		scene->player->Revive();
 		scene->ResetHealthUI(scene->player->health);
 	}
@@ -503,6 +510,10 @@ bool SaveSystem::WriteXML(const std::string& filename)
 	stateNode.append_attribute("hasBlanket") = gameState_.playerHasBlanket;
 	stateNode.append_attribute("hasSlingshot") = gameState_.playerHasSlingshot;
 	stateNode.append_attribute("hasStuffedAnimal") = gameState_.playerHasStuffedAnimal;
+	for (int i = 0; i < 3; ++i) {
+		std::string attrName = "hasMemoryFragment" + std::to_string(i);
+		stateNode.append_attribute(attrName.c_str()) = gameState_.hasMemoryFragment[i];
+	}
 
 	// Entities node (placeholder for future)
 	pugi::xml_node entitiesNode = root.append_child("entities");
@@ -577,6 +588,10 @@ bool SaveSystem::ReadXML(const std::string& filename)
 			gameState_.playerHasBlanket = stateNode.attribute("hasBlanket").as_bool(false);
 			gameState_.playerHasSlingshot = stateNode.attribute("hasSlingshot").as_bool(false);
 			gameState_.playerHasStuffedAnimal = stateNode.attribute("hasStuffedAnimal").as_bool(false);
+			for (int i = 0; i < 3; ++i) {
+				std::string attrName = "hasMemoryFragment" + std::to_string(i);
+				gameState_.hasMemoryFragment[i] = stateNode.attribute(attrName.c_str()).as_bool(false);
+			}
 		}
 	}
 
