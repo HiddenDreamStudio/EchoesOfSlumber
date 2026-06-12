@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="43" height="20" tilewidth="64" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="30">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="43" height="20" tilewidth="64" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="39">
  <tileset firstgid="1" name="TilesetNivel3" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 3/TL_Nivell_3_01.png" width="640" height="640"/>
   <tile id="0">
@@ -100,6 +100,7 @@
  </tileset>
  <tileset firstgid="101" source="Assets level 3/foreground/front level3.tsx"/>
  <tileset firstgid="118" source="Assets level 3/middleground/middle levle3.tsx"/>
+ <tileset firstgid="135" source="Assets level 3/background/back level3.tsx"/>
  <imagelayer id="7" name="Background" offsetx="60" offsety="-3152">
   <image source="../textures/fons_enviroment/Map3.png" width="15232" height="13952"/>
  </imagelayer>
@@ -109,10 +110,16 @@
   <object id="23" gid="128" x="1361.17" y="1307.11" width="521" height="604"/>
   <object id="24" gid="134" x="1973.59" y="1271.69" width="381" height="817"/>
   <object id="25" gid="126" x="296.676" y="1254.32" width="138.467" height="216.333"/>
+  <object id="30" gid="134" x="1179.2" y="1249.08" width="381" height="817"/>
+  <object id="31" gid="134" x="15.5606" y="1273.32" width="381" height="817"/>
+  <object id="32" gid="140" x="2172.39" y="1245.21" width="242.786" height="130.515"/>
+  <object id="34" gid="140" x="1063.46" y="1240.8" width="242.786" height="130.515"/>
+  <object id="36" gid="140" x="368.607" y="1226.74" width="242.786" height="130.515"/>
+  <object id="38" gid="151" x="2834.3" y="690.95" width="378.318" height="280.85" rotation="221.992"/>
  </objectgroup>
  <objectgroup id="4" name="Entities">
   <object id="27" name="Wall" type="Wall" x="2549.78" y="600.848" width="193.212" height="579.152"/>
-  <object id="30" name="Boss2" type="Boss2" x="1718.55" y="1086.18" width="272" height="264"/>
+  <object id="30" name="Boss2" type="Boss2" x="1144.55" y="960.847" width="272" height="264"/>
  </objectgroup>
  <layer id="1" name="Map" width="43" height="20">
   <properties>
@@ -159,9 +166,9 @@
  </objectgroup>
  <objectgroup id="2" name="Foreground">
   <object id="1" gid="1073741934" x="119.5" y="571.329" width="533.605" height="592"/>
-  <object id="2" gid="112" x="2593.5" y="1201.33" width="131.93" height="403"/>
   <object id="3" gid="1073741930" x="1152" y="512" width="690.819" height="519"/>
-  <object id="4" gid="111" x="1209.88" y="1256.33" width="299.62" height="120.342"/>
+  <object id="4" gid="111" x="944.547" y="1233.66" width="219.948" height="88.342"/>
   <object id="5" gid="107" x="430.608" y="264.727" width="1018" height="305"/>
+  <object id="37" gid="111" x="42.026" y="1231.83" width="219.948" height="88.342"/>
  </objectgroup>
 </map>
