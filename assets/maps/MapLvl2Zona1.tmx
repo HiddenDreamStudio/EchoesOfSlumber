@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="170" height="104" tilewidth="64" tileheight="64" infinite="0" nextlayerid="24" nextobjectid="553">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="170" height="104" tilewidth="64" tileheight="64" infinite="0" nextlayerid="24" nextobjectid="557">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 2/TL_Nivell_2_01.png" width="640" height="640"/>
   <tile id="0">
@@ -14073,11 +14073,11 @@
    <tile gid="12"/>
    <tile gid="12"/>
    <tile gid="12"/>
-   <tile gid="28"/>
-   <tile gid="3"/>
+   <tile gid="13"/>
    <tile/>
    <tile/>
-   <tile gid="35"/>
+   <tile gid="37"/>
+   <tile gid="40"/>
    <tile/>
    <tile/>
    <tile/>
@@ -14243,8 +14243,8 @@
    <tile gid="12"/>
    <tile gid="12"/>
    <tile gid="12"/>
-   <tile gid="12"/>
-   <tile gid="13"/>
+   <tile gid="28"/>
+   <tile gid="3"/>
    <tile/>
    <tile/>
    <tile/>
@@ -18040,12 +18040,6 @@
  </layer>
  <objectgroup id="18" name="Weapons"/>
  <objectgroup id="12" name="Entities">
-  <object id="370" name="EnemyStitchling" type="EnemyStitchling" x="8399" y="5989" width="32" height="32">
-   <properties>
-    <property name="patrol_left" type="float" value="6000"/>
-    <property name="patrol_right" type="float" value="6400"/>
-   </properties>
-  </object>
   <object id="371" name="EnemyPlush" type="EnemyPlush" x="3774.67" y="6564" width="32" height="32">
    <properties>
     <property name="patrol_left" type="float" value="6000"/>
@@ -18058,16 +18052,14 @@
     <property name="patrol_right" type="float" value="6400"/>
    </properties>
   </object>
-  <object id="380" name="EnemyStitchling" type="EnemyStitchling" x="4374" y="1572" width="32" height="32"/>
+  <object id="380" name="EnemyStitchling" type="EnemyStitchling" x="4934" y="1574.67" width="32" height="32"/>
   <object id="499" name="Antagonist" type="Antagonist" x="2821.79" y="6499.75" width="59.4458" height="55.0424"/>
   <object id="500" name="EnemyPlush" type="EnemyPlush" x="9451.33" y="5995" width="32" height="32"/>
-  <object id="501" name="EnemyPlush" type="EnemyPlush" x="6500.67" y="5740.61" width="32" height="32"/>
   <object id="502" name="EnemyPlush" type="EnemyPlush" x="4590.67" y="6437.33" width="32" height="32"/>
-  <object id="503" name="EnemyPlush" type="EnemyPlush" x="1422.67" y="6054.67" width="32" height="32"/>
-  <object id="504" name="EnemyPlush" type="EnemyPlush" x="4938" y="1574" width="32" height="32"/>
-  <object id="552" type="Platform" x="7808" y="5952" width="192" height="64">
+  <object id="504" name="EnemyPlush" type="EnemyPlush" x="4598" y="1572.67" width="32" height="32"/>
+  <object id="552" type="Platform" x="7808" y="5999" width="128" height="61.1343">
    <properties>
-    <property name="path" value="7808,5952;7808,5376"/>
+    <property name="path" value="7808,5999;7808,5376"/>
     <property name="platform_name" value="Ascensor1"/>
     <property name="require_lever" type="bool" value="false"/>
     <property name="speed" type="float" value="4"/>
@@ -18075,6 +18067,10 @@
     <property name="trigger" type="bool" value="false"/>
    </properties>
   </object>
+  <object id="553" name="Enemy" type="EnemyWindUpScurry" x="8448" y="5961" width="64" height="64"/>
+  <object id="554" name="Enemy" type="EnemyWindUpScurry" x="6097" y="5706" width="64" height="64"/>
+  <object id="555" name="Enemy" type="EnemyWindUpScurry" x="1358" y="6030" width="64" height="64"/>
+  <object id="556" name="Tirachinas" type="Tirachinas" x="5781.33" y="507.238" width="40" height="38.0952"/>
  </objectgroup>
  <objectgroup id="22" name="Spawns">
   <object id="487" type="Spawn" x="10218.7" y="5968">
