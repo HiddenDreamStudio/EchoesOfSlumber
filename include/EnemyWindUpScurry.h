@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Entity.h"
 #include "Animation.h"
 #include <box2d/box2d.h>
@@ -10,88 +9,103 @@ class Player;
 class EnemyWindUpScurry : public Entity
 {
 public:
-	enum class State {
-		IDLE,            // Roaming around randomly (no fixed pattern)
-		ALERTA,          // Detected the player, wind-up key spinning faster
-		ANTES_WALK_FAST, // Transition animation before chasing
-		WALK_FAST,       // Actively chasing the player (~12 seconds)
-		CANSADO,         // Transition to fatigue (winding down)
-		IDLE_CANSADO,    // Exhausted, immobile (~3 seconds) - VULNERABLE
-		HIT,             // Taking damage (only possible during IDLE_CANSADO)
-		DEATH            // Dead
-	};
+    enum class State {
+        IDLE,            // Roaming around randomly (no fixed pattern)
+        ALERTA,          // Detected the player, wind-up key spinning faster
+        ANTES_WALK_FAST, // Transition animation before chasing
+        WALK_FAST,       // Actively chasing the player
+        BITE,            // Lunging and biting the player (stops, deals damage once)
+        BITE_RETREAT,    // Retreating in opposite direction after bite
+        CANSADO,         // Transition to fatigue (winding down)
+        IDLE_CANSADO,    // Exhausted, immobile (~3 seconds) - VULNERABLE
+        HIT,             // Taking damage (only possible during IDLE_CANSADO)
+        DEATH            // Dead
+    };
 
-	EnemyWindUpScurry();
-	virtual ~EnemyWindUpScurry();
+    EnemyWindUpScurry();
+    virtual ~EnemyWindUpScurry();
 
-	bool Awake() override;
-	bool Start() override;
-	bool Update(float dt) override;
-	bool CleanUp() override;
+    bool Awake()   override;
+    bool Start()   override;
+    bool Update(float dt) override;
+    bool CleanUp() override;
 
-	void OnCollision(PhysBody* physA, PhysBody* physB) override;
-	void OnCollisionEnd(PhysBody* physA, PhysBody* physB) override;
-
-	void TakeDamage(int damage) override;
+    void OnCollision(PhysBody* physA, PhysBody* physB)    override;
+    void OnCollisionEnd(PhysBody* physA, PhysBody* physB) override;
+    void TakeDamage(int damage) override;
 
 public:
-	int texW = 128, texH = 128;
+    int texW = 128, texH = 128;
 
 private:
-	void UpdateFSM(float dt);
-	void EnterState(State newState);
-	void Draw(float dt);
-	float GetDistanceToPlayer() const;
-	void ChooseNewPatrolDirection();
+    void UpdateFSM(float dt);
+    void EnterState(State newState);
+    void Draw(float dt);
+    float GetDistanceToPlayer() const;
+    void ChooseNewPatrolDirection();
 
 private:
-	State currentState_ = State::IDLE;
-	float stateTimer_ = 0.0f;
+    State   currentState_ = State::IDLE;
+    float   stateTimer_ = 0.0f;
+    Player* playerRef_ = nullptr;
 
-	Player* playerRef_ = nullptr;
+    // ?? Patrol (random roaming) ??????????????????????????????????????????????
+    float patrolDirX_ = 1.0f;
+    float patrolTimer_ = 0.0f;
+    static constexpr float PATROL_CHANGE_INTERVAL = 2000.0f; // ms
+    static constexpr float PATROL_SPEED = 1.5f;
 
-	// Patrol (random roaming)
-	float patrolDirX_ = 1.0f;
-	float patrolTimer_ = 0.0f;
-	static constexpr float PATROL_CHANGE_INTERVAL = 2000.0f; // ms between random direction changes
-	static constexpr float PATROL_SPEED = 1.5f;
+    // ?? Detection ???????????????????????????????????????????????????????????
+    static constexpr float DETECTION_RADIUS = 200.0f;
 
-	// Detection
-	static constexpr float DETECTION_RADIUS = 200.0f;
+    // ?? Chase ???????????????????????????????????????????????????????????????
+    static constexpr float CHASE_SPEED = 4.0f;
+    static constexpr float CHASE_DURATION = 12000.0f; // ms safety timeout
 
-	// Chase
-	static constexpr float CHASE_SPEED = 4.0f;
-	static constexpr float CHASE_DURATION = 12000.0f; // 12 seconds in ms
+    // ?? Bite ????????????????????????????????????????????????????????????????
+    static constexpr float BITE_RANGE = 40.0f;  // px — trigger bite when this close
+    static constexpr float BITE_RETREAT_SPEED = 5.0f;   // faster than chase
+    static constexpr float BITE_RETREAT_DURATION = 600.0f; // ms running away
+    float biteReturnDirX_ = -1.0f; // direction opposite to player at bite moment
+    bool  biteDamageDealt_ = false; // ensures damage fires only once per bite
 
-	// Fatigue
-	static constexpr float FATIGUE_DURATION = 3000.0f; // 3 seconds in ms
+    // ?? Fatigue ?????????????????????????????????????????????????????????????
+    static constexpr float FATIGUE_DURATION = 3000.0f; // ms
 
-	// Physics
-	PhysBody* pbody = nullptr;
+    // ?? Attack cooldown (IDLE wall-contact damage) ???????????????????????????
+    float attackCooldown_ = 0.0f;
+    static constexpr float ATTACK_COOLDOWN = 800.0f; // ms
 
-	// Animations
-	AnimationSet idleAnims_;
-	AnimationSet alertaAnims_;
-	AnimationSet antesWalkFastAnims_;
-	AnimationSet walkFastAnims_;
-	AnimationSet cansadoAnims_;
-	AnimationSet idleCansadoAnims_;
-	AnimationSet hitAnims_;
-	AnimationSet dieAnims_;
+    // ?? Physics ?????????????????????????????????????????????????????????????
+    PhysBody* pbody = nullptr;
 
-	// Textures
-	SDL_Texture* idleTexture_ = nullptr;
-	SDL_Texture* alertaTexture_ = nullptr;
-	SDL_Texture* antesWalkFastTexture_ = nullptr;
-	SDL_Texture* walkFastTexture_ = nullptr;
-	SDL_Texture* cansadoTexture_ = nullptr;
-	SDL_Texture* idleCansadoTexture_ = nullptr;
-	SDL_Texture* hitTexture_ = nullptr;
-	SDL_Texture* dieTexture_ = nullptr;
+    // ?? Animations ??????????????????????????????????????????????????????????
+    AnimationSet idleAnims_;
+    AnimationSet alertaAnims_;
+    AnimationSet antesWalkFastAnims_;
+    AnimationSet walkFastAnims_;
+    AnimationSet biteAnims_;
+    AnimationSet biteRetreatAnims_;
+    AnimationSet cansadoAnims_;
+    AnimationSet idleCansadoAnims_;
+    AnimationSet hitAnims_;
+    AnimationSet dieAnims_;
 
-	bool facingRight_ = false;
+    // ?? Textures ?????????????????????????????????????????????????????????????
+    SDL_Texture* idleTexture_ = nullptr;
+    SDL_Texture* alertaTexture_ = nullptr;
+    SDL_Texture* antesWalkFastTexture_ = nullptr;
+    SDL_Texture* walkFastTexture_ = nullptr;
+    SDL_Texture* biteTexture_ = nullptr;
+    SDL_Texture* biteRetreatTexture_ = nullptr;
+    SDL_Texture* cansadoTexture_ = nullptr;
+    SDL_Texture* idleCansadoTexture_ = nullptr;
+    SDL_Texture* hitTexture_ = nullptr;
+    SDL_Texture* dieTexture_ = nullptr;
 
-	// Audio Fx IDs
-	int attackFxId = -1;
-	int deadFxId = -1;
+    bool facingRight_ = false;
+
+    // ?? Audio ????????????????????????????????????????????????????????????????
+    int attackFxId = -1;
+    int deadFxId = -1;
 };
