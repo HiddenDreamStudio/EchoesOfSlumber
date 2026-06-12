@@ -68,6 +68,12 @@ public:
 	bool IsBearMode() const { return isBearMode_; }
 	bool IsBearModeActive() const { return isBearMode_ || isBearTransforming_ || isThrowingBear_ || isKidSleeping_; }
 
+	// Memory Fragments
+	bool HasMemoryFragment(int index) const { return index >= 0 && index < 3 ? hasMemoryFragment_[index] : false; }
+	void SetMemoryFragment(int index, bool v) { if (index >= 0 && index < 3) hasMemoryFragment_[index] = v; }
+	bool IsMemoryFragmentNew(int index) const { return index >= 0 && index < 3 ? isMemoryFragmentNew_[index] : false; }
+	void SetMemoryFragmentNew(int index, bool v) { if (index >= 0 && index < 3) isMemoryFragmentNew_[index] = v; }
+
 private:
 
 	void GetPhysicsValues();
@@ -193,6 +199,10 @@ private:
 	bool hasBlanket_ = false;
 	bool hasStuffedAnimal_ = false;
 	EquippedItem equippedItem_ = EquippedItem::NONE;
+
+	// Memory fragments
+	bool hasMemoryFragment_[3] = { false, false, false };
+	bool isMemoryFragmentNew_[3] = { false, false, false };
 
 	// Push rock state
 	bool  isPushing_ = false;
