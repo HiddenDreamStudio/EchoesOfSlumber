@@ -31,6 +31,13 @@ bool HidingRock::Start() {
 		promptH_ = (int)ph;
 	}
 
+	// Load the hiding rock sprite (pre-rotated 180° so arch opening faces down)
+	texRock_ = Engine::GetInstance().textures->Load(
+		"assets/textures/AS_environment/redissenys assets_Nivell 1/AS_roca_escondite_01.png");
+	if (texRock_) {
+		Engine::GetInstance().textures->GetSize(texRock_, rockTexW_, rockTexH_);
+	}
+
 	return true;
 }
 
@@ -107,12 +114,33 @@ bool HidingRock::PostUpdate() {
 		render->DrawTexture(texPrompt_, promptX, promptY, &promptSec, 1.0f, -1.0f, 0.0, INT_MAX, INT_MAX, SDL_FLIP_NONE, promptScale);
 	}
 
+	// Draw the rock sprite — bottom-aligned to the object position
+	if (texRock_ && rockTexW_ > 0 && rockTexH_ > 0) {
+		auto& render = Engine::GetInstance().render;
+		static constexpr int TARGET_W = 460;
+		float drawScale = (float)TARGET_W / (float)rockTexW_;
+		int drawW = TARGET_W;
+		int drawH = (int)(rockTexH_ * drawScale);
+
+		int bx, by;
+		pbody_->GetPosition(bx, by);
+
+		// Align bottom of sprite to bottom of sensor (floor level)
+		int drawX = bx - drawW / 2;
+		int drawY = by - drawH + 45;
+
+		SDL_Rect section = { 0, 0, rockTexW_, rockTexH_ };
+		SDL_SetTextureBlendMode(texRock_, SDL_BLENDMODE_BLEND);
+		render->DrawTexture(texRock_, drawX, drawY, &section, 1.0f, -1.0f, 0, INT_MAX, INT_MAX, SDL_FLIP_NONE, drawScale);
+	}
+
 	return true;
 	return true;
 }
 
 bool HidingRock::CleanUp() {
 	if (texPrompt_) SDL_DestroyTexture(texPrompt_);
+	if (texRock_) Engine::GetInstance().textures->UnLoad(texRock_);
 	if (pbody_) Engine::GetInstance().physics->DeletePhysBody(pbody_);
 	return true;
 }
