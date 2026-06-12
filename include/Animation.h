@@ -55,6 +55,7 @@ public:
     bool Has(const std::string& name) const;
 
     void SetLoop(const std::string& name, bool loop);
+    void SetFinished(const std::string& name);
     bool HasFinishedOnce(const std::string& name) const;
     int GetCurrentFrameIndex() const;
 
