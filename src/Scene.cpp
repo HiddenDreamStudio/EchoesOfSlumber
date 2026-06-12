@@ -4469,18 +4469,21 @@ void Scene::DrawInventory(int winW, int winH)
 
 		// Small helper instructions text in footer
 		SDL_Rect hintArea = { (int)frameX, (int)(frameY + frameH - 35.0f * fScale), (int)frameW, 20 };
-		render.DrawMenuTextCentered("Click bordes o Flechas para cambiar de pagina  |  ESC / Click fuera para cerrar", hintArea, { 180, 200, 220, 180 }, 0.28f);
+		render.DrawMenuTextCentered("Click edges or Arrows to change page  |  ESC / Click outside to close", hintArea, { 180, 200, 220, 180 }, 0.28f);
 	}
 
 	// 5. Instructions Footer Overlay
-	SDL_Rect footer = { 0, winH - 45, winW, 30 };
-	if (Engine::GetInstance().input->IsGamepadConnected())
+	if (!showMemoryViewer_ || activeMemoryIndex_ == -1)
 	{
-		render.DrawMenuTextCentered("Clic en slots para Equipar  |  ARRIBA o 'I' para cerrar", footer, { 180, 210, 240, 200 }, 0.35f);
-	}
-	else
-	{
-		render.DrawMenuTextCentered("Clic en slots para Equipar (Teclas 1, 2, 3 en juego)  |  'I' para cerrar", footer, { 180, 210, 240, 200 }, 0.35f);
+		SDL_Rect footer = { 0, winH - 45, winW, 30 };
+		if (Engine::GetInstance().input->IsGamepadConnected())
+		{
+			render.DrawMenuTextCentered("Click slots to Equip  |  UP or 'I' to close", footer, { 180, 210, 240, 200 }, 0.35f);
+		}
+		else
+		{
+			render.DrawMenuTextCentered("Click slots to Equip (Keys 1, 2, 3 in game)  |  'I' to close", footer, { 180, 210, 240, 200 }, 0.35f);
+		}
 	}
 }
 
