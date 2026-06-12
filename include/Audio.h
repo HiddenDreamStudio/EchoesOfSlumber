@@ -42,6 +42,9 @@ public:
     void SetMusicVolume(float volume); // 0.0f - 1.0f
     void SetSFXVolume(float volume);   // 0.0f - 1.0f
 
+	void PauseMusic();
+	void ResumeMusic();
+
 private:
 
     struct SoundData {
@@ -64,8 +67,9 @@ private:
     std::vector<SoundData> sfx_; // 1-based indexing outwardly
 
 	// Volume control
-    float music_volume_ = 1.0f; // 0.0 = mute, 1.0 = full
-    float sfx_volume_ = 1.0f;
+    float music_volume_{ 0.5f };
+    float sfx_volume_{ 0.5f };
+    bool musicPaused_{ false };
 
     // helpers
     bool LoadWavFile(const char* path, SoundData& out);
