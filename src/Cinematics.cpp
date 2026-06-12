@@ -4,6 +4,7 @@
 #include "Window.h"
 #include "Input.h"
 #include "Log.h"
+#include "Audio.h"
 
 // FFmpeg headers (C linkage)
 extern "C" {
@@ -110,6 +111,8 @@ bool Cinematics::PlayVideo(const char* path)
 
 	// Decode the first frame immediately so we have something to show
 	DecodeNextFrame();
+
+	Engine::GetInstance().audio->PauseMusic();
 
 	return true;
 }
@@ -322,6 +325,8 @@ void Cinematics::CloseVideo()
 	audioStreamIdx = -1;
 	videoWidth = 0;
 	videoHeight = 0;
+
+	Engine::GetInstance().audio->ResumeMusic();
 }
 
 // ===================================================================
