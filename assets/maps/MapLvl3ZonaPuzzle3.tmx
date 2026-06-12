@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="54" height="43" tilewidth="64" tileheight="64" infinite="0" nextlayerid="6" nextobjectid="6">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="54" height="43" tilewidth="64" tileheight="64" infinite="0" nextlayerid="7" nextobjectid="16">
  <tileset firstgid="1" name="TilesetNivel3" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 3/TL_Nivell_3_01.png" width="640" height="640"/>
   <tile id="0">
@@ -98,6 +98,7 @@
    </objectgroup>
   </tile>
  </tileset>
+ <tileset firstgid="101" source="Assets level 3/middleground/middle levle3.tsx"/>
  <imagelayer id="3" name="Background" offsetx="-5912" offsety="-9088">
   <image source="../textures/fons_enviroment/Map3.png" width="15232" height="13952"/>
  </imagelayer>
@@ -116,6 +117,18 @@
     <property name="target" value="Map3.tmx"/>
    </properties>
   </object>
+ </objectgroup>
+ <objectgroup id="6" name="Middleground">
+  <object id="6" gid="107" x="1766" y="166" width="594.824" height="158"/>
+  <object id="7" gid="116" x="1731.39" y="466.182" width="516.803" height="402.782" rotation="120.774"/>
+  <object id="8" gid="116" x="1383.67" y="1798.47" width="475.534" height="370.618" rotation="120.774"/>
+  <object id="9" gid="116" x="3417.81" y="570.653" width="766" height="597" rotation="236.048"/>
+  <object id="10" gid="116" x="1098.27" y="177.032" width="766" height="597" rotation="210.377"/>
+  <object id="11" gid="116" x="3373.01" y="1630.57" width="766" height="597" rotation="164.077"/>
+  <object id="12" gid="107" x="1033.1" y="1251.12" width="585.293" height="206.515"/>
+  <object id="13" gid="107" x="2190.59" y="2339" width="594.824" height="158"/>
+  <object id="14" gid="107" x="1762.59" y="897" width="594.824" height="158"/>
+  <object id="15" gid="107" x="444.588" y="1129" width="264.084" height="68"/>
  </objectgroup>
  <layer id="1" name="Map" width="54" height="43">
   <properties>
