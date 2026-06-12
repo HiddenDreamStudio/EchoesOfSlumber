@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="29" height="31" tilewidth="64" tileheight="64" infinite="0" nextlayerid="8" nextobjectid="6">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="29" height="31" tilewidth="64" tileheight="64" infinite="0" nextlayerid="10" nextobjectid="40">
  <tileset firstgid="1" name="Tileset 3" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 4/TL_Nivell_4_01.png" width="640" height="640"/>
   <tile id="0">
@@ -143,9 +143,28 @@
    </objectgroup>
   </tile>
  </tileset>
+ <tileset firstgid="101" source="Assets level 4/middle level 4.tsx"/>
+ <tileset firstgid="144" source="Assets level 4/foreground/fore level 4.tsx"/>
+ <tileset firstgid="174" source="back.tsx"/>
  <imagelayer id="4" name="Background" offsetx="-32" offsety="-896">
   <image source="../textures/fons_enviroment/Map4/Map4_fondo.png" width="11072" height="11392"/>
  </imagelayer>
+ <objectgroup id="8" name="Background">
+  <object id="23" gid="189" x="1340.33" y="865.333" width="180" height="211.792"/>
+  <object id="26" gid="187" x="1100" y="858" width="348" height="454"/>
+  <object id="27" gid="195" x="264" y="1550" width="410.013" height="549"/>
+  <object id="28" gid="193" x="726" y="1962" width="725" height="421"/>
+  <object id="29" gid="199" x="1231.29" y="1937" width="551" height="133"/>
+  <object id="30" gid="192" x="1629.05" y="1206.2" width="627" height="417" rotation="207.788"/>
+  <object id="38" gid="200" x="187.103" y="-128.947" width="633.793" height="773.894" rotation="129.979"/>
+  <object id="39" gid="192" x="1731" y="37" width="627" height="417" rotation="180"/>
+ </objectgroup>
+ <objectgroup id="9" name="Middleground">
+  <object id="33" gid="170" x="865.973" y="847" width="404.055" height="274"/>
+  <object id="34" gid="172" x="279" y="908" width="349.372" height="178"/>
+  <object id="35" gid="160" x="947" y="1929" width="152" height="132.759"/>
+  <object id="36" gid="162" x="1792" y="896" width="772.692" height="330.189" rotation="135"/>
+ </objectgroup>
  <layer id="1" name="Map" width="29" height="31">
   <properties>
    <property name="Draw" type="bool" value="true"/>
@@ -191,7 +210,7 @@
   <image source="../textures/fons_enviroment/Map4/Map4_fondo_delante_2.png" width="11072" height="11392"/>
  </imagelayer>
  <objectgroup id="2" name="Portals">
-  <object id="3" type="Portal" x="1320.33" y="1450.55" width="515.334" height="498.909">
+  <object id="3" type="Portal" x="1315.33" y="1452.55" width="515.334" height="498.909">
    <properties>
     <property name="spawnId" value="I"/>
     <property name="target" value="MapLvl4ZonaAlta.tmx"/>
