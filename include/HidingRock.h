@@ -31,4 +31,8 @@ private:
 	SDL_Texture* texPrompt_ = nullptr;
 	int promptW_ = 0;
 	int promptH_ = 0;
+
+	SDL_Texture* texRock_ = nullptr;
+	int rockTexW_ = 0;
+	int rockTexH_ = 0;
 };
