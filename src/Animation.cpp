@@ -167,6 +167,12 @@ void AnimationSet::SetLoop(const std::string& name, bool loop) {
     }
 }
 
+void AnimationSet::SetFinished(const std::string& name) {
+    if (Has(name)) {
+        clips_[name].SetFinished();
+    }
+}
+
 bool AnimationSet::HasFinishedOnce(const std::string& name) const {
     if (Has(name)) {
         return clips_.at(name).HasFinishedOnce();
