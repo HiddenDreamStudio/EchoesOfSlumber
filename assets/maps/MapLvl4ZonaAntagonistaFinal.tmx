@@ -204,10 +204,10 @@
    <properties>
     <property name="path" value="716,1344;716,779"/>
     <property name="platform_name" value="Ascensor1"/>
-    <property name="require_lever" type="bool" value="true"/>
+    <property name="require_lever" type="bool" value="false"/>
     <property name="speed" type="float" value="4"/>
-    <property name="texture" value="assets/textures/TL_environment/plat_4tilesLvl2.png"/>
-    <property name="trigger" type="bool" value="true"/>
+    <property name="texture" value="assets/textures/TL_environment/plat_4tilesLvl4.png"/>
+    <property name="trigger" type="bool" value="false"/>
    </properties>
   </object>
  </objectgroup>
