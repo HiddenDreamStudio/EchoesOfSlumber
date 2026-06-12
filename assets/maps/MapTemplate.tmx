@@ -423,6 +423,7 @@
   <object id="1809" name="MemoryFragment" type="MemoryFragment" x="3784" y="2637" width="80" height="60">
    <properties>
     <property name="video_path" value="assets/video/Anchor_1.mp4"/>
+    <property name="fragment_id" type="int" value="0"/>
    </properties>
   </object>
   <object id="1811" name="HidingRock" type="HidingRock" x="6286.79" y="8529.7" width="64" height="64">
