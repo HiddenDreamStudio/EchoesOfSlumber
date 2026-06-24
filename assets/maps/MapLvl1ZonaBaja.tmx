@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="152" height="81" tilewidth="64" tileheight="64" infinite="0" nextlayerid="19" nextobjectid="1400">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="152" height="81" tilewidth="64" tileheight="64" infinite="0" nextlayerid="19" nextobjectid="1440">
  <tileset firstgid="1" name="Tileset" tilewidth="64" tileheight="64" tilecount="100" columns="10">
   <image source="Nivell 1/Tileset.png" width="640" height="640"/>
   <tile id="0">
@@ -391,6 +391,19 @@
   <object id="1394" gid="153" x="1860.55" y="3106.47" width="206.946" height="171.697"/>
   <object id="1395" gid="1073741981" x="1832.59" y="2705.57" width="104" height="186"/>
   <object id="1396" gid="1073741979" x="1530.59" y="2755.57" width="149" height="241.583"/>
+  <object id="1401" gid="156" x="1655" y="732" width="350.51" height="506.902"/>
+  <object id="1402" gid="156" x="3012.74" y="1620.55" width="350.51" height="506.902"/>
+  <object id="1403" gid="156" x="3732.74" y="1608.55" width="350.51" height="506.902"/>
+  <object id="1404" gid="160" x="3289" y="1662" width="594" height="475.744"/>
+  <object id="1405" gid="156" x="5449" y="1670" width="421" height="608.843"/>
+  <object id="1407" gid="159" x="5600" y="1739" width="492" height="602"/>
+  <object id="1408" gid="159" x="3980" y="1723" width="492" height="602"/>
+  <object id="1429" gid="2147483807" x="2774" y="1705" width="492" height="602"/>
+  <object id="1431" gid="2147483807" x="1520" y="341" width="492" height="602" rotation="90"/>
+  <object id="1432" gid="167" x="2103" y="724" width="72" height="194.71"/>
+  <object id="1433" gid="181" x="2206.13" y="1295.8" width="201.547" height="638.802" rotation="19.8293"/>
+  <object id="1436" gid="176" x="5986" y="1615" width="240" height="153"/>
+  <object id="1437" gid="176" x="4646" y="1617" width="240" height="153"/>
  </objectgroup>
  <objectgroup id="13" name="Middleground">
   <object id="1346" gid="189" x="3159.85" y="1277.07" width="167.625" height="166.504"/>
@@ -417,6 +430,21 @@
   <object id="1367" gid="1073742022" x="7927.33" y="2132.18" width="115.676" height="164.201"/>
   <object id="1368" gid="193" x="7084.45" y="2127.26" width="170" height="165"/>
   <object id="1369" gid="192" x="5811.45" y="2089.26" width="310" height="127"/>
+  <object id="1410" gid="200" x="3316" y="1175.18" width="352" height="485.63"/>
+  <object id="1411" gid="200" x="3220" y="1645.18" width="388.242" height="535.63"/>
+  <object id="1412" gid="200" x="5152" y="1603.18" width="352" height="485.63"/>
+  <object id="1414" gid="218" x="4555" y="1625" width="134" height="110"/>
+  <object id="1415" gid="218" x="3681" y="1623" width="134" height="110"/>
+  <object id="1416" gid="220" x="3983" y="1632" width="106" height="119"/>
+  <object id="1417" gid="220" x="2837" y="1620" width="106" height="119"/>
+  <object id="1418" gid="199" x="2350" y="1578" width="297" height="500"/>
+  <object id="1421" gid="204" x="3037" y="1081" width="891" height="710" rotation="-90"/>
+  <object id="1423" gid="189" x="2019" y="525" width="299" height="297"/>
+  <object id="1424" gid="189" x="2251" y="283" width="299" height="297"/>
+  <object id="1425" gid="190" x="2497" y="200" width="155" height="223"/>
+  <object id="1426" gid="190" x="2667" y="1264" width="155" height="223"/>
+  <object id="1427" gid="190" x="2937" y="1334" width="155" height="223"/>
+  <object id="1428" gid="191" x="2697" y="1339" width="295" height="310"/>
  </objectgroup>
  <layer id="1" name="Map" width="152" height="81">
   <properties>
@@ -12738,11 +12766,11 @@
   </data>
  </layer>
  <objectgroup id="11" name="Foreground">
-  <object id="1295" gid="110" x="5163.88" y="1653.39" width="243.945" height="204.387"/>
+  <object id="1295" gid="110" x="5296.88" y="1623.39" width="243.945" height="204.387"/>
   <object id="1296" gid="131" x="3719.5" y="1654.29" width="153.072" height="104.949"/>
   <object id="1297" gid="1073741937" x="5081.06" y="1373.22" width="197.793" height="281.856"/>
   <object id="1298" gid="108" x="5568.15" y="2210.49" width="287.625" height="264.549"/>
-  <object id="1299" gid="127" x="6016.81" y="1647.7" width="147.848" height="115.059"/>
+  <object id="1299" gid="127" x="6153.81" y="1615.7" width="147.848" height="115.059"/>
   <object id="1300" gid="128" x="4751.18" y="1646.67" width="158.641" height="123.18"/>
   <object id="1301" gid="198" x="4226.69" y="1607.72" width="194.497" height="276.087"/>
   <object id="1302" gid="1073741981" x="4264.6" y="1290.43" width="85.7105" height="153.29"/>
@@ -12781,12 +12809,12 @@
   <object id="1373" gid="193" x="3308.45" y="3719.26" width="170" height="165"/>
   <object id="1374" gid="192" x="2903.45" y="3673.26" width="310" height="127"/>
  </objectgroup>
- <objectgroup id="7" name="Entities">
+ <objectgroup id="7" name="Entities" class="EnemyWindUpScurry">
   <object id="1294" name="Player" type="Player" x="2428" y="170" width="96" height="96"/>
   <object id="1398" name="Antagonist" type="Antagonist" x="5696.94" y="1544.48" width="59.4458" height="55.0424"/>
   <object id="1399" name="Antagonist" type="Antagonist" x="1318.28" y="4800.48" width="59.4458" height="55.0424"/>
-  <object id="1397" name="WindUpScurry" type="EnemyWindUpScurry" x="1628" y="170" width="64" height="64"/>
-  <object id="1420" name="HidingRock" type="HidingRock" x="4800" y="1478" width="120" height="100">
+  <object id="1397" name="Enemy" type="EnemyWindUpScurry" x="1918" y="500" width="64" height="64"/>
+  <object id="1420" name="HidingRock" type="HidingRock" x="4635" y="1510" width="120" height="100">
    <properties>
     <property name="rock_type" type="int" value="1"/>
    </properties>
@@ -12796,6 +12824,7 @@
     <property name="rock_type" type="int" value="1"/>
    </properties>
   </object>
+  <object id="1439" name="Enemy" type="EnemyWindUpScurry" x="3597" y="1543" width="64" height="64"/>
  </objectgroup>
  <objectgroup id="8" name="Portals" class="Portals">
   <object id="1291" type="Portal" x="2292" y="2" width="340" height="71.3333">
