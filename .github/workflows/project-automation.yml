@@ -1,9 +1,6 @@
 name: Project Board Automation
 
 on:
-  schedule:
-    # Run daily at 06:00 UTC (08:00 CET)
-    - cron: '0 6 * * *'
   workflow_dispatch: # Allow manual trigger
 
 env:
